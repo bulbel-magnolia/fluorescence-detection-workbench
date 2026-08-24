@@ -1,9 +1,27 @@
 import type { TFunction } from 'i18next';
-import type { BfnPort } from './types';
+import type {
+  BfnContext,
+  BfnFunctionalModule,
+  BfnModelVariant,
+  BfnParameterEstimate,
+  BfnPort,
+} from './types';
+
+export interface BfnParameterPresentation {
+  id: string;
+  label: string;
+  symbol?: string;
+  showSymbolInSummary?: boolean;
+  description: string;
+  estimate: BfnParameterEstimate;
+}
 
 const entityKeys: Record<string, string> = {
   normalized_promoter_activity: 'bfn.entities.normalizedPromoterActivity',
   normalized_reporter_expression: 'bfn.entities.normalizedReporterExpression',
+  normalized_signal_a: 'bfn.entities.normalizedSignalA',
+  normalized_signal_b: 'bfn.entities.normalizedSignalB',
+  normalized_gate_output: 'bfn.entities.normalizedGateOutput',
 };
 
 const quantityKeys: Record<string, string> = {
@@ -43,11 +61,149 @@ export function bfnUnitLabel(unit: string, t: TFunction): string {
   return unit === 'dimensionless' ? t('bfn.units.relativeValue') : unit;
 }
 
-export function bfnPortLabel(port: BfnPort, t: TFunction): string {
+export function bfnPortPrimaryLabel(port: BfnPort, t: TFunction): string {
   const entity = bfnEntityLabel(port.entity, t);
-  const quantity = bfnQuantityLabel(port.quantityType, t);
-  const subject = entityKeys[port.entity] ? entity : entity + ' ' + quantity;
-  return subject + ' · ' + bfnUnitLabel(port.unit, t);
+  return entityKeys[port.entity] ? entity : entity + ' ' + bfnQuantityLabel(port.quantityType, t);
+}
+
+export function bfnPortMetaLabel(port: BfnPort, t: TFunction): string {
+  if (port.unit === 'dimensionless') {
+    return port.quantityType === 'expression_level'
+      ? t('bfn.units.relativeExpressionLevel')
+      : t('bfn.units.relativeValue');
+  }
+  return bfnQuantityLabel(port.quantityType, t) + ' · ' + bfnUnitLabel(port.unit, t);
+}
+
+export function bfnModuleFlowLabel(module: BfnFunctionalModule, t: TFunction): string {
+  const inputs = module.inputPorts.map((port) => bfnPortPrimaryLabel(port, t));
+  const outputs = module.outputPorts.map((port) => bfnPortPrimaryLabel(port, t));
+  return (inputs.length ? inputs.join(' + ') : '—') + ' → ' + (outputs[0] ?? '—');
+}
+
+export function bfnParameterPresentations(
+  module: BfnFunctionalModule,
+  model: BfnModelVariant | null,
+  t: TFunction,
+): BfnParameterPresentation[] {
+  if (!model) return [];
+  const response = model.mode === 'static' ? model.response : model.steadyStateResponse;
+  const input = module.inputPorts[0]
+    ? bfnPortPrimaryLabel(module.inputPorts[0], t)
+    : t('bfn.parameters.inputSignal');
+  const output = module.outputPorts[0]
+    ? bfnPortPrimaryLabel(module.outputPorts[0], t)
+    : t('bfn.parameters.outputSignal');
+  const rows: BfnParameterPresentation[] = [];
+
+  if (response.family === 'hill_activation' || response.family === 'hill_repression') {
+    rows.push(
+      {
+        id: 'minimum-response',
+        label: t('bfn.parameters.minimumResponse'),
+        description: t('bfn.parameters.minimumResponseDescription', { input, output }),
+        estimate: response.ymin,
+      },
+      {
+        id: 'maximum-response',
+        label: t('bfn.parameters.maximumResponse'),
+        description: t('bfn.parameters.maximumResponseDescription', { input, output }),
+        estimate: response.ymax,
+      },
+      {
+        id: 'half-response',
+        label: t('bfn.parameters.halfResponse'),
+        symbol: 'K',
+        description: t('bfn.parameters.halfResponseDescription', { input }),
+        estimate: response.k,
+      },
+      {
+        id: 'hill-coefficient',
+        label: t('bfn.parameters.hillCoefficient'),
+        symbol: 'n',
+        description: t('bfn.parameters.hillCoefficientDescription'),
+        estimate: response.n,
+      },
+    );
+  } else if (response.family === 'linear_transfer') {
+    rows.push(
+      {
+        id: 'response-coefficient',
+        label: t('bfn.parameters.responseCoefficient'),
+        description: t('bfn.parameters.responseCoefficientDescription'),
+        estimate: response.scale,
+      },
+      {
+        id: 'base-output',
+        label: t('bfn.parameters.baseOutput'),
+        description: t('bfn.parameters.baseOutputDescription', { output }),
+        estimate: response.intercept,
+      },
+    );
+  } else if (response.family === 'independent_inputs') {
+    rows.push(
+      {
+        id: 'base-output',
+        label: t('bfn.parameters.baseOutput'),
+        description: t('bfn.parameters.baseOutputDescription', { output }),
+        estimate: response.basal,
+      },
+      {
+        id: 'maximum-response',
+        label: t('bfn.parameters.maximumResponse'),
+        description: t('bfn.parameters.multiInputMaximumDescription', { output }),
+        estimate: response.outputMaximum,
+      },
+      ...response.terms.flatMap((term, index): BfnParameterPresentation[] => {
+        const inputIndex = index + 1;
+        return [
+          {
+            id: 'input-' + inputIndex + '-half-response',
+            label: t('bfn.parameters.inputHalfResponse', { index: inputIndex }),
+            symbol: 'K' + inputIndex,
+            showSymbolInSummary: false,
+            description: t('bfn.parameters.inputHalfResponseDescription', {
+              index: inputIndex,
+            }),
+            estimate: term.k,
+          },
+          {
+            id: 'input-' + inputIndex + '-hill-coefficient',
+            label: t('bfn.parameters.inputHillCoefficient', { index: inputIndex }),
+            symbol: 'n' + inputIndex,
+            showSymbolInSummary: false,
+            description: t('bfn.parameters.hillCoefficientDescription'),
+            estimate: term.n,
+          },
+          {
+            id: 'input-' + inputIndex + '-contribution',
+            label: t('bfn.parameters.inputContribution', { index: inputIndex }),
+            symbol: 'α' + inputIndex,
+            showSymbolInSummary: false,
+            description: t('bfn.parameters.inputContributionDescription'),
+            estimate: term.contribution,
+          },
+        ];
+      }),
+    );
+  }
+
+  if (model.mode === 'dynamic') {
+    rows.push({
+      id: 'response-time',
+      label: t('bfn.parameters.responseTime'),
+      symbol: 'τ',
+      description: t('bfn.parameters.responseTimeDescription', { output }),
+      estimate: model.tau,
+    });
+  }
+  return rows;
+}
+
+export function bfnContextSectionTitle(context: BfnContext | null, t: TFunction): string {
+  return context?.isDemo
+    ? t('bfn.inspector.demoExperimentContext')
+    : t('bfn.inspector.experimentContext');
 }
 
 export function bfnDesignVariableLabel(value: string, t: TFunction): string {

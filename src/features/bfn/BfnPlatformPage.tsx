@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { BoundaryNotice } from '../../components/BoundaryNotice';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
@@ -27,10 +26,14 @@ import {
   saveBfnRun,
 } from './repository';
 import {
+  bfnContextSectionTitle,
   bfnContextValueLabel,
   bfnDesignVariableLabel,
   bfnEntityLabel,
-  bfnPortLabel,
+  bfnModuleFlowLabel,
+  bfnParameterPresentations,
+  bfnPortMetaLabel,
+  bfnPortPrimaryLabel,
   bfnQuantityLabel,
   bfnUnitLabel,
 } from './presentation';
@@ -70,11 +73,6 @@ interface EndpointOption {
   label: string;
 }
 
-interface ParameterRow {
-  label: string;
-  estimate: BfnParameterEstimate;
-}
-
 function endpointValue(endpoint: BfnIdealEdgeEndpoint): string {
   return `${endpoint.nodeId}::${endpoint.portId}`;
 }
@@ -88,38 +86,6 @@ function displayNumber(value: number, digits = 3): string {
   if (!Number.isFinite(value)) return '—';
   if (Math.abs(value) > 0 && Math.abs(value) < 0.001) return value.toExponential(2);
   return value.toFixed(digits);
-}
-
-function parameterRows(model: BfnModelVariant | null, t: TFunction): ParameterRow[] {
-  if (!model) return [];
-  const response = model.mode === 'static' ? model.response : model.steadyStateResponse;
-  const rows: ParameterRow[] = [];
-  if (response.family === 'hill_activation' || response.family === 'hill_repression') {
-    rows.push(
-      { label: t('bfn.parameters.minimumResponse'), estimate: response.ymin },
-      { label: t('bfn.parameters.maximumResponse'), estimate: response.ymax },
-      { label: t('bfn.parameters.halfResponse'), estimate: response.k },
-      { label: t('bfn.parameters.hillCoefficient'), estimate: response.n },
-    );
-  } else if (response.family === 'linear_transfer') {
-    rows.push(
-      { label: t('bfn.parameters.responseScale'), estimate: response.scale },
-      { label: t('bfn.parameters.baseResponse'), estimate: response.intercept },
-    );
-  } else if (response.family === 'independent_inputs') {
-    rows.push(
-      { label: t('bfn.parameters.baseResponse'), estimate: response.basal },
-      { label: t('bfn.parameters.maximumResponse'), estimate: response.outputMaximum },
-      ...response.terms.flatMap((term, index) => [
-        { label: `K${index + 1}`, estimate: term.k },
-        { label: `n${index + 1}`, estimate: term.n },
-        { label: `α${index + 1}`, estimate: term.contribution },
-      ]),
-    );
-  }
-  if (model.mode === 'dynamic')
-    rows.push({ label: t('bfn.parameters.responseTimeConstant'), estimate: model.tau });
-  return rows;
 }
 
 function activeOrMemorylessModel(
@@ -171,14 +137,17 @@ function endpointOptions(
   outputs: EndpointOption[];
   inputs: EndpointOption[];
 } {
-  const option = (nodeId: string, port: BfnPort): EndpointOption => ({
+  const option = (nodeId: string, port: BfnPort, usePortMeta = false): EndpointOption => ({
     value: endpointValue({ nodeId, portId: port.id }),
     endpoint: { nodeId, portId: port.id },
-    label: nodeLabel(project, nodeId, t) + ' · ' + bfnPortLabel(port, t),
+    label:
+      nodeLabel(project, nodeId, t) +
+      ' · ' +
+      (usePortMeta ? bfnPortMetaLabel(port, t) : bfnPortPrimaryLabel(port, t)),
   });
   return {
     outputs: [
-      ...project.network.inputSources.map((source) => option(source.id, source.outputPort)),
+      ...project.network.inputSources.map((source) => option(source.id, source.outputPort, true)),
       ...project.network.modules.flatMap((module) =>
         module.outputPorts.map((port) => option(module.id, port)),
       ),
@@ -187,7 +156,9 @@ function endpointOptions(
       ...project.network.modules.flatMap((module) =>
         module.inputPorts.map((port) => option(module.id, port)),
       ),
-      ...project.network.outputMonitors.map((monitor) => option(monitor.id, monitor.inputPort)),
+      ...project.network.outputMonitors.map((monitor) =>
+        option(monitor.id, monitor.inputPort, true),
+      ),
     ],
   };
 }
@@ -351,6 +322,14 @@ export function BfnPlatformPage() {
   const selectedImplementations = selectedModule
     ? project.registry.implementations.filter((implementation) =>
         selectedModule.implementationIds.includes(implementation.id),
+      )
+    : [];
+  const selectedParameterPresentations = selectedModule
+    ? bfnParameterPresentations(selectedModule, selectedModuleModel, t)
+    : [];
+  const selectedDatasets = selectedModuleModel
+    ? project.registry.datasets.filter((dataset) =>
+        selectedModuleModel.sourceDatasetIds.includes(dataset.id),
       )
     : [];
 
@@ -713,9 +692,8 @@ export function BfnPlatformPage() {
                       setSelectedEdgeId(null);
                     }}
                   >
-                    <span data-kind="source">{t('bfn.nodeKinds.input')}</span>
                     <strong>{t(source.labelKey)}</strong>
-                    <small>{bfnPortLabel(source.outputPort, t)}</small>
+                    <small>{bfnPortMetaLabel(source.outputPort, t)}</small>
                   </button>
                 ))}
               </section>
@@ -730,15 +708,8 @@ export function BfnPlatformPage() {
                       setSelectedEdgeId(null);
                     }}
                   >
-                    <span data-kind="module">{t('bfn.nodeKinds.module')}</span>
                     <strong>{t(module.labelKey)}</strong>
-                    <small>
-                      {module.inputPorts[0] ? bfnEntityLabel(module.inputPorts[0].entity, t) : '—'}{' '}
-                      →{' '}
-                      {module.outputPorts[0]
-                        ? bfnEntityLabel(module.outputPorts[0].entity, t)
-                        : '—'}
-                    </small>
+                    <small>{bfnModuleFlowLabel(module, t)}</small>
                   </button>
                 ))}
                 <button
@@ -761,9 +732,8 @@ export function BfnPlatformPage() {
                       setSelectedEdgeId(null);
                     }}
                   >
-                    <span data-kind="monitor">{t('bfn.nodeKinds.output')}</span>
                     <strong>{t(monitor.labelKey)}</strong>
-                    <small>{bfnPortLabel(monitor.inputPort, t)}</small>
+                    <small>{bfnPortMetaLabel(monitor.inputPort, t)}</small>
                   </button>
                 ))}
               </section>
@@ -909,58 +879,69 @@ export function BfnPlatformPage() {
                     <header>
                       <strong>{t('bfn.inspector.inputsAndOutputs')}</strong>
                     </header>
-                    {[...selectedModule.inputPorts, ...selectedModule.outputPorts].map((port) => (
-                      <dl className="bfn-port-fact" key={port.id} data-direction={port.direction}>
-                        <div>
-                          <dt>
-                            {port.direction === 'input'
-                              ? t('bfn.nodeKinds.input')
-                              : t('bfn.nodeKinds.output')}
-                          </dt>
-                          <dd>{bfnEntityLabel(port.entity, t)}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('bfn.inspector.measurement')}</dt>
-                          <dd>{bfnQuantityLabel(port.quantityType, t)}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('bfn.inspector.unit')}</dt>
-                          <dd>{bfnUnitLabel(port.unit, t)}</dd>
-                        </div>
-                      </dl>
-                    ))}
+                    <div className="bfn-signal-flow">
+                      <div className="bfn-signal-flow__group" data-direction="input">
+                        <span>{t('bfn.nodeKinds.input')}</span>
+                        {selectedModule.inputPorts.map((port) => (
+                          <article key={port.id}>
+                            <strong>{bfnPortPrimaryLabel(port, t)}</strong>
+                            <small>{bfnUnitLabel(port.unit, t)}</small>
+                          </article>
+                        ))}
+                      </div>
+                      <span className="bfn-signal-flow__arrow" aria-hidden="true">
+                        ↓
+                      </span>
+                      <div className="bfn-signal-flow__group" data-direction="output">
+                        <span>{t('bfn.nodeKinds.output')}</span>
+                        {selectedModule.outputPorts.map((port) => (
+                          <article key={port.id}>
+                            <strong>{bfnPortPrimaryLabel(port, t)}</strong>
+                            <small>{bfnUnitLabel(port.unit, t)}</small>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
                   </section>
                   <section className="bfn-inspector-block">
                     <header>
                       <strong>{t('bfn.inspector.responseParameters')}</strong>
                     </header>
-                    <dl className="bfn-parameter-grid">
-                      {parameterRows(selectedModuleModel, t).map((row) => (
-                        <div key={row.label}>
-                          <dt>{row.label}</dt>
-                          <dd>{parameterValue(row.estimate, t, false)}</dd>
-                        </div>
+                    <div className="bfn-parameter-list">
+                      {selectedParameterPresentations.map((row) => (
+                        <article key={row.id}>
+                          <header>
+                            <strong>{row.label}</strong>
+                            {row.symbol && row.showSymbolInSummary !== false ? (
+                              <span>{row.symbol}</span>
+                            ) : null}
+                          </header>
+                          <b>{parameterValue(row.estimate, t, false)}</b>
+                          <p>{row.description}</p>
+                        </article>
                       ))}
-                    </dl>
-                    {selectedModuleModel?.mode === 'static' &&
-                    selectedModuleModel.response.family === 'independent_inputs' ? (
-                      <BoundaryNotice
-                        kind="assumption"
-                        title={t('bfn.assumptions.independentTitle')}
-                      >
-                        {t('bfn.assumptions.independentUnverified')}
-                      </BoundaryNotice>
-                    ) : null}
+                    </div>
                   </section>
+                  {selectedModuleModel?.mode === 'static' &&
+                  selectedModuleModel.response.family === 'independent_inputs' ? (
+                    <section className="bfn-inspector-block">
+                      <header>
+                        <strong>{t('bfn.inspector.currentCalculation')}</strong>
+                      </header>
+                      <p>{t('bfn.assumptions.independentUnverified')}</p>
+                    </section>
+                  ) : null}
                   <section className="bfn-inspector-block">
                     <header>
-                      <strong>{t('bfn.inspector.experimentContext')}</strong>
+                      <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
                     </header>
                     {selectedContext ? (
                       <dl className="bfn-context-grid">
                         <div>
                           <dt>{t('bfn.context.host')}</dt>
-                          <dd>{selectedContext.host}</dd>
+                          <dd>
+                            <em>{selectedContext.host}</em>
+                          </dd>
                         </div>
                         <div>
                           <dt>{t('bfn.context.strain')}</dt>
@@ -979,20 +960,53 @@ export function BfnPlatformPage() {
                   </section>
                   <section className="bfn-inspector-block">
                     <header>
-                      <strong>{t('bfn.inspector.parameterSource')}</strong>
+                      <strong>{t('bfn.inspector.modelBasis')}</strong>
                     </header>
-                    <div className="bfn-evidence-banner" data-grade={selectedModule.evidenceGrade}>
-                      <span>{t('bfn.inspector.evidenceGrade')}</span>
-                      <strong>{t(`bfn.evidence.${selectedModule.evidenceGrade}`)}</strong>
+                    <div
+                      className="bfn-evidence-banner"
+                      data-grade={
+                        selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
+                      }
+                    >
+                      <strong>
+                        {t(
+                          `bfn.evidence.${
+                            selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
+                          }`,
+                        )}
+                      </strong>
                     </div>
+                  </section>
+                  <section className="bfn-inspector-block">
+                    <header>
+                      <strong>{t('bfn.inspector.linkedData')}</strong>
+                    </header>
+                    {selectedDatasets.length ? (
+                      <ul className="bfn-linked-datasets">
+                        {selectedDatasets.map((dataset) => (
+                          <li key={dataset.id}>{t(dataset.labelKey)}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p>{t('bfn.inspector.notLinkedDataset')}</p>
+                    )}
                   </section>
                   <details className="bfn-inspector-details">
                     <summary>{t('bfn.inspector.showMath')}</summary>
+                    <p className="bfn-domain-range">
+                      {t('bfn.inspector.modelType')}:{' '}
+                      {selectedModuleModel
+                        ? t(`bfn.modelFamilies.${selectedModuleModel.family}`)
+                        : '—'}
+                    </p>
                     <code className="bfn-formula">{formulaForModel(selectedModuleModel)}</code>
                     <dl className="bfn-parameter-grid">
-                      {parameterRows(selectedModuleModel, t).map((row) => (
-                        <div key={row.label}>
-                          <dt>{row.label}</dt>
+                      {selectedParameterPresentations.map((row) => (
+                        <div key={row.id}>
+                          <dt>
+                            {row.label}
+                            {row.symbol ? <small> · {row.symbol}</small> : null}
+                          </dt>
                           <dd>{parameterValue(row.estimate, t)}</dd>
                         </div>
                       ))}
@@ -1048,26 +1062,24 @@ export function BfnPlatformPage() {
                 <>
                   <section className="bfn-inspector-block bfn-inspector-block--source">
                     <header>
-                      <strong>{t('bfn.inspector.inputDefinition')}</strong>
+                      <strong>{t('bfn.inspector.inputSignal')}</strong>
                     </header>
-                    <dl className="bfn-context-grid">
-                      <div>
-                        <dt>{t('bfn.inspector.signal')}</dt>
-                        <dd>{bfnEntityLabel(selectedSource.outputPort.entity, t)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('bfn.inspector.measurement')}</dt>
-                        <dd>{bfnQuantityLabel(selectedSource.outputPort.quantityType, t)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('bfn.inspector.unit')}</dt>
-                        <dd>{bfnUnitLabel(selectedSource.outputPort.unit, t)}</dd>
-                      </div>
-                      <div>
-                        <dt>{t('bfn.inspector.analysisMode')}</dt>
-                        <dd>{t(`bfn.modes.${project.network.mode}`)}</dd>
-                      </div>
-                    </dl>
+                    <div className="bfn-object-signal">
+                      <strong>{bfnPortPrimaryLabel(selectedSource.outputPort, t)}</strong>
+                      <small>
+                        {t('bfn.inspector.unitValue', {
+                          unit: bfnUnitLabel(selectedSource.outputPort.unit, t),
+                        })}
+                      </small>
+                    </div>
+                  </section>
+                  <section className="bfn-inspector-block">
+                    <header>
+                      <strong>{t('bfn.inspector.currentAnalysis')}</strong>
+                    </header>
+                    <div className="bfn-object-signal">
+                      <strong>{t(`bfn.modes.${project.network.mode}`)}</strong>
+                    </div>
                   </section>
                   <button
                     className="button button--secondary button--wide"
@@ -1080,47 +1092,48 @@ export function BfnPlatformPage() {
               ) : selectedMonitor ? (
                 <section className="bfn-inspector-block">
                   <header>
-                    <strong>{t('bfn.nodeKinds.outputMonitor')}</strong>
+                    <strong>{t('bfn.inspector.output')}</strong>
                   </header>
                   <p>{t('bfn.inspector.monitorText')}</p>
-                  <dl className="bfn-port-fact">
-                    <div>
-                      <dt>{t('bfn.inspector.signal')}</dt>
-                      <dd>{bfnEntityLabel(selectedMonitor.inputPort.entity, t)}</dd>
-                    </div>
-                    <div>
-                      <dt>{t('bfn.inspector.measurement')}</dt>
-                      <dd>{bfnQuantityLabel(selectedMonitor.inputPort.quantityType, t)}</dd>
-                    </div>
-                    <div>
-                      <dt>{t('bfn.inspector.unit')}</dt>
-                      <dd>{bfnUnitLabel(selectedMonitor.inputPort.unit, t)}</dd>
-                    </div>
-                  </dl>
+                  <div className="bfn-object-signal">
+                    <strong>{bfnPortPrimaryLabel(selectedMonitor.inputPort, t)}</strong>
+                    <small>{bfnPortMetaLabel(selectedMonitor.inputPort, t)}</small>
+                  </div>
                 </section>
               ) : selectedEdge ? (
                 <>
-                  <p>{t('bfn.inspector.edgeText')}</p>
-                  <dl className="bfn-edge-route">
+                  <div className="bfn-edge-signal-flow">
                     <div>
-                      <dt>{t('bfn.connections.source')}</dt>
-                      <dd>
-                        {nodeLabel(project, selectedEdge.source.nodeId, t)}
+                      <span>{t('bfn.connections.source')}</span>
+                      <strong>{nodeLabel(project, selectedEdge.source.nodeId, t)}</strong>
+                      <small>
                         {selectedEdgeSourcePort
-                          ? ' · ' + bfnPortLabel(selectedEdgeSourcePort, t)
-                          : ''}
-                      </dd>
+                          ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                          : '—'}
+                      </small>
                     </div>
+                    <span aria-hidden="true">↓</span>
                     <div>
-                      <dt>{t('bfn.connections.target')}</dt>
-                      <dd>
-                        {nodeLabel(project, selectedEdge.target.nodeId, t)}
+                      <span>{t('bfn.connections.target')}</span>
+                      <strong>{nodeLabel(project, selectedEdge.target.nodeId, t)}</strong>
+                      <small>
                         {selectedEdgeTargetPort
-                          ? ' · ' + bfnPortLabel(selectedEdgeTargetPort, t)
-                          : ''}
-                      </dd>
+                          ? t('bfn.inspector.signalInput', {
+                              signal: bfnPortPrimaryLabel(selectedEdgeTargetPort, t),
+                            })
+                          : '—'}
+                      </small>
                     </div>
-                  </dl>
+                  </div>
+                  <p className="bfn-edge-explanation">
+                    {t('bfn.inspector.edgeText', {
+                      signal: selectedEdgeSourcePort
+                        ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                        : t('bfn.parameters.outputSignal'),
+                      source: nodeLabel(project, selectedEdge.source.nodeId, t),
+                      target: nodeLabel(project, selectedEdge.target.nodeId, t),
+                    })}
+                  </p>
                   <button
                     className="danger-text-button"
                     type="button"
@@ -1157,7 +1170,10 @@ export function BfnPlatformPage() {
                   <div>
                     <strong>{t(source.labelKey)}</strong>
                   </div>
-                  <span>{bfnPortLabel(source.outputPort, t)}</span>
+                  <span>
+                    {bfnPortPrimaryLabel(source.outputPort, t)} ·{' '}
+                    {bfnUnitLabel(source.outputPort.unit, t)}
+                  </span>
                 </header>
                 {project.network.mode === 'static' ? (
                   <>
@@ -1701,39 +1717,59 @@ export function BfnPlatformPage() {
               </div>
             </header>
             <div className="bfn-module-catalog">
-              {bfnModuleCatalog.map((entry) => (
-                <article key={entry.id}>
-                  <div
-                    className="bfn-module-catalog__curve"
-                    data-family={entry.id}
-                    aria-hidden="true"
-                  >
-                    <i />
-                    <i />
-                    <i />
-                  </div>
-                  <h3>{t(entry.labelKey)}</h3>
-                  <p>{t(entry.descriptionKey)}</p>
-                  <dl>
-                    <div>
-                      <dt>{t('bfn.registry.modelFamily')}</dt>
-                      <dd>{t(entry.familyKey)}</dd>
+              {bfnModuleCatalog.map((entry) => {
+                const previewModule = createCatalogModule(entry.id, 'catalog-preview');
+                const previewModel = activeOrMemorylessModel(project, previewModule);
+                const relatedDatasets = previewModel
+                  ? project.registry.datasets.filter((dataset) =>
+                      previewModel.sourceDatasetIds.includes(dataset.id),
+                    )
+                  : [];
+                return (
+                  <article key={entry.id}>
+                    <div
+                      className="bfn-module-catalog__curve"
+                      data-family={entry.id}
+                      aria-hidden="true"
+                    >
+                      <i />
+                      <i />
+                      <i />
                     </div>
-                    <div>
-                      <dt>{t('bfn.registry.parameterSource')}</dt>
-                      <dd>{t(entry.evidenceKey)}</dd>
-                    </div>
-                  </dl>
-                  <button
-                    className="button button--secondary button--wide"
-                    type="button"
-                    onClick={() => addCatalogModule(entry.id)}
-                  >
-                    <Icon name="plus" size={15} />
-                    {t('bfn.registry.addToCanvas')}
-                  </button>
-                </article>
-              ))}
+                    <h3>{t(entry.labelKey)}</h3>
+                    <p>{t(entry.descriptionKey)}</p>
+                    <p className="bfn-module-catalog__flow">
+                      {bfnModuleFlowLabel(previewModule, t)}
+                    </p>
+                    <dl>
+                      <div>
+                        <dt>{t('bfn.registry.modelBasis')}</dt>
+                        <dd>
+                          {previewModel
+                            ? t(`bfn.evidence.${previewModel.evidenceGrade}`)
+                            : t(entry.evidenceKey)}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>{t('bfn.registry.linkedData')}</dt>
+                        <dd>
+                          {relatedDatasets.length
+                            ? relatedDatasets.map((dataset) => t(dataset.labelKey)).join(' · ')
+                            : t('bfn.registry.notLinkedDataset')}
+                        </dd>
+                      </div>
+                    </dl>
+                    <button
+                      className="button button--secondary button--wide"
+                      type="button"
+                      onClick={() => addCatalogModule(entry.id)}
+                    >
+                      <Icon name="plus" size={15} />
+                      {t('bfn.registry.addToCanvas')}
+                    </button>
+                  </article>
+                );
+              })}
             </div>
           </section>
           <aside className="bfn-evidence-ledger">

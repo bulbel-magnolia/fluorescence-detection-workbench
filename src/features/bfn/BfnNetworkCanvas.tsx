@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { BfnCanvasPosition, BfnFunctionalModule, BfnIdealEdge, BfnProject } from './types';
-import { bfnPortLabel } from './presentation';
-import { activeModelForModule } from './validation';
+import type { BfnCanvasPosition, BfnIdealEdge, BfnProject } from './types';
+import { bfnModuleFlowLabel, bfnPortMetaLabel } from './presentation';
 
 interface BfnNetworkCanvasProps {
   project: BfnProject;
@@ -47,12 +46,6 @@ function edgePath(project: BfnProject, edge: BfnIdealEdge): string {
   const endY = target.y + nodeSize.height / 2;
   const bend = Math.max(55, Math.abs(endX - startX) * 0.46);
   return `M ${startX} ${startY} C ${startX + bend} ${startY}, ${endX - bend} ${endY}, ${endX} ${endY}`;
-}
-
-function modelFamily(module: BfnFunctionalModule, project: BfnProject): string {
-  const active = activeModelForModule(module, project.network.mode);
-  if (active) return active.family;
-  return activeModelForModule(module, 'static')?.family ?? 'identity';
 }
 
 export function BfnNetworkCanvas({
@@ -172,11 +165,12 @@ export function BfnNetworkCanvas({
           onClick={() => onSelectNode(source.id)}
         >
           <span className="bfn-canvas-node__index">{t('bfn.nodeKinds.input')}</span>
-          <small>{t('bfn.nodeKinds.inputSource')}</small>
           <strong>{t(source.labelKey)}</strong>
-          <span className="bfn-canvas-node__port bfn-canvas-node__port--out">
-            {bfnPortLabel(source.outputPort, t)}
-          </span>
+          <span className="bfn-canvas-node__flow">{bfnPortMetaLabel(source.outputPort, t)}</span>
+          <i
+            className="bfn-canvas-node__connector bfn-canvas-node__connector--out"
+            aria-hidden="true"
+          />
         </button>
       ))}
 
@@ -192,14 +186,16 @@ export function BfnNetworkCanvas({
           onClick={() => onSelectNode(module.id)}
         >
           <span className="bfn-canvas-node__index">{t('bfn.nodeKinds.module')}</span>
-          <small>{t(`bfn.modelFamilies.${modelFamily(module, project)}`)}</small>
           <strong>{t(module.labelKey)}</strong>
-          <span className="bfn-canvas-node__port bfn-canvas-node__port--in">
-            {module.inputPorts[0] ? bfnPortLabel(module.inputPorts[0], t) : '—'}
-          </span>
-          <span className="bfn-canvas-node__port bfn-canvas-node__port--out">
-            {module.outputPorts[0] ? bfnPortLabel(module.outputPorts[0], t) : '—'}
-          </span>
+          <span className="bfn-canvas-node__flow">{bfnModuleFlowLabel(module, t)}</span>
+          <i
+            className="bfn-canvas-node__connector bfn-canvas-node__connector--in"
+            aria-hidden="true"
+          />
+          <i
+            className="bfn-canvas-node__connector bfn-canvas-node__connector--out"
+            aria-hidden="true"
+          />
         </button>
       ))}
 
@@ -215,11 +211,12 @@ export function BfnNetworkCanvas({
           onClick={() => onSelectNode(monitor.id)}
         >
           <span className="bfn-canvas-node__index">{t('bfn.nodeKinds.output')}</span>
-          <small>{t('bfn.nodeKinds.outputMonitor')}</small>
           <strong>{t(monitor.labelKey)}</strong>
-          <span className="bfn-canvas-node__port bfn-canvas-node__port--in">
-            {bfnPortLabel(monitor.inputPort, t)}
-          </span>
+          <span className="bfn-canvas-node__flow">{bfnPortMetaLabel(monitor.inputPort, t)}</span>
+          <i
+            className="bfn-canvas-node__connector bfn-canvas-node__connector--in"
+            aria-hidden="true"
+          />
         </button>
       ))}
     </div>

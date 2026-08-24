@@ -424,9 +424,9 @@
 
 .bfn-network-index__list button {
   display: grid;
-  grid-template-columns: 29px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto;
-  gap: 1px 9px;
+  gap: 3px;
   padding: 9px;
   text-align: left;
   background: transparent;
@@ -439,39 +439,21 @@
   border-color: var(--bfn-rule);
 }
 
-.bfn-network-index__list button > span {
-  display: grid;
-  width: 27px;
-  height: 27px;
-  grid-row: 1 / 3;
-  place-items: center;
-  color: #fff;
-  background: var(--bfn-navy);
-  border-radius: 7px;
-  font-size: 9px;
-  font-weight: 800;
-}
-
-.bfn-network-index__list button > span[data-kind='source'] {
-  background: var(--teal-700);
-}
-.bfn-network-index__list button > span[data-kind='monitor'] {
-  background: var(--magenta-600);
-}
-
 .bfn-network-index__list strong,
 .bfn-network-index__list small {
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bfn-network-index__list strong {
   font-size: 11px;
+  white-space: nowrap;
 }
 .bfn-network-index__list small {
   color: var(--ink-600);
   font-size: 9px;
+  line-height: 1.35;
+  white-space: normal;
 }
 
 .bfn-catalog-shortcut {
@@ -707,51 +689,29 @@
   font-weight: 800;
 }
 
-.bfn-canvas-node > small {
-  max-width: 120px;
-  overflow: hidden;
-  color: var(--teal-700);
-  font-size: 8px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
 .bfn-canvas-node > strong {
   max-width: 140px;
-  margin-top: 5px;
+  margin-top: 8px;
   overflow: hidden;
-  font-size: 12px;
+  font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.bfn-canvas-node__evidence {
-  max-width: 135px;
-  margin-top: 5px;
-  overflow: hidden;
-  color: var(--ink-600);
-  font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bfn-canvas-node__port {
-  position: absolute;
-  bottom: 12px;
-  max-width: 140px;
+.bfn-canvas-node__flow {
+  display: -webkit-box;
+  max-width: 142px;
+  margin-top: 12px;
   overflow: hidden;
   color: var(--ink-600);
-  font-family: Consolas, monospace;
-  font-size: 8px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
-.bfn-canvas-node__port::after,
-.bfn-canvas-node__port::before {
+.bfn-canvas-node__connector {
   position: absolute;
   top: 50%;
   width: 9px;
@@ -759,28 +719,15 @@
   background: var(--surface);
   border: 2px solid var(--bfn-cyan);
   border-radius: 50%;
-  content: '';
   transform: translateY(-50%);
 }
 
-.bfn-canvas-node__port--in {
-  left: 14px;
+.bfn-canvas-node__connector--in {
+  left: -6px;
 }
-.bfn-canvas-node__port--in::before {
-  left: -20px;
-}
-.bfn-canvas-node__port--in::after {
-  display: none;
-}
-.bfn-canvas-node__port--out {
-  right: 14px;
-  text-align: right;
-}
-.bfn-canvas-node__port--out::after {
-  right: -20px;
-}
-.bfn-canvas-node__port--out::before {
-  display: none;
+
+.bfn-canvas-node__connector--out {
+  right: -6px;
 }
 
 .bfn-canvas__principle {
@@ -835,7 +782,7 @@
 .bfn-evidence-banner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   padding: 9px 10px;
   color: var(--teal-700);
@@ -845,8 +792,7 @@
 }
 
 .bfn-evidence-banner strong {
-  text-align: right;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .bfn-inspector-block {
@@ -875,6 +821,175 @@
   margin: 0;
   color: var(--ink-600);
   font-size: 10px;
+  line-height: 1.55;
+}
+
+.bfn-signal-flow {
+  display: grid;
+  gap: 5px;
+}
+
+.bfn-signal-flow__group {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  background: color-mix(in srgb, var(--surface) 88%, var(--teal-100));
+  border: 1px solid color-mix(in srgb, var(--bfn-rule) 75%, var(--bfn-cyan));
+  border-radius: 8px;
+}
+
+.bfn-signal-flow__group[data-direction='output'] {
+  background: color-mix(in srgb, var(--surface) 90%, var(--magenta-100));
+  border-color: color-mix(in srgb, var(--bfn-rule) 75%, var(--magenta-600));
+}
+
+.bfn-signal-flow__group > span {
+  color: var(--ink-500);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.bfn-signal-flow__group article {
+  display: grid;
+  gap: 2px;
+}
+
+.bfn-signal-flow__group article + article {
+  padding-top: 6px;
+  border-top: 1px dashed var(--bfn-rule);
+}
+
+.bfn-signal-flow__group strong {
+  font-size: 10px;
+}
+
+.bfn-signal-flow__group small {
+  color: var(--ink-500);
+  font-size: 8px;
+}
+
+.bfn-signal-flow__arrow {
+  justify-self: center;
+  color: var(--bfn-cyan);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.bfn-parameter-list {
+  display: grid;
+  gap: 7px;
+}
+
+.bfn-parameter-list article {
+  display: grid;
+  gap: 4px;
+  padding: 9px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--ink-100));
+  border-radius: 7px;
+}
+
+.bfn-parameter-list article > header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bfn-parameter-list article > header strong {
+  font-size: 9px;
+}
+
+.bfn-parameter-list article > header span {
+  color: var(--teal-700);
+  font-family: Cambria, serif;
+  font-size: 9px;
+  font-style: italic;
+}
+
+.bfn-parameter-list article > b {
+  color: var(--ink-900);
+  font-size: 11px;
+}
+
+.bfn-parameter-list article > p {
+  margin: 0;
+  color: var(--ink-500);
+  font-size: 8px;
+  line-height: 1.45;
+}
+
+.bfn-linked-datasets {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.bfn-linked-datasets li {
+  padding: 8px 9px;
+  color: var(--ink-700);
+  background: color-mix(in srgb, var(--surface) 90%, var(--teal-100));
+  border-radius: 7px;
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.bfn-object-signal {
+  display: grid;
+  gap: 3px;
+  margin-top: 9px;
+  padding: 10px;
+  background: color-mix(in srgb, var(--surface) 90%, var(--teal-100));
+  border-left: 3px solid var(--bfn-cyan);
+  border-radius: 7px;
+}
+
+.bfn-object-signal strong {
+  font-size: 11px;
+}
+
+.bfn-object-signal small {
+  color: var(--ink-500);
+  font-size: 8px;
+}
+
+.bfn-edge-signal-flow {
+  display: grid;
+  gap: 6px;
+}
+
+.bfn-edge-signal-flow > div {
+  display: grid;
+  gap: 2px;
+  padding: 9px;
+  background: color-mix(in srgb, var(--surface) 92%, var(--ink-100));
+  border-radius: 7px;
+}
+
+.bfn-edge-signal-flow > div > span,
+.bfn-edge-signal-flow small {
+  color: var(--ink-500);
+  font-size: 8px;
+}
+
+.bfn-edge-signal-flow > div > strong {
+  font-size: 10px;
+}
+
+.bfn-edge-signal-flow > span {
+  justify-self: center;
+  color: var(--bfn-cyan);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.bfn-edge-explanation {
+  margin: 10px 0 0;
+  color: var(--ink-600);
+  font-size: 9px;
+  line-height: 1.5;
 }
 
 .bfn-formula {
@@ -1764,10 +1879,21 @@
   font-size: 13px;
 }
 .bfn-module-catalog p {
-  min-height: 44px;
+  min-height: 36px;
   margin: 0;
   color: var(--ink-600);
   font-size: 9px;
+}
+
+.bfn-module-catalog .bfn-module-catalog__flow {
+  min-height: 0;
+  margin-top: 9px;
+  padding: 7px 8px;
+  color: var(--ink-800);
+  background: color-mix(in srgb, var(--surface) 88%, var(--teal-100));
+  border-radius: 7px;
+  font-weight: 750;
+  line-height: 1.4;
 }
 .bfn-module-catalog dl {
   display: grid;
