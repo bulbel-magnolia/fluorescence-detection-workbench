@@ -1,0 +1,3243 @@
+{
+  "schemaVersion": "evidence-backed-components.schema.v1",
+  "catalogId": "evidence-backed-components",
+  "catalogVersion": "evidence-backed-components@2026-08-02.1",
+  "category": "control-output",
+  "entries": [
+    {
+      "id": "control.mutalik-bcd-library",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "library",
+      "name": {
+        "zh": "Mutalik 双顺反子翻译起始设计库",
+        "en": "Mutalik bicistronic translation-initiation design library",
+        "aliases": ["Mutalik BCD", "bicistronic design", "BCD library"]
+      },
+      "category": "control-output",
+      "roles": ["translation", "control"],
+      "mechanism": {
+        "summary": "The Mutalik bicistronic architecture uses translation of a short upstream coding sequence and a coupled downstream initiation region to reduce gene-dependent RNA-structure effects; each BCD member is a distinct design.",
+        "steps": [
+          "A selected BCD member defines an upstream initiation element and short leader peptide.",
+          "Translation through the overlapping motif helps expose the downstream ribosome-entry region.",
+          "The downstream coding sequence is expressed in the exact host and cassette context used for that member."
+        ],
+        "requiredPartners": [
+          "one named BCD member",
+          "upstream leader peptide",
+          "downstream coding sequence",
+          "host translation machinery"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "bcd-member",
+            "name": {
+              "state": "known",
+              "value": "selected BCD member and downstream coding-sequence context"
+            },
+            "direction": "mixed",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["mutalik-2013-standard-expression"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "translation-output",
+            "name": {
+              "state": "known",
+              "value": "downstream protein expression"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "source-normalized expression units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["mutalik-2013-standard-expression"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "strain is source-construct specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "protein expression from standardized cassettes"
+        },
+        "other": {
+          "state": "known",
+          "value": "The reported library behavior depends on the named BCD member and the full expression cassette."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "The primary study supports the bicistronic architecture and library-level expression behavior in E. coli.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "The library is not one universal RBS sequence.",
+          "A library-wide range is not the strength of any individual BCD member."
+        ]
+      },
+      "literature": [
+        {
+          "id": "mutalik-2013-standard-expression",
+          "title": "Precise and reliable gene expression via standard transcription and translation initiation elements",
+          "authors": "Mutalik et al.",
+          "year": {
+            "state": "known",
+            "value": 2013
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nmeth.2404"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "23474465"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/23474465/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "bicistronic translation-initiation architecture",
+            "Escherichia coli expression",
+            "library-level dynamic range"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "observed expression range across selected standardized transcription and translation elements",
+          "value": {
+            "state": "known",
+            "value": 1000
+          },
+          "unit": {
+            "state": "known",
+            "value": "fold range"
+          },
+          "sourceRef": "mutalik-2013-standard-expression",
+          "context": {
+            "host": {
+              "state": "known",
+              "value": "Escherichia coli"
+            },
+            "strain": {
+              "state": "unknown",
+              "reason": "strain not independently extracted"
+            },
+            "vector": {
+              "state": "unknown",
+              "reason": "vector not independently extracted"
+            },
+            "culture": {
+              "state": "unknown",
+              "reason": "culture not independently extracted"
+            }
+          },
+          "originalMeaning": "The paper reports that selected standardized elements collectively span an observed 1,000-fold expression range.",
+          "transferability": "Display-only library context; it is not an individual BCD strength, edge weight, gain, or transfer function.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "not-reported",
+        "records": {
+          "state": "unknown",
+          "reason": "The paper defines a multi-member library; no single accession represents every BCD member."
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["named BCD-member annotation"],
+        "signalMappings": [
+          "represent member selection as a qualitative translation-control choice"
+        ],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "member-specific expression in the current coding-sequence context",
+          "burden and growth measurements"
+        ],
+        "calibrationRequirements": [
+          "fix one BCD member and downstream CDS",
+          "version host, cassette, medium, and reporter calibration"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Created a library-level card without collapsing BCD members into one sequence."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.anderson-j231-library",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "library",
+      "name": {
+        "zh": "Anderson J23100–J23119 组成型启动子家族",
+        "en": "Anderson BBa_J23100–BBa_J23119 constitutive promoter library",
+        "aliases": ["Anderson promoters", "J23100-J23119", "constitutive promoter family"]
+      },
+      "category": "control-output",
+      "roles": ["promoter", "control"],
+      "mechanism": {
+        "summary": "The Anderson collection comprises twenty distinct constitutive bacterial promoters; promoter identity and measurement context determine transcriptional output.",
+        "steps": [
+          "A named BBa_J231xx member is selected.",
+          "The promoter recruits host transcription machinery in its cassette context.",
+          "Downstream transcription is measured relative to a stated reference and assay."
+        ],
+        "requiredPartners": [
+          "one exact BBa_J231xx member",
+          "downstream transcription unit",
+          "host RNA polymerase",
+          "measurement reference"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "promoter-member",
+            "name": {
+              "state": "known",
+              "value": "selected BBa_J23100–BBa_J23119 member"
+            },
+            "direction": "mixed",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["registry-anderson-promoters"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "constitutive-transcription",
+            "name": {
+              "state": "known",
+              "value": "downstream transcriptional output"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "assay-specific promoter activity"
+            },
+            "directObservation": true,
+            "sourceRefs": ["kelly-2009-rpu", "registry-anderson-promoters"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli in the cited RPU study"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "member-level measurements span source contexts"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "GFP-based promoter activity or Registry member characterization"
+        },
+        "other": {
+          "state": "known",
+          "value": "Absolute and relative promoter activities depend on strain, medium, temperature, plasmid copy number, reporter, and reference promoter."
+        }
+      },
+      "evidence": {
+        "grade": "C",
+        "reviewStatus": "needs-review",
+        "scope": "The Registry fixes the twenty member identities and sequences; the primary RPU paper supports context-aware promoter measurement but does not independently validate every member under one condition.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Member identities were checked; a unified primary-paper activity audit for all twenty members remains outside this catalog version.",
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "Each BBa_J231xx member remains a separate sequence record.",
+          "Registry strength labels are not copied into fixed model weights."
+        ]
+      },
+      "literature": [
+        {
+          "id": "registry-anderson-promoters",
+          "title": "Anderson promoter collection: BBa_J23100–BBa_J23119",
+          "authors": "Registry of Standard Biological Parts",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://parts.igem.org/Promoters/Catalog/Anderson",
+          "sourceType": "registry",
+          "supports": [
+            "BBa_J23100",
+            "BBa_J23101",
+            "BBa_J23102",
+            "BBa_J23103",
+            "BBa_J23104",
+            "BBa_J23105",
+            "BBa_J23106",
+            "BBa_J23107",
+            "BBa_J23108",
+            "BBa_J23109",
+            "BBa_J23110",
+            "BBa_J23111",
+            "BBa_J23112",
+            "BBa_J23113",
+            "BBa_J23114",
+            "BBa_J23115",
+            "BBa_J23116",
+            "BBa_J23117",
+            "BBa_J23118",
+            "BBa_J23119"
+          ]
+        },
+        {
+          "id": "kelly-2009-rpu",
+          "title": "Measuring the activity of BioBrick promoters using an in vivo reference standard",
+          "authors": "Kelly et al.",
+          "year": {
+            "state": "known",
+            "value": 2009
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1186/1754-1611-3-4"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "19298678"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/19298678/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "BBa_J23101 reference promoter",
+            "relative promoter units",
+            "measurement-context dependence"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No single activity scalar is valid for all twenty members and assay contexts."
+      },
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23100",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23101",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23102",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23103",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23104",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23105",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23106",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23107",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23108",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23109",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23110",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23111",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23112",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23113",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23114",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23115",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23116",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23117",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23118",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          },
+          {
+            "kind": "Registry",
+            "accession": "BBa_J23119",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "Registry records are independently maintained"
+            },
+            "orientation": "forward",
+            "sourceRef": "registry-anderson-promoters",
+            "complete": true
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["exact member-level promoter annotation"],
+        "signalMappings": [
+          "show member identity without importing Registry strength as a numerical model parameter"
+        ],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host promoter activity relative to a declared standard",
+          "growth burden and cassette-context controls"
+        ],
+        "calibrationRequirements": [
+          "select one exact Registry member",
+          "version strain, medium, copy number, reporter, temperature, and RPU reference"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Recorded all twenty Registry member IDs while retaining needs-review status for family-wide quantitative evidence."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.phlf",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "PhlF–pPhl 抑制控制对",
+        "en": "PhlF–pPhl repressor control pair",
+        "aliases": ["PhlF", "pPhl", "phO", "pRF-PhlF"]
+      },
+      "category": "control-output",
+      "roles": ["regulator", "promoter", "control"],
+      "mechanism": {
+        "summary": "Natural PhlF binds phO in the Pseudomonas phlA promoter region, while the engineered pRF-PhlF assay pairs PhlF with a synthetic operator-containing promoter in E. coli.",
+        "steps": [
+          "PhlF binds its cognate operator and represses downstream transcription.",
+          "Natural PHL destabilizes the PhlF-phO complex, whereas salicylate stabilizes it in the cited Pseudomonas study.",
+          "The pRF-PhlF construct uses IPTG-controlled PhlF abundance to characterize a paired synthetic promoter/YFP response in E. coli."
+        ],
+        "requiredPartners": [
+          "PhlF coding sequence",
+          "cognate phO-derived operator promoter",
+          "repressor-expression cassette"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "phlf-abundance",
+            "name": {
+              "state": "known",
+              "value": "PhlF abundance in the engineered pRF assay"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49367-prf-phlf"]
+          },
+          {
+            "id": "phl-natural-ligand",
+            "name": {
+              "state": "known",
+              "value": "2,4-diacetylphloroglucinol in the natural F113 context"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["abbas-2002-phlf-pho"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "prf-phlf-promoter-output",
+            "name": {
+              "state": "known",
+              "value": "transcription from the paired PhlF-operator promoter"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "known",
+              "value": "YFP response-function output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49367-prf-phlf"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "natural characterization and engineered E. coli response-function contexts are retained separately"
+        },
+        "strain": {
+          "state": "known",
+          "value": "E. coli DH10B for the Stanton response-function characterization"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pRF-PhlF, Addgene #49367"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "known",
+          "value": "IPTG controls Ptac-driven repressor abundance in the pRF assay"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "YFP from a synthetic constitutive promoter containing the cognate operator"
+        },
+        "other": {
+          "state": "known",
+          "value": "Natural F113 phlA/phlF regulation and the engineered pRF-PhlF promoter are distinct constructs; salicylate/PHL effects are not assigned to the pRF gate."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "Primary studies and the exact Addgene record support the pRF-PhlF repressor/operator response-function construct and its source boundary.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "Natural F113 phlA/phlF regulation and the engineered pRF-PhlF promoter are distinct constructs; salicylate/PHL effects are not assigned to the pRF gate.",
+          "The pRF response function is not a universal model transfer function."
+        ]
+      },
+      "literature": [
+        {
+          "id": "stanton-2014-orthogonal-repressors",
+          "title": "Genomic mining of prokaryotic repressors for orthogonal logic gates",
+          "authors": "Stanton et al.",
+          "year": {
+            "state": "known",
+            "value": 2014
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nchembio.1411"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "24316737"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/24316737/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "orthogonal repressor-promoter pairs",
+            "Escherichia coli response-function assay",
+            "synthetic operator promoters"
+          ]
+        },
+        {
+          "id": "abbas-2002-phlf-pho",
+          "title": "Characterization of interactions between the transcriptional repressor PhlF and its binding site at the phlA promoter in Pseudomonas fluorescens F113",
+          "authors": "Abbas et al.",
+          "year": {
+            "state": "known",
+            "value": 2002
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1128/JB.184.11.3008-3016.2002"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "12003942"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/12003942/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "natural PhlF-phO binding",
+            "phlA promoter context",
+            "PHL destabilization",
+            "salicylate stabilization",
+            "GenBank AF497760"
+          ]
+        },
+        {
+          "id": "addgene-49367-prf-phlf",
+          "title": "pRF-PhlF (Addgene plasmid #49367)",
+          "authors": "Stanton et al.; deposited by the Christopher Voigt laboratory",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://www.addgene.org/49367/",
+          "sourceType": "database",
+          "supports": [
+            "exact pRF-PhlF response-function plasmid",
+            "Ptac-controlled repressor",
+            "operator-containing promoter driving YFP"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No pRF scalar is copied into this catalog card without its full response-function dataset and assay context."
+      },
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "GenBank",
+            "accession": "AF497760",
+            "sequenceType": "promoter",
+            "version": {
+              "state": "unknown",
+              "reason": "version not independently extracted"
+            },
+            "orientation": "forward",
+            "sourceRef": "abbas-2002-phlf-pho",
+            "complete": true
+          },
+          {
+            "kind": "Addgene",
+            "accession": "49367",
+            "sequenceType": "system",
+            "version": {
+              "state": "unknown",
+              "reason": "Addgene record version is maintained by the repository"
+            },
+            "orientation": "unknown",
+            "sourceRef": "addgene-49367-prf-phlf",
+            "complete": false
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked pRF-PhlF repressor/operator annotation"],
+        "signalMappings": ["represent repression direction only until current-host calibration"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host repressor dose-response",
+          "basal and maximal cognate-promoter output",
+          "orthogonality and burden panel"
+        ],
+        "calibrationRequirements": [
+          "fix the exact pRF-PhlF operator-promoter and repressor coding sequence",
+          "version host, RBS, copy number, medium, induction, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Linked the exact pRF-PhlF pRF construct and separated natural from engineered context."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.srpr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "SrpR 正交抑制控制对",
+        "en": "SrpR orthogonal repressor control pair",
+        "aliases": ["SrpR", "pSrpR", "pRF-SrpR"]
+      },
+      "category": "control-output",
+      "roles": ["regulator", "promoter", "control"],
+      "mechanism": {
+        "summary": "The source-audited pRF-SrpR implementation pairs the Stanton-mined SrpR repressor with its cognate synthetic operator-containing promoter in E. coli.",
+        "steps": [
+          "Ptac-controlled expression sets SrpR abundance in the pRF assay.",
+          "SrpR binds its paired synthetic operator promoter.",
+          "Promoter occupancy reduces downstream YFP transcription."
+        ],
+        "requiredPartners": [
+          "pRF-SrpR repressor sequence",
+          "cognate synthetic SrpR operator promoter",
+          "YFP response cassette"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "srpr-abundance",
+            "name": {
+              "state": "known",
+              "value": "SrpR abundance in the pRF assay"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49372-prf-srpr"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "prf-srpr-promoter-output",
+            "name": {
+              "state": "known",
+              "value": "transcription from the paired SrpR-operator promoter"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "known",
+              "value": "YFP response-function output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49372-prf-srpr"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "natural characterization and engineered E. coli response-function contexts are retained separately"
+        },
+        "strain": {
+          "state": "known",
+          "value": "E. coli DH10B for the Stanton response-function characterization"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pRF-SrpR, Addgene #49372"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "known",
+          "value": "IPTG controls Ptac-driven repressor abundance in the pRF assay"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "YFP from a synthetic constitutive promoter containing the cognate operator"
+        },
+        "other": {
+          "state": "known",
+          "value": "This card describes the engineered Stanton pRF-SrpR repressor/operator pair; environmental-input or native-locus functions sharing the SrpR name are not imported."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "Primary studies and the exact Addgene record support the pRF-SrpR repressor/operator response-function construct and its source boundary.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "This card describes the engineered Stanton pRF-SrpR repressor/operator pair; environmental-input or native-locus functions sharing the SrpR name are not imported.",
+          "The pRF response function is not a universal model transfer function."
+        ]
+      },
+      "literature": [
+        {
+          "id": "stanton-2014-orthogonal-repressors",
+          "title": "Genomic mining of prokaryotic repressors for orthogonal logic gates",
+          "authors": "Stanton et al.",
+          "year": {
+            "state": "known",
+            "value": 2014
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nchembio.1411"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "24316737"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/24316737/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "orthogonal repressor-promoter pairs",
+            "Escherichia coli response-function assay",
+            "synthetic operator promoters"
+          ]
+        },
+        {
+          "id": "addgene-49372-prf-srpr",
+          "title": "pRF-SrpR (Addgene plasmid #49372)",
+          "authors": "Stanton et al.; deposited by the Christopher Voigt laboratory",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://www.addgene.org/49372/",
+          "sourceType": "database",
+          "supports": [
+            "exact pRF-SrpR response-function plasmid",
+            "Ptac-controlled repressor",
+            "operator-containing promoter driving YFP"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No pRF scalar is copied into this catalog card without its full response-function dataset and assay context."
+      },
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "Addgene",
+            "accession": "49372",
+            "sequenceType": "system",
+            "version": {
+              "state": "unknown",
+              "reason": "Addgene record version is maintained by the repository"
+            },
+            "orientation": "unknown",
+            "sourceRef": "addgene-49372-prf-srpr",
+            "complete": false
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked pRF-SrpR repressor/operator annotation"],
+        "signalMappings": ["represent repression direction only until current-host calibration"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host repressor dose-response",
+          "basal and maximal cognate-promoter output",
+          "orthogonality and burden panel"
+        ],
+        "calibrationRequirements": [
+          "fix the exact pRF-SrpR operator-promoter and repressor coding sequence",
+          "version host, RBS, copy number, medium, induction, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Linked the exact pRF-SrpR pRF construct and separated natural from engineered context."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.bm3r1",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "BM3R1 正交抑制控制对",
+        "en": "BM3R1 orthogonal repressor control pair",
+        "aliases": ["BM3R1", "Bm3R1", "pBM3R1", "pRF-BM3R1"]
+      },
+      "category": "control-output",
+      "roles": ["regulator", "promoter", "control"],
+      "mechanism": {
+        "summary": "Natural Bm3R1 represses Bacillus P450 regulatory regions, and the engineered pRF-BM3R1 construct uses a paired synthetic operator promoter in E. coli.",
+        "steps": [
+          "Bm3R1 binds operator and Barbie-box-associated regulatory DNA in the native Bacillus context.",
+          "Barbiturate-mediated native induction is context-dependent and is not treated as a direct portable ligand transfer function.",
+          "The pRF-BM3R1 assay uses IPTG-controlled BM3R1 abundance and a cognate synthetic promoter driving YFP."
+        ],
+        "requiredPartners": [
+          "BM3R1 coding sequence",
+          "cognate BM3R1 operator promoter",
+          "repressor-expression cassette"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "bm3r1-abundance",
+            "name": {
+              "state": "known",
+              "value": "BM3R1 abundance in the pRF assay"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49358-prf-bm3r1"]
+          },
+          {
+            "id": "barbiturate-native-context",
+            "name": {
+              "state": "known",
+              "value": "barbiturate-mediated native regulatory context"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["liang-1998-bm3r1"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "prf-bm3r1-promoter-output",
+            "name": {
+              "state": "known",
+              "value": "transcription from the paired BM3R1-operator promoter"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "known",
+              "value": "YFP response-function output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49358-prf-bm3r1"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "natural characterization and engineered E. coli response-function contexts are retained separately"
+        },
+        "strain": {
+          "state": "known",
+          "value": "E. coli DH10B for the Stanton response-function characterization"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pRF-BM3R1, Addgene #49358"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "known",
+          "value": "IPTG controls Ptac-driven repressor abundance in the pRF assay"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "YFP from a synthetic constitutive promoter containing the cognate operator"
+        },
+        "other": {
+          "state": "known",
+          "value": "The native Bacillus P450 regulatory region and engineered pRF-BM3R1 promoter are separate; barbiturate-mediated derepression is not assumed to be a direct inducer response of the pRF gate."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "Primary studies and the exact Addgene record support the pRF-BM3R1 repressor/operator response-function construct and its source boundary.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "The native Bacillus P450 regulatory region and engineered pRF-BM3R1 promoter are separate; barbiturate-mediated derepression is not assumed to be a direct inducer response of the pRF gate.",
+          "The pRF response function is not a universal model transfer function."
+        ]
+      },
+      "literature": [
+        {
+          "id": "stanton-2014-orthogonal-repressors",
+          "title": "Genomic mining of prokaryotic repressors for orthogonal logic gates",
+          "authors": "Stanton et al.",
+          "year": {
+            "state": "known",
+            "value": 2014
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nchembio.1411"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "24316737"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/24316737/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "orthogonal repressor-promoter pairs",
+            "Escherichia coli response-function assay",
+            "synthetic operator promoters"
+          ]
+        },
+        {
+          "id": "liang-1998-bm3r1",
+          "title": "In vivo roles of Bm3R1 repressor in the barbiturate-mediated induction of the cytochrome P450 genes (P450(BM-3) and P450(BM-1)) of Bacillus megaterium",
+          "authors": "Liang et al.",
+          "year": {
+            "state": "known",
+            "value": 1998
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1016/S0304-4165(97)00138-4"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "9565684"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/9565684/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "natural Bm3R1 operator and Barbie-box context",
+            "barbiturate-mediated regulation",
+            "Bacillus megaterium"
+          ]
+        },
+        {
+          "id": "addgene-49358-prf-bm3r1",
+          "title": "pRF-BM3R1 (Addgene plasmid #49358)",
+          "authors": "Stanton et al.; deposited by the Christopher Voigt laboratory",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://www.addgene.org/49358/",
+          "sourceType": "database",
+          "supports": [
+            "exact pRF-BM3R1 response-function plasmid",
+            "Ptac-controlled repressor",
+            "operator-containing promoter driving YFP"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No pRF scalar is copied into this catalog card without its full response-function dataset and assay context."
+      },
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "Addgene",
+            "accession": "49358",
+            "sequenceType": "system",
+            "version": {
+              "state": "unknown",
+              "reason": "Addgene record version is maintained by the repository"
+            },
+            "orientation": "unknown",
+            "sourceRef": "addgene-49358-prf-bm3r1",
+            "complete": false
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked pRF-BM3R1 repressor/operator annotation"],
+        "signalMappings": ["represent repression direction only until current-host calibration"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host repressor dose-response",
+          "basal and maximal cognate-promoter output",
+          "orthogonality and burden panel"
+        ],
+        "calibrationRequirements": [
+          "fix the exact pRF-BM3R1 operator-promoter and repressor coding sequence",
+          "version host, RBS, copy number, medium, induction, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Linked the exact pRF-BM3R1 pRF construct and separated natural from engineered context."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.qacr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "QacR 正交抑制控制对",
+        "en": "QacR orthogonal repressor control pair",
+        "aliases": ["QacR", "pQacR", "IR1", "pRF-QacR"]
+      },
+      "category": "control-output",
+      "roles": ["regulator", "promoter", "control"],
+      "mechanism": {
+        "summary": "Natural QacR represses the qacA operator and responds to diverse QacA substrates, while pRF-QacR is an engineered E. coli repressor/operator response-function construct.",
+        "steps": [
+          "QacR binds its cognate operator and represses downstream transcription.",
+          "Diverse QacA substrates inhibit QacR-operator binding in the natural Staphylococcus context.",
+          "The pRF-QacR assay uses IPTG-controlled QacR abundance and a cognate synthetic promoter driving YFP."
+        ],
+        "requiredPartners": [
+          "QacR coding sequence",
+          "cognate QacR operator promoter",
+          "defined inducer context if derepression is tested"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "qacr-abundance",
+            "name": {
+              "state": "known",
+              "value": "QacR abundance in the pRF assay"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49369-prf-qacr"]
+          },
+          {
+            "id": "qaca-substrates",
+            "name": {
+              "state": "known",
+              "value": "QacA-substrate inducer panel in the natural context"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["grkovic-1998-qacr"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "prf-qacr-promoter-output",
+            "name": {
+              "state": "known",
+              "value": "transcription from the paired QacR-operator promoter"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "known",
+              "value": "YFP response-function output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49369-prf-qacr"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "natural characterization and engineered E. coli response-function contexts are retained separately"
+        },
+        "strain": {
+          "state": "known",
+          "value": "E. coli DH10B for the Stanton response-function characterization"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pRF-QacR, Addgene #49369"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "known",
+          "value": "IPTG controls Ptac-driven repressor abundance in the pRF assay"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "YFP from a synthetic constitutive promoter containing the cognate operator"
+        },
+        "other": {
+          "state": "known",
+          "value": "The natural qacA operator/inducer system and engineered pRF-QacR gate are separate; no single multidrug concentration is transferred across them."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "Primary studies and the exact Addgene record support the pRF-QacR repressor/operator response-function construct and its source boundary.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "The natural qacA operator/inducer system and engineered pRF-QacR gate are separate; no single multidrug concentration is transferred across them.",
+          "The pRF response function is not a universal model transfer function."
+        ]
+      },
+      "literature": [
+        {
+          "id": "stanton-2014-orthogonal-repressors",
+          "title": "Genomic mining of prokaryotic repressors for orthogonal logic gates",
+          "authors": "Stanton et al.",
+          "year": {
+            "state": "known",
+            "value": 2014
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nchembio.1411"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "24316737"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/24316737/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "orthogonal repressor-promoter pairs",
+            "Escherichia coli response-function assay",
+            "synthetic operator promoters"
+          ]
+        },
+        {
+          "id": "grkovic-1998-qacr",
+          "title": "QacR is a repressor protein that regulates expression of the Staphylococcus aureus multidrug efflux pump QacA",
+          "authors": "Grkovic et al.",
+          "year": {
+            "state": "known",
+            "value": 1998
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1074/jbc.273.29.18665"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "9660841"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/9660841/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "natural qacA operator",
+            "QacR repression",
+            "diverse QacA-substrate induction"
+          ]
+        },
+        {
+          "id": "addgene-49369-prf-qacr",
+          "title": "pRF-QacR (Addgene plasmid #49369)",
+          "authors": "Stanton et al.; deposited by the Christopher Voigt laboratory",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://www.addgene.org/49369/",
+          "sourceType": "database",
+          "supports": [
+            "exact pRF-QacR response-function plasmid",
+            "Ptac-controlled repressor",
+            "operator-containing promoter driving YFP"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No pRF scalar is copied into this catalog card without its full response-function dataset and assay context."
+      },
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "Addgene",
+            "accession": "49369",
+            "sequenceType": "system",
+            "version": {
+              "state": "unknown",
+              "reason": "Addgene record version is maintained by the repository"
+            },
+            "orientation": "unknown",
+            "sourceRef": "addgene-49369-prf-qacr",
+            "complete": false
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked pRF-QacR repressor/operator annotation"],
+        "signalMappings": ["represent repression direction only until current-host calibration"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host repressor dose-response",
+          "basal and maximal cognate-promoter output",
+          "orthogonality and burden panel"
+        ],
+        "calibrationRequirements": [
+          "fix the exact pRF-QacR operator-promoter and repressor coding sequence",
+          "version host, RBS, copy number, medium, induction, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Linked the exact pRF-QacR pRF construct and separated natural from engineered context."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.amtr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "AmtR 正交抑制控制对",
+        "en": "AmtR orthogonal repressor control pair",
+        "aliases": ["AmtR", "pAmtR", "pRF-AmtR"]
+      },
+      "category": "control-output",
+      "roles": ["regulator", "promoter", "control"],
+      "mechanism": {
+        "summary": "Natural AmtR controls nitrogen-responsive genes in Corynebacterium, while pRF-AmtR is an engineered E. coli repressor/operator response-function construct.",
+        "steps": [
+          "AmtR binds cognate operator DNA and represses nitrogen-regulated transcription in the native host.",
+          "Nitrogen starvation alters native regulation through the Corynebacterium nitrogen-signaling context.",
+          "The pRF-AmtR assay instead uses IPTG-controlled AmtR abundance and a cognate synthetic promoter driving YFP in E. coli."
+        ],
+        "requiredPartners": [
+          "AmtR coding sequence",
+          "cognate AmtR operator promoter",
+          "defined host nitrogen-signaling context"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "amtr-abundance",
+            "name": {
+              "state": "known",
+              "value": "AmtR abundance in the pRF assay"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49355-prf-amtr"]
+          },
+          {
+            "id": "nitrogen-starvation-native",
+            "name": {
+              "state": "known",
+              "value": "nitrogen-starvation state in Corynebacterium glutamicum"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["jakoby-2000-amtr"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "prf-amtr-promoter-output",
+            "name": {
+              "state": "known",
+              "value": "transcription from the paired AmtR-operator promoter"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "known",
+              "value": "YFP response-function output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stanton-2014-orthogonal-repressors", "addgene-49355-prf-amtr"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "natural characterization and engineered E. coli response-function contexts are retained separately"
+        },
+        "strain": {
+          "state": "known",
+          "value": "E. coli DH10B for the Stanton response-function characterization"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pRF-AmtR, Addgene #49355"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "known",
+          "value": "IPTG controls Ptac-driven repressor abundance in the pRF assay"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "YFP from a synthetic constitutive promoter containing the cognate operator"
+        },
+        "other": {
+          "state": "known",
+          "value": "Native nitrogen-responsive AmtR regulation and the IPTG-driven pRF-AmtR gate are separate; medium nitrogen status is not an automatic input to the E. coli gate."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "Primary studies and the exact Addgene record support the pRF-AmtR repressor/operator response-function construct and its source boundary.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "Native nitrogen-responsive AmtR regulation and the IPTG-driven pRF-AmtR gate are separate; medium nitrogen status is not an automatic input to the E. coli gate.",
+          "The pRF response function is not a universal model transfer function."
+        ]
+      },
+      "literature": [
+        {
+          "id": "stanton-2014-orthogonal-repressors",
+          "title": "Genomic mining of prokaryotic repressors for orthogonal logic gates",
+          "authors": "Stanton et al.",
+          "year": {
+            "state": "known",
+            "value": 2014
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nchembio.1411"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "24316737"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/24316737/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "orthogonal repressor-promoter pairs",
+            "Escherichia coli response-function assay",
+            "synthetic operator promoters"
+          ]
+        },
+        {
+          "id": "jakoby-2000-amtr",
+          "title": "AmtR, a global repressor in the nitrogen regulation system of Corynebacterium glutamicum",
+          "authors": "Jakoby et al.",
+          "year": {
+            "state": "known",
+            "value": 2000
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1046/j.1365-2958.2000.02073.x"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "10972815"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/10972815/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "natural AmtR nitrogen regulation",
+            "AmtR operator motif",
+            "nitrogen-starvation derepression"
+          ]
+        },
+        {
+          "id": "addgene-49355-prf-amtr",
+          "title": "pRF-AmtR (Addgene plasmid #49355)",
+          "authors": "Stanton et al.; deposited by the Christopher Voigt laboratory",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://www.addgene.org/49355/",
+          "sourceType": "database",
+          "supports": [
+            "exact pRF-AmtR response-function plasmid",
+            "Ptac-controlled repressor",
+            "operator-containing promoter driving YFP"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No pRF scalar is copied into this catalog card without its full response-function dataset and assay context."
+      },
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "Addgene",
+            "accession": "49355",
+            "sequenceType": "system",
+            "version": {
+              "state": "unknown",
+              "reason": "Addgene record version is maintained by the repository"
+            },
+            "orientation": "unknown",
+            "sourceRef": "addgene-49355-prf-amtr",
+            "complete": false
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked pRF-AmtR repressor/operator annotation"],
+        "signalMappings": ["represent repression direction only until current-host calibration"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host repressor dose-response",
+          "basal and maximal cognate-promoter output",
+          "orthogonality and burden panel"
+        ],
+        "calibrationRequirements": [
+          "fix the exact pRF-AmtR operator-promoter and repressor coding sequence",
+          "version host, RBS, copy number, medium, induction, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Linked the exact pRF-AmtR pRF construct and separated natural from engineered context."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.star",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "family",
+      "name": {
+        "zh": "STAR 小型转录激活 RNA 家族",
+        "en": "STAR small transcription-activating RNA family",
+        "aliases": ["STAR", "small transcription activating RNA", "target RNA"]
+      },
+      "category": "control-output",
+      "roles": ["rna-regulator", "control"],
+      "mechanism": {
+        "summary": "A STAR antisense RNA binds its cognate target RNA and prevents formation of an intrinsic terminator upstream of the output gene, allowing transcription to continue.",
+        "steps": [
+          "The target RNA alone folds into an intrinsic transcription terminator.",
+          "A sequence-matched STAR RNA binds the target during transcription.",
+          "The interaction prevents terminator formation and activates downstream transcription."
+        ],
+        "requiredPartners": [
+          "one exact STAR antisense RNA",
+          "its cognate target/terminator RNA",
+          "downstream transcription unit"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "star-rna",
+            "name": {
+              "state": "known",
+              "value": "cognate STAR antisense RNA"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["chappell-2015-star"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "readthrough-transcription",
+            "name": {
+              "state": "known",
+              "value": "transcriptional readthrough past the target terminator"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "source reporter output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["chappell-2015-star"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "strain is source-construct specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "reporter expression downstream of a STAR target terminator"
+        },
+        "other": {
+          "state": "known",
+          "value": "Orthogonality and activation belong to a specific STAR/target pair and target architecture."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "The primary study supports the paired STAR/target mechanism, E. coli function, orthogonality, and source-level activation.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "A STAR sequence without its matching target/terminator is not a functional device.",
+          "The reported maximum is not a universal gain."
+        ]
+      },
+      "literature": [
+        {
+          "id": "chappell-2015-star",
+          "title": "Creating small transcription activating RNAs",
+          "authors": "Chappell et al.",
+          "year": {
+            "state": "known",
+            "value": 2015
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nchembio.1737"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "25643173"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/25643173/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "STAR-target pair mechanism",
+            "intrinsic terminator disruption",
+            "Escherichia coli function",
+            "up to 94-fold activation"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "maximum activation reported for the four-source STAR group",
+          "value": {
+            "state": "known",
+            "value": 94
+          },
+          "unit": {
+            "state": "known",
+            "value": "fold activation"
+          },
+          "sourceRef": "chappell-2015-star",
+          "context": {
+            "host": {
+              "state": "known",
+              "value": "Escherichia coli"
+            },
+            "strain": {
+              "state": "unknown",
+              "reason": "strain not independently extracted"
+            },
+            "vector": {
+              "state": "unknown",
+              "reason": "vector not independently extracted"
+            },
+            "culture": {
+              "state": "unknown",
+              "reason": "culture not independently extracted"
+            }
+          },
+          "originalMeaning": "The source reports up to 94-fold activation among four orthogonal STAR systems.",
+          "transferability": "Display-only maximum for source pairs; each selected STAR/target pair requires its own current-host calibration.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "not-reported",
+        "records": {
+          "state": "unknown",
+          "reason": "STAR is a multi-member family of matched antisense/target pairs, not one complete sequence."
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["named STAR/target-pair annotation"],
+        "signalMappings": ["show source-supported positive transcriptional activation"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "pair-specific ON/OFF transcription",
+          "orthogonality against project RNA regulators"
+        ],
+        "calibrationRequirements": [
+          "fix both antisense and target sequences",
+          "version promoter, terminator geometry, host, medium, copy number, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": ["Created a family card that requires an explicit STAR/target pair."],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.toehold-switch",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "family",
+      "name": {
+        "zh": "Toehold 翻译开关家族",
+        "en": "Toehold translation-switch family",
+        "aliases": ["toehold switch", "trigger RNA", "switch RNA"]
+      },
+      "category": "control-output",
+      "roles": ["translation", "rna-regulator", "control"],
+      "mechanism": {
+        "summary": "A toehold switch RNA sequesters its ribosome-binding site and start codon in a hairpin; a cognate trigger RNA opens the structure and enables translation.",
+        "steps": [
+          "The switch RNA folds into an OFF-state hairpin that blocks translation initiation.",
+          "A sequence-matched trigger RNA binds the exposed toehold and initiates strand displacement.",
+          "The RBS and start codon become accessible and the downstream coding sequence is translated."
+        ],
+        "requiredPartners": [
+          "one exact switch RNA",
+          "its cognate trigger RNA",
+          "downstream coding sequence"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "trigger-rna",
+            "name": {
+              "state": "known",
+              "value": "cognate trigger RNA"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["green-2014-toehold"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "translation-output",
+            "name": {
+              "state": "known",
+              "value": "translation of the switch-linked coding sequence"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "source reporter output"
+            },
+            "directObservation": true,
+            "sourceRefs": ["green-2014-toehold"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "strain is source-construct specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "flow-cytometric GFP or source-specific output"
+        },
+        "other": {
+          "state": "known",
+          "value": "Performance and orthogonality belong to a specific switch/trigger pair and downstream coding context."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "The primary study supports de novo switch/trigger design, E. coli function, orthogonality, and source response ranges.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "A trigger sequence and switch sequence are one paired design object.",
+          "Family-average performance is not a universal Hill coefficient or gain."
+        ]
+      },
+      "literature": [
+        {
+          "id": "green-2014-toehold",
+          "title": "Toehold switches: de-novo-designed regulators of gene expression",
+          "authors": "Green et al.",
+          "year": {
+            "state": "known",
+            "value": 2014
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1016/j.cell.2014.10.002"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "25417166"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/25417166/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "switch/trigger pair mechanism",
+            "Escherichia coli function",
+            "orthogonality",
+            "average dynamic range above 400"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "reported average dynamic-range lower bound for the source toehold-switch class",
+          "value": {
+            "state": "known",
+            "value": 400
+          },
+          "unit": {
+            "state": "known",
+            "value": "fold dynamic range (reported as above this value)"
+          },
+          "sourceRef": "green-2014-toehold",
+          "context": {
+            "host": {
+              "state": "known",
+              "value": "Escherichia coli"
+            },
+            "strain": {
+              "state": "unknown",
+              "reason": "strain not independently extracted"
+            },
+            "vector": {
+              "state": "unknown",
+              "reason": "vector not independently extracted"
+            },
+            "culture": {
+              "state": "unknown",
+              "reason": "culture not independently extracted"
+            }
+          },
+          "originalMeaning": "The source reports average dynamic range above 400 across the characterized class.",
+          "transferability": "Display-only family statistic; the chosen switch/trigger pair and host must be measured directly.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "not-reported",
+        "records": {
+          "state": "unknown",
+          "reason": "Toehold switches form a designed family of matched switch/trigger pairs, not one complete sequence."
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["named switch/trigger-pair annotation"],
+        "signalMappings": ["show source-supported positive translational activation"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "pair-specific ON/OFF translation",
+          "crosstalk and target-RNA abundance"
+        ],
+        "calibrationRequirements": [
+          "fix switch, trigger, linker, and downstream CDS",
+          "version host, promoter, copy number, medium, induction, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": ["Created a family card that requires an explicit switch/trigger pair."],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.ssra-asv-aav-family",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "family",
+      "name": {
+        "zh": "ssrA ASV/AAV 蛋白降解标签家族",
+        "en": "ssrA ASV/AAV protein-degradation tag family",
+        "aliases": ["ssrA-ASV", "ssrA-AAV", "GFP(ASV)", "GFP(AAV)", "tmRNA tag variants"]
+      },
+      "category": "control-output",
+      "roles": ["degradation", "control"],
+      "mechanism": {
+        "summary": "C-terminal ssrA-derived tags route a tagged protein into host proteolysis; ASV and AAV terminal variants produce different turnover in the exact protein, host, and growth context.",
+        "steps": [
+          "An exact ASV or AAV ssrA-derived peptide is fused to the target protein C terminus.",
+          "E. coli ClpXP and ClpAP recognize ssrA-tagged substrates and use ATP-dependent proteolysis.",
+          "Observed reporter lifetime reflects tag identity, fusion protein, protease capacity, growth state, and dilution."
+        ],
+        "requiredPartners": [
+          "one exact ASV or AAV tag member",
+          "C-terminal target-protein fusion",
+          "host ClpXP/ClpAP proteolytic context"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "tag-member",
+            "name": {
+              "state": "known",
+              "value": "selected AAV or ASV C-terminal tag"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["andersen-1998-unstable-gfp"]
+          },
+          {
+            "id": "host-protease-context",
+            "name": {
+              "state": "known",
+              "value": "host ClpXP/ClpAP proteolytic capacity"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["gottesman-1998-ssra-proteases"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "tagged-protein-abundance",
+            "name": {
+              "state": "known",
+              "value": "abundance and persistence of the tagged protein"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "known",
+              "value": "protein- and assay-specific decay"
+            },
+            "directObservation": true,
+            "sourceRefs": ["andersen-1998-unstable-gfp", "gottesman-1998-ssra-proteases"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli for the source half-life observations"
+        },
+        "strain": {
+          "state": "known",
+          "value": "MV1190(λ-pir) derivatives in the Andersen study"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pJBA118 for GFP(AAV) and pJBA120 for GFP(ASV)"
+        },
+        "culture": {
+          "state": "known",
+          "value": "rich-medium growth followed by mid-log downshift to minimal medium without inducer"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "known",
+          "value": "mid-log downshift followed by fluorescence decay measurement"
+        },
+        "readout": {
+          "state": "known",
+          "value": "mature GFP fluorescence decay"
+        },
+        "other": {
+          "state": "known",
+          "value": "ClpXP/ClpAP availability, substrate identity, tag member, growth dilution, and proteolytic saturation all affect observed turnover."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "Primary studies support ASV/AAV GFP variants in E. coli and the ClpXP/ClpAP mechanism for ssrA-tagged substrates.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "The reported GFP half-lives do not apply unchanged to another protein or host.",
+          "AAV and ASV remain separate tag members."
+        ]
+      },
+      "literature": [
+        {
+          "id": "andersen-1998-unstable-gfp",
+          "title": "New unstable variants of green fluorescent protein for studies of transient gene expression in bacteria",
+          "authors": "Andersen et al.",
+          "year": {
+            "state": "known",
+            "value": 1998
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1128/AEM.64.6.2240-2246.1998"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "9603842"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/9603842/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "AAV and ASV terminal variants",
+            "E. coli half-life context",
+            "host-dependent degradation"
+          ]
+        },
+        {
+          "id": "gottesman-1998-ssra-proteases",
+          "title": "The ClpXP and ClpAP proteases degrade proteins with carboxy-terminal peptide tails added by the SsrA-tagging system",
+          "authors": "Gottesman et al.",
+          "year": {
+            "state": "known",
+            "value": 1998
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1101/gad.12.9.1338"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "9573050"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/9573050/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "E. coli SsrA tag mechanism",
+            "ClpXP and ClpAP dependence",
+            "ATP-dependent degradation"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "mature GFP(AAV) in vivo half-life after the source downshift",
+          "value": {
+            "state": "known",
+            "value": 60
+          },
+          "unit": {
+            "state": "known",
+            "value": "minutes"
+          },
+          "sourceRef": "andersen-1998-unstable-gfp",
+          "context": {
+            "host": {
+              "state": "known",
+              "value": "Escherichia coli"
+            },
+            "strain": {
+              "state": "known",
+              "value": "MV1190(λ-pir) derivative"
+            },
+            "vector": {
+              "state": "known",
+              "value": "pJBA118"
+            },
+            "culture": {
+              "state": "known",
+              "value": "rich medium to minimal medium without inducer at mid-log phase"
+            }
+          },
+          "originalMeaning": "The source estimated approximately 60 minutes for mature GFP(AAV) under its downshift assay.",
+          "transferability": "Display-only source half-life; it is not a universal degradation constant or model threshold.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        },
+        {
+          "metric": "mature GFP(ASV) in vivo half-life after the source downshift",
+          "value": {
+            "state": "known",
+            "value": 110
+          },
+          "unit": {
+            "state": "known",
+            "value": "minutes"
+          },
+          "sourceRef": "andersen-1998-unstable-gfp",
+          "context": {
+            "host": {
+              "state": "known",
+              "value": "Escherichia coli"
+            },
+            "strain": {
+              "state": "known",
+              "value": "MV1190(λ-pir) derivative"
+            },
+            "vector": {
+              "state": "known",
+              "value": "pJBA120"
+            },
+            "culture": {
+              "state": "known",
+              "value": "rich medium to minimal medium without inducer at mid-log phase"
+            }
+          },
+          "originalMeaning": "The source estimated approximately 110 minutes for mature GFP(ASV) under its downshift assay.",
+          "transferability": "Display-only source half-life; it is not a universal degradation constant or model threshold.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "not-reported",
+        "records": {
+          "state": "unknown",
+          "reason": "The family card identifies peptide-tag variants and source plasmids but does not claim one accession-backed complete sequence."
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["named tag-member annotation on a specific protein"],
+        "signalMappings": ["show degradation as a negative control on tagged-protein persistence"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host tagged-protein decay curve",
+          "protease-capacity and growth-dilution controls",
+          "reporter maturation"
+        ],
+        "calibrationRequirements": [
+          "fix full tag peptide and fusion junction",
+          "version target protein, host proteases, growth state, medium, and measurement protocol"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Separated AAV and ASV observations and recorded exact E. coli host/protease boundaries."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "control.riboj",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "RiboJ 5′-UTR 自切核酶绝缘元件",
+        "en": "RiboJ 5′-UTR self-cleaving ribozyme insulator",
+        "aliases": ["RiboJ", "ribozyme insulator", "5-prime UTR insulator"]
+      },
+      "category": "control-output",
+      "roles": ["insulator", "rna-regulator", "control"],
+      "mechanism": {
+        "summary": "RiboJ self-cleaves the transcript to create a defined downstream RNA boundary and reduce upstream 5′-UTR context effects on gene expression.",
+        "steps": [
+          "RiboJ is transcribed between the upstream context and downstream expression element.",
+          "The ribozyme self-cleaves its RNA.",
+          "The processed downstream transcript has a more standardized 5′ boundary, while the residual RiboJ structure remains part of the UTR context."
+        ],
+        "requiredPartners": [
+          "RiboJ sequence",
+          "upstream transcript context",
+          "downstream RBS and coding sequence"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "upstream-context",
+            "name": {
+              "state": "known",
+              "value": "upstream promoter and 5′-UTR context"
+            },
+            "direction": "mixed",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable unit is assigned to this signal"
+            },
+            "directObservation": true,
+            "sourceRefs": ["lou-2012-riboj"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "processed-transcript",
+            "name": {
+              "state": "known",
+              "value": "self-cleaved downstream transcript boundary"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "source expression readout"
+            },
+            "directObservation": true,
+            "sourceRefs": ["lou-2012-riboj"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "strain is source-construct specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "downstream reporter expression across circuit contexts"
+        },
+        "other": {
+          "state": "known",
+          "value": "Cleavage efficiency, residual RNA structure, downstream RBS, transcript stability, and host RNases remain part of the result."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "The primary study supports RiboJ self-cleavage and buffering of synthetic-circuit expression from upstream genetic context.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "RiboJ is an RNA-processing insulator, not a sensor or edge weight.",
+          "The residual 5′-UTR structure and downstream RBS must remain explicit."
+        ]
+      },
+      "literature": [
+        {
+          "id": "lou-2012-riboj",
+          "title": "Ribozyme-based insulator parts buffer synthetic circuits from genetic context",
+          "authors": "Lou et al.",
+          "year": {
+            "state": "known",
+            "value": 2012
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nbt.2401"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "23034349"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/23034349/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "RiboJ self-cleavage",
+            "5-prime UTR insulation",
+            "Escherichia coli circuit context"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No universal insulation scalar is transferred across downstream RBS, coding sequence, and host contexts."
+      },
+      "sequence": {
+        "status": "not-reported",
+        "records": {
+          "state": "unknown",
+          "reason": "The source mechanism is public, but an exact construction-ready accession for this card was not independently audited."
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["RiboJ 5′-UTR insulation annotation"],
+        "signalMappings": ["show RNA-processing/insulation role without changing edge strength"],
+        "compatibleNodeKinds": ["response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "cleavage fraction in the current cassette",
+          "downstream expression with and without RiboJ",
+          "transcript-stability control"
+        ],
+        "calibrationRequirements": [
+          "fix exact RiboJ, fusion boundary, downstream RBS, and CDS",
+          "version host, promoter, copy number, medium, and RNA assay"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Created a mechanism-level RiboJ card without assigning an automatic insulation factor."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "output.sfgfp",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "超折叠绿色荧光蛋白 sfGFP",
+        "en": "Superfolder green fluorescent protein (sfGFP)",
+        "aliases": ["sfGFP", "superfolder GFP", "superfolder green fluorescent protein"]
+      },
+      "category": "control-output",
+      "roles": ["output"],
+      "mechanism": {
+        "summary": "sfGFP is an engineered GFP variant selected for robust folding, including when fused to poorly folded proteins, and produces green fluorescence after expression and chromophore maturation.",
+        "steps": [
+          "The sfGFP coding sequence is transcribed and translated.",
+          "The engineered protein folds with improved robustness relative to the source folding reporter.",
+          "Chromophore maturation enables green fluorescence under suitable excitation."
+        ],
+        "requiredPartners": [
+          "exact sfGFP coding sequence",
+          "expression cassette",
+          "oxygen and maturation time",
+          "compatible optical channel"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "excitation",
+            "name": {
+              "state": "known",
+              "value": "excitation near the sfGFP spectral maximum"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "nm"
+            },
+            "directObservation": true,
+            "sourceRefs": ["pedelacq-2006-sfgfp"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "green-fluorescence",
+            "name": {
+              "state": "known",
+              "value": "sfGFP green fluorescence"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "instrument-specific fluorescence units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["pedelacq-2006-sfgfp"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli in the cited fusion-expression experiments"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "strain is source-construct specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "green fluorescence and folding/fusion behavior"
+        },
+        "other": {
+          "state": "known",
+          "value": "Fluorescence depends on expression, folding, maturation, oxygen, pH, temperature, fusion partner, and instrument settings."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "The primary paper establishes sfGFP identity, folding robustness, structural characterization, and E. coli fusion behavior.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "sfGFP is distinct from GFP-LVA and other degradation-tagged GFP variants.",
+          "Fluorescence intensity is not an automatic model gain or biological concentration."
+        ]
+      },
+      "literature": [
+        {
+          "id": "pedelacq-2006-sfgfp",
+          "title": "Engineering and characterization of a superfolder green fluorescent protein",
+          "authors": "Pédelacq et al.",
+          "year": {
+            "state": "known",
+            "value": 2006
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nbt1172"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "16369541"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/16369541/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "sfGFP identity",
+            "improved folding robustness",
+            "Escherichia coli fusion expression"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "No fluorescence scalar is portable without fixing expression, maturation, sample, and instrument calibration."
+      },
+      "sequence": {
+        "status": "not-reported",
+        "records": {
+          "state": "unknown",
+          "reason": "An exact original construction-ready sfGFP accession was not independently audited for this catalog version."
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["sfGFP reporter annotation"],
+        "signalMappings": ["map measured fluorescence only to a calibrated reporter output"],
+        "compatibleNodeKinds": ["reporter"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host expression and maturation",
+          "background and spectral calibration",
+          "fusion and degradation stability"
+        ],
+        "calibrationRequirements": [
+          "fix exact coding sequence, RBS, tag, and fusion state",
+          "version host, oxygen, temperature, pH, exposure, filters, and instrument gain"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Kept sfGFP separate from GFP-LVA and left numerical output calibration project-specific."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    },
+    {
+      "id": "output.mneongreen",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "part",
+      "name": {
+        "zh": "单体黄绿色荧光蛋白 mNeonGreen",
+        "en": "Monomeric yellow-green fluorescent protein mNeonGreen",
+        "aliases": ["mNeonGreen", "mNG", "KC295282"]
+      },
+      "category": "control-output",
+      "roles": ["output"],
+      "mechanism": {
+        "summary": "mNeonGreen is a monomerized, directed-evolution derivative of Branchiostoma lanceolatum LanYFP that produces bright yellow-green fluorescence after expression and chromophore maturation.",
+        "steps": [
+          "The exact KC295282.1 coding sequence is expressed.",
+          "The protein folds as a monomer and its chromophore matures in an oxygen-dependent process.",
+          "Excitation near 506 nm produces emission near 517 nm in the original optical characterization."
+        ],
+        "requiredPartners": [
+          "KC295282.1 coding sequence or an explicitly versioned derivative",
+          "expression cassette",
+          "oxygen and maturation time",
+          "compatible optical channel"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "excitation",
+            "name": {
+              "state": "known",
+              "value": "excitation near 506 nm"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "nm"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shaner-2013-mneongreen"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "yellow-green-fluorescence",
+            "name": {
+              "state": "known",
+              "value": "emission near 517 nm"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "instrument-specific fluorescence units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shaner-2013-mneongreen"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "the original paper combines purified-protein and eukaryotic imaging contexts rather than one bacterial host"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "strain is source-construct specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "vector is source-construct specific"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions are source-specific"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature is source-specific"
+        },
+        "induction": {
+          "state": "unknown",
+          "reason": "induction is source-specific"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase is source-specific"
+        },
+        "readout": {
+          "state": "known",
+          "value": "spectroscopy, photostability, maturation, fusion imaging, and fluorescence"
+        },
+        "other": {
+          "state": "known",
+          "value": "Bacterial use requires explicit codon, 5′ mRNA structure, RBS, maturation, degradation, and instrument calibration."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "scope": "The primary paper and exact GenBank record establish the original mNeonGreen identity, complete CDS, monomeric state, and optical properties.",
+        "directInEColi": false,
+        "reviewNotes": [
+          "Catalog review status describes source audit only, not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "KC295282.1 identifies the original reporter; codon-optimized derivatives must be recorded as different sequences.",
+          "Intrinsic brightness is not a model gain or a bacterial expression prediction."
+        ]
+      },
+      "literature": [
+        {
+          "id": "shaner-2013-mneongreen",
+          "title": "A bright monomeric green fluorescent protein derived from Branchiostoma lanceolatum",
+          "authors": "Shaner et al.",
+          "year": {
+            "state": "known",
+            "value": 2013
+          },
+          "doi": {
+            "state": "known",
+            "value": "10.1038/nmeth.2413"
+          },
+          "pmid": {
+            "state": "known",
+            "value": "23524392"
+          },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/23524392/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "original mNeonGreen identity",
+            "optical properties",
+            "monomeric reporter",
+            "GenBank KC295282"
+          ]
+        },
+        {
+          "id": "ncbi-kc295282-1",
+          "title": "Synthetic construct monomeric green fluorescent protein (mNeonGreen) gene, complete CDS",
+          "authors": "Shaner et al.; GenBank",
+          "year": {
+            "state": "unknown",
+            "reason": "the database record is maintained independently of the source paper"
+          },
+          "doi": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "pmid": {
+            "state": "unknown",
+            "reason": "database record"
+          },
+          "url": "https://www.ncbi.nlm.nih.gov/nuccore/KC295282.1",
+          "sourceType": "database",
+          "supports": ["exact original mNeonGreen complete CDS", "GenBank KC295282.1"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "intrinsic molecular brightness relative to mEGFP",
+          "value": {
+            "state": "known",
+            "value": 276
+          },
+          "unit": {
+            "state": "known",
+            "value": "percent of mEGFP brightness"
+          },
+          "sourceRef": "shaner-2013-mneongreen",
+          "context": {
+            "host": {
+              "state": "unknown",
+              "reason": "host not independently extracted"
+            },
+            "strain": {
+              "state": "unknown",
+              "reason": "strain not independently extracted"
+            },
+            "vector": {
+              "state": "unknown",
+              "reason": "vector not independently extracted"
+            },
+            "culture": {
+              "state": "known",
+              "value": "purified-protein optical characterization"
+            }
+          },
+          "originalMeaning": "The source table reports mNeonGreen intrinsic brightness as 276% when mEGFP is defined as 100%.",
+          "transferability": "Display-only photophysical property; cellular output additionally depends on expression, maturation, degradation, sample, and instrument.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "available-public-accession",
+        "records": [
+          {
+            "kind": "GenBank",
+            "accession": "KC295282.1",
+            "sequenceType": "part",
+            "version": {
+              "state": "known",
+              "value": "1"
+            },
+            "orientation": "forward",
+            "sourceRef": "ncbi-kc295282-1",
+            "complete": true
+          }
+        ],
+        "isCompleteSingleSequence": true
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["exact original mNeonGreen reporter annotation"],
+        "signalMappings": [
+          "map fluorescence only after project-specific optical and expression calibration"
+        ],
+        "compatibleNodeKinds": ["reporter"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "bacterial expression and maturation in the current host",
+          "background and spectral calibration",
+          "photostability and degradation"
+        ],
+        "calibrationRequirements": [
+          "fix KC295282.1 or name the exact derivative",
+          "version codon usage, 5′ UTR, RBS, tags, oxygen, temperature, exposure, filters, and instrument gain"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Linked the exact original GenBank CDS and separated photophysical brightness from bacterial reporter output."
+        ],
+        "withdrawalReason": {
+          "state": "unknown",
+          "reason": "entry is active"
+        },
+        "auditChecks": {
+          "cadRSupplementChecked": false
+        }
+      }
+    }
+  ]
+}

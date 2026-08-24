@@ -1,0 +1,1861 @@
+{
+  "schemaVersion": "evidence-backed-components.schema.v1",
+  "catalogId": "evidence-backed-components",
+  "catalogVersion": "evidence-backed-components@2026-08-02.1",
+  "category": "pollutant-sensor",
+  "entries": [
+    {
+      "id": "sensor.cadr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "CadR.10–Preg 镉响应模块",
+        "en": "CadR.10–Preg cadmium-response module",
+        "aliases": ["CadR.10", "Preg", "pJL14", "CadR.10Z"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "CadR.10 and its cognate Preg region form a source-specific Cd(II)-responsive transcriptional module in engineered Escherichia coli EK317.",
+        "steps": [
+          "The SI identifies CadR.10 from Halomonas caseinilytica JCM 14802 and gives the native regulator accession WP_064701589.1 on contig NZ_BDEP01000008.1.",
+          "The SI reports Preg as TTGACCCTATACAGACTATAGGGTGTGTCATGGCACAA and a 31 bp transcription-factor-to-Preg spacing.",
+          "A codon-optimized CadR.10 fragment and cognate regulatory region replaced CueR/PcopA in pYK01 to form pJL14.",
+          "CdSO4 exposure produced gfp transcript and GFP fluorescence responses in E. coli EK317."
+        ],
+        "requiredPartners": ["CadR.10", "cognate Preg region", "reporter gene", "Cd(II)"]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "cadmium-ii",
+            "name": { "state": "known", "value": "Cd(II), supplied as CdSO4" },
+            "direction": "positive",
+            "unit": { "state": "known", "value": "nM Cd(II)" },
+            "directObservation": true,
+            "sourceRefs": ["he-2021-cadr-biosensor"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "preg-gfp",
+            "name": {
+              "state": "known",
+              "value": "Preg-regulated gfp transcription and GFP fluorescence"
+            },
+            "direction": "positive",
+            "unit": { "state": "unknown", "reason": "source readouts use assay-specific units" },
+            "directObservation": true,
+            "sourceRefs": ["he-2021-cadr-biosensor"]
+          }
+        ]
+      },
+      "context": {
+        "host": { "state": "known", "value": "Escherichia coli" },
+        "strain": { "state": "known", "value": "EK317" },
+        "vector": { "state": "known", "value": "pJL14 CadR.10/Preg reporter construct" },
+        "culture": {
+          "state": "known",
+          "value": "10 mL LB, 225 rpm in the SI characterization protocol"
+        },
+        "temperature": { "state": "known", "value": "37 °C" },
+        "induction": { "state": "known", "value": "0–200 nM CdSO4 in the SI characterization" },
+        "growthPhase": { "state": "known", "value": "OD600 0.55–0.65 for SI qPCR sampling" },
+        "readout": {
+          "state": "known",
+          "value": "gfp transcripts normalized to gapA and GFP fluorescence"
+        },
+        "other": {
+          "state": "known",
+          "value": "EK317 carries ΔcueR, ΔcopA, ΔcusCFBA, ΔzntR, and ΔzntA; the synthetic CadR.10 CDS was optimized for E. coli."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary paper, official SI, and NCBI records support the CadR.10 identity, regulatory region, construct context, response, and native accessions.",
+        "reviewNotes": [
+          "The official SI and NCBI records were audited.",
+          "Passed denotes an auditable literature card, not BIT-CHINA validation."
+        ],
+        "boundaryNotes": [
+          "Native CadR has a broader Cd(II)/Pb(II) annotation than the engineered E. coli selectivity result.",
+          "Source metrics are display-only and cannot become model parameters automatically."
+        ]
+      },
+      "literature": [
+        {
+          "id": "he-2021-cadr-biosensor",
+          "title": "Sensitive and Specific Cadmium Biosensor Developed by Reconfiguring Metal Transport and Leveraging Natural Gene Repositories",
+          "authors": "He et al.",
+          "year": { "state": "known", "value": 2021 },
+          "doi": { "state": "known", "value": "10.1021/acssensors.0c02204" },
+          "pmid": { "state": "known", "value": "33444502" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/33444502/",
+          "sourceType": "primary-paper",
+          "supports": ["Cd(II) response", "detection limit", "E. coli biosensor"]
+        },
+        {
+          "id": "he-2021-cadr-supplement",
+          "title": "Supporting Information for Sensitive and Specific Cadmium Biosensor Developed by Reconfiguring Metal Transport and Leveraging Natural Gene Repositories",
+          "authors": "He et al.",
+          "year": { "state": "known", "value": 2021 },
+          "doi": { "state": "known", "value": "10.1021/acssensors.0c02204.s001" },
+          "pmid": { "state": "unknown", "reason": "the supplement has no separate PubMed record" },
+          "url": "https://acs.figshare.com/articles/journal_contribution/Sensitive_and_Specific_Cadmium_Biosensor_Developed_by_Reconfiguring_Metal_Transport_and_Leveraging_Natural_Gene_Repositories/13578026",
+          "sourceType": "supplement",
+          "supports": ["homolog", "promoter", "operator", "pJL14 construct", "EK317 context"]
+        },
+        {
+          "id": "ncbi-nz-bdep01000008-1",
+          "title": "Halomonas caseinilytica JCM 14802 contig NZ_BDEP01000008.1",
+          "authors": "National Center for Biotechnology Information",
+          "year": {
+            "state": "unknown",
+            "reason": "database accession is used instead of a publication year"
+          },
+          "doi": { "state": "unknown", "reason": "NCBI record has no DOI" },
+          "pmid": { "state": "unknown", "reason": "no single PubMed record is asserted" },
+          "url": "https://www.ncbi.nlm.nih.gov/nuccore/NZ_BDEP01000008.1",
+          "sourceType": "database",
+          "supports": [
+            "source organism",
+            "strain",
+            "CadR locus",
+            "WP_064701589.1 accession",
+            "adjacent exporter identity"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "reported lower detection limit for Cd(II)",
+          "value": { "state": "known", "value": 3 },
+          "unit": { "state": "known", "value": "nM Cd(II)" },
+          "sourceRef": "he-2021-cadr-biosensor",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "EK317" },
+            "vector": { "state": "known", "value": "pJL14/CadR.10Z source construct" },
+            "culture": {
+              "state": "unknown",
+              "reason": "the abstract scalar is not rebound to a more specific medium protocol"
+            }
+          },
+          "originalMeaning": "The authors report a 3 nM Cd(II) detection limit for the optimized CadR.10 biosensor.",
+          "transferability": "Display-only performance for the exact source construct and assay; new contexts require calibration.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "NCBI",
+            "accession": "NZ_BDEP01000008.1",
+            "sequenceType": "system",
+            "version": { "state": "known", "value": "NZ_BDEP01000008.1" },
+            "orientation": "forward",
+            "sourceRef": "ncbi-nz-bdep01000008-1",
+            "complete": false
+          },
+          {
+            "kind": "NCBI",
+            "accession": "WP_064701589.1",
+            "sequenceType": "regulator",
+            "version": { "state": "known", "value": "WP_064701589.1" },
+            "orientation": "unknown",
+            "sourceRef": "ncbi-nz-bdep01000008-1",
+            "complete": true
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked Cd(II) sensor annotation"],
+        "signalMappings": ["show source-supported positive Preg response"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host dose response",
+          "basal and maximal reporter output",
+          "metal interference panel"
+        ],
+        "calibrationRequirements": [
+          "fix CadR.10 and Preg boundaries",
+          "version host, vector, culture, reporter, and instrument"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": ["Created after official SI and NCBI audit."],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": true }
+      }
+    },
+    {
+      "id": "sensor.chrb",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "ChrB–Pchr 六价铬响应模块",
+        "en": "ChrB–Pchr chromate-response module",
+        "aliases": ["ChrB", "Pchr", "pCHRGFP1", "TnOtChr"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "ChrB regulates the TnOtChr chr promoter in response to chromate or dichromate, while the cited native study reports no response to Cr(III).",
+        "steps": [
+          "ChrB and the chr promoter originate from Ochrobactrum tritici 5bvl1 TnOtChr.",
+          "The pCHRGFP1 construct places gfp under the chr promoter-plus-chrB regulatory unit in E. coli DH5α.",
+          "Cr(VI) raises reporter output; Cr(III), sulfate, tested oxidants, and other oxyanions were non-inducing in the native mechanism study."
+        ],
+        "requiredPartners": [
+          "ChrB",
+          "source-defined chr promoter",
+          "reporter gene",
+          "chromate or dichromate"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "chromate-crvi",
+            "name": { "state": "known", "value": "Cr(VI) as chromate or dichromate" },
+            "direction": "positive",
+            "unit": { "state": "known", "value": "µM Cr(VI)" },
+            "directObservation": true,
+            "sourceRefs": ["branco-2008-chrb", "branco-2013-chrb-bioreporter"]
+          },
+          {
+            "id": "chromium-iii",
+            "name": { "state": "known", "value": "Cr(III)" },
+            "direction": "unknown",
+            "unit": {
+              "state": "unknown",
+              "reason": "recorded as a non-inducing specificity control, not a response concentration"
+            },
+            "directObservation": true,
+            "sourceRefs": ["branco-2008-chrb"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pchr-gfp",
+            "name": { "state": "known", "value": "ChrB/Pchr-controlled GFP fluorescence" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "fluorescence units are source-assay specific"
+            },
+            "directObservation": true,
+            "sourceRefs": ["branco-2013-chrb-bioreporter", "coelho-2015-chromate-bioreporters"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "native O. tritici and engineered E. coli observations are separate source contexts"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "O. tritici 5bvl1 and E. coli DH5α are retained in source-specific notes"
+        },
+        "vector": { "state": "known", "value": "pCHRGFP1 for the E. coli GFP bioreporter" },
+        "culture": {
+          "state": "unknown",
+          "reason": "TMM laboratory assay and soil assays must not be merged"
+        },
+        "temperature": { "state": "known", "value": "37 °C for the pCHRGFP1 laboratory assay" },
+        "induction": {
+          "state": "known",
+          "value": "Cr(VI); Cr(III) retained as a non-inducing control"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "no single growth phase applies across the cited studies"
+        },
+        "readout": {
+          "state": "known",
+          "value": "GFP fluorescence in pCHRGFP1 and native transcription/resistance assays"
+        },
+        "other": {
+          "state": "known",
+          "value": "Promoter version and host must remain bound to pCHRGFP1, pCHRGFP2, or native TnOtChr context."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary studies support the native regulator/promoter mechanism and a directly quantified E. coli DH5α pCHRGFP1 bioreporter.",
+        "reviewNotes": [
+          "Native mechanism, laboratory reporter, and soil ranges are stored as distinct assays.",
+          "Passed denotes literature-card audit, not team validation."
+        ],
+        "boundaryNotes": [
+          "Cr(VI) response must not be generalized to total chromium or Cr(III).",
+          "Each range remains tied to its host, promoter construct, medium, and sample matrix."
+        ]
+      },
+      "literature": [
+        {
+          "id": "branco-2008-chrb",
+          "title": "The Chromate-Inducible chrBACF Operon from the Transposable Element TnOtChr Confers Resistance to Chromium(VI) and Superoxide",
+          "authors": "Branco et al.",
+          "year": { "state": "known", "value": 2008 },
+          "doi": { "state": "known", "value": "10.1128/JB.00289-08" },
+          "pmid": { "state": "known", "value": "18776016" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/18776016/",
+          "sourceType": "primary-paper",
+          "supports": ["TnOtChr", "ChrB/Pchr mechanism", "Cr(VI)/Cr(III) specificity", "EF469735"]
+        },
+        {
+          "id": "branco-2013-chrb-bioreporter",
+          "title": "Highly Sensitive, Highly Specific Whole-Cell Bioreporters for the Detection of Chromate in Environmental Samples",
+          "authors": "Branco et al.",
+          "year": { "state": "known", "value": 2013 },
+          "doi": { "state": "known", "value": "10.1371/journal.pone.0054005" },
+          "pmid": { "state": "known", "value": "23326558" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/23326558/",
+          "sourceType": "primary-paper",
+          "supports": ["pCHRGFP1", "E. coli DH5α", "TMM assay", "0.1 µM response"]
+        },
+        {
+          "id": "coelho-2015-chromate-bioreporters",
+          "title": "Evaluation of bacterial biosensors to determine chromate bioavailability and to assess ecotoxicity of soils",
+          "authors": "Coelho et al.",
+          "year": { "state": "known", "value": 2015 },
+          "doi": { "state": "known", "value": "10.1016/j.chemosphere.2014.12.026" },
+          "pmid": { "state": "known", "value": "25655820" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/25655820/",
+          "sourceType": "primary-paper",
+          "supports": ["soil context", "pCHRGFP1 0.5–2 µM range", "pCHRGFP2 2–10 µM range"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "lowest pCHRGFP1 concentration with a noticeable response",
+          "value": { "state": "known", "value": 0.1 },
+          "unit": { "state": "known", "value": "µM Cr(VI)" },
+          "sourceRef": "branco-2013-chrb-bioreporter",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "DH5α" },
+            "vector": { "state": "known", "value": "pCHRGFP1" },
+            "culture": { "state": "known", "value": "TMM, 37 °C, 5 h source assay" }
+          },
+          "originalMeaning": "The pCHRGFP1 reporter showed a noticeable response at 0.1 µM chromate after the source incubation.",
+          "transferability": "Display-only laboratory result; it is not the separate soil working range and requires calibration in a new matrix.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "partial-public",
+        "records": [
+          {
+            "kind": "GenBank",
+            "accession": "EF469735",
+            "sequenceType": "system",
+            "version": {
+              "state": "unknown",
+              "reason": "version suffix was not independently transcribed"
+            },
+            "orientation": "forward",
+            "sourceRef": "branco-2008-chrb",
+            "complete": false
+          }
+        ],
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked Cr(VI) sensor annotation"],
+        "signalMappings": ["show Cr(VI) positive direction and Cr(III) non-induction separately"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host Cr(VI) dose response",
+          "Cr(III) and oxyanion interference panel",
+          "matrix-specific blank and reporter output"
+        ],
+        "calibrationRequirements": [
+          "fix the exact chr promoter version and ChrB construct",
+          "version host, medium, temperature, sample matrix, and instrument"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": ["Separated native, laboratory, and soil assay contexts."],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.merr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "MerR–Pmer 汞离子响应模块",
+        "en": "MerR–Pmer mercury-response module",
+        "aliases": ["MerR", "Pmer", "Tn21 mer", "pmerGFP"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "The source Tn21 MerR/Pmer regulatory region couples bioavailable inorganic Hg(II) to reporter transcription in E. coli reporter vectors.",
+        "steps": [
+          "Tn21-derived merR and Pmer provide the mercury-responsive regulatory element.",
+          "Hg(II)-bound MerR activates Pmer-controlled transcription, whereas MerR regulates basal transcription without mercuric inducer.",
+          "The source vector family couples the element separately to lux, lac, or gfp reporters."
+        ],
+        "requiredPartners": [
+          "Tn21 MerR",
+          "cognate Pmer",
+          "reporter gene",
+          "intracellularly bioavailable Hg(II)"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "mercury-ii",
+            "name": {
+              "state": "known",
+              "value": "bioavailable inorganic Hg(II), supplied as a mercuric salt"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no single concentration unit is assigned outside a specific reporter assay"
+            },
+            "directObservation": true,
+            "sourceRefs": ["hansen-2000-mer-biosensor"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pmer-reporter",
+            "name": {
+              "state": "known",
+              "value": "Pmer-controlled lux, lac, or GFP reporter output"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "the three reporter classes use different output units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["hansen-2000-mer-biosensor"]
+          }
+        ]
+      },
+      "context": {
+        "host": { "state": "known", "value": "Escherichia coli" },
+        "strain": {
+          "state": "unknown",
+          "reason": "a single strain is not assigned across all source vector variants in this card"
+        },
+        "vector": {
+          "state": "known",
+          "value": "Tn21 merR/Pmer reporter-vector family with lux, lac, and gfp variants"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "assay medium must be taken from the selected reporter variant"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "no universal temperature is assigned across reporter variants"
+        },
+        "induction": {
+          "state": "known",
+          "value": "inorganic Hg(II); methylmercury is not asserted as a direct input"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "growth phase changes mercury biosensor sensitivity and must be specified per assay"
+        },
+        "readout": {
+          "state": "known",
+          "value": "bioluminescence, β-galactosidase, or GFP depending on vector"
+        },
+        "other": {
+          "state": "known",
+          "value": "This card uses the Tn21 source element; MerR homologs from other transposons remain separate source identities."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "A primary paper supports Tn21 merR/Pmer reporter vectors and mercury-dependent outputs in E. coli.",
+        "reviewNotes": [
+          "The card preserves the Tn21 source identity and reporter-specific context.",
+          "Passed denotes literature traceability, not team validation."
+        ],
+        "boundaryNotes": [
+          "The card represents bioavailable inorganic Hg(II), not total mercury or methylmercury.",
+          "No response range from a later artificial mer operon is copied into this source card."
+        ]
+      },
+      "literature": [
+        {
+          "id": "hansen-2000-mer-biosensor",
+          "title": "Versatile biosensor vectors for detection and quantification of mercury",
+          "authors": "Hansen and Sørensen",
+          "year": { "state": "known", "value": 2000 },
+          "doi": { "state": "known", "value": "10.1111/j.1574-6968.2000.tb09413.x" },
+          "pmid": { "state": "known", "value": "11094290" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/11094290/",
+          "sourceType": "primary-paper",
+          "supports": ["Tn21 merR/Pmer", "lux/lac/gfp reporter vectors", "E. coli function"]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "no scalar response value was independently extracted from the original Tn21 vector paper for this catalog version"
+      },
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the card does not claim one construction-ready sequence for the source vector family"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked inorganic Hg(II) sensor annotation"],
+        "signalMappings": ["show Hg(II)-dependent positive Pmer direction"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host Hg(II) dose response",
+          "mercury speciation and bioavailability controls",
+          "basal and maximal reporter output"
+        ],
+        "calibrationRequirements": [
+          "fix the Tn21 MerR/Pmer and reporter variant",
+          "version host, growth phase, medium, exposure time, and instrument"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Created the Tn21-specific MerR/Pmer card without later artificial-operon ranges."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.cuer",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "CueR–PcopA 铜响应模块",
+        "en": "CueR–PcopA copper-response module",
+        "aliases": ["CueR", "YbbI", "PcopA", "copper efflux regulator"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "Native E. coli CueR controls PcopA transcription within cytoplasmic copper homeostasis and responds to monovalent copper, with documented silver cross-response.",
+        "steps": [
+          "Intracellular Cu(I) activates the MerR-family regulator CueR.",
+          "CueR binds the dyad-symmetric site in the 19 bp PcopA spacer and activates copA transcription.",
+          "Copper or silver salts induce the native regulon; extracellular cupric salt identity must not be confused with the intracellular Cu(I) ligand state."
+        ],
+        "requiredPartners": [
+          "E. coli CueR",
+          "native PcopA",
+          "σ70 RNA polymerase",
+          "cytoplasmic Cu(I) homeostasis"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "copper-i",
+            "name": {
+              "state": "known",
+              "value": "intracellular Cu(I); source cultures may receive copper salts"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no concentration is assigned outside a defined culture assay"
+            },
+            "directObservation": true,
+            "sourceRefs": ["outten-2000-cuer", "stoyanov-2001-cuer"]
+          },
+          {
+            "id": "silver-i",
+            "name": { "state": "known", "value": "Ag(I) cross-response" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "recorded as cross-reactivity rather than a transferable concentration"
+            },
+            "directObservation": true,
+            "sourceRefs": ["stoyanov-2001-cuer"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pcopa-transcription",
+            "name": { "state": "known", "value": "CueR-dependent PcopA transcription" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "native lacZ and transcription assays use source-specific units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["outten-2000-cuer", "stoyanov-2001-cuer"]
+          }
+        ]
+      },
+      "context": {
+        "host": { "state": "known", "value": "Escherichia coli" },
+        "strain": {
+          "state": "known",
+          "value": "E. coli K-12 source background; exact derivative is assay-specific"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "native regulon and promoter-fusion constructs are separate contexts"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "medium must be retained from the selected source assay"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "no universal temperature is assigned to this system card"
+        },
+        "induction": {
+          "state": "known",
+          "value": "copper or silver salts, interpreted through intracellular Cu(I)/Ag(I) sensing"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "homeostatic state and growth phase affect intracellular copper"
+        },
+        "readout": {
+          "state": "known",
+          "value": "copA transcription or PcopA-lacZ reporter activity"
+        },
+        "other": {
+          "state": "known",
+          "value": "PcopA is embedded in CopA/CueO copper-efflux homeostasis, so host transport state affects apparent response."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary E. coli studies identify CueR, its PcopA site, copper-dependent activation, and silver cross-response.",
+        "reviewNotes": [
+          "The historical YbbI/CopR naming is mapped to E. coli CueR only.",
+          "Passed denotes source audit, not a calibrated project biosensor."
+        ],
+        "boundaryNotes": [
+          "Extracellular CuSO4 or cupric-ion dosing is not itself proof that CueR binds Cu(II).",
+          "No quantitative range from a later engineered biosensor is attached without its exact construct."
+        ]
+      },
+      "literature": [
+        {
+          "id": "outten-2000-cuer",
+          "title": "Transcriptional activation of an Escherichia coli copper efflux regulon by the chromosomal MerR homologue, cueR",
+          "authors": "Outten et al.",
+          "year": { "state": "known", "value": 2000 },
+          "doi": { "state": "known", "value": "10.1074/jbc.M006508200" },
+          "pmid": { "state": "known", "value": "10915804" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/10915804/",
+          "sourceType": "primary-paper",
+          "supports": ["E. coli CueR identity", "PcopA regulation", "copper-responsive regulon"]
+        },
+        {
+          "id": "stoyanov-2001-cuer",
+          "title": "CueR (YbbI) of Escherichia coli is a MerR family regulator controlling expression of the copper exporter CopA",
+          "authors": "Stoyanov et al.",
+          "year": { "state": "known", "value": 2001 },
+          "doi": { "state": "known", "value": "10.1046/j.1365-2958.2001.02264.x" },
+          "pmid": { "state": "known", "value": "11136469" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/11136469/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "PcopA operator",
+            "copper response",
+            "silver cross-response",
+            "promoter fusion"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "no scalar from a construct-matched CueR biosensor was independently extracted for this catalog version"
+      },
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the native locus and reporter fusions are not represented as one construction-ready sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked Cu(I)/Ag(I) homeostasis sensor annotation"],
+        "signalMappings": ["show Cu(I) positive response and Ag(I) cross-response separately"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host copper dose response",
+          "Ag(I) and other-metal interference panel",
+          "intracellular copper-homeostasis controls"
+        ],
+        "calibrationRequirements": [
+          "fix CueR and PcopA boundaries",
+          "version host transport genotype, copper salt, medium, exposure time, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Recorded intracellular oxidation state and silver cross-response without importing later biosensor ranges."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.narx-narl",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "NarX–NarL–Pnar 硝酸盐响应模块",
+        "en": "NarX–NarL–Pnar nitrate-response module",
+        "aliases": ["NarX/NarL", "Pnar", "PnarGHJI", "pPNARGFP"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "The E. coli NarX/NarL two-component system relays nitrate-dependent phosphorylation to NarL and supports a PnarGHJI–GFP whole-cell reporter.",
+        "steps": [
+          "NarX autophosphorylation responds to nitrate and, less sensitively in the molecular assay, nitrite.",
+          "NarX transfers phosphoryl groups to NarL, which regulates nitrate-responsive promoters.",
+          "The pPNARGFP reporter couples the narGHJI promoter and regulatory region to GFP in E. coli.",
+          "Direct PnarG activation integrates NarL, oxygen-responsive FNR, and integration host factor."
+        ],
+        "requiredPartners": [
+          "NarX",
+          "NarL",
+          "PnarGHJI regulatory region",
+          "FNR",
+          "integration host factor",
+          "reporter gene"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "nitrate",
+            "name": { "state": "known", "value": "nitrate" },
+            "direction": "positive",
+            "unit": { "state": "unknown", "reason": "concentration is assay-specific" },
+            "directObservation": true,
+            "sourceRefs": ["taylor-2004-pnargfp", "lee-1999-narx-phosphorylation"]
+          },
+          {
+            "id": "nitrite-molecular-cross-response",
+            "name": {
+              "state": "known",
+              "value": "nitrite response in the NarX phosphorylation assay"
+            },
+            "direction": "positive",
+            "unit": { "state": "unknown", "reason": "not assigned as a pPNARGFP reporter range" },
+            "directObservation": true,
+            "sourceRefs": ["lee-1999-narx-phosphorylation"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pnar-gfp",
+            "name": { "state": "known", "value": "PnarGHJI-controlled GFP fluorescence" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "fluorescence units are source-assay specific"
+            },
+            "directObservation": true,
+            "sourceRefs": ["taylor-2004-pnargfp"]
+          }
+        ]
+      },
+      "context": {
+        "host": { "state": "known", "value": "Escherichia coli" },
+        "strain": {
+          "state": "unknown",
+          "reason": "the exact pPNARGFP strain was not independently extracted for this catalog version"
+        },
+        "vector": {
+          "state": "known",
+          "value": "pPNARGFP narGHJI promoter/regulatory-region GFP reporter"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "the optimized reporter medium and aeration must be recovered from the primary method before reuse"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "no temperature is generalized from the source abstract"
+        },
+        "induction": {
+          "state": "known",
+          "value": "extracellular nitrate for the whole-cell reporter"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "the source assay phase must be retained with its protocol"
+        },
+        "readout": {
+          "state": "known",
+          "value": "GFP fluorescence proportional to extracellular nitrate in the optimized source assay"
+        },
+        "other": {
+          "state": "known",
+          "value": "PnarGHJI directly integrates NarL, FNR, and IHF; NarQ/NarP belong to the broader nitrate/nitrite host network and remain context variables rather than asserted PnarG requirements."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary studies support the E. coli pPNARGFP reporter, NarX phosphorylation response, and direct NarL/FNR/IHF control at PnarG.",
+        "reviewNotes": [
+          "Reporter behavior and cell-free NarX phosphorylation are stored as different assays.",
+          "Passed denotes literature-card audit, not BIT-CHINA validation."
+        ],
+        "boundaryNotes": [
+          "The Lee et al. concentrations describe in vitro NarX phosphorylation, not GFP detection limits.",
+          "Nitrite non-interference in pPNARGFP must not be overwritten by the separate molecular cross-response."
+        ]
+      },
+      "literature": [
+        {
+          "id": "taylor-2004-pnargfp",
+          "title": "Construction of a whole-cell gene reporter for the fluorescent bioassay of nitrate",
+          "authors": "Taylor et al.",
+          "year": { "state": "known", "value": 2004 },
+          "doi": { "state": "known", "value": "10.1016/j.ab.2004.01.013" },
+          "pmid": { "state": "known", "value": "15081908" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/15081908/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "pPNARGFP",
+            "E. coli whole-cell reporter",
+            "nitrate-dependent GFP",
+            "tested interference panel"
+          ]
+        },
+        {
+          "id": "lee-1999-narx-phosphorylation",
+          "title": "Signal-dependent phosphorylation of the membrane-bound NarX two-component sensor-transmitter protein of Escherichia coli: nitrate elicits a superior anion ligand response compared to nitrite.",
+          "authors": "Lee et al.",
+          "year": { "state": "known", "value": 1999 },
+          "doi": { "state": "known", "value": "10.1128/JB.181.17.5309-5316.1999" },
+          "pmid": { "state": "known", "value": "10464202" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/10464202/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "NarX nitrate and nitrite phosphorylation response",
+            "cell-free concentration dependence"
+          ]
+        },
+        {
+          "id": "schroder-1993-pnarg-regulation",
+          "title": "Activation of the Escherichia coli nitrate reductase (narGHJI) operon by NarL and Fnr requires integration host factor",
+          "authors": "Schröder et al.",
+          "year": { "state": "known", "value": 1993 },
+          "doi": { "state": "known", "value": "10.1016/S0021-9258(18)53999-5" },
+          "pmid": { "state": "known", "value": "8419352" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8419352/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "PnarG regulation",
+            "NarL requirement",
+            "FNR requirement",
+            "integration host factor requirement"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "in vitro nitrate concentration for half-maximal NarX autophosphorylation",
+          "value": { "state": "known", "value": 35 },
+          "unit": { "state": "known", "value": "µM nitrate" },
+          "sourceRef": "lee-1999-narx-phosphorylation",
+          "context": {
+            "host": { "state": "known", "value": "cell-free E. coli NarX preparation" },
+            "strain": {
+              "state": "unknown",
+              "reason": "not used as a whole-cell reporter observation"
+            },
+            "vector": { "state": "unknown", "reason": "cell-free phosphorylation assay" },
+            "culture": { "state": "unknown", "reason": "cell-free phosphorylation assay" }
+          },
+          "originalMeaning": "The molecular assay reported an approximately 5 µM nitrate response threshold and 35 µM half-maximal NarX autophosphorylation.",
+          "transferability": "Mechanism-only display value; it is not a whole-cell reporter threshold.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        },
+        {
+          "metric": "in vitro nitrite concentration for half-maximal NarX autophosphorylation",
+          "value": { "state": "known", "value": 3.5 },
+          "unit": { "state": "known", "value": "mM nitrite" },
+          "sourceRef": "lee-1999-narx-phosphorylation",
+          "context": {
+            "host": { "state": "known", "value": "cell-free E. coli NarX preparation" },
+            "strain": {
+              "state": "unknown",
+              "reason": "not used as a whole-cell reporter observation"
+            },
+            "vector": { "state": "unknown", "reason": "cell-free phosphorylation assay" },
+            "culture": { "state": "unknown", "reason": "cell-free phosphorylation assay" }
+          },
+          "originalMeaning": "The molecular assay reported an approximately 500 µM nitrite response threshold and 3.5 mM half-maximal NarX autophosphorylation.",
+          "transferability": "Mechanism-only display value; it is not a pPNARGFP response range.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "no single construction-ready pPNARGFP sequence was independently audited"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked nitrate sensor annotation"],
+        "signalMappings": ["show nitrate-positive Pnar reporter direction"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host nitrate dose response",
+          "nitrite and respiratory-acceptor interference panel",
+          "oxygen and growth-state controls"
+        ],
+        "calibrationRequirements": [
+          "fix NarX/NarL and PnarGHJI construct boundaries",
+          "version FNR/IHF state, broader NarQ/NarP network, aeration, medium, exposure time, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Separated whole-cell nitrate reporting from in vitro NarX phosphorylation metrics."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.nahr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "NahR–Psal 水杨酸响应模块",
+        "en": "NahR–Psal salicylate-response module",
+        "aliases": ["NahR", "Psal", "NAH7", "nahR/Psal"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "Wild-type NahR from the Pseudomonas NAH7 plasmid directly activates Psal in response to salicylate and functions in E. coli promoter-fusion circuits.",
+        "steps": [
+          "NahR is expressed from the NAH7 regulatory region.",
+          "Salicylate stimulates NahR-dependent transcription from Psal.",
+          "Psal can control a reporter directly or a downstream regulator in an engineered cascade.",
+          "Naphthalene requires upstream catabolism to salicylate and is not recorded as a direct NahR ligand."
+        ],
+        "requiredPartners": ["wild-type NahR", "cognate Psal", "salicylate", "reporter gene"]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "salicylate",
+            "name": { "state": "known", "value": "salicylate" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "a concentration must remain bound to its source circuit"
+            },
+            "directObservation": true,
+            "sourceRefs": ["schell-wender-1986-nahr", "cebolla-2001-nahr-circuit"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "psal-transcription",
+            "name": {
+              "state": "known",
+              "value": "NahR-dependent Psal transcription and reporter activity"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "galK and lacZ source readouts use different units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["schell-wender-1986-nahr", "cebolla-2001-nahr-circuit"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli for the cited heterologous promoter-fusion circuits"
+        },
+        "strain": { "state": "known", "value": "CC118 for the 2001 circuit characterization" },
+        "vector": {
+          "state": "known",
+          "value": "nahR/Psal::trp′::′lacZ simple circuit in the 2001 study"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "medium was not independently extracted for this catalog version"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature was not independently extracted for this catalog version"
+        },
+        "induction": { "state": "known", "value": "2 mM salicylate in the source kinetic example" },
+        "growthPhase": {
+          "state": "known",
+          "value": "salicylate added at OD600 0.2 in the source kinetic example"
+        },
+        "readout": {
+          "state": "known",
+          "value": "β-galactosidase activity from the direct nahR/Psal circuit"
+        },
+        "other": {
+          "state": "known",
+          "value": "The card is wild-type NahR/Psal; engineered NahR variants and the downstream mutant XylS2 cascade remain separate constructs."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary papers support the NAH7 NahR/Psal regulatory region, salicylate induction, and a direct E. coli nahR/Psal reporter circuit.",
+        "reviewNotes": [
+          "The direct NahR/Psal circuit is separated from the XylS2 amplification cascade.",
+          "Passed denotes literature-card audit, not team validation."
+        ],
+        "boundaryNotes": [
+          "Salicylate is the direct input; naphthalene is only an upstream metabolic precursor in the native pathway.",
+          "Performance of later engineered NahR mutants is not assigned to wild-type NahR."
+        ]
+      },
+      "literature": [
+        {
+          "id": "schell-wender-1986-nahr",
+          "title": "Identification of the nahR gene product and nucleotide sequences required for its activation of the sal operon",
+          "authors": "Schell and Wender",
+          "year": { "state": "known", "value": 1986 },
+          "doi": { "state": "known", "value": "10.1128/jb.166.1.9-14.1986" },
+          "pmid": { "state": "known", "value": "3007442" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/3007442/",
+          "sourceType": "primary-paper",
+          "supports": ["NAH7 NahR", "Psal regulatory region", "salicylate-dependent activation"]
+        },
+        {
+          "id": "schell-poser-1989-psal",
+          "title": "Demonstration, characterization, and mutational analysis of NahR protein binding to nah and sal promoters.",
+          "authors": "Schell and Poser",
+          "year": { "state": "known", "value": 1989 },
+          "doi": { "state": "known", "value": "10.1128/jb.171.2.837-846.1989" },
+          "pmid": { "state": "known", "value": "2914873" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/2914873/",
+          "sourceType": "primary-paper",
+          "supports": ["Psal promoter boundaries", "NahR-dependent upstream activation"]
+        },
+        {
+          "id": "cebolla-2001-nahr-circuit",
+          "title": "Rational design of a bacterial transcriptional cascade for amplifying gene expression capacity",
+          "authors": "Cebolla et al.",
+          "year": { "state": "known", "value": 2001 },
+          "doi": { "state": "known", "value": "10.1093/nar/29.3.759" },
+          "pmid": { "state": "known", "value": "11160899" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/11160899/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "E. coli CC118",
+            "direct nahR/Psal lacZ circuit",
+            "2 mM salicylate induction example",
+            "cascade boundary"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "salicylate concentration used in the direct-circuit kinetic example",
+          "value": { "state": "known", "value": 2 },
+          "unit": { "state": "known", "value": "mM salicylate" },
+          "sourceRef": "cebolla-2001-nahr-circuit",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "CC118" },
+            "vector": { "state": "known", "value": "nahR/Psal::trp′::′lacZ direct circuit" },
+            "culture": {
+              "state": "known",
+              "value": "inducer added at OD600 0.2; source medium and temperature not transcribed"
+            }
+          },
+          "originalMeaning": "The study used 2 mM salicylate to compare β-galactosidase kinetics of the direct NahR/Psal circuit and engineered cascades.",
+          "transferability": "Source induction condition only; it is not a detection limit or fitted response parameter.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "no single construction-ready wild-type NahR/Psal reporter sequence was independently audited"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked salicylate sensor annotation"],
+        "signalMappings": ["show salicylate-positive Psal direction"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host salicylate dose response",
+          "aromatic-compound interference panel",
+          "basal and maximal reporter output"
+        ],
+        "calibrationRequirements": [
+          "fix wild-type NahR and Psal boundaries",
+          "version host, construct, medium, growth phase, exposure time, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Separated wild-type NahR/Psal from naphthalene metabolism and engineered NahR/XylS2 variants."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.xyls",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "XylS–Pm 苯甲酸衍生物响应模块",
+        "en": "XylS–Pm alkylbenzoate-response module",
+        "aliases": ["XylS", "Pm", "meta-toluate sensor", "pWW0 lower pathway"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "XylS from the Pseudomonas putida pWW0 TOL plasmid activates Pm in response to benzoate and substituted benzoates such as meta-toluate.",
+        "steps": [
+          "The XylS amino-terminal region provides effector responsiveness and its carboxy-terminal region binds and activates Pm.",
+          "Meta-toluate or benzoate activates XylS-dependent transcription from Pm.",
+          "The XylS/Pm module functions in E. coli promoter-fusion contexts.",
+          "Toluene and xylenes require the separate XylR-controlled upper pathway to become benzoate derivatives and are not direct XylS inputs."
+        ],
+        "requiredPartners": [
+          "wild-type XylS",
+          "cognate Pm operator/promoter",
+          "benzoate or supported substituted benzoate",
+          "reporter gene"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "meta-toluate",
+            "name": { "state": "known", "value": "meta-toluate (3-methylbenzoate)" },
+            "direction": "positive",
+            "unit": { "state": "unknown", "reason": "concentration remains assay-specific" },
+            "directObservation": true,
+            "sourceRefs": ["inouye-1981-xyls", "kaldalu-2000-xyls-domains"]
+          },
+          {
+            "id": "benzoate",
+            "name": {
+              "state": "known",
+              "value": "benzoate and source-supported substituted analogs"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "analogs require separate specificity measurements"
+            },
+            "directObservation": true,
+            "sourceRefs": ["inouye-1981-xyls", "kessler-1994-xyls-pm"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pm-transcription",
+            "name": {
+              "state": "known",
+              "value": "XylS-dependent Pm transcription and reporter activity"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "enzyme and lacZ readouts use source-specific units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["inouye-1981-xyls", "kaldalu-2000-xyls-domains"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli for the cited heterologous Pm-lacZ assay"
+        },
+        "strain": { "state": "known", "value": "CC118Pm-lacZ in the 2000 characterization" },
+        "vector": {
+          "state": "known",
+          "value": "XylS expression plasmids with chromosomal Pm-lacZ reporter in the source assay"
+        },
+        "culture": {
+          "state": "known",
+          "value": "overnight LB culture diluted 1:100 into LB in the 2000 assay"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "the figure protocol did not state temperature in the extracted text"
+        },
+        "induction": { "state": "known", "value": "1 mM meta-toluate for 4 h in the source assay" },
+        "growthPhase": {
+          "state": "known",
+          "value": "overnight culture followed by 1:100 dilution and 4 h assay"
+        },
+        "readout": { "state": "known", "value": "β-galactosidase activity from Pm-lacZ" },
+        "other": {
+          "state": "known",
+          "value": "Rich-medium growth state and XylS abundance can alter Pm output; XylS-independent benzoate response in Pseudomonas is a separate host mechanism."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary studies support direct XylS activation by benzoate derivatives, E. coli function, XylS domain roles, and Pm host/growth-state boundaries.",
+        "reviewNotes": [
+          "The card represents wild-type XylS/Pm.",
+          "Passed denotes literature-card audit, not team validation."
+        ],
+        "boundaryNotes": [
+          "Toluene, xylene, and methylbenzyl alcohol are not direct XylS ligands.",
+          "XylR upper-pathway conversion and XylS-independent Pm activation must remain separate mechanisms."
+        ]
+      },
+      "literature": [
+        {
+          "id": "inouye-1981-xyls",
+          "title": "Molecular cloning of gene xylS of the TOL plasmid: evidence for positive regulation of the xylDEGF operon by xylS",
+          "authors": "Inouye et al.",
+          "year": { "state": "known", "value": 1981 },
+          "doi": { "state": "known", "value": "10.1128/jb.148.2.413-418.1981" },
+          "pmid": { "state": "known", "value": "6271729" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/6271729/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "XylS positive regulation",
+            "E. coli vector context",
+            "meta-toluate and benzoate response",
+            "non-response to meta-xylene"
+          ]
+        },
+        {
+          "id": "kaldalu-2000-xyls-domains",
+          "title": "Functional domains of the TOL plasmid transcription factor XylS",
+          "authors": "Kaldalu et al.",
+          "year": { "state": "known", "value": 2000 },
+          "doi": { "state": "known", "value": "10.1128/JB.182.4.1118-1126.2000" },
+          "pmid": { "state": "known", "value": "10648539" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/10648539/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "effector-responsive domain",
+            "Pm binding and activation",
+            "E. coli CC118Pm-lacZ assay",
+            "1 mM meta-toluate condition"
+          ]
+        },
+        {
+          "id": "kessler-1994-xyls-pm",
+          "title": "Cross talk between catabolic pathways in Pseudomonas putida: XylS-dependent and -independent activation of the TOL meta operon requires the same cis-acting sequences within the Pm promoter",
+          "authors": "Kessler et al.",
+          "year": { "state": "known", "value": 1994 },
+          "doi": { "state": "known", "value": "10.1128/jb.176.17.5578-5582.1994" },
+          "pmid": { "state": "known", "value": "8071244" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8071244/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "benzoate and 3-methylbenzoate response",
+            "Pm cis elements",
+            "growth-state boundary",
+            "XylS-independent host response"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "meta-toluate concentration used for the wild-type XylS/Pm-lacZ assay",
+          "value": { "state": "known", "value": 1 },
+          "unit": { "state": "known", "value": "mM meta-toluate" },
+          "sourceRef": "kaldalu-2000-xyls-domains",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "CC118Pm-lacZ" },
+            "vector": {
+              "state": "known",
+              "value": "wild-type XylS expression plasmid with Pm-lacZ reporter"
+            },
+            "culture": {
+              "state": "known",
+              "value": "LB overnight, diluted 1:100, 4 h with inducer"
+            }
+          },
+          "originalMeaning": "The source comparison assayed Pm-lacZ after 4 h with or without 1 mM meta-toluate.",
+          "transferability": "Source induction condition only; it is not a detection limit, EC50, or transferable gain.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the public protein identity and promoter constructs were not audited as one construction-ready sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked benzoate-derivative sensor annotation"],
+        "signalMappings": ["show meta-toluate and benzoate positive Pm direction"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host ligand dose response",
+          "benzoate-analog interference panel",
+          "basal and maximal Pm output"
+        ],
+        "calibrationRequirements": [
+          "fix wild-type XylS and Pm boundaries",
+          "version XylS abundance, host, medium, growth phase, exposure time, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Separated direct benzoate-derivative sensing from XylR-dependent hydrocarbon metabolism."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.dmpr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "DmpR–Po 苯酚响应模块",
+        "en": "DmpR–Po phenol-response module",
+        "aliases": ["DmpR", "Po", "pVI150", "pVI466"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "Natural DmpR from Pseudomonas sp. CF600 directly senses phenol and selected methylphenols and activates the sigma-54-dependent Po promoter.",
+        "steps": [
+          "Aromatic effectors interact with the DmpR amino-terminal specificity domain without a separate sensory protein.",
+          "Effector activation relieves intramolecular repression of the DmpR AAA+ transcriptional activator.",
+          "DmpR activates sigma-54 RNA polymerase at Po through upstream activation sequences.",
+          "Integration host factor bends the Po regulatory region and supports optimal transcriptional output."
+        ],
+        "requiredPartners": [
+          "wild-type DmpR",
+          "cognate Po regulatory region",
+          "RpoN/sigma-54 RNA polymerase",
+          "integration host factor",
+          "supported aromatic effector"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "phenol",
+            "name": { "state": "known", "value": "phenol" },
+            "direction": "positive",
+            "unit": { "state": "unknown", "reason": "no transferable concentration is assigned" },
+            "directObservation": true,
+            "sourceRefs": ["shingler-moore-1994-dmpr"]
+          },
+          {
+            "id": "methylphenols",
+            "name": {
+              "state": "known",
+              "value": "source-supported cresols and selected substituted phenols"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "each aromatic effector has a distinct source response"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shingler-moore-1994-dmpr"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "po-transcription",
+            "name": {
+              "state": "known",
+              "value": "DmpR-dependent Po transcription and luxAB output"
+            },
+            "direction": "positive",
+            "unit": { "state": "unknown", "reason": "luciferase units are source-assay specific" },
+            "directObservation": true,
+            "sourceRefs": ["shingler-moore-1994-dmpr", "sze-2001-dmpr-po"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Pseudomonas sp. CF600 natively; E. coli in the cited heterologous reporter study"
+        },
+        "strain": {
+          "state": "known",
+          "value": "E. coli S90C and IHF-deficient DPB101 for the 2001 reporter comparison"
+        },
+        "vector": { "state": "known", "value": "pVI466 dmpR–Po–luxAB in the E. coli comparison" },
+        "culture": {
+          "state": "unknown",
+          "reason": "the exact E. coli reporter medium was not independently extracted for this card"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "temperature must be retained from the selected source protocol"
+        },
+        "induction": {
+          "state": "known",
+          "value": "phenol or a source-characterized DmpR aromatic effector"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "source reporter output was followed over a growth curve and no universal phase is assigned"
+        },
+        "readout": { "state": "known", "value": "Po-controlled luxAB luciferase activity" },
+        "other": {
+          "state": "known",
+          "value": "DmpR effector identity, RpoN availability, IHF status, and Po upstream-activation-site geometry all influence output."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary studies support DmpR identity, direct aromatic sensing, Po-lux reporting, sigma-54 dependence, and an E. coli DmpR–Po–luxAB context.",
+        "reviewNotes": [
+          "The card represents wild-type CF600 DmpR and its cognate Po region.",
+          "Passed denotes literature-card audit, not team validation."
+        ],
+        "boundaryNotes": [
+          "The card does not generalize DmpR to every phenolic or aromatic pollutant.",
+          "Engineered DmpR42 detection limits and mutant specificity are not assigned to natural DmpR."
+        ]
+      },
+      "literature": [
+        {
+          "id": "shingler-1993-dmpr-sequence",
+          "title": "Cloning and nucleotide sequence of the gene encoding the positive regulator (DmpR) of the phenol catabolic pathway encoded by pVI150 and identification of DmpR as a member of the NtrC family of transcriptional activators",
+          "authors": "Shingler et al.",
+          "year": { "state": "known", "value": 1993 },
+          "doi": { "state": "known", "value": "10.1128/jb.175.6.1596-1604.1993" },
+          "pmid": { "state": "known", "value": "8449869" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8449869/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "pVI150 DmpR identity",
+            "NtrC-family classification",
+            "phenol-catabolic pathway"
+          ]
+        },
+        {
+          "id": "shingler-moore-1994-dmpr",
+          "title": "Sensing of aromatic compounds by the DmpR transcriptional activator of phenol-catabolizing Pseudomonas sp. strain CF600",
+          "authors": "Shingler and Moore",
+          "year": { "state": "known", "value": 1994 },
+          "doi": { "state": "known", "value": "10.1128/jb.176.6.1555-1560.1994" },
+          "pmid": { "state": "known", "value": "8132448" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8132448/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "direct aromatic sensing",
+            "amino-terminal specificity domain",
+            "Po-lux reporter",
+            "differential effector response"
+          ]
+        },
+        {
+          "id": "sze-2001-dmpr-po",
+          "title": "In vivo and in vitro effects of integration host factor at the DmpR-regulated sigma(54)-dependent Po promoter",
+          "authors": "Sze et al.",
+          "year": { "state": "known", "value": 2001 },
+          "doi": { "state": "known", "value": "10.1128/JB.183.9.2842-2851.2001" },
+          "pmid": { "state": "known", "value": "11292804" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/11292804/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "sigma-54-dependent Po",
+            "IHF contribution",
+            "E. coli S90C",
+            "pVI466 dmpR-Po-luxAB"
+          ]
+        }
+      ],
+      "quantitativeObservations": {
+        "state": "unknown",
+        "reason": "no scalar from the natural CF600 DmpR/Po construct was selected without conflating source response patterns or engineered DmpR variants"
+      },
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the public DmpR identity and Po reporter variants were not audited as one construction-ready sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked phenol/cresol sensor annotation"],
+        "signalMappings": ["show source-supported positive DmpR/Po effector directions"],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host effector dose response",
+          "phenolic-compound specificity panel",
+          "basal and maximal Po output"
+        ],
+        "calibrationRequirements": [
+          "fix wild-type DmpR, Po, and upstream activation sites",
+          "version RpoN/IHF state, host, medium, growth phase, exposure time, and reporter"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Kept natural CF600 DmpR separate from engineered DmpR42 performance claims."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "sensor.phnr",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "PhnR–PphnA 膦酸乙酸响应模块",
+        "en": "PhnR–PphnA phosphonoacetate-response module",
+        "aliases": ["PhnR", "PphnA", "pPANT3", "phosphonoacetate biosensor"]
+      },
+      "category": "pollutant-sensor",
+      "roles": ["pollutant-sensor", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "The LysR-family PhnR regulator from Pseudomonas fluorescens 23F activates the phnA regulatory region in response to phosphonoacetate and supports the pPANT3 GFP reporter.",
+        "steps": [
+          "PhnR is required for induction of the divergently transcribed phnA phosphonoacetate-hydrolase locus.",
+          "The pPANT3 construct carries a 1,108 bp source fragment containing full phnR, the phnA regulatory region, and the first 29 nucleotides of phnA.",
+          "Phosphonoacetate induces PhnR-dependent GFP from pPROBE-NT in E. coli DH5α and Pseudomonas hosts.",
+          "Phosphonoacetaldehyde and arsonoacetate produce weaker responses only at higher source concentrations."
+        ],
+        "requiredPartners": [
+          "PhnR",
+          "cognate phnA regulatory region",
+          "phosphonoacetate uptake",
+          "GFP reporter"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "phosphonoacetate",
+            "name": { "state": "known", "value": "phosphonoacetate" },
+            "direction": "positive",
+            "unit": { "state": "known", "value": "µM phosphonoacetate" },
+            "directObservation": true,
+            "sourceRefs": ["kulakova-2009-phnr-biosensor"]
+          },
+          {
+            "id": "phosphonoacetaldehyde-cross-response",
+            "name": { "state": "known", "value": "phosphonoacetaldehyde cross-response" },
+            "direction": "positive",
+            "unit": { "state": "known", "value": "µM phosphonoacetaldehyde" },
+            "directObservation": true,
+            "sourceRefs": ["kulakova-2009-phnr-biosensor"]
+          },
+          {
+            "id": "arsonoacetate-cross-response",
+            "name": { "state": "known", "value": "arsonoacetate cross-response" },
+            "direction": "positive",
+            "unit": { "state": "known", "value": "µM arsonoacetate" },
+            "directObservation": true,
+            "sourceRefs": ["kulakova-2009-phnr-biosensor"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pphna-gfp",
+            "name": { "state": "known", "value": "PhnR/PphnA-controlled GFP fluorescence" },
+            "direction": "positive",
+            "unit": {
+              "state": "known",
+              "value": "specific fluorescence RFU/OD600 in the source assay"
+            },
+            "directObservation": true,
+            "sourceRefs": ["kulakova-2009-phnr-biosensor"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "known",
+          "value": "Escherichia coli for the primary quantitative card context"
+        },
+        "strain": { "state": "known", "value": "DH5α carrying pPANT3" },
+        "vector": {
+          "state": "known",
+          "value": "pPANT3: 1,108 bp phnR–phnA regulatory fragment in pPROBE-NT"
+        },
+        "culture": {
+          "state": "known",
+          "value": "full-strength LB for the source liquid-response experiments"
+        },
+        "temperature": { "state": "known", "value": "28 °C for the optimized source experiments" },
+        "induction": {
+          "state": "known",
+          "value": "phosphonoacetate concentration series; organophosphonate and structural-analogue specificity panel"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "no universal phase is inferred beyond the source protocol"
+        },
+        "readout": {
+          "state": "known",
+          "value": "GFP excitation 485 nm, emission 535 nm, normalized as RFU/OD600"
+        },
+        "other": {
+          "state": "known",
+          "value": "E. coli DH5α has the K-12 phosphonate-uptake background; phosphate-independent native phnA regulation and transport effects must be distinguished."
+        }
+      },
+      "evidence": {
+        "grade": "A",
+        "reviewStatus": "passed",
+        "directInEColi": true,
+        "scope": "Primary papers support PhnR-dependent phnA induction, pPANT3 construction, E. coli DH5α fluorescence response, and source specificity metrics.",
+        "reviewNotes": [
+          "The 2009 pPANT3 assay is the quantitative source context.",
+          "Passed denotes literature-card audit, not team validation."
+        ],
+        "boundaryNotes": [
+          "The 0.5 µM value is a pPANT3 assay detection point, not an automatic network threshold.",
+          "PhnB evidence concerns 2-phosphonopropionate uptake and is not asserted as required for phosphonoacetate entry."
+        ]
+      },
+      "literature": [
+        {
+          "id": "kulakova-2009-phnr-biosensor",
+          "title": "The construction of a whole-cell biosensor for phosphonoacetate, based on the LysR-like transcriptional regulator PhnR from Pseudomonas fluorescens 23F",
+          "authors": "Kulakova et al.",
+          "year": { "state": "known", "value": 2009 },
+          "doi": { "state": "known", "value": "10.1111/j.1751-7915.2008.00082.x" },
+          "pmid": { "state": "known", "value": "21261917" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/21261917/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "pPANT3 construction",
+            "E. coli DH5α and Pseudomonas function",
+            "0.5 µM response",
+            "28 °C LB assay",
+            "cross-response panel"
+          ]
+        },
+        {
+          "id": "kulakova-2001-phnr-locus",
+          "title": "Structural and functional analysis of the phosphonoacetate hydrolase (phnA) gene region in Pseudomonas fluorescens 23F",
+          "authors": "Kulakova et al.",
+          "year": { "state": "known", "value": 2001 },
+          "doi": { "state": "known", "value": "10.1128/JB.183.11.3268-3275.2001" },
+          "pmid": { "state": "known", "value": "11344133" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/11344133/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "PhnR requirement",
+            "divergent phnA/phnR transcription",
+            "phosphate-independent expression",
+            "PhnB transport boundary"
+          ]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "lowest phosphonoacetate concentration with detectable pPANT3 fluorescence",
+          "value": { "state": "known", "value": 0.5 },
+          "unit": { "state": "known", "value": "µM phosphonoacetate" },
+          "sourceRef": "kulakova-2009-phnr-biosensor",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "DH5α" },
+            "vector": { "state": "known", "value": "pPANT3 in pPROBE-NT" },
+            "culture": { "state": "known", "value": "full-strength LB, 28 °C source assay" }
+          },
+          "originalMeaning": "The pPANT3 source assay detected GFP induction at 0.5 µM phosphonoacetate and approached saturation near 500 µM.",
+          "transferability": "Display-only performance for pPANT3 in the source assay; a new host and matrix require calibration.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        },
+        {
+          "metric": "reported phosphonoacetaldehyde cross-response concentration",
+          "value": { "state": "known", "value": 50 },
+          "unit": { "state": "known", "value": "µM phosphonoacetaldehyde" },
+          "sourceRef": "kulakova-2009-phnr-biosensor",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "DH5α" },
+            "vector": { "state": "known", "value": "pPANT3" },
+            "culture": { "state": "known", "value": "full-strength LB, 28 °C source assay" }
+          },
+          "originalMeaning": "The source specificity study observed a weaker response to phosphonoacetaldehyde at a much higher concentration than phosphonoacetate.",
+          "transferability": "Specificity annotation only; it is not a PhnR affinity constant.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        },
+        {
+          "metric": "reported arsonoacetate cross-response concentration",
+          "value": { "state": "known", "value": 500 },
+          "unit": { "state": "known", "value": "µM arsonoacetate" },
+          "sourceRef": "kulakova-2009-phnr-biosensor",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "DH5α" },
+            "vector": { "state": "known", "value": "pPANT3" },
+            "culture": { "state": "known", "value": "full-strength LB, 28 °C source assay" }
+          },
+          "originalMeaning": "The source specificity study observed a weaker response to arsonoacetate at a much higher concentration than phosphonoacetate.",
+          "transferability": "Specificity annotation only; it is not a PhnR affinity constant.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the 1,108 bp fragment architecture is public, but an accession-backed construction sequence was not independently audited"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": ["source-linked phosphonoacetate sensor annotation"],
+        "signalMappings": [
+          "show phosphonoacetate response and weaker analogue cross-responses separately"
+        ],
+        "compatibleNodeKinds": ["sensor"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host phosphonoacetate dose response",
+          "organophosphonate and analogue specificity panel",
+          "transport and matrix controls"
+        ],
+        "calibrationRequirements": [
+          "fix the pPANT3 PhnR/PphnA fragment and reporter",
+          "version host phosphonate uptake, medium, temperature, exposure time, and instrument"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Recorded pPANT3 performance with phosphate and PhnB transport boundaries."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    }
+  ]
+}

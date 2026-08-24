@@ -1,0 +1,1098 @@
+{
+  "schemaVersion": "evidence-backed-components.schema.v1",
+  "catalogId": "evidence-backed-components",
+  "catalogVersion": "evidence-backed-components@2026-08-02.1",
+  "category": "qs-system",
+  "entries": [
+    {
+      "id": "qs.cin",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "CinI/CinR–pCin 群体感应系统",
+        "en": "CinI/CinR–pCin quorum-sensing system",
+        "aliases": ["Cin", "cinRI", "pCin", "3OH-C14:1-HSL"]
+      },
+      "category": "qs-system",
+      "roles": ["quorum-sensing", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "CinI produces a long-chain AHL, and AHL-bound CinR positively regulates cinI-promoter transcription within a broader Rhizobium quorum-sensing network.",
+        "steps": [
+          "CinI directs production of native 3OH-C14:1-HSL in Rhizobium leguminosarum.",
+          "CinR responds to the CinI-derived signal and strongly increases cinI-promoter transcription.",
+          "A source-specific Cin receiver can couple CinR-dependent promoter activity to GFP in Escherichia coli."
+        ],
+        "requiredPartners": ["CinI", "CinR", "cinI-responsive promoter", "source-defined AHL"]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "native-3oh-c14-1-hsl",
+            "name": {
+              "state": "known",
+              "value": "N-(3-hydroxy-7-cis-tetradecenoyl)-L-homoserine lactone (3OH-C14:1-HSL)"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "chemical identity is recorded here rather than an assay concentration"
+            },
+            "directObservation": true,
+            "sourceRefs": ["lithgow-2000-cinri"]
+          },
+          {
+            "id": "heterologous-3ohc14-hsl",
+            "name": {
+              "state": "known",
+              "value": "N-(3-hydroxytetradecanoyl)-DL-homoserine lactone (3OHC14 HSL) used in the heterologous receiver assay"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "assay concentration is source- and construct-specific"
+            },
+            "directObservation": true,
+            "sourceRefs": ["kylilis-2018-ahl-receivers"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "cinr-dependent-transcription",
+            "name": {
+              "state": "known",
+              "value": "CinR-dependent pCin/cinI-promoter transcriptional response"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "the native lacZ and heterologous GFP assays use different output units"
+            },
+            "directObservation": true,
+            "sourceRefs": ["lithgow-2000-cinri", "kylilis-2018-ahl-receivers"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "the card combines native Rhizobium characterization with a separate Escherichia coli receiver assay"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "source-specific strains are retained in the observation and evidence notes"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "no single vector represents the native locus and engineered receiver constructs"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions differ between the cited primary studies"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "no single temperature applies across the native and heterologous studies"
+        },
+        "induction": {
+          "state": "known",
+          "value": "source-defined AHL exposure or endogenous CinI signal production"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "not represented as one transferable condition across the cited studies"
+        },
+        "readout": {
+          "state": "known",
+          "value": "cinI-lacZ activity in the native study and GFP in the heterologous receiver study"
+        },
+        "other": {
+          "state": "known",
+          "value": "Native Rhizobium and heterologous E. coli observations are distinct source contexts."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "scope": "Primary studies support native CinI/CinR signal production and positive promoter regulation, plus a source-specific E. coli AHL-receiver implementation.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Citation and source-context boundaries were reviewed for catalog-card use.",
+          "Passed means the literature card is auditable; it is not BIT-CHINA experimental validation."
+        ],
+        "boundaryNotes": [
+          "The native 3OH-C14:1-HSL and the commercial 3OHC14 HSL used in the heterologous assay remain separate source-context inputs.",
+          "No source response value is copied into a model weight, threshold, gain, km, or Hill coefficient."
+        ]
+      },
+      "literature": [
+        {
+          "id": "lithgow-2000-cinri",
+          "title": "The regulatory locus cinRI in Rhizobium leguminosarum controls a network of quorum-sensing loci",
+          "authors": "Lithgow et al.",
+          "year": { "state": "known", "value": 2000 },
+          "doi": { "state": "known", "value": "10.1046/j.1365-2958.2000.01960.x" },
+          "pmid": { "state": "known", "value": "10931307" },
+          "url": "https://doi.org/10.1046/j.1365-2958.2000.01960.x",
+          "sourceType": "primary-paper",
+          "supports": ["mechanism", "native-ligand", "promoter-response", "heterologous-function"]
+        },
+        {
+          "id": "kylilis-2018-ahl-receivers",
+          "title": "Tools for engineering coordinated system behaviour in synthetic microbial consortia",
+          "authors": "Kylilis et al.",
+          "year": { "state": "known", "value": 2018 },
+          "doi": { "state": "known", "value": "10.1038/s41467-018-05046-2" },
+          "pmid": { "state": "known", "value": "29992956" },
+          "url": "https://www.nature.com/articles/s41467-018-05046-2",
+          "sourceType": "primary-paper",
+          "supports": ["heterologous-receiver", "GFP-readout", "dose-response", "crosstalk"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "GFP response of the Cin AHL-receiver device",
+          "value": {
+            "state": "unknown",
+            "reason": "the paper reports fitted response data, but no scalar was independently extracted for this catalog version"
+          },
+          "unit": {
+            "state": "unknown",
+            "reason": "no scalar value is transcribed into this card"
+          },
+          "sourceRef": "kylilis-2018-ahl-receivers",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "TOP10" },
+            "vector": {
+              "state": "unknown",
+              "reason": "the exact composite-device plasmid identifier was not independently extracted into this card"
+            },
+            "culture": {
+              "state": "known",
+              "value": "LB medium with chloramphenicol under the source induction protocol"
+            }
+          },
+          "originalMeaning": "GFP output from a composite Cin receiver exposed to cognate and non-cognate AHLs.",
+          "transferability": "Display-only source context; response depends on the exact receiver construct, signal chemistry, host, and assay.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "this system-level card spans a native locus and engineered receiver constructs and does not claim one complete build sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": [
+          "source-linked AHL production annotation",
+          "source-linked receiver-response annotation"
+        ],
+        "signalMappings": [
+          "show native and heterologous AHL identities separately",
+          "show only source-supported positive transcriptional direction"
+        ],
+        "compatibleNodeKinds": ["signal", "response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host dose-response curve",
+          "basal and maximal reporter output",
+          "cross-reactivity against the project's other signaling channels"
+        ],
+        "calibrationRequirements": [
+          "fix the exact CinR and promoter construct",
+          "record the AHL chemical form and stereochemistry",
+          "version the host, vector, culture, and reporter calibration"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": ["Created the source-audited Cin system candidate card."],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "qs.tra",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "TraI/TraR–pTra 群体感应系统",
+        "en": "TraI/TraR–pTra quorum-sensing system",
+        "aliases": ["Tra", "TraI/TraR", "pTra", "3-oxo-C8-HSL"]
+      },
+      "category": "qs-system",
+      "roles": ["quorum-sensing", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "TraI produces 3-oxo-C8-HSL, the signal activates TraR, and activated TraR drives transcription from a TraR-responsive promoter.",
+        "steps": [
+          "TraI synthesizes N-(3-oxooctanoyl)-L-homoserine lactone (3-oxo-C8-HSL).",
+          "3-oxo-C8-HSL binds and activates the TraR transcriptional regulator.",
+          "Activated TraR stimulates a TraR-regulated promoter, including a source-specific engineered pTra receiver in E. coli."
+        ],
+        "requiredPartners": ["TraI", "TraR", "TraR-responsive promoter", "3-oxo-C8-HSL"]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "3-oxo-c8-hsl",
+            "name": {
+              "state": "known",
+              "value": "N-(3-oxooctanoyl)-L-homoserine lactone (3-oxo-C8-HSL)"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "chemical identity is recorded here rather than an assay concentration"
+            },
+            "directObservation": true,
+            "sourceRefs": ["zhu-1998-trar-analogs", "kylilis-2018-ahl-receivers"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "native-tra-regulon",
+            "name": {
+              "state": "known",
+              "value": "TraR-dependent Ti-plasmid tra regulon transcription"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "native transcriptional output is source-assay specific"
+            },
+            "directObservation": true,
+            "sourceRefs": ["zhu-1998-trar-analogs"]
+          },
+          {
+            "id": "engineered-ptra-gfp",
+            "name": { "state": "known", "value": "engineered pTra-controlled GFP output" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no portable GFP unit is assigned to the candidate card"
+            },
+            "directObservation": true,
+            "sourceRefs": ["kylilis-2018-ahl-receivers"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "the card combines native Agrobacterium evidence with a separate E. coli receiver assay"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "native and heterologous studies use different strain contexts"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "the Ti plasmid and engineered receiver plasmids are not one interchangeable vector"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions differ between cited studies"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "no single temperature applies across cited studies"
+        },
+        "induction": {
+          "state": "known",
+          "value": "3-oxo-C8-HSL exposure or TraI signal production"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "not represented as a transferable condition"
+        },
+        "readout": {
+          "state": "known",
+          "value": "TraR-regulated transcription in Agrobacterium and GFP in the E. coli receiver assay"
+        },
+        "other": {
+          "state": "known",
+          "value": "The pTra receiver is an engineered construct and is not synonymous with the complete native Ti-plasmid tra regulon."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "scope": "Primary studies support TraI signal production, 3-oxo-C8-HSL activation of TraR, native promoter activation, and an engineered E. coli pTra receiver.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Native and engineered receiver claims are linked to separate primary sources.",
+          "Passed indicates literature-card acceptance, not team experimental validation."
+        ],
+        "boundaryNotes": [
+          "Ligand selectivity and crosstalk depend on TraR expression and receiver construction.",
+          "No reported dose-response feature is converted into a model parameter."
+        ]
+      },
+      "literature": [
+        {
+          "id": "zhu-1998-trar-analogs",
+          "title": "Analogs of the autoinducer 3-oxooctanoyl-homoserine lactone strongly inhibit activity of the TraR protein of Agrobacterium tumefaciens",
+          "authors": "Zhu et al.",
+          "year": { "state": "known", "value": 1998 },
+          "doi": { "state": "known", "value": "10.1128/JB.180.20.5398-5405.1998" },
+          "pmid": { "state": "known", "value": "9765571" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/9765571/",
+          "sourceType": "primary-paper",
+          "supports": ["mechanism", "native-ligand", "TraR-activation", "ligand-selectivity"]
+        },
+        {
+          "id": "kylilis-2018-ahl-receivers",
+          "title": "Tools for engineering coordinated system behaviour in synthetic microbial consortia",
+          "authors": "Kylilis et al.",
+          "year": { "state": "known", "value": 2018 },
+          "doi": { "state": "known", "value": "10.1038/s41467-018-05046-2" },
+          "pmid": { "state": "known", "value": "29992956" },
+          "url": "https://www.nature.com/articles/s41467-018-05046-2",
+          "sourceType": "primary-paper",
+          "supports": ["heterologous-receiver", "GFP-readout", "dose-response", "crosstalk"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "GFP response of the Tra AHL-receiver device",
+          "value": {
+            "state": "unknown",
+            "reason": "the paper reports fitted response data, but no scalar was independently extracted for this catalog version"
+          },
+          "unit": { "state": "unknown", "reason": "no scalar value is transcribed into this card" },
+          "sourceRef": "kylilis-2018-ahl-receivers",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "TOP10" },
+            "vector": {
+              "state": "unknown",
+              "reason": "the exact composite-device plasmid identifier was not independently extracted into this card"
+            },
+            "culture": {
+              "state": "known",
+              "value": "LB medium with chloramphenicol under the source induction protocol"
+            }
+          },
+          "originalMeaning": "GFP output from a composite Tra receiver across cognate and non-cognate AHL exposures.",
+          "transferability": "Display-only source context; the exact TraR and pTra construct must be calibrated in the project host.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "this system-level card spans a native Ti-plasmid circuit and an engineered receiver and does not claim one complete build sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": [
+          "source-linked AHL production annotation",
+          "source-linked TraR receiver-response annotation"
+        ],
+        "signalMappings": [
+          "show 3-oxo-C8-HSL as the source-supported input",
+          "show positive TraR-dependent transcription without assigning a numerical weight"
+        ],
+        "compatibleNodeKinds": ["signal", "response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host pTra dose-response curve",
+          "basal and maximal reporter output",
+          "crosstalk against every project AHL channel"
+        ],
+        "calibrationRequirements": [
+          "fix the TraR expression cassette and pTra sequence",
+          "record host, vector copy number, culture, and temperature",
+          "version the reporter and fluorescence calibration"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": ["Created the source-audited Tra system candidate card."],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "qs.rhl",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "RhlI/RhlR–pRhl 群体感应系统",
+        "en": "RhlI/RhlR–pRhl quorum-sensing system",
+        "aliases": ["Rhl", "RhlI/RhlR", "pRhl", "C4-HSL", "BHL"]
+      },
+      "category": "qs-system",
+      "roles": ["quorum-sensing", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "RhlI produces C4-HSL, RhlR controls transcriptional targets, and source evidence also identifies a PqsE-dependent RhlR signaling branch that prevents treating the system as one isolated fixed transfer function.",
+        "steps": [
+          "RhlI produces N-butanoyl homoserine lactone (C4-HSL/BHL).",
+          "C4-HSL-responsive RhlR contributes to density-dependent transcription of multiple target genes.",
+          "PqsE supplies an additional RhlR-dependent signaling contribution for part of the regulon.",
+          "A source-specific pRhl receiver couples RhlR-dependent promoter activity to GFP in E. coli."
+        ],
+        "requiredPartners": [
+          "RhlI",
+          "RhlR",
+          "RhlR-responsive promoter",
+          "C4-HSL",
+          "context-dependent PqsE branch"
+        ]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "c4-hsl",
+            "name": {
+              "state": "known",
+              "value": "N-butanoyl-L-homoserine lactone (C4-HSL/BHL)"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "chemical identity is recorded here rather than an assay concentration"
+            },
+            "directObservation": true,
+            "sourceRefs": ["mukherjee-2018-pqse-rhlr", "kylilis-2018-ahl-receivers"]
+          },
+          {
+            "id": "pqse-dependent-alternative-ligand",
+            "name": {
+              "state": "unknown",
+              "reason": "the cited primary study establishes a PqsE-dependent alternative signal but does not assign a chemical identity transferable to this card"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "chemical identity and transferable assay unit are not established for this card"
+            },
+            "directObservation": true,
+            "sourceRefs": ["mukherjee-2018-pqse-rhlr"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "native-rhlr-regulon",
+            "name": { "state": "known", "value": "RhlR-dependent transcriptional regulon output" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "the cited studies measure different native transcriptional and phenotypic outputs"
+            },
+            "directObservation": true,
+            "sourceRefs": ["brint-1995-rhlri", "mukherjee-2018-pqse-rhlr"]
+          },
+          {
+            "id": "engineered-prhl-gfp",
+            "name": { "state": "known", "value": "engineered pRhl-controlled GFP output" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no portable GFP unit is assigned to the candidate card"
+            },
+            "directObservation": true,
+            "sourceRefs": ["kylilis-2018-ahl-receivers"]
+          }
+        ]
+      },
+      "context": {
+        "host": {
+          "state": "unknown",
+          "reason": "the card combines native Pseudomonas evidence with a separate E. coli receiver assay"
+        },
+        "strain": {
+          "state": "unknown",
+          "reason": "PAO1, PA14, and TOP10 are distinct source contexts"
+        },
+        "vector": {
+          "state": "unknown",
+          "reason": "native loci and engineered receiver plasmids are not one interchangeable vector"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "culture conditions differ between the cited studies"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "no single temperature applies across all cited studies"
+        },
+        "induction": {
+          "state": "known",
+          "value": "C4-HSL exposure or endogenous RhlI/PqsE-dependent signaling"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "cell-density and growth-phase contexts differ across studies"
+        },
+        "readout": {
+          "state": "known",
+          "value": "native transcription/phenotypes and GFP in a heterologous AHL-receiver device"
+        },
+        "other": {
+          "state": "known",
+          "value": "RhlR includes RhlI-dependent, partially dependent, and RhlI-independent regulatory behavior in the cited native study."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "scope": "Primary studies support the native RhlI/RhlR mechanism, the C4-HSL signal, a PqsE-dependent RhlR branch, and an engineered E. coli pRhl receiver.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "Natural-system complexity and heterologous receiver behavior are recorded as separate source contexts.",
+          "Passed indicates literature-card acceptance, not team experimental validation."
+        ],
+        "boundaryNotes": [
+          "The Rhl card must not be reduced to a single isolated RhlI-to-RhlR transfer function without defining the PqsE and host context.",
+          "Cross-reactivity data remain source observations and are not automatic edge weights."
+        ]
+      },
+      "literature": [
+        {
+          "id": "brint-1995-rhlri",
+          "title": "Synthesis of multiple exoproducts in Pseudomonas aeruginosa is under the control of RhlR-RhlI, another set of regulators in strain PAO1 with homology to the autoinducer-responsive LuxR-LuxI family",
+          "authors": "Brint and Ohman",
+          "year": { "state": "known", "value": 1995 },
+          "doi": { "state": "known", "value": "10.1128/jb.177.24.7155-7163.1995" },
+          "pmid": { "state": "known", "value": "8522523" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/8522523/",
+          "sourceType": "primary-paper",
+          "supports": ["mechanism", "native-regulon", "cell-density-dependent-transcription"]
+        },
+        {
+          "id": "mukherjee-2018-pqse-rhlr",
+          "title": "The PqsE and RhlR proteins are an autoinducer synthase-receptor pair that control virulence and biofilm development in Pseudomonas aeruginosa",
+          "authors": "Mukherjee et al.",
+          "year": { "state": "known", "value": 2018 },
+          "doi": { "state": "known", "value": "10.1073/pnas.1814023115" },
+          "pmid": { "state": "known", "value": "30224496" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/30224496/",
+          "sourceType": "primary-paper",
+          "supports": ["C4-HSL", "PqsE-dependent-signal", "RhlR-regulon-boundary"]
+        },
+        {
+          "id": "kylilis-2018-ahl-receivers",
+          "title": "Tools for engineering coordinated system behaviour in synthetic microbial consortia",
+          "authors": "Kylilis et al.",
+          "year": { "state": "known", "value": 2018 },
+          "doi": { "state": "known", "value": "10.1038/s41467-018-05046-2" },
+          "pmid": { "state": "known", "value": "29992956" },
+          "url": "https://www.nature.com/articles/s41467-018-05046-2",
+          "sourceType": "primary-paper",
+          "supports": ["heterologous-receiver", "GFP-readout", "dose-response", "crosstalk"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "GFP response of the Rhl AHL-receiver device",
+          "value": {
+            "state": "unknown",
+            "reason": "the paper reports fitted response data, but no scalar was independently extracted for this catalog version"
+          },
+          "unit": { "state": "unknown", "reason": "no scalar value is transcribed into this card" },
+          "sourceRef": "kylilis-2018-ahl-receivers",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "TOP10" },
+            "vector": {
+              "state": "unknown",
+              "reason": "the exact composite-device plasmid identifier was not independently extracted into this card"
+            },
+            "culture": {
+              "state": "known",
+              "value": "LB medium with chloramphenicol under the source induction protocol"
+            }
+          },
+          "originalMeaning": "GFP output from a composite Rhl receiver across cognate and non-cognate AHL exposures.",
+          "transferability": "Display-only source context; native PqsE/RhlR behavior and the engineered E. coli receiver are not numerically interchangeable.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "this system-level card combines native regulatory loci and an engineered receiver and does not claim one complete build sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": [
+          "source-linked C4-HSL production annotation",
+          "source-linked RhlR receiver-response annotation",
+          "explicit PqsE context note"
+        ],
+        "signalMappings": [
+          "show C4-HSL as the canonical RhlI-derived input",
+          "show the PqsE-dependent branch as a separate source-bound input",
+          "show qualitative positive transcription without assigning a numerical weight"
+        ],
+        "compatibleNodeKinds": ["signal", "response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host pRhl dose-response curve",
+          "PqsE and RhlI dependency controls",
+          "cross-reactivity against every project AHL channel"
+        ],
+        "calibrationRequirements": [
+          "fix the RhlR and promoter construct",
+          "record RhlI and PqsE status in the chosen host",
+          "version vector, culture, growth phase, and reporter calibration"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Created the source-audited Rhl system candidate card with an explicit PqsE boundary."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "qs.esa",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "EsaI/EsaR–PesaR/PesaS 群体感应系统",
+        "en": "EsaI/EsaR–PesaR/PesaS quorum-sensing system",
+        "aliases": ["Esa", "EsaI/EsaR", "PesaR", "PesaS", "3OC6HSL"]
+      },
+      "category": "qs-system",
+      "roles": ["quorum-sensing", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "EsaI supplies 3OC6HSL, while apo-EsaR binds DNA and supports two distinct architectures: repression at PesaR and activation at PesaS; AHL binding releases EsaR from DNA and reverses those effects.",
+        "steps": [
+          "EsaI synthesizes the AHL signal used by the native EsaI/EsaR quorum-sensing system.",
+          "Without 3OC6HSL, EsaR represses PesaR, so adding signal produces derepression and increased output.",
+          "Without 3OC6HSL, EsaR activates PesaS, so adding signal removes activation and decreases output."
+        ],
+        "requiredPartners": ["EsaI", "EsaR", "PesaR", "PesaS", "3-oxo-C6-HSL"]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "3oc6hsl-pesar-context",
+            "name": {
+              "state": "known",
+              "value": "3-oxohexanoyl-homoserine lactone (3OC6HSL) at PesaR"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "concentration is represented by the source-context observation rather than a universal input unit"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shong-2013-esar-evolution"]
+          },
+          {
+            "id": "3oc6hsl-pesas-context",
+            "name": {
+              "state": "known",
+              "value": "3-oxohexanoyl-homoserine lactone (3OC6HSL) at PesaS"
+            },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "concentration is represented by the source-context observation rather than a universal input unit"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shong-2013-esar-evolution"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "pesar-derepression",
+            "name": { "state": "known", "value": "PesaR derepression output" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "luminescence output is source-construct specific"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shong-2013-esar-evolution"]
+          },
+          {
+            "id": "pesas-activation-loss",
+            "name": { "state": "known", "value": "PesaS output following loss of EsaR activation" },
+            "direction": "negative",
+            "unit": {
+              "state": "unknown",
+              "reason": "luminescence output is source-construct specific"
+            },
+            "directObservation": true,
+            "sourceRefs": ["shong-2013-esar-evolution"]
+          }
+        ]
+      },
+      "context": {
+        "host": { "state": "known", "value": "Escherichia coli" },
+        "strain": { "state": "known", "value": "DH5alpha" },
+        "vector": {
+          "state": "known",
+          "value": "two-plasmid EsaR-expression and PesaR/PesaS reporter systems"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "full medium composition is not transcribed into this catalog card"
+        },
+        "temperature": { "state": "known", "value": "37 degrees Celsius" },
+        "induction": { "state": "known", "value": "exogenous 3OC6HSL" },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "a transferable growth-phase value is not specified for this card"
+        },
+        "readout": { "state": "known", "value": "luxCDABE luminescence reporter" },
+        "other": {
+          "state": "known",
+          "value": "The context block represents the Shong et al. heterologous receiver assay; the native EsaI/EsaR role is separately supported in Pantoea stewartii."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "scope": "Primary studies support the native EsaI/EsaR repressor mechanism and directly characterize opposite 3OC6HSL-dependent output directions at PesaR and PesaS in E. coli.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "PesaR derepression and PesaS activation-loss are retained as distinct response architectures.",
+          "Passed indicates literature-card acceptance, not team experimental validation."
+        ],
+        "boundaryNotes": [
+          "The Esa system has no single fixed direction independent of promoter architecture.",
+          "The source-context half-maximal concentration is display-only and is not a model threshold or edge weight."
+        ]
+      },
+      "literature": [
+        {
+          "id": "von-bodman-1998-esar-repression",
+          "title": "A negative regulator mediates quorum-sensing control of exopolysaccharide production in Pantoea stewartii subsp. stewartii",
+          "authors": "von Bodman, Majerczak, and Coplin",
+          "year": { "state": "known", "value": 1998 },
+          "doi": { "state": "known", "value": "10.1073/pnas.95.13.7687" },
+          "pmid": { "state": "known", "value": "9636211" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/9636211/",
+          "sourceType": "primary-paper",
+          "supports": ["native-mechanism", "EsaI-signal-synthase", "EsaR-repression"]
+        },
+        {
+          "id": "shong-2013-esar-evolution",
+          "title": "Directed evolution of the quorum-sensing regulator EsaR for increased signal sensitivity",
+          "authors": "Shong et al.",
+          "year": { "state": "known", "value": 2013 },
+          "doi": { "state": "known", "value": "10.1021/cb3006402" },
+          "pmid": { "state": "known", "value": "23363022" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/23363022/",
+          "sourceType": "primary-paper",
+          "supports": ["3OC6HSL", "PesaR-derepression", "PesaS-activation", "E-coli-dose-response"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "wild-type EsaR half-maximal 3OC6HSL concentration at PesaR",
+          "value": { "state": "known", "value": 210 },
+          "unit": { "state": "known", "value": "nM 3OC6HSL" },
+          "sourceRef": "shong-2013-esar-evolution",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "DH5alpha" },
+            "vector": {
+              "state": "known",
+              "value": "two-plasmid EsaR expression and PesaR-luxCDABE reporter system"
+            },
+            "culture": {
+              "state": "known",
+              "value": "in vivo characterization at 37 degrees Celsius under the source protocol"
+            }
+          },
+          "originalMeaning": "The cited study reports 210 +/- 110 nM as the 3OC6HSL concentration required for half-maximal luminescence with wild-type EsaR at PesaR.",
+          "transferability": "Display-only source observation; it depends on the exact EsaR, promoter, reporter, plasmids, host, and assay conditions.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the system card covers source-specific native and engineered constructs and does not claim one complete build sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": [
+          "EsaI-derived signal annotation",
+          "PesaR derepression response",
+          "PesaS activation-loss response"
+        ],
+        "signalMappings": [
+          "map 3OC6HSL to a positive qualitative PesaR response",
+          "map 3OC6HSL to a negative qualitative PesaS response",
+          "keep promoter architecture explicit"
+        ],
+        "compatibleNodeKinds": ["signal", "response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "project-construct PesaR dose-response curve",
+          "project-construct PesaS dose-response curve",
+          "basal and maximal reporter output for each architecture"
+        ],
+        "calibrationRequirements": [
+          "fix the EsaR variant and promoter sequence",
+          "record host, vector, temperature, culture, and reporter",
+          "calibrate PesaR and PesaS as separate response functions"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Created the source-audited Esa system card with separate PesaR and PesaS directions."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    },
+    {
+      "id": "qs.aub",
+      "catalogId": "evidence-backed-components",
+      "catalogVersion": "evidence-backed-components@2026-08-02.1",
+      "entityType": "system",
+      "name": {
+        "zh": "AubI/AubR–pAub 群体感应系统",
+        "en": "AubI/AubR–pAub quorum-sensing system",
+        "aliases": ["Aub", "AubI/AubR", "pAub", "C12-HSL", "metagenomic clone N16"]
+      },
+      "category": "qs-system",
+      "roles": ["quorum-sensing", "regulator", "promoter"],
+      "mechanism": {
+        "summary": "AubI/AubR was recovered from metagenomic clone N16; AubI produces C12-HSL, while an engineered AubR/pAub receiver drives GFP and exhibits source-reported responses beyond a single assumed cognate ligand.",
+        "steps": [
+          "Metagenomic clone N16 contains the AubI AHL synthase and AubR transcriptional regulator pair.",
+          "AubI-derived C12-HSL was identified by NMR and mass spectrometry.",
+          "An engineered AubR receiver uses a synthetic hybrid pAub promoter to control GFP in E. coli.",
+          "The engineered AubR receiver responds to multiple tested HSL inputs, so its compatibility must be measured in the chosen construct."
+        ],
+        "requiredPartners": ["AubI", "AubR", "source-specific pAub promoter", "source-defined HSL"]
+      },
+      "signals": {
+        "inputs": [
+          {
+            "id": "c12-hsl",
+            "name": { "state": "known", "value": "N-dodecanoyl-L-homoserine lactone (C12-HSL)" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "chemical identity is recorded here rather than an assay concentration"
+            },
+            "directObservation": true,
+            "sourceRefs": ["nasuno-2012-aub-aus"]
+          },
+          {
+            "id": "aubr-cross-reactive-hsl-panel",
+            "name": {
+              "state": "unknown",
+              "reason": "Tekel et al. reports a broad AubR induction profile; the individual usable ligand set is construct- and assay-dependent"
+            },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no transferable panel concentration is assigned to this card"
+            },
+            "directObservation": true,
+            "sourceRefs": ["tekel-2019-orthogonal-qs"]
+          }
+        ],
+        "outputs": [
+          {
+            "id": "engineered-paub-gfp",
+            "name": { "state": "known", "value": "engineered pAub-controlled GFP output" },
+            "direction": "positive",
+            "unit": {
+              "state": "unknown",
+              "reason": "no portable GFP unit is assigned to the candidate card"
+            },
+            "directObservation": true,
+            "sourceRefs": ["tekel-2019-orthogonal-qs"]
+          }
+        ]
+      },
+      "context": {
+        "host": { "state": "known", "value": "Escherichia coli" },
+        "strain": { "state": "known", "value": "BL21" },
+        "vector": {
+          "state": "unknown",
+          "reason": "the exact Aub sender and receiver plasmid identifiers were not independently extracted into this card"
+        },
+        "culture": {
+          "state": "unknown",
+          "reason": "full culture details are not transcribed into this catalog card"
+        },
+        "temperature": {
+          "state": "unknown",
+          "reason": "a transferable temperature is not assigned to this system-level card"
+        },
+        "induction": {
+          "state": "known",
+          "value": "C12-HSL or source-defined synthetic/cellular HSL exposure"
+        },
+        "growthPhase": {
+          "state": "unknown",
+          "reason": "a transferable growth-phase condition is not assigned"
+        },
+        "readout": { "state": "known", "value": "GFP fluorescence in a heterologous receiver" },
+        "other": {
+          "state": "known",
+          "value": "The original AubI/AubR pair came from a metagenomic fosmid rather than a cultured, assigned source organism."
+        }
+      },
+      "evidence": {
+        "grade": "B",
+        "reviewStatus": "passed",
+        "scope": "Primary studies support AubI/AubR discovery, C12-HSL production, an engineered AubR/pAub GFP receiver in E. coli, and broad source-context HSL responsiveness.",
+        "directInEColi": true,
+        "reviewNotes": [
+          "The metagenomic source and engineered receiver source are both retained.",
+          "Passed indicates literature-card acceptance, not team experimental validation."
+        ],
+        "boundaryNotes": [
+          "The original organismal host is not inferred from AubI/AubR phylogeny.",
+          "AubR cross-reactivity prevents assigning a universal one-ligand receiver weight."
+        ]
+      },
+      "literature": [
+        {
+          "id": "nasuno-2012-aub-aus",
+          "title": "Phylogenetically novel LuxI/LuxR-type quorum sensing systems isolated using a metagenomic approach",
+          "authors": "Nasuno et al.",
+          "year": { "state": "known", "value": 2012 },
+          "doi": { "state": "known", "value": "10.1128/AEM.01442-12" },
+          "pmid": { "state": "known", "value": "22983963" },
+          "url": "https://pubmed.ncbi.nlm.nih.gov/22983963/",
+          "sourceType": "primary-paper",
+          "supports": [
+            "AubI-AubR-discovery",
+            "C12-HSL",
+            "NMR",
+            "mass-spectrometry",
+            "metagenomic-context"
+          ]
+        },
+        {
+          "id": "tekel-2019-orthogonal-qs",
+          "title": "Engineered Orthogonal Quorum Sensing Systems for Synthetic Gene Regulation in Escherichia coli",
+          "authors": "Tekel et al.",
+          "year": { "state": "known", "value": 2019 },
+          "doi": { "state": "known", "value": "10.3389/fbioe.2019.00080" },
+          "pmid": { "state": "known", "value": "31058147" },
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC6478669/",
+          "sourceType": "primary-paper",
+          "supports": ["heterologous-receiver", "pAub", "GFP-readout", "cross-reactivity"]
+        }
+      ],
+      "quantitativeObservations": [
+        {
+          "metric": "AubR/pAub receiver response profile",
+          "value": {
+            "state": "unknown",
+            "reason": "the primary paper reports a response profile, but no single transferable scalar was independently extracted"
+          },
+          "unit": { "state": "unknown", "reason": "no scalar value is transcribed into this card" },
+          "sourceRef": "tekel-2019-orthogonal-qs",
+          "context": {
+            "host": { "state": "known", "value": "Escherichia coli" },
+            "strain": { "state": "known", "value": "BL21" },
+            "vector": {
+              "state": "unknown",
+              "reason": "the exact receiver plasmid identifier was not independently extracted into this card"
+            },
+            "culture": {
+              "state": "unknown",
+              "reason": "full source culture conditions are not transcribed into this card"
+            }
+          },
+          "originalMeaning": "GFP induction profile of an engineered AubR/pAub receiver exposed to synthetic and cell-produced HSLs.",
+          "transferability": "Display-only source context; the ligand profile depends on the exact regulator, pAub sequence, expression level, host, and assay.",
+          "modelingBoundary": {
+            "application": "display-only",
+            "forbiddenMappings": ["edge-weight", "km", "hill", "gain", "threshold"]
+          }
+        }
+      ],
+      "sequence": {
+        "status": "unknown",
+        "records": {
+          "state": "unknown",
+          "reason": "the metagenomic fosmid and synthetic pAub receiver are source-specific constructs; this system card does not claim one complete sequence"
+        },
+        "isCompleteSingleSequence": false
+      },
+      "modeling": {
+        "compatibility": "parameterizable-after-calibration",
+        "allowedRepresentations": [
+          "source-linked C12-HSL production annotation",
+          "source-linked AubR/pAub receiver-response annotation",
+          "explicit cross-reactivity note"
+        ],
+        "signalMappings": [
+          "show C12-HSL as the directly characterized AubI product",
+          "show other HSL responses only as source-bound cross-reactivity",
+          "show positive receiver transcription without assigning a numerical weight"
+        ],
+        "compatibleNodeKinds": ["signal", "response"],
+        "forbiddenAutomaticMappings": ["edge-weight", "km", "hill", "gain", "threshold"],
+        "requiredMeasurements": [
+          "current-host pAub dose-response curve",
+          "full project HSL cross-reactivity panel",
+          "basal and maximal reporter output"
+        ],
+        "calibrationRequirements": [
+          "fix the AubR and pAub construct sequences",
+          "record host, vector, expression level, culture, and temperature",
+          "version the HSL panel and reporter calibration"
+        ]
+      },
+      "curation": {
+        "catalogVersion": "evidence-backed-components@2026-08-02.1",
+        "reviewedAt": "2026-08-02",
+        "reviewedBy": ["software evidence audit"],
+        "changeNotes": [
+          "Created the source-audited Aub system candidate card with an explicit cross-reactivity boundary."
+        ],
+        "withdrawalReason": { "state": "unknown", "reason": "entry is active" },
+        "auditChecks": { "cadRSupplementChecked": false }
+      }
+    }
+  ]
+}
