@@ -150,6 +150,11 @@ export const bfnEnUS = {
     removeModule: 'Remove module from network',
     removeEdge: 'Delete connection',
   },
+  history: {
+    toolbar: 'Edit history',
+    undo: 'Undo',
+    redo: 'Redo',
+  },
   confirmations: {
     resetProject: {
       title: 'Reset demo project?',
@@ -192,8 +197,12 @@ export const bfnEnUS = {
     connectionBlocked: 'These endpoints cannot connect directly. Follow the message below.',
     connectionCreated: 'Connected “{{source}}” to “{{target}}”.',
     connectionRemoved: 'Connection removed.',
+    connectionRemovedUndo: 'Connection deleted. Undo is available.',
     moduleAdded: 'Module added to the network. Connect it where needed.',
     moduleRemoved: 'The module and its direct connections were removed.',
+    moduleRemovedUndo: 'Module and its connections deleted. Undo is available.',
+    undone: 'The previous edit was undone.',
+    redone: 'The previous edit was redone.',
     imported: 'Model imported.',
     importFailed: 'The model file could not be read. Check its format.',
     reset: 'The demo project was restored.',
@@ -212,6 +221,8 @@ export const bfnEnUS = {
     label: 'Biological network canvas',
     connections: 'Module connections',
     edgeLabel: 'Select connection',
+    inputPortLabel: '{{node}}, input port: {{port}}',
+    outputPortLabel: '{{node}}, output port: {{port}}',
     modules: 'modules',
     edges: 'connections',
   },
@@ -236,6 +247,7 @@ export const bfnEnUS = {
   },
   connections: {
     builder: 'Connect modules',
+    exact: 'Exact connection',
     source: 'From',
     target: 'Connect to',
     chooseSource: 'Choose an output',

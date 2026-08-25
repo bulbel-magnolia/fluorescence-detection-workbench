@@ -8,8 +8,22 @@ import { Icon } from '../../components/Icon';
 import { PageHeader } from '../../components/PageHeader';
 import { StatusPill } from '../../components/StatusPill';
 import { ValidationSummary } from '../../components/ValidationSummary';
+import { BfnEditorToolbar } from './BfnEditorToolbar';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
 import { BfnResponseChart } from './BfnResponseChart';
+import {
+  areBfnProjectsEquivalent,
+  createBfnEditorHistory,
+  createBfnEditorSnapshot,
+  recordBfnEditorSnapshot,
+  redoBfnEditorHistory,
+  undoBfnEditorHistory,
+  type BfnEditorChangeKind,
+  type BfnEditorHistory,
+  type BfnEditorSnapshot,
+} from './editorHistory';
+import { bfnEditorShortcut } from './editorShortcuts';
+import { BFN_CANVAS_SIZE, findBfnModulePlacement, type BfnCanvasViewport } from './nodePlacement';
 import {
   bfnModuleCatalog,
   createCatalogModule,
@@ -41,6 +55,7 @@ import { defaultBfnReverseTarget, runBfnReverseDesign } from './reverseDesign';
 import { runBfnSimulation } from './simulation';
 import type {
   BfnDynamicInputSpecification,
+  BfnCanvasPosition,
   BfnFunctionalModule,
   BfnIdealEdgeEndpoint,
   BfnModelVariant,
@@ -65,7 +80,7 @@ import './bfn-platform.css';
 type BfnPrimaryWorkspace = 'design' | 'inverse';
 type ResultFreshness = 'current' | 'stale';
 type SaveStatus = 'saved' | 'error';
-type DestructiveAction = 'reset-project' | 'remove-module' | 'remove-edge' | 'clear-runs';
+type DestructiveAction = 'reset-project' | 'clear-runs';
 
 const primaryWorkspaces: BfnPrimaryWorkspace[] = ['design', 'inverse'];
 
@@ -82,6 +97,28 @@ function endpointValue(endpoint: BfnIdealEdgeEndpoint): string {
 function parseEndpoint(value: string): BfnIdealEdgeEndpoint | null {
   const [nodeId, portId, ...rest] = value.split('::');
   return nodeId && portId && rest.length === 0 ? { nodeId, portId } : null;
+}
+
+function withNodePosition(
+  project: BfnProject,
+  nodeId: string,
+  position: BfnCanvasPosition,
+): BfnProject {
+  return {
+    ...project,
+    network: {
+      ...project.network,
+      inputSources: project.network.inputSources.map((node) =>
+        node.id === nodeId ? { ...node, position } : node,
+      ),
+      modules: project.network.modules.map((node) =>
+        node.id === nodeId ? { ...node, position } : node,
+      ),
+      outputMonitors: project.network.outputMonitors.map((node) =>
+        node.id === nodeId ? { ...node, position } : node,
+      ),
+    },
+  };
 }
 
 function displayNumber(value: number, digits = 3): string {
@@ -339,7 +376,26 @@ export function BfnPlatformPage() {
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [pendingDestructiveAction, setPendingDestructiveAction] =
     useState<DestructiveAction | null>(null);
+  const [history, setHistory] = useState<BfnEditorHistory>(createBfnEditorHistory);
   const importRef = useRef<HTMLInputElement>(null);
+  const projectRef = useRef(project);
+  const selectedNodeRef = useRef(selectedNodeId);
+  const selectedEdgeRef = useRef(selectedEdgeId);
+  const resultRef = useRef(result);
+  const historyRef = useRef(history);
+  const inputEditStartRef = useRef<BfnEditorSnapshot | null>(null);
+  const canvasViewportRef = useRef<BfnCanvasViewport>({
+    x: 0,
+    y: 0,
+    width: BFN_CANVAS_SIZE.width,
+    height: 410,
+  });
+
+  projectRef.current = project;
+  selectedNodeRef.current = selectedNodeId;
+  selectedEdgeRef.current = selectedEdgeId;
+  resultRef.current = result;
+  historyRef.current = history;
 
   useEffect(() => {
     try {
@@ -349,17 +405,6 @@ export function BfnPlatformPage() {
       setSaveStatus('error');
     }
   }, [project]);
-
-  useEffect(() => {
-    if (!inputSettingsOpen && !modulePickerOpen) return undefined;
-    const closeOnEscape = (event: KeyboardEvent): void => {
-      if (event.key !== 'Escape') return;
-      setInputSettingsOpen(false);
-      setModulePickerOpen(false);
-    };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [inputSettingsOpen, modulePickerOpen]);
 
   const validationIssues = useMemo(() => validateBfnProject(project), [project]);
   const options = useMemo(() => endpointOptions(project, t), [project, t, i18n.language]);
@@ -411,11 +456,113 @@ export function BfnPlatformPage() {
       )
     : [];
 
-  const updateProject = (updater: (current: BfnProject) => BfnProject): void => {
-    setProject((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
-    if (result) setResultFreshness('stale');
+  const updateHistory = (next: BfnEditorHistory): void => {
+    historyRef.current = next;
+    setHistory(next);
+  };
+
+  const selectNode = (nodeId: string | null): void => {
+    selectedNodeRef.current = nodeId;
+    selectedEdgeRef.current = null;
+    setSelectedNodeId(nodeId);
+    setSelectedEdgeId(null);
+  };
+
+  const selectEdge = (edgeId: string | null): void => {
+    selectedNodeRef.current = null;
+    selectedEdgeRef.current = edgeId;
+    setSelectedNodeId(null);
+    setSelectedEdgeId(edgeId);
+  };
+
+  const markResultStale = (): void => {
+    if (resultRef.current) setResultFreshness('stale');
+  };
+
+  const currentEditorSnapshot = (): BfnEditorSnapshot =>
+    createBfnEditorSnapshot(projectRef.current, selectedNodeRef.current, selectedEdgeRef.current);
+
+  const recordSnapshot = (snapshot: BfnEditorSnapshot, kind: BfnEditorChangeKind): void => {
+    updateHistory(recordBfnEditorSnapshot(historyRef.current, snapshot, kind));
+  };
+
+  const updateProjectLive = (
+    updater: (current: BfnProject) => BfnProject,
+    semantic: boolean,
+  ): void => {
+    const next = { ...updater(projectRef.current), updatedAt: new Date().toISOString() };
+    projectRef.current = next;
+    setProject(next);
+    if (semantic) markResultStale();
     setNotice(null);
     setErrorNotice(null);
+  };
+
+  const performProjectEdit = (
+    updater: (current: BfnProject) => BfnProject,
+    kind: BfnEditorChangeKind = 'semantic',
+  ): boolean => {
+    const before = currentEditorSnapshot();
+    const next = { ...updater(projectRef.current), updatedAt: new Date().toISOString() };
+    if (areBfnProjectsEquivalent(before.project, next)) return false;
+    recordSnapshot(before, kind);
+    projectRef.current = next;
+    setProject(next);
+    if (kind === 'semantic') markResultStale();
+    setNotice(null);
+    setErrorNotice(null);
+    return true;
+  };
+
+  const restoreEditorSnapshot = (snapshot: BfnEditorSnapshot): void => {
+    projectRef.current = snapshot.project;
+    selectedNodeRef.current = snapshot.selectedNodeId;
+    selectedEdgeRef.current = snapshot.selectedEdgeId;
+    setProject(snapshot.project);
+    setSelectedNodeId(snapshot.selectedNodeId);
+    setSelectedEdgeId(snapshot.selectedEdgeId);
+    setErrorNotice(null);
+  };
+
+  const undo = (): void => {
+    const transition = undoBfnEditorHistory(historyRef.current, currentEditorSnapshot());
+    if (!transition) return;
+    updateHistory(transition.history);
+    restoreEditorSnapshot(transition.snapshot);
+    if (transition.kind === 'semantic') markResultStale();
+    setNotice(t('bfn.notices.undone'));
+  };
+
+  const redo = (): void => {
+    const transition = redoBfnEditorHistory(historyRef.current, currentEditorSnapshot());
+    if (!transition) return;
+    updateHistory(transition.history);
+    restoreEditorSnapshot(transition.snapshot);
+    if (transition.kind === 'semantic') markResultStale();
+    setNotice(t('bfn.notices.redone'));
+  };
+
+  const clearEditorHistory = (): void => {
+    inputEditStartRef.current = null;
+    updateHistory(createBfnEditorHistory());
+  };
+
+  const openInputSettings = (): void => {
+    if (!inputSettingsOpen) inputEditStartRef.current = currentEditorSnapshot();
+    setInputSettingsOpen(true);
+  };
+
+  const commitInputEdit = (): void => {
+    const start = inputEditStartRef.current;
+    inputEditStartRef.current = null;
+    if (start && !areBfnProjectsEquivalent(start.project, projectRef.current)) {
+      recordSnapshot(start, 'semantic');
+    }
+  };
+
+  const closeInputSettings = (): void => {
+    commitInputEdit();
+    setInputSettingsOpen(false);
   };
 
   const updateSource = (
@@ -424,20 +571,23 @@ export function BfnPlatformPage() {
       source: BfnProject['network']['inputSources'][number],
     ) => BfnProject['network']['inputSources'][number],
   ): void => {
-    updateProject((current) => ({
-      ...current,
-      network: {
-        ...current.network,
-        inputSources: current.network.inputSources.map((source) =>
-          source.id === sourceId ? updater(source) : source,
-        ),
-      },
-    }));
+    updateProjectLive(
+      (current) => ({
+        ...current,
+        network: {
+          ...current.network,
+          inputSources: current.network.inputSources.map((source) =>
+            source.id === sourceId ? updater(source) : source,
+          ),
+        },
+      }),
+      true,
+    );
   };
 
   const changeMode = (mode: BfnProject['network']['mode']): void => {
-    if (mode === project.network.mode) return;
-    updateProject((current) => ({
+    if (mode === projectRef.current.network.mode) return;
+    performProjectEdit((current) => ({
       ...current,
       network: { ...current.network, mode },
     }));
@@ -446,15 +596,19 @@ export function BfnPlatformPage() {
 
   const runSimulation = (): void => {
     try {
-      const next = runBfnSimulation(project);
+      commitInputEdit();
+      const current = projectRef.current;
+      const next = runBfnSimulation(current);
       setResult(next);
+      resultRef.current = next;
       setResultFreshness('current');
       setResultPanelOpen(true);
       setInputSettingsOpen(false);
       setRuns(saveBfnRun(next));
-      setNotice(t(simulationNoticeKey(project), { count: next.points.length }));
+      setNotice(t(simulationNoticeKey(current), { count: next.points.length }));
       setErrorNotice(null);
     } catch (error) {
+      if (inputSettingsOpen) inputEditStartRef.current = currentEditorSnapshot();
       setErrorNotice(
         error instanceof Error && error.message.includes('BFN_VALIDATION_FAILED')
           ? t('bfn.notices.validationBlocked')
@@ -463,21 +617,24 @@ export function BfnPlatformPage() {
     }
   };
 
-  const createConnection = (): void => {
-    if (
-      !sourceEndpoint ||
-      !targetEndpoint ||
-      draftIssues.some((issue) => issue.severity === 'error')
-    ) {
+  const createConnectionBetween = (
+    source: BfnIdealEdgeEndpoint,
+    target: BfnIdealEdgeEndpoint,
+  ): boolean => {
+    const issues = checkIdealConnection(projectRef.current, source, target);
+    if (issues.some((issue) => issue.severity === 'error')) {
       setErrorNotice(t('bfn.notices.connectionBlocked'));
-      return;
+      return false;
     }
     const id = `edge-${Date.now()}`;
-    const sourceLabel = options.outputs.find((entry) => entry.value === sourceEndpointValue)?.label;
-    const targetLabel = options.inputs.find((entry) => entry.value === targetEndpointValue)?.label;
-    updateProject((current) => addIdealConnection(current, sourceEndpoint, targetEndpoint, id));
-    setSelectedNodeId(null);
-    setSelectedEdgeId(id);
+    const sourceLabel = options.outputs.find(
+      (entry) => entry.value === endpointValue(source),
+    )?.label;
+    const targetLabel = options.inputs.find(
+      (entry) => entry.value === endpointValue(target),
+    )?.label;
+    performProjectEdit((current) => addIdealConnection(current, source, target, id));
+    selectEdge(id);
     setSourceEndpointValue('');
     setTargetEndpointValue('');
     setNotice(
@@ -486,29 +643,34 @@ export function BfnPlatformPage() {
         target: targetLabel ?? t('bfn.connections.target'),
       }),
     );
+    return true;
   };
 
-  const commitRemoveSelectedEdge = (): void => {
-    if (!selectedEdge) return;
-    updateProject((current) => ({
+  const createConnection = (): void => {
+    if (!sourceEndpoint || !targetEndpoint) {
+      setErrorNotice(t('bfn.notices.connectionBlocked'));
+      return;
+    }
+    createConnectionBetween(sourceEndpoint, targetEndpoint);
+  };
+
+  const commitRemoveSelectedEdge = (edgeId = selectedEdgeRef.current): void => {
+    if (!edgeId || !projectRef.current.network.edges.some((edge) => edge.id === edgeId)) return;
+    performProjectEdit((current) => ({
       ...current,
       network: {
         ...current.network,
-        edges: current.network.edges.filter((edge) => edge.id !== selectedEdge.id),
+        edges: current.network.edges.filter((edge) => edge.id !== edgeId),
       },
     }));
-    setSelectedEdgeId(null);
-    setNotice(t('bfn.notices.connectionRemoved'));
+    selectEdge(null);
+    setNotice(t('bfn.notices.connectionRemovedUndo'));
   };
 
   const addCatalogModule = (catalogId: BfnCatalogModuleId): void => {
     const suffix = `${Date.now()}`;
     const module = createCatalogModule(catalogId, suffix);
-    const moduleIndex = project.network.modules.length;
-    module.position = {
-      x: 250 + (moduleIndex % 3) * 205,
-      y: 286 + Math.floor(moduleIndex / 3) * 126,
-    };
+    module.position = findBfnModulePlacement(projectRef.current, canvasViewportRef.current);
     const domainId = `domain-${module.id}`;
     module.modelVariants = module.modelVariants.map((model) => ({
       ...model,
@@ -524,9 +686,9 @@ export function BfnPlatformPage() {
         unit: port.unit,
       })),
       timeRangeHours: [0, 8],
-      contextId: project.registry.contexts[0]?.id ?? 'ctx-demo-ecoli',
+      contextId: projectRef.current.registry.contexts[0]?.id ?? 'ctx-demo-ecoli',
     };
-    updateProject((current) => ({
+    performProjectEdit((current) => ({
       ...current,
       network: { ...current.network, modules: [...current.network.modules, module] },
       registry: {
@@ -534,28 +696,28 @@ export function BfnPlatformPage() {
         validityDomains: [...current.registry.validityDomains, domain],
       },
     }));
-    setSelectedNodeId(module.id);
-    setSelectedEdgeId(null);
+    selectNode(module.id);
     setView('design');
     setModulePickerOpen(false);
     setNotice(t('bfn.notices.moduleAdded'));
   };
 
-  const commitRemoveSelectedModule = (): void => {
-    if (!selectedModule) return;
-    updateProject((current) => ({
+  const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
+    if (!moduleId || !projectRef.current.network.modules.some((module) => module.id === moduleId)) {
+      return;
+    }
+    performProjectEdit((current) => ({
       ...current,
       network: {
         ...current.network,
-        modules: current.network.modules.filter((module) => module.id !== selectedModule.id),
+        modules: current.network.modules.filter((module) => module.id !== moduleId),
         edges: current.network.edges.filter(
-          (edge) =>
-            edge.source.nodeId !== selectedModule.id && edge.target.nodeId !== selectedModule.id,
+          (edge) => edge.source.nodeId !== moduleId && edge.target.nodeId !== moduleId,
         ),
       },
     }));
-    setSelectedNodeId(null);
-    setNotice(t('bfn.notices.moduleRemoved'));
+    selectNode(null);
+    setNotice(t('bfn.notices.moduleRemovedUndo'));
   };
 
   const exportProject = (): void => {
@@ -572,12 +734,14 @@ export function BfnPlatformPage() {
     if (!file) return;
     try {
       const imported = parseBfnProject(await file.text());
+      projectRef.current = imported;
       setProject(imported);
+      resultRef.current = null;
       setResult(null);
       setResultFreshness('current');
       setResultPanelOpen(false);
-      setSelectedNodeId(imported.network.modules[0]?.id ?? null);
-      setSelectedEdgeId(null);
+      selectNode(imported.network.modules[0]?.id ?? null);
+      clearEditorHistory();
       setNotice(t('bfn.notices.imported'));
       setErrorNotice(null);
     } catch {
@@ -587,22 +751,24 @@ export function BfnPlatformPage() {
 
   const commitResetProject = (): void => {
     const next = createDemoBfnProject(new Date().toISOString());
+    projectRef.current = next;
     setProject(next);
     localStorage.setItem(BFN_PROJECT_STORAGE_KEY, JSON.stringify(next));
     clearBfnRuns();
     setRuns([]);
+    resultRef.current = null;
     setResult(null);
     setResultFreshness('current');
     setResultPanelOpen(false);
-    setSelectedNodeId(next.network.modules[0]?.id ?? null);
-    setSelectedEdgeId(null);
+    selectNode(next.network.modules[0]?.id ?? null);
+    clearEditorHistory();
     setReverseCandidates([]);
     setNotice(t('bfn.notices.reset'));
     setErrorNotice(null);
   };
 
   const runReverse = (): void => {
-    const candidates = runBfnReverseDesign(project, reverseTarget);
+    const candidates = runBfnReverseDesign(projectRef.current, reverseTarget);
     setReverseCandidates(candidates);
     setNotice(t('bfn.notices.reverseCompleted', { count: candidates.length }));
   };
@@ -614,60 +780,26 @@ export function BfnPlatformPage() {
   };
 
   const confirmation =
-    pendingDestructiveAction === 'remove-module'
+    pendingDestructiveAction === 'clear-runs'
       ? {
-          title: t('bfn.confirmations.removeModule.title'),
-          description: t('bfn.confirmations.removeModule.description', {
-            name: selectedModule ? t(selectedModule.labelKey) : '',
-            count: selectedModule
-              ? project.network.edges.filter(
-                  (edge) =>
-                    edge.source.nodeId === selectedModule.id ||
-                    edge.target.nodeId === selectedModule.id,
-                ).length
-              : 0,
-          }),
-          recoverability: t('bfn.confirmations.removeModule.recoverability'),
-          confirmLabel: t('bfn.confirmations.removeModule.confirm'),
-          cancelLabel: t('bfn.confirmations.removeModule.cancel'),
+          title: t('bfn.confirmations.clearRuns.title'),
+          description: t('bfn.confirmations.clearRuns.description', { count: runs.length }),
+          recoverability: t('bfn.confirmations.clearRuns.recoverability'),
+          confirmLabel: t('bfn.confirmations.clearRuns.confirm'),
+          cancelLabel: t('bfn.confirmations.clearRuns.cancel'),
         }
-      : pendingDestructiveAction === 'remove-edge'
-        ? {
-            title: t('bfn.confirmations.removeEdge.title'),
-            description: t('bfn.confirmations.removeEdge.description', {
-              source: selectedEdge ? nodeLabel(project, selectedEdge.source.nodeId, t) : '',
-              target: selectedEdge ? nodeLabel(project, selectedEdge.target.nodeId, t) : '',
-            }),
-            recoverability: t('bfn.confirmations.removeEdge.recoverability'),
-            confirmLabel: t('bfn.confirmations.removeEdge.confirm'),
-            cancelLabel: t('bfn.confirmations.removeEdge.cancel'),
-          }
-        : pendingDestructiveAction === 'clear-runs'
-          ? {
-              title: t('bfn.confirmations.clearRuns.title'),
-              description: t('bfn.confirmations.clearRuns.description', { count: runs.length }),
-              recoverability: t('bfn.confirmations.clearRuns.recoverability'),
-              confirmLabel: t('bfn.confirmations.clearRuns.confirm'),
-              cancelLabel: t('bfn.confirmations.clearRuns.cancel'),
-            }
-          : {
-              title: t('bfn.confirmations.resetProject.title'),
-              description: t('bfn.confirmations.resetProject.description'),
-              recoverability: t('bfn.confirmations.resetProject.recoverability'),
-              confirmLabel: t('bfn.confirmations.resetProject.confirm'),
-              cancelLabel: t('bfn.confirmations.resetProject.cancel'),
-            };
+      : {
+          title: t('bfn.confirmations.resetProject.title'),
+          description: t('bfn.confirmations.resetProject.description'),
+          recoverability: t('bfn.confirmations.resetProject.recoverability'),
+          confirmLabel: t('bfn.confirmations.resetProject.confirm'),
+          cancelLabel: t('bfn.confirmations.resetProject.cancel'),
+        };
 
   const confirmDestructiveAction = (): void => {
     switch (pendingDestructiveAction) {
       case 'reset-project':
         commitResetProject();
-        break;
-      case 'remove-module':
-        commitRemoveSelectedModule();
-        break;
-      case 'remove-edge':
-        commitRemoveSelectedEdge();
         break;
       case 'clear-runs':
         commitClearRuns();
@@ -675,6 +807,42 @@ export function BfnPlatformPage() {
     }
     setPendingDestructiveAction(null);
   };
+
+  useEffect(() => {
+    const handleKeyboard = (event: KeyboardEvent): void => {
+      if (event.key === 'Escape') {
+        if (inputSettingsOpen) closeInputSettings();
+        if (modulePickerOpen) setModulePickerOpen(false);
+      }
+      if (view !== 'design') return;
+      const shortcut = bfnEditorShortcut(event);
+      if (!shortcut || (inputSettingsOpen && shortcut !== 'delete-selection')) return;
+      if (shortcut === 'undo') {
+        if (historyRef.current.past.length === 0) return;
+        event.preventDefault();
+        undo();
+        return;
+      }
+      if (shortcut === 'redo') {
+        if (historyRef.current.future.length === 0) return;
+        event.preventDefault();
+        redo();
+        return;
+      }
+      if (selectedEdgeRef.current) {
+        event.preventDefault();
+        commitRemoveSelectedEdge();
+      } else if (
+        selectedNodeRef.current &&
+        projectRef.current.network.modules.some((module) => module.id === selectedNodeRef.current)
+      ) {
+        event.preventDefault();
+        commitRemoveSelectedModule();
+      }
+    };
+    window.addEventListener('keydown', handleKeyboard);
+    return () => window.removeEventListener('keydown', handleKeyboard);
+  });
 
   return (
     <div className="page page--bfn">
@@ -768,7 +936,7 @@ export function BfnPlatformPage() {
           <Button
             variant="secondary"
             leadingIcon={<Icon name="settings" size={15} />}
-            onClick={() => setInputSettingsOpen(true)}
+            onClick={openInputSettings}
           >
             {t('bfn.runToolbar.configureInput')}
           </Button>
@@ -808,10 +976,8 @@ export function BfnPlatformPage() {
                   <button
                     key={source.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedNodeId(source.id);
-                      setSelectedEdgeId(null);
-                    }}
+                    data-selected={selectedNodeId === source.id}
+                    onClick={() => selectNode(source.id)}
                   >
                     <strong>{t(source.labelKey)}</strong>
                     <small>{bfnPortMetaLabel(source.outputPort, t)}</small>
@@ -824,10 +990,8 @@ export function BfnPlatformPage() {
                   <button
                     key={module.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedNodeId(module.id);
-                      setSelectedEdgeId(null);
-                    }}
+                    data-selected={selectedNodeId === module.id}
+                    onClick={() => selectNode(module.id)}
                   >
                     <strong>{t(module.labelKey)}</strong>
                     <small>{bfnModuleFlowLabel(module, t)}</small>
@@ -848,10 +1012,8 @@ export function BfnPlatformPage() {
                   <button
                     key={monitor.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedNodeId(monitor.id);
-                      setSelectedEdgeId(null);
-                    }}
+                    data-selected={selectedNodeId === monitor.id}
+                    onClick={() => selectNode(monitor.id)}
                   >
                     <strong>{t(monitor.labelKey)}</strong>
                     <small>{bfnPortMetaLabel(monitor.inputPort, t)}</small>
@@ -859,64 +1021,70 @@ export function BfnPlatformPage() {
                 ))}
               </section>
             </div>
-            <section className="bfn-connection-builder" aria-label={t('bfn.connections.builder')}>
-              <header>
+            <details className="bfn-connection-fallback">
+              <summary>
                 <Icon name="link" size={15} />
-                <strong>{t('bfn.connections.builder')}</strong>
-              </header>
-              <label>
-                <span>{t('bfn.connections.source')}</span>
-                <select
-                  aria-label={t('bfn.connections.source')}
-                  value={sourceEndpointValue}
-                  onChange={(event) => setSourceEndpointValue(event.target.value)}
+                {t('bfn.connections.exact')}
+              </summary>
+              <section className="bfn-connection-builder" aria-label={t('bfn.connections.builder')}>
+                <header>
+                  <Icon name="link" size={15} />
+                  <strong>{t('bfn.connections.builder')}</strong>
+                </header>
+                <label>
+                  <span>{t('bfn.connections.source')}</span>
+                  <select
+                    aria-label={t('bfn.connections.source')}
+                    value={sourceEndpointValue}
+                    onChange={(event) => setSourceEndpointValue(event.target.value)}
+                  >
+                    <option value="">{t('bfn.connections.chooseSource')}</option>
+                    {options.outputs.map((entry) => (
+                      <option key={entry.value} value={entry.value}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>{t('bfn.connections.target')}</span>
+                  <select
+                    aria-label={t('bfn.connections.target')}
+                    value={targetEndpointValue}
+                    onChange={(event) => setTargetEndpointValue(event.target.value)}
+                  >
+                    <option value="">{t('bfn.connections.chooseTarget')}</option>
+                    {options.inputs.map((entry) => (
+                      <option key={entry.value} value={entry.value}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {sourceEndpoint && targetEndpoint ? (
+                  <div
+                    className="bfn-connection-check"
+                    data-valid={!draftIssues.some((issue) => issue.severity === 'error')}
+                  >
+                    {draftIssues.length
+                      ? validationMessage(t, draftIssues[0]!)
+                      : t('bfn.connections.compatible')}
+                  </div>
+                ) : null}
+                <Button
+                  variant="secondary"
+                  fullWidth
+                  disabled={
+                    !sourceEndpoint ||
+                    !targetEndpoint ||
+                    draftIssues.some((issue) => issue.severity === 'error')
+                  }
+                  onClick={createConnection}
                 >
-                  <option value="">{t('bfn.connections.chooseSource')}</option>
-                  {options.outputs.map((entry) => (
-                    <option key={entry.value} value={entry.value}>
-                      {entry.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                <span>{t('bfn.connections.target')}</span>
-                <select
-                  aria-label={t('bfn.connections.target')}
-                  value={targetEndpointValue}
-                  onChange={(event) => setTargetEndpointValue(event.target.value)}
-                >
-                  <option value="">{t('bfn.connections.chooseTarget')}</option>
-                  {options.inputs.map((entry) => (
-                    <option key={entry.value} value={entry.value}>
-                      {entry.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {sourceEndpoint && targetEndpoint ? (
-                <div
-                  className="bfn-connection-check"
-                  data-valid={!draftIssues.some((issue) => issue.severity === 'error')}
-                >
-                  {draftIssues.length
-                    ? validationMessage(t, draftIssues[0]!)
-                    : t('bfn.connections.compatible')}
-                </div>
-              ) : null}
-              <Button
-                variant="secondary"
-                fullWidth
-                disabled={
-                  !sourceEndpoint ||
-                  !targetEndpoint ||
-                  draftIssues.some((issue) => issue.severity === 'error')
-                }
-                onClick={createConnection}
-              >
-                {t('bfn.connections.create')}
-              </Button>
-            </section>
+                  {t('bfn.connections.create')}
+                </Button>
+              </section>
+            </details>
           </aside>
 
           <section className="bfn-network-stage">
@@ -924,50 +1092,58 @@ export function BfnPlatformPage() {
               <div>
                 <h2>{t(project.network.labelKey)}</h2>
               </div>
-              <div className="bfn-stage-badges">
-                <span>
-                  {project.network.modules.length} {t('bfn.canvas.modules')}
-                </span>
-                <span>
-                  {project.network.edges.length} {t('bfn.canvas.edges')}
-                </span>
-                <span>{t(`bfn.modes.${project.network.mode}`)}</span>
+              <div className="bfn-stage-header-actions">
+                <BfnEditorToolbar
+                  canUndo={history.past.length > 0}
+                  canRedo={history.future.length > 0}
+                  onUndo={undo}
+                  onRedo={redo}
+                />
+                <div className="bfn-stage-badges">
+                  <span>
+                    {project.network.modules.length} {t('bfn.canvas.modules')}
+                  </span>
+                  <span>
+                    {project.network.edges.length} {t('bfn.canvas.edges')}
+                  </span>
+                  <span>{t(`bfn.modes.${project.network.mode}`)}</span>
+                </div>
               </div>
             </header>
             <BfnNetworkCanvas
               project={project}
               selectedNodeId={selectedNodeId}
               selectedEdgeId={selectedEdgeId}
-              onSelectNode={(nodeId) => {
-                setSelectedNodeId(nodeId);
-                setSelectedEdgeId(null);
-              }}
-              onSelectEdge={(edgeId) => {
-                setSelectedNodeId(null);
-                setSelectedEdgeId(edgeId);
-              }}
-              onClearSelection={() => {
-                setSelectedNodeId(null);
-                setSelectedEdgeId(null);
-              }}
+              onSelectNode={selectNode}
+              onSelectEdge={selectEdge}
+              onClearSelection={() => selectNode(null)}
               onMoveNode={(nodeId, position) =>
-                setProject((current) => ({
-                  ...current,
-                  network: {
-                    ...current.network,
-                    inputSources: current.network.inputSources.map((node) =>
-                      node.id === nodeId ? { ...node, position } : node,
-                    ),
-                    modules: current.network.modules.map((node) =>
-                      node.id === nodeId ? { ...node, position } : node,
-                    ),
-                    outputMonitors: current.network.outputMonitors.map((node) =>
-                      node.id === nodeId ? { ...node, position } : node,
-                    ),
-                  },
-                  updatedAt: new Date().toISOString(),
-                }))
+                updateProjectLive((current) => withNodePosition(current, nodeId, position), false)
               }
+              onMoveNodeCommit={(nodeId, start, end) => {
+                if (start.x === end.x && start.y === end.y) return;
+                recordSnapshot(
+                  createBfnEditorSnapshot(
+                    withNodePosition(projectRef.current, nodeId, start),
+                    selectedNodeRef.current,
+                    selectedEdgeRef.current,
+                  ),
+                  'layout',
+                );
+              }}
+              evaluateConnection={(source, target) => {
+                const issue = checkIdealConnection(projectRef.current, source, target).find(
+                  (candidate) => candidate.severity === 'error',
+                );
+                return {
+                  compatible: !issue,
+                  message: issue ? validationMessage(t, issue) : null,
+                };
+              }}
+              onCreateConnection={createConnectionBetween}
+              onViewportChange={(viewport) => {
+                canvasViewportRef.current = viewport;
+              }}
             />
           </section>
 
@@ -1173,7 +1349,7 @@ export function BfnPlatformPage() {
                   <button
                     className="danger-text-button"
                     type="button"
-                    onClick={() => setPendingDestructiveAction('remove-module')}
+                    onClick={() => commitRemoveSelectedModule(selectedModule.id)}
                   >
                     <Icon name="trash" size={14} />
                     {t('bfn.actions.removeModule')}
@@ -1205,7 +1381,7 @@ export function BfnPlatformPage() {
                   <button
                     className="button button--secondary button--wide"
                     type="button"
-                    onClick={() => setInputSettingsOpen(true)}
+                    onClick={openInputSettings}
                   >
                     {t('bfn.inspector.configureInput')}
                   </button>
@@ -1258,7 +1434,7 @@ export function BfnPlatformPage() {
                   <button
                     className="danger-text-button"
                     type="button"
-                    onClick={() => setPendingDestructiveAction('remove-edge')}
+                    onClick={() => commitRemoveSelectedEdge(selectedEdge.id)}
                   >
                     <Icon name="trash" size={14} />
                     {t('bfn.actions.removeEdge')}
@@ -1283,7 +1459,7 @@ export function BfnPlatformPage() {
             className="bfn-drawer-scrim"
             type="button"
             aria-label={t('bfn.drawers.closeInput')}
-            onClick={() => setInputSettingsOpen(false)}
+            onClick={closeInputSettings}
           />
           <aside
             className="bfn-drawer bfn-input-settings-drawer"
@@ -1300,7 +1476,7 @@ export function BfnPlatformPage() {
                 className="bfn-drawer__close"
                 type="button"
                 aria-label={t('bfn.drawers.closeInput')}
-                onClick={() => setInputSettingsOpen(false)}
+                onClick={closeInputSettings}
               >
                 ×
               </button>
@@ -1508,13 +1684,16 @@ export function BfnPlatformPage() {
                     step="0.1"
                     value={project.analysis.durationHours}
                     onChange={(event) =>
-                      updateProject((current) => ({
-                        ...current,
-                        analysis: {
-                          ...current.analysis,
-                          durationHours: Math.max(0.1, Number(event.target.value)),
-                        },
-                      }))
+                      updateProjectLive(
+                        (current) => ({
+                          ...current,
+                          analysis: {
+                            ...current.analysis,
+                            durationHours: Math.max(0.1, Number(event.target.value)),
+                          },
+                        }),
+                        true,
+                      )
                     }
                   />
                 </label>
@@ -1526,13 +1705,16 @@ export function BfnPlatformPage() {
                     step="0.01"
                     value={project.analysis.timeStepHours}
                     onChange={(event) =>
-                      updateProject((current) => ({
-                        ...current,
-                        analysis: {
-                          ...current.analysis,
-                          timeStepHours: Math.max(0.001, Number(event.target.value)),
-                        },
-                      }))
+                      updateProjectLive(
+                        (current) => ({
+                          ...current,
+                          analysis: {
+                            ...current.analysis,
+                            timeStepHours: Math.max(0.001, Number(event.target.value)),
+                          },
+                        }),
+                        true,
+                      )
                     }
                   />
                 </label>

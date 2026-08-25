@@ -526,6 +526,17 @@
   border-color: var(--bfn-rule);
 }
 
+.bfn-network-index__list button[data-selected='true'] {
+  background: var(--surface);
+  border-color: var(--bfn-signal);
+  box-shadow: inset 3px 0 0 var(--bfn-signal);
+}
+
+.bfn-network-index__list button:focus-visible {
+  outline: 2px solid var(--bfn-navy);
+  outline-offset: 2px;
+}
+
 .bfn-network-index__list strong,
 .bfn-network-index__list small {
   overflow: hidden;
@@ -564,6 +575,38 @@
   margin-top: 18px;
   padding-top: 15px;
   border-top: 1px solid var(--bfn-rule);
+}
+
+.bfn-connection-fallback {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--bfn-rule);
+}
+
+.bfn-connection-fallback > summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 4px;
+  color: var(--ink-600);
+  font-size: 10px;
+  font-weight: 750;
+  cursor: pointer;
+  list-style: none;
+}
+
+.bfn-connection-fallback > summary::-webkit-details-marker {
+  display: none;
+}
+
+.bfn-connection-fallback[open] > summary {
+  color: var(--bfn-navy);
+}
+
+.bfn-connection-fallback .bfn-connection-builder {
+  margin-top: 4px;
+  padding: 11px 4px 0;
+  border-top-style: dashed;
 }
 
 .bfn-connection-builder > header {
@@ -629,6 +672,55 @@
   gap: 5px;
 }
 
+.bfn-stage-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.bfn-editor-toolbar {
+  display: inline-flex;
+  padding: 2px;
+  background: var(--surface);
+  border: 1px solid var(--bfn-rule);
+  border-radius: 8px;
+}
+
+.bfn-editor-toolbar button {
+  display: inline-flex;
+  min-height: 27px;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 7px;
+  color: var(--ink-700);
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.bfn-editor-toolbar button:hover:not(:disabled) {
+  color: var(--bfn-navy);
+  background: var(--ink-100);
+}
+
+.bfn-editor-toolbar button:focus-visible {
+  outline: 2px solid var(--bfn-navy);
+  outline-offset: 1px;
+}
+
+.bfn-editor-toolbar button:disabled {
+  opacity: 0.34;
+}
+
+.bfn-editor-toolbar button span {
+  font-size: 15px;
+  line-height: 1;
+}
+
 .bfn-stage-badges span,
 .bfn-candidate-count {
   padding: 4px 7px;
@@ -682,6 +774,10 @@
   fill: var(--bfn-cyan);
 }
 
+#bfn-preview-arrow path {
+  fill: var(--bfn-signal);
+}
+
 .bfn-canvas-edge__halo,
 .bfn-canvas-edge {
   fill: none;
@@ -713,6 +809,19 @@
   stroke-dasharray: 5 5;
 }
 
+.bfn-canvas-edge--preview {
+  pointer-events: none;
+  stroke: var(--bfn-signal);
+  stroke-width: 2.5;
+  stroke-dasharray: 6 4;
+  filter: drop-shadow(0 0 4px rgb(207 57 120 / 24%));
+}
+
+.bfn-canvas-edge--preview[data-target-compatible='true'] {
+  stroke: #27875e;
+  filter: drop-shadow(0 0 5px rgb(39 135 94 / 28%));
+}
+
 .bfn-canvas-node {
   position: absolute;
   z-index: 2;
@@ -735,13 +844,24 @@
   user-select: none;
 }
 
-.bfn-canvas-node:hover,
-.bfn-canvas-node[data-selected='true'] {
+.bfn-canvas-node:hover {
   border-color: var(--bfn-cyan);
   box-shadow:
     0 11px 25px rgb(8 39 59 / 12%),
     inset 0 0 0 1px rgb(23 170 163 / 12%);
   transform: translateY(-1px);
+}
+
+.bfn-canvas-node[data-selected='true'] {
+  border-color: var(--bfn-signal);
+  box-shadow:
+    0 11px 25px rgb(8 39 59 / 12%),
+    inset 0 0 0 1px rgb(207 57 120 / 22%);
+}
+
+.bfn-canvas-node:focus-visible {
+  outline: 2px solid var(--bfn-navy);
+  outline-offset: 3px;
 }
 
 .bfn-canvas-node:active {
@@ -815,6 +935,133 @@
 
 .bfn-canvas-node__connector--out {
   right: -6px;
+}
+
+.bfn-canvas-port {
+  position: absolute;
+  z-index: 4;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  transform: translateY(-50%);
+}
+
+.bfn-canvas-port--in {
+  left: -12px;
+}
+
+.bfn-canvas-port--out {
+  right: -12px;
+}
+
+.bfn-canvas-port__dot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 11px;
+  height: 11px;
+  background: var(--surface);
+  border: 2px solid var(--bfn-cyan);
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px rgb(255 255 255 / 80%);
+  transform: translate(-50%, -50%);
+  transition:
+    opacity 120ms ease,
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.bfn-canvas-port:hover .bfn-canvas-port__dot,
+.bfn-canvas-port:focus-visible .bfn-canvas-port__dot {
+  transform: translate(-50%, -50%) scale(1.22);
+}
+
+.bfn-canvas-port:focus-visible {
+  outline: 2px solid var(--bfn-navy);
+  outline-offset: 1px;
+}
+
+.bfn-canvas-port[data-drag-source='true'] .bfn-canvas-port__dot {
+  background: var(--bfn-cyan);
+  box-shadow: 0 0 0 5px rgb(23 170 163 / 17%);
+}
+
+.bfn-canvas-port[data-connection-state='compatible'] .bfn-canvas-port__dot {
+  background: #e8f7ef;
+  border-color: #27875e;
+  box-shadow: 0 0 0 5px rgb(39 135 94 / 18%);
+}
+
+.bfn-canvas-port[data-connection-state='incompatible'] .bfn-canvas-port__dot {
+  opacity: 0.3;
+  border-color: var(--ink-400);
+  box-shadow: none;
+}
+
+.bfn-canvas-port[data-connection-state='incompatible'][data-hovered='true'] .bfn-canvas-port__dot {
+  opacity: 1;
+  border-color: var(--red-600);
+  box-shadow: 0 0 0 5px rgb(190 46 58 / 14%);
+}
+
+.bfn-canvas-port__tooltip {
+  position: absolute;
+  top: 50%;
+  z-index: 8;
+  width: max-content;
+  max-width: 190px;
+  padding: 5px 7px;
+  color: var(--surface);
+  background: var(--bfn-navy);
+  border-radius: 5px;
+  box-shadow: 0 5px 14px rgb(8 39 59 / 18%);
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.25;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%);
+  transition: opacity 100ms ease;
+}
+
+.bfn-canvas-port--in .bfn-canvas-port__tooltip {
+  left: 20px;
+}
+
+.bfn-canvas-port--out .bfn-canvas-port__tooltip {
+  right: 20px;
+}
+
+.bfn-canvas-port:hover .bfn-canvas-port__tooltip,
+.bfn-canvas-port:focus-visible .bfn-canvas-port__tooltip {
+  opacity: 1;
+}
+
+.bfn-connection-feedback {
+  position: absolute;
+  z-index: 9;
+  width: max-content;
+  max-width: 238px;
+  padding: 7px 9px;
+  color: var(--red-600);
+  background: color-mix(in srgb, var(--red-100) 92%, var(--surface));
+  border: 1px solid rgb(190 46 58 / 22%);
+  border-radius: 7px;
+  box-shadow: 0 6px 18px rgb(8 39 59 / 11%);
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.bfn-connection-feedback[data-compatible='true'] {
+  color: #216f4f;
+  background: #e8f7ef;
+  border-color: rgb(39 135 94 / 24%);
 }
 
 .bfn-canvas__principle {

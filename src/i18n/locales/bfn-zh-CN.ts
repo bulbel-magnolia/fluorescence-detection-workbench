@@ -144,6 +144,11 @@ export const bfnZhCN = {
     removeModule: '从网络移除模块',
     removeEdge: '删除连接',
   },
+  history: {
+    toolbar: '编辑历史',
+    undo: '撤销',
+    redo: '重做',
+  },
   confirmations: {
     resetProject: {
       title: '重置演示项目？',
@@ -185,8 +190,12 @@ export const bfnZhCN = {
     connectionBlocked: '这两个端点不能直接连接，请按提示调整。',
     connectionCreated: '已连接“{{source}}”与“{{target}}”。',
     connectionRemoved: '连接已移除。',
+    connectionRemovedUndo: '连接已删除，可撤销恢复。',
     moduleAdded: '模块已加入网络，请根据需要建立连接。',
     moduleRemoved: '模块及其直接连接已移除。',
+    moduleRemovedUndo: '模块及其连接已删除，可撤销恢复。',
+    undone: '已撤销上一步编辑。',
+    redone: '已重做上一步编辑。',
     imported: '模型导入完成。',
     importFailed: '无法读取该模型文件，请检查文件格式。',
     reset: '演示项目已恢复。',
@@ -205,6 +214,8 @@ export const bfnZhCN = {
     label: '生物网络画布',
     connections: '模块连接',
     edgeLabel: '选择连接',
+    inputPortLabel: '{{node}}，输入端口：{{port}}',
+    outputPortLabel: '{{node}}，输出端口：{{port}}',
     modules: '个模块',
     edges: '条连接',
   },
@@ -229,6 +240,7 @@ export const bfnZhCN = {
   },
   connections: {
     builder: '连接模块',
+    exact: '精确连接',
     source: '从',
     target: '连接到',
     chooseSource: '选择一个输出',
