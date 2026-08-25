@@ -1,5 +1,5 @@
 import { createRef } from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../i18n';
@@ -58,7 +58,9 @@ describe('catalog apply contract', () => {
     );
 
     await user.selectOptions(screen.getByRole('combobox', { name: '应用为网络角色' }), 'output');
-    await user.type(screen.getByRole('searchbox', { name: '搜索文献元件库' }), 'output.sfgfp');
+    fireEvent.change(screen.getByRole('searchbox', { name: '搜索文献元件库' }), {
+      target: { value: 'output.sfgfp' },
+    });
     await user.click(screen.getByRole('button', { name: /output\.sfgfp/i }));
     await user.click(screen.getByRole('button', { name: '应用到网络' }));
     expect(onApply).toHaveBeenCalledWith(
