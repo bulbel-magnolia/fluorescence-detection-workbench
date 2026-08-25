@@ -15,7 +15,7 @@ import {
   serializeBfnResultTable,
   type BfnPngEnvironment,
 } from './chartExport';
-import type { BfnChartModel } from './chartTypes';
+import type { BfnChartComparison, BfnChartModel } from './chartTypes';
 import type { BfnProject, BfnSimulationResult } from './types';
 
 export interface BfnDownloadEnvironment {
@@ -29,6 +29,7 @@ export interface BfnExportMenuProps {
   project: BfnProject;
   result: BfnSimulationResult;
   model: BfnChartModel;
+  comparison?: BfnChartComparison;
   clipboardEnvironment?: BfnClipboardEnvironment;
   downloadEnvironment?: BfnDownloadEnvironment;
   pngEnvironment?: BfnPngEnvironment;
@@ -81,6 +82,7 @@ export function BfnExportMenu({
   project,
   result,
   model,
+  comparison,
   clipboardEnvironment,
   downloadEnvironment,
   pngEnvironment,
@@ -110,6 +112,7 @@ export function BfnExportMenu({
     project,
     result,
     model,
+    comparison,
     clipboardEnvironment,
     downloadEnvironment,
     pngEnvironment,
@@ -126,6 +129,7 @@ export function BfnExportMenu({
   const svg = (): string => serializeBfnFigureSvg({
     model,
     result,
+    ...(comparison ? { comparison } : {}),
     title: result.mode === 'static' ? t('bfn.results.staticChart') : t('bfn.results.dynamicChart'),
     description: t('bfn.results.exportMenu.figureDescription', { runId: result.id }),
   });
@@ -155,7 +159,13 @@ export function BfnExportMenu({
   const handleCsvDownload = (): void => {
     setFeedback(null);
     try {
-      const csv = serializeBfnResultTable({ project, current: result, delimiter: ',', bom: true });
+      const csv = serializeBfnResultTable({
+        project,
+        current: result,
+        ...(comparison ? { comparison } : {}),
+        delimiter: ',',
+        bom: true,
+      });
       downloadBlob(
         new Blob([csv], { type: 'text/csv;charset=utf-8' }),
         filename('data', 'csv'),
@@ -234,7 +244,13 @@ export function BfnExportMenu({
   };
   const handleCopyData = (): Promise<void> => copyText(
     'copyData',
-    serializeBfnResultTable({ project, current: result, delimiter: '\t', bom: false }),
+    serializeBfnResultTable({
+      project,
+      current: result,
+      ...(comparison ? { comparison } : {}),
+      delimiter: '\t',
+      bom: false,
+    }),
     'copyDataSuccess',
   );
   const handleCopyCaption = (): Promise<void> => copyText(
@@ -243,6 +259,7 @@ export function BfnExportMenu({
       project,
       result,
       model,
+      ...(comparison ? { comparison } : {}),
       captionText: {
         lead: t('bfn.results.exportMenu.caption.lead', {
           demo: result.isDemo || project.isDemo ? t('bfn.results.exportMenu.caption.demo') : '',

@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { BfnChartCursor, BfnChartModel } from './chartTypes';
+import type { BfnChartComparison, BfnChartCursor, BfnChartModel } from './chartTypes';
 import type { BfnProject, BfnSimulationResult } from './types';
 
 interface BfnChartTooltipProps {
   project: BfnProject;
   result: BfnSimulationResult;
+  comparison?: BfnChartComparison;
   model: BfnChartModel;
   cursor?: BfnChartCursor;
 }
@@ -29,7 +30,7 @@ function annValue(result: BfnSimulationResult, index: number): number | null {
   );
 }
 
-export function BfnChartTooltip({ project, result, model, cursor }: BfnChartTooltipProps) {
+export function BfnChartTooltip({ project, result, comparison, model, cursor }: BfnChartTooltipProps) {
   const { t } = useTranslation();
   const point = cursor?.point;
   const sources = project.network.inputSources;
@@ -58,9 +59,16 @@ export function BfnChartTooltip({ project, result, model, cursor }: BfnChartTool
   if (!point || cursor === undefined) return null;
   const approximation = model.series.ann ? annValue(result, cursor.index) : null;
   const outputUnit = model.labels.yUnit;
+  const comparisonCursor = cursor.comparison;
+  const comparisonCoordinate = comparisonCursor
+    ? result.mode === 'dynamic'
+      ? comparisonCursor.point.timeHours ?? comparisonCursor.coordinate
+      : comparisonCursor.point.inputs[result.primaryInputSourceId] ?? comparisonCursor.coordinate
+    : null;
   return (
     <aside className="bfn-chart-tooltip" data-index={cursor.index} role="note" aria-label={t('bfn.results.chart.computedPoint')}>
       <strong>{t('bfn.results.chart.computedPoint')}</strong>
+      {comparisonCursor ? <span className="bfn-chart-tooltip__run-label">{t('bfn.results.chart.currentRun')}</span> : null}
       <dl>
         {result.mode === 'dynamic' ? (
           <div>
@@ -97,6 +105,21 @@ export function BfnChartTooltip({ project, result, model, cursor }: BfnChartTool
           </div>
         ) : null}
       </dl>
+      {comparisonCursor && comparisonCoordinate !== null ? (
+        <section className="bfn-chart-tooltip__comparison">
+          <strong>{comparison?.label ?? t('bfn.results.chart.comparisonRun')}</strong>
+          <dl>
+            <div>
+              <dt>{t(result.mode === 'dynamic' ? 'bfn.results.chart.time' : 'bfn.results.chart.cursorInput')}</dt>
+              <dd>{valueLabel(comparisonCoordinate, result.mode === 'dynamic' ? 'h' : model.labels.xUnit)}</dd>
+            </div>
+            <div>
+              <dt>{t('bfn.results.chart.cursorOutput')}</dt>
+              <dd>{valueLabel(comparisonCursor.value, outputUnit)}</dd>
+            </div>
+          </dl>
+        </section>
+      ) : null}
       {point.extrapolated ? (
         <p className="bfn-chart-tooltip__warning" role="status">
           {t('bfn.results.chart.extrapolatedWarning')}

@@ -22,6 +22,7 @@ import type {
   CreateBfnChartModelInput,
 } from './chartTypes';
 import type { BfnSimulationPoint, BfnSimulationResult } from './types';
+import { nearestBfnComparisonPoint } from './runComparison';
 
 function finiteExtent(values: readonly number[], fallback: BfnChartDomain): BfnChartDomain {
   const finite = values.filter((value) => Number.isFinite(value));
@@ -376,7 +377,16 @@ export function createBfnChartModel({
 
   const fullPoints = filteredIndexedResultPoints;
   const fullSeries = viewState.showFullModel
-    ? seriesFor('full', fallbackTranslation(translate, 'bfn.results.fullModel', 'Full model'), result, fullPoints, mapX, mapY)
+    ? seriesFor(
+        'full',
+        comparison
+          ? fallbackTranslation(translate, 'bfn.results.chart.currentRun', 'Current run')
+          : fallbackTranslation(translate, 'bfn.results.fullModel', 'Full model'),
+        result,
+        fullPoints,
+        mapX,
+        mapY,
+      )
     : undefined;
   const uncertaintySeries = viewState.showUncertainty
       ? (() => {
@@ -406,6 +416,27 @@ export function createBfnChartModel({
     ? (() => {
         const x = mapX(cursorPoint.coordinate);
         const y = mapY(cursorPoint.output);
+        const nearestComparison = comparisonResult
+          ? nearestBfnComparisonPoint(comparisonResult, cursorPoint.coordinate)
+          : null;
+        const comparisonCursor = nearestComparison &&
+          nearestComparison.point.coordinate >= xDomain[0] &&
+          nearestComparison.point.coordinate <= xDomain[1]
+          ? (() => {
+              const comparisonX = mapX(nearestComparison.point.coordinate);
+              const comparisonY = mapY(nearestComparison.point.output);
+              return Number.isFinite(comparisonX) && Number.isFinite(comparisonY)
+                ? {
+                    index: nearestComparison.index,
+                    coordinate: nearestComparison.point.coordinate,
+                    x: comparisonX,
+                    y: comparisonY,
+                    point: nearestComparison.point,
+                    value: nearestComparison.point.output,
+                  }
+                : undefined;
+            })()
+          : undefined;
         return Number.isFinite(cursorPoint.coordinate) && Number.isFinite(cursorPoint.output) && Number.isFinite(x) && Number.isFinite(y)
           ? {
               index: viewState.cursorIndex,
@@ -416,6 +447,7 @@ export function createBfnChartModel({
               value: cursorPoint.output,
               lower: cursorPoint.lower,
               upper: cursorPoint.upper,
+              ...(comparisonCursor ? { comparison: comparisonCursor } : {}),
             }
           : undefined;
       })()

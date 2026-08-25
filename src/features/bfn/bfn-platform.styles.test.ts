@@ -82,6 +82,9 @@ describe('scientific desktop visual semantics', () => {
     expect(selectedIndex).toContain('var(--ui-accent)');
     expect(canvasCss).toMatch(/data-connection-state='compatible'[\s\S]*var\(--ui-success\)/);
     expect(resultsCss).toMatch(/\.bfn-chart__line\s*\{[\s\S]*stroke:\s*var\(--ui-signal\)/);
+    expect(resultsCss).toMatch(
+      /\.bfn-chart__comparison\s*\{[\s\S]*stroke:\s*#64748b;[\s\S]*stroke-dasharray:\s*6 4;/,
+    );
   });
 
   it('uses readable type, flat diagram elements, and an engineering grid', () => {

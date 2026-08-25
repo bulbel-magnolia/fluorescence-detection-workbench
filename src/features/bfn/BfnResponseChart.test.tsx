@@ -239,4 +239,58 @@ describe('BfnResponseChart exact reading', () => {
     fireEvent.keyDown(screen.getByRole('img', { name: 'Input-output response' }), { key: 'Home' });
     expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '0');
   });
+
+  it('reads the current and historical runs on their independent real-point grids', () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');
+    const sourceId = base.primaryInputSourceId;
+    const current = {
+      ...base,
+      id: 'run-current-grid',
+      points: [
+        { ...base.points[0]!, coordinate: 10, inputs: { ...base.points[0]!.inputs, [sourceId]: 10 }, output: 0.5 },
+        { ...base.points[1]!, coordinate: 20, inputs: { ...base.points[1]!.inputs, [sourceId]: 20 }, output: 0.8 },
+      ],
+    };
+    const historical = {
+      ...base,
+      id: 'run-historical-grid',
+      completedAt: '2026-08-25T10:00:00.000Z',
+      points: [
+        { ...base.points[0]!, coordinate: 9.8, inputs: { ...base.points[0]!.inputs, [sourceId]: 9.8 }, output: 0.42 },
+        { ...base.points[1]!, coordinate: 20.2, inputs: { ...base.points[1]!.inputs, [sourceId]: 20.2 }, output: 0.74 },
+      ],
+    };
+    const comparison = { result: historical, label: 'Comparison run · 8/25/2026, 6:00:00 PM' };
+    const viewState = { ...defaultBfnChartViewState(current), cursorIndex: 0 };
+    const model = createBfnChartModel({
+      project,
+      result: current,
+      comparison,
+      viewState,
+      geometry,
+      translate: (key) => i18n.t(key),
+    });
+
+    render(
+      <BfnResponseChart
+        project={project}
+        result={current}
+        comparison={comparison}
+        viewState={viewState}
+        model={model}
+      />,
+    );
+
+    const tooltip = screen.getByRole('note');
+    expect(tooltip).toHaveTextContent('Current run');
+    expect(tooltip).toHaveTextContent('10.000 nM');
+    expect(tooltip).toHaveTextContent('Comparison run · 8/25/2026, 6:00:00 PM');
+    expect(tooltip).toHaveTextContent('9.800 nM');
+    expect(tooltip).toHaveTextContent('0.420');
+    expect(document.querySelector('.bfn-chart__comparison')).toHaveAttribute('data-run-role', 'comparison');
+    expect(document.querySelector('.bfn-chart__comparison-cursor')).toHaveAttribute('data-coordinate', '9.8');
+    expect(screen.getByLabelText('Series')).toHaveTextContent('Current run');
+    expect(screen.getByLabelText('Series')).toHaveTextContent('Comparison run · 8/25/2026, 6:00:00 PM');
+  });
 });

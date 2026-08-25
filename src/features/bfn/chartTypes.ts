@@ -130,6 +130,16 @@ export interface BfnChartCursor {
   value: number;
   lower?: number;
   upper?: number;
+  comparison?: BfnChartComparisonCursor;
+}
+
+export interface BfnChartComparisonCursor {
+  index: number;
+  coordinate: number;
+  x: number;
+  y: number;
+  point: BfnSimulationPoint;
+  value: number;
 }
 
 export interface BfnChartModel {

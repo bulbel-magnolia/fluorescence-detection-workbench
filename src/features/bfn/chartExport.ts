@@ -83,7 +83,7 @@ const SERIES_COLORS: Record<'full' | 'uncertainty' | 'ann' | 'comparison', strin
   full: '#0b4f71',
   uncertainty: '#65bfc7',
   ann: '#c23a89',
-  comparison: '#e58f20',
+  comparison: '#64748b',
 };
 
 const SERIES_LABELS: Record<'full' | 'uncertainty' | 'ann' | 'comparison', string> = {
@@ -131,7 +131,9 @@ function pathElement(
   if (kind === 'uncertainty') {
     return `<path data-series="uncertainty" d="${escapeXml(path)}" fill="${color}" fill-opacity="0.22" stroke="none" style="fill:${color};fill-opacity:0.22;stroke:none"/>`;
   }
-  return `<path data-series="${kind}" d="${escapeXml(path)}" fill="none" stroke="${color}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${color};stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round"/>`;
+  const dash = kind === 'comparison' ? ' stroke-dasharray="6 4"' : '';
+  const dashStyle = kind === 'comparison' ? 'stroke-dasharray:6 4;' : '';
+  return `<path data-series="${kind}" d="${escapeXml(path)}" fill="none" stroke="${color}" stroke-width="2.25"${dash} stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${color};stroke-width:2.25;${dashStyle}stroke-linecap:round;stroke-linejoin:round"/>`;
 }
 
 function seriesLegend(series: BfnChartSeries, color: string, kind: 'full' | 'uncertainty' | 'ann' | 'comparison', index: number): string {
@@ -140,7 +142,7 @@ function seriesLegend(series: BfnChartSeries, color: string, kind: 'full' | 'unc
   const y = 18 + index * 19;
   const swatch = kind === 'uncertainty'
     ? `<rect x="0" y="${y - 9}" width="20" height="10" fill="${color}" fill-opacity="0.22" stroke="${color}" style="fill:${color};fill-opacity:0.22;stroke:${color}"/>`
-    : `<line x1="0" y1="${y - 4}" x2="20" y2="${y - 4}" stroke="${color}" stroke-width="2.25" style="stroke:${color};stroke-width:2.25"/>`;
+    : `<line x1="0" y1="${y - 4}" x2="20" y2="${y - 4}" stroke="${color}" stroke-width="2.25"${kind === 'comparison' ? ' stroke-dasharray="6 4"' : ''} style="stroke:${color};stroke-width:2.25;${kind === 'comparison' ? 'stroke-dasharray:6 4;' : ''}"/>`;
   return `<g data-role="legend-item" data-series="${kind}" transform="translate(0 0)">${swatch}<text x="28" y="${y}" fill="#203040" style="fill:#203040;font-size:11px">${escapeXml(label)}</text></g>`;
 }
 
@@ -188,10 +190,10 @@ export function serializeBfnFigureSvg({
   const ann = model.series.ann;
   const comparisonSeries = model.series.comparison;
   const seriesMarkup = [
-    full ? pathElement(full, SERIES_COLORS.full, 'full') : '',
     uncertainty ? pathElement(uncertainty, SERIES_COLORS.uncertainty, 'uncertainty') : '',
-    ann ? pathElement(ann, SERIES_COLORS.ann, 'ann') : '',
     comparisonSeries ? pathElement(comparisonSeries, SERIES_COLORS.comparison, 'comparison') : '',
+    ann ? pathElement(ann, SERIES_COLORS.ann, 'ann') : '',
+    full ? pathElement(full, SERIES_COLORS.full, 'full') : '',
   ].join('');
   const visibleSeries = [full, uncertainty, ann, comparisonSeries].filter(
     (series): series is BfnChartSeries => Boolean(series && seriesRenderable(series, series.kind)),

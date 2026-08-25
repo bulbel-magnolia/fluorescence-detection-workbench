@@ -487,4 +487,179 @@ describe('Batch 4 precise chart reading controls', () => {
       else Reflect.deleteProperty(URL, 'revokeObjectURL');
     }
   });
+
+  it('shows an explicit empty comparison state without rendering an empty select', async () => {
+    const project = createDemoBfnProject();
+    const onlyRun = {
+      ...runBfnSimulation(project, '2026-08-26T08:00:00.000Z'),
+      id: 'run-only-comparison-candidate',
+    };
+    saveBfnRun(onlyRun);
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: 'Expand analysis results' }));
+    const history = document.querySelector('.bfn-run-history') as HTMLElement;
+    const runButton = within(history).getByText(
+      new Date(onlyRun.completedAt).toLocaleString('en-US'),
+    ).closest('button');
+    if (!runButton) throw new Error('Stored run button was not rendered');
+    await user.click(runButton);
+
+    expect(screen.getByText('No compatible historical runs.')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', { name: 'Compare with historical run' })).not.toBeInTheDocument();
+  });
+
+  it('selects one compatible run without touching editor state and clears it for an incompatible result', async () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');
+    const comparison = {
+      ...base,
+      id: 'run-comparison-compatible',
+      completedAt: '2026-08-25T09:00:00.000Z',
+      points: base.points.map((point) => ({ ...point, output: point.output + 0.08 })),
+    };
+    const incompatible = {
+      ...base,
+      id: 'run-comparison-incompatible',
+      completedAt: '2026-08-25T10:00:00.000Z',
+      outputMonitorId: 'monitor-incompatible',
+    };
+    const current = { ...base, id: 'run-comparison-current' };
+    saveBfnRun(comparison);
+    saveBfnRun(incompatible);
+    saveBfnRun(current);
+    const user = userEvent.setup();
+    const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+    render(<ModelingPage />);
+    await waitFor(() => expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).not.toBeNull());
+    await user.click(screen.getByRole('button', { name: 'Expand analysis results' }));
+    const history = document.querySelector('.bfn-run-history') as HTMLElement;
+    const buttonFor = (run: BfnSimulationResult): HTMLButtonElement => {
+      const button = within(history).getByText(new Date(run.completedAt).toLocaleString('en-US')).closest('button');
+      if (!button) throw new Error(`Stored run button ${run.id} was not rendered`);
+      return button;
+    };
+    await user.click(buttonFor(current));
+    const panel = document.querySelector('.bfn-result-panel') as HTMLElement;
+    const xAxis = within(panel).getByText('X axis').closest('details');
+    if (!xAxis) throw new Error('X axis controls were not rendered');
+    await user.click(within(xAxis).getByText('X axis'));
+    await user.click(within(xAxis).getByRole('button', { name: 'Manual' }));
+    const xBoundsBefore = within(xAxis).getAllByRole('spinbutton').map((input) => (input as HTMLInputElement).value);
+    const projectBefore = localStorage.getItem(BFN_PROJECT_STORAGE_KEY);
+    const historyBefore = localStorage.getItem(BFN_RUN_STORAGE_KEY);
+    const undo = screen.getByRole('button', { name: 'Undo' });
+    const redo = screen.getByRole('button', { name: 'Redo' });
+    const freshnessBefore = panel.querySelector('.inline-status')?.textContent;
+    setItemSpy.mockClear();
+
+    const selector = within(panel).getByRole('combobox', { name: 'Compare with historical run' });
+    expect(within(selector).getByRole('option', { name: /Steady-state.*nM/ })).toHaveTextContent(
+      new Date(comparison.completedAt).toLocaleString('en-US'),
+    );
+    await user.selectOptions(selector, comparison.id);
+
+    expect(panel.querySelector('.bfn-chart__comparison')).toHaveAttribute('data-run-role', 'comparison');
+    const legend = panel.querySelector('.bfn-chart__legend') as HTMLElement;
+    expect(legend).toHaveTextContent('Current run');
+    expect(legend).toHaveTextContent('Comparison run');
+    expect(legend).toHaveTextContent(new Date(comparison.completedAt).toLocaleString('en-US'));
+    expect(within(xAxis).getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(xAxis).getAllByRole('spinbutton').map((input) => (input as HTMLInputElement).value)).toEqual(xBoundsBefore);
+    expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).toBe(projectBefore);
+    expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(historyBefore);
+    expect(setItemSpy.mock.calls.filter(([key]) => key === BFN_PROJECT_STORAGE_KEY)).toHaveLength(0);
+    expect(setItemSpy.mock.calls.filter(([key]) => key === BFN_RUN_STORAGE_KEY)).toHaveLength(0);
+    expect(undo).toBeDisabled();
+    expect(redo).toBeDisabled();
+    expect(panel.querySelector('.inline-status')?.textContent).toBe(freshnessBefore);
+
+    await user.click(buttonFor(incompatible));
+    expect(within(panel).queryByRole('combobox', { name: 'Compare with historical run' })).not.toBeInTheDocument();
+    expect(within(panel).getByText('Comparison cleared because it is no longer compatible or available.')).toBeInTheDocument();
+    expect(panel.querySelector('.bfn-chart__comparison')).not.toBeInTheDocument();
+  });
+
+  it('clears the selected comparison when run history is cleared', async () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');
+    const current = { ...base, id: 'run-clear-comparison-current' };
+    const comparison = {
+      ...base,
+      id: 'run-clear-comparison-history',
+      completedAt: '2026-08-25T10:00:00.000Z',
+    };
+    saveBfnRun(comparison);
+    saveBfnRun(current);
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: 'Expand analysis results' }));
+    const history = document.querySelector('.bfn-run-history') as HTMLElement;
+    const currentButton = within(history).getByText(
+      new Date(current.completedAt).toLocaleString('en-US'),
+    ).closest('button');
+    if (!currentButton) throw new Error('Current run button was not rendered');
+    await user.click(currentButton);
+    const panel = document.querySelector('.bfn-result-panel') as HTMLElement;
+    await user.selectOptions(
+      within(panel).getByRole('combobox', { name: 'Compare with historical run' }),
+      comparison.id,
+    );
+    expect(panel.querySelector('.bfn-chart__comparison')).toBeInTheDocument();
+
+    await user.click(within(history).getByRole('button', { name: 'Clear history' }));
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Clear history' }));
+
+    expect(panel.querySelector('.bfn-chart__comparison')).not.toBeInTheDocument();
+    expect(within(panel).getByText('Comparison cleared because it is no longer compatible or available.')).toBeInTheDocument();
+    expect(within(panel).queryByRole('combobox', { name: 'Compare with historical run' })).not.toBeInTheDocument();
+  });
+
+  it('returns an invalidated comparison log axis to Linear while preserving manual bounds', async () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');
+    const current = { ...base, id: 'run-log-current' };
+    const comparison = {
+      ...base,
+      id: 'run-log-comparison',
+      completedAt: '2026-08-25T10:00:00.000Z',
+      points: base.points.map((point, index) => ({
+        ...point,
+        output: index === 0 ? 0 : point.output,
+      })),
+    };
+    saveBfnRun(comparison);
+    saveBfnRun(current);
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: 'Expand analysis results' }));
+    const history = document.querySelector('.bfn-run-history') as HTMLElement;
+    const currentButton = within(history).getByText(
+      new Date(current.completedAt).toLocaleString('en-US'),
+    ).closest('button');
+    if (!currentButton) throw new Error('Current run button was not rendered');
+    await user.click(currentButton);
+    const panel = document.querySelector('.bfn-result-panel') as HTMLElement;
+    const yAxis = within(panel).getByText('Y axis').closest('details');
+    if (!yAxis) throw new Error('Y axis controls were not rendered');
+    await user.click(within(yAxis).getByText('Y axis'));
+    await user.click(within(yAxis).getByRole('button', { name: 'Manual' }));
+    const bounds = within(yAxis).getAllByRole('spinbutton');
+    fireEvent.change(bounds[0]!, { target: { value: '0.1' } });
+    fireEvent.change(bounds[1]!, { target: { value: '1' } });
+    await user.click(within(yAxis).getByRole('button', { name: 'Log10' }));
+    expect(within(yAxis).getByRole('button', { name: 'Log10' })).toHaveAttribute('aria-pressed', 'true');
+
+    await user.selectOptions(
+      within(panel).getByRole('combobox', { name: 'Compare with historical run' }),
+      comparison.id,
+    );
+
+    await waitFor(() => expect(within(yAxis).getByRole('button', { name: 'Linear' })).toHaveAttribute('aria-pressed', 'true'));
+    expect(within(yAxis).getAllByRole('spinbutton')[0]).toHaveValue(0.1);
+    expect(within(yAxis).getAllByRole('spinbutton')[1]).toHaveValue(1);
+    const fallbackNotice = within(panel).getByText(/non-positive value: 0/);
+    expect(fallbackNotice).toHaveTextContent('Y axis returned to Linear');
+    expect(fallbackNotice).toHaveTextContent('Manual bounds were kept.');
+  });
 });

@@ -7,9 +7,16 @@ import { StatusPill } from '../../components/StatusPill';
 import { BfnChartControls } from './BfnChartControls';
 import { BfnExportMenu } from './BfnExportMenu';
 import { createBfnChartModel } from './chartModel';
-import { defaultBfnChartViewState, type BfnChartGeometry, type BfnChartViewState } from './chartTypes';
+import {
+  defaultBfnChartViewState,
+  type BfnChartComparison,
+  type BfnChartGeometry,
+  type BfnChartValidationResult,
+  type BfnChartViewState,
+} from './chartTypes';
 import { BfnResponseChart, bfnChartResultIdentity } from './BfnResponseChart';
 import { BfnRunProvenance } from './BfnRunProvenance';
+import { compatibleBfnRuns } from './runComparison';
 import type { BfnProject, BfnSimulationResult } from './types';
 import { bfnUnitLabel } from './presentation';
 
@@ -52,7 +59,7 @@ function resultInputRange(result: BfnSimulationResult, project: BfnProject, t: T
     const duration = result.points.at(-1)?.timeHours ?? 0;
     return first === undefined || last === undefined
       ? `0–${displayNumber(duration, 1)} h`
-      : `${displayNumber(first)} → ${displayNumber(last)} · 0–${displayNumber(duration, 1)} h`;
+      : `${displayNumber(first)} → ${displayNumber(last)} ${unit} · 0–${displayNumber(duration, 1)} h`;
   }
   const values = result.points
     .map((point) => point.inputs[result.primaryInputSourceId])
@@ -63,6 +70,15 @@ function resultInputRange(result: BfnSimulationResult, project: BfnProject, t: T
   return minimum === maximum
     ? `${displayNumber(minimum)} ${unit}`
     : `${displayNumber(minimum)}–${displayNumber(maximum)} ${unit}`;
+}
+
+function logFallbackReason(validation: BfnChartValidationResult, t: TFunction): string {
+  if (validation.valid) return '';
+  if (validation.reason === 'non_positive_visible_value') {
+    return t('bfn.results.chart.logValue', { value: validation.value ?? '—' });
+  }
+  if (validation.reason === 'no_visible_values') return t('bfn.results.chart.noVisibleValues');
+  return t('bfn.results.chart.logPositive');
 }
 
 export function BfnResultWorkspace({
@@ -83,6 +99,8 @@ export function BfnResultWorkspace({
     [resultIdentity],
   );
   const [viewState, setViewState] = useState<BfnChartViewState | null>(() => defaultViewState);
+  const [comparisonId, setComparisonId] = useState('');
+  const [comparisonNotice, setComparisonNotice] = useState<string | null>(null);
   const previousResultIdentityRef = useRef(resultIdentity);
   const previousAnnAvailableRef = useRef(Boolean(result?.annApproximation));
   const resultViewSnapshot = useMemo(
@@ -114,16 +132,61 @@ export function BfnResultWorkspace({
     previousAnnAvailableRef.current = resultViewSnapshot.annAvailable;
   }, [resultIdentity, resultViewSnapshot]);
 
+  const compatibleRuns = useMemo(
+    () => result ? compatibleBfnRuns(result, runs) : [],
+    [result, runs],
+  );
+  const comparisonRun = compatibleRuns.find((run) => run.id === comparisonId);
+  const comparison = useMemo<BfnChartComparison | undefined>(
+    () => comparisonRun
+      ? {
+          result: comparisonRun,
+          label: t('bfn.results.chart.comparisonRunLabel', {
+            time: new Date(comparisonRun.completedAt).toLocaleString(i18n.language),
+          }),
+        }
+      : undefined,
+    [comparisonRun, i18n.language, t],
+  );
+
+  useEffect(() => {
+    if (!comparisonId || comparisonRun) return;
+    setComparisonId('');
+    setComparisonNotice(t('bfn.results.comparison.cleared'));
+  }, [comparisonId, comparisonRun, t]);
+
   const model = useMemo(() => {
     if (!result || !viewState) return null;
     return createBfnChartModel({
       project,
       result,
+      ...(comparison ? { comparison } : {}),
       viewState,
       geometry,
       translate: (key) => t(key),
     });
-  }, [project, result, t, viewState]);
+  }, [comparison, project, result, t, viewState]);
+
+  useEffect(() => {
+    if (!comparison || !model || !viewState) return;
+    const xInvalid = viewState.xScale === 'log' && !model.validation.xLog.valid;
+    const yInvalid = viewState.yScale === 'log' && !model.validation.yLog.valid;
+    if (!xInvalid && !yInvalid) return;
+    const axes = [
+      xInvalid ? t('bfn.results.chart.xAxis') : '',
+      yInvalid ? t('bfn.results.chart.yAxis') : '',
+    ].filter(Boolean).join(' / ');
+    const validation = xInvalid ? model.validation.xLog : model.validation.yLog;
+    setViewState((current) => current ? {
+      ...current,
+      ...(xInvalid ? { xScale: 'linear' as const } : {}),
+      ...(yInvalid ? { yScale: 'linear' as const } : {}),
+    } : current);
+    setComparisonNotice(t('bfn.results.comparison.logFallback', {
+      axes,
+      reason: logFallbackReason(validation, t),
+    }));
+  }, [comparison, model, t, viewState]);
 
   const resetView = (): void => {
     setViewState(defaultViewState);
@@ -163,12 +226,40 @@ export function BfnResultWorkspace({
                     result={result}
                     model={model}
                     viewState={viewState}
+                    {...(comparison ? { comparison } : {})}
                     onViewStateChange={setViewState}
                     onReset={resetView}
                   />
-                  <BfnExportMenu project={project} result={result} model={model} />
+                  <BfnExportMenu project={project} result={result} {...(comparison ? { comparison } : {})} model={model} />
                 </div>
-                <BfnResponseChart project={project} result={result} viewState={viewState} onViewStateChange={setViewState} model={model} />
+                <div className="bfn-comparison-bar">
+                  {compatibleRuns.length > 0 ? (
+                    <label>
+                      <span>{t('bfn.results.comparison.label')}</span>
+                      <select
+                        aria-label={t('bfn.results.comparison.label')}
+                        value={comparisonId}
+                        onChange={(event) => {
+                          setComparisonId(event.target.value);
+                          setComparisonNotice(null);
+                        }}
+                      >
+                        <option value="">{t('bfn.results.comparison.noneSelected')}</option>
+                        {compatibleRuns.map((run) => (
+                          <option key={run.id} value={run.id}>
+                            {t('bfn.results.comparison.option', {
+                              time: new Date(run.completedAt).toLocaleString(i18n.language),
+                              mode: t(`bfn.modes.${run.mode}`),
+                              range: resultInputRange(run, project, t),
+                            })}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : <p>{t('bfn.results.comparison.noneAvailable')}</p>}
+                  {comparisonNotice ? <p className="bfn-comparison-bar__notice" role="status">{comparisonNotice}</p> : null}
+                </div>
+                <BfnResponseChart project={project} result={result} {...(comparison ? { comparison } : {})} viewState={viewState} onViewStateChange={setViewState} model={model} />
               </div>
               <div className="bfn-result-facts">
                 <article><span>{t('bfn.results.finalOutput')}</span><strong>{displayNumber(currentOutput(result) ?? 0)}</strong><small>{bfnUnitLabel(project.network.outputMonitors[0]?.inputPort.unit ?? 'dimensionless', t)}</small></article>

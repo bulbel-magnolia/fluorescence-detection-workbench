@@ -135,6 +135,55 @@
   flex: 1 1 auto;
 }
 
+.bfn-comparison-bar {
+  display: flex;
+  min-width: 0;
+  min-height: 29px;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+  padding: 3px 0 4px;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+}
+
+.bfn-comparison-bar label {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 6px;
+}
+
+.bfn-comparison-bar label > span {
+  flex: 0 0 auto;
+  color: var(--ui-text-secondary);
+  font-weight: 600;
+}
+
+.bfn-comparison-bar select {
+  min-width: 0;
+  max-width: 100%;
+  min-height: 24px;
+  flex: 1 1 280px;
+  padding: 2px 22px 2px 6px;
+  color: var(--ui-text-primary);
+  background: var(--ui-bg-canvas);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-xs);
+  font: inherit;
+}
+
+.bfn-comparison-bar p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.bfn-comparison-bar__notice {
+  flex: 1 1 100%;
+  color: var(--ui-warning);
+}
+
 .bfn-export-menu {
   position: relative;
   flex: 0 0 auto;
@@ -445,9 +494,9 @@
 
 .bfn-chart__comparison {
   fill: none;
-  stroke: var(--ui-text-muted);
-  stroke-dasharray: 2 4;
-  stroke-width: 1.5;
+  stroke: #64748b;
+  stroke-dasharray: 6 4;
+  stroke-width: 1.7;
 }
 
 .bfn-chart__crosshair {
@@ -460,6 +509,13 @@
 .bfn-chart__cursor {
   fill: var(--ui-bg-pane);
   stroke: var(--ui-accent);
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.bfn-chart__comparison-cursor {
+  fill: var(--ui-bg-pane);
+  stroke: #64748b;
   stroke-width: 2;
   pointer-events: none;
 }
@@ -485,6 +541,21 @@
   margin-bottom: 4px;
   color: var(--ui-text-primary);
   font-size: 11px;
+}
+
+.bfn-chart-tooltip__run-label,
+.bfn-chart-tooltip__comparison > strong {
+  display: block;
+  margin: 4px 0 2px;
+  color: var(--ui-text-secondary);
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.bfn-chart-tooltip__comparison {
+  margin-top: 5px;
+  padding-top: 3px;
+  border-top: var(--ui-divider);
 }
 
 .bfn-chart-tooltip dl {
@@ -541,6 +612,9 @@
   top: 8px;
   right: 9px;
   display: flex;
+  max-width: calc(100% - 80px);
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 10px;
   color: var(--ui-text-secondary);
   font-size: 11px;
@@ -567,6 +641,12 @@
 
 .bfn-chart__legend span[data-kind='ann']::before {
   background: var(--ui-accent);
+}
+
+.bfn-chart__legend span[data-kind='comparison']::before {
+  height: 0;
+  background: transparent;
+  border-top: 2px dashed #64748b;
 }
 
 .bfn-chart--empty {

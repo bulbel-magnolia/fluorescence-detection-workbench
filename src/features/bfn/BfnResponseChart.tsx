@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createBfnChartModel } from './chartModel';
 import { nearestPointIndex } from './chartMath';
-import type { BfnChartModel, BfnChartViewState } from './chartTypes';
+import type { BfnChartComparison, BfnChartModel, BfnChartViewState } from './chartTypes';
 import { defaultBfnChartViewState } from './chartTypes';
 import { createDemoBfnProject } from './fixtures';
 import { BfnChartTooltip } from './BfnChartTooltip';
@@ -15,6 +15,7 @@ export interface BfnResponseChartProps {
   onViewStateChange?: (next: BfnChartViewState) => void;
   onCursorIndexChange?: (index: number | null) => void;
   model?: BfnChartModel;
+  comparison?: BfnChartComparison;
 }
 
 const width = 760;
@@ -104,6 +105,7 @@ export function BfnResponseChart({
   onViewStateChange,
   onCursorIndexChange,
   model: suppliedModel,
+  comparison,
 }: BfnResponseChartProps) {
   const { t } = useTranslation();
   const project = projectProp ?? createDemoBfnProject();
@@ -133,11 +135,12 @@ export function BfnResponseChart({
     return suppliedModel ?? createBfnChartModel({
       project,
       result,
+      ...(comparison ? { comparison } : {}),
       viewState: activeViewState,
       geometry,
       translate: (key) => t(key),
     });
-  }, [activeViewState, project, result, suppliedModel, t]);
+  }, [activeViewState, comparison, project, result, suppliedModel, t]);
 
   const updateView = (cursorIndex: number | null): void => {
     if (!result || activeViewState.cursorIndex === cursorIndex) return;
@@ -227,24 +230,35 @@ export function BfnResponseChart({
           <text className="bfn-chart__tick" key={`x-${tick.value}-${tick.position}`} x={tick.position} y={height - 18} textAnchor="middle">{tick.label}</text>
         ))}
         {model.series.uncertainty ? <path className="bfn-chart__band" d={model.series.uncertainty.path} /> : null}
-        {model.series.comparison ? <path className="bfn-chart__comparison" d={model.series.comparison.path} /> : null}
+        {model.series.comparison ? <path className="bfn-chart__comparison" data-run-role="comparison" d={model.series.comparison.path} /> : null}
         {model.series.ann ? <path className="bfn-chart__ann" data-status={result.annApproximation?.status} d={model.series.ann.path} /> : null}
         {model.series.full ? <path className="bfn-chart__line" d={model.series.full.path} /> : null}
         {cursor ? (
           <>
             <line className="bfn-chart__crosshair" data-index={cursor.index} x1={cursor.x} x2={cursor.x} y1={padding.top} y2={height - padding.bottom} />
             <circle className="bfn-chart__cursor" data-index={cursor.index} cx={cursor.x} cy={cursor.y} r="5" />
+            {cursor.comparison ? (
+              <circle
+                className="bfn-chart__comparison-cursor"
+                data-index={cursor.comparison.index}
+                data-coordinate={cursor.comparison.coordinate}
+                cx={cursor.comparison.x}
+                cy={cursor.comparison.y}
+                r="4"
+              />
+            ) : null}
           </>
         ) : null}
         <text className="bfn-chart__axis-label" x={width / 2} y={height - 2} textAnchor="middle">{model.labels.x}</text>
         <text className="bfn-chart__axis-label" x="14" y={height / 2} textAnchor="middle" transform={`rotate(-90 14 ${height / 2})`}>{model.labels.y}</text>
       </svg>
       <p id="bfn-chart-focus-instructions" className="bfn-chart__focus-instructions">{t('bfn.results.chart.focusInstructions')}</p>
-      {cursor ? <BfnChartTooltip project={project} result={result} model={model} cursor={cursor} /> : null}
+      {cursor ? <BfnChartTooltip project={project} result={result} {...(comparison ? { comparison } : {})} model={model} cursor={cursor} /> : null}
       <div className="bfn-chart__legend" aria-label={t('bfn.results.chart.series')}>
-        {model.series.full ? <span data-kind="full">{t('bfn.results.chart.fullModel')}</span> : null}
+        {model.series.full ? <span data-kind="full">{model.series.full.label}</span> : null}
         {model.series.uncertainty ? <span data-kind="uncertainty">{t('bfn.results.chart.uncertaintyBand')}</span> : null}
         {model.series.ann ? <span data-kind="ann">{t('bfn.results.chart.annOverlay')}</span> : null}
+        {model.series.comparison ? <span data-kind="comparison">{model.series.comparison.label}</span> : null}
       </div>
     </div>
   );

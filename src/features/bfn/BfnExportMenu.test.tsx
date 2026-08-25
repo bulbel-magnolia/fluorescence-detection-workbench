@@ -288,6 +288,59 @@ describe('BFN result export menu', () => {
     expect(writeText.mock.calls[1]?.[0]).not.toMatch(/\bstatic\b/);
   });
 
+  it('passes the selected historical comparison through data and caption copy', async () => {
+    const user = userEvent.setup();
+    const fixture = exportFixture();
+    const comparisonResult = {
+      ...fixture.result,
+      id: 'run-export-comparison',
+      completedAt: '2026-08-25T08:30:00.000Z',
+      points: fixture.result.points.map((point) => ({
+        ...point,
+        output: point.output + 0.05,
+      })),
+    };
+    const comparison = { result: comparisonResult, label: 'Comparison run' };
+    const model = createBfnChartModel({
+      project: fixture.project,
+      result: fixture.result,
+      comparison,
+      viewState: defaultBfnChartViewState(fixture.result),
+      geometry,
+      translate: (key) => i18n.t(key),
+    });
+    const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+    const png = pngFixture();
+    const loadSvgImage = vi.fn<(svg: string) => Promise<object>>(() => Promise.resolve({}));
+    const downloads = downloadFixture();
+    render(
+      <BfnExportMenu
+        {...fixture}
+        model={model}
+        comparison={comparison}
+        clipboardEnvironment={{ writeText }}
+        downloadEnvironment={downloads.environment}
+        pngEnvironment={{ ...png.environment, loadSvgImage }}
+      />,
+    );
+    await user.click(screen.getByText('Export'));
+
+    await user.click(screen.getByRole('button', { name: 'Download SVG' }));
+    await user.click(screen.getByRole('button', { name: 'Download PNG (3×)' }));
+    await user.click(screen.getByRole('button', { name: 'Download CSV' }));
+    await user.click(screen.getByRole('button', { name: 'Copy data' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data copied.'));
+    await user.click(screen.getByRole('button', { name: 'Copy caption' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Caption copied.'));
+
+    expect(await readBlobText(downloads.blobs[0]!)).toContain('data-series="comparison"');
+    expect(loadSvgImage.mock.calls[0]?.[0]).toContain('data-series="comparison"');
+    expect(await readBlobText(downloads.blobs[2]!)).toContain(',comparison,');
+    expect(writeText.mock.calls[0]?.[0]).toContain('\tcomparison\t');
+    expect(writeText.mock.calls[0]?.[0]).toContain(comparisonResult.id);
+    expect(writeText.mock.calls[1]?.[0]).toContain('historical result is shown for comparison');
+  });
+
   it('invalidates an old text copy without letting its completion overwrite or unlock a newer request', async () => {
     const user = userEvent.setup();
     const oldFixture = exportFixture('2026-08-26T08:30:00.000Z');

@@ -4,6 +4,7 @@ import type { TFunction } from 'i18next';
 import { evaluateLogEligibility, validateManualDomain } from './chartMath';
 import type {
   BfnChartAxis,
+  BfnChartComparison,
   BfnChartModel,
   BfnChartScale,
   BfnChartViewState,
@@ -16,6 +17,7 @@ interface BfnChartControlsProps {
   result: BfnSimulationResult;
   model: BfnChartModel;
   viewState: BfnChartViewState;
+  comparison?: BfnChartComparison;
   onViewStateChange: (next: BfnChartViewState) => void;
   onReset: () => void;
 }
@@ -42,6 +44,7 @@ export function BfnChartControls({
   result,
   model,
   viewState,
+  comparison,
   onViewStateChange,
   onReset,
 }: BfnChartControlsProps) {
@@ -112,6 +115,7 @@ export function BfnChartControls({
         model.domains.x,
         result,
         visibility,
+        comparison,
       );
       if (!eligibility.valid) {
         setErrors((current) => ({

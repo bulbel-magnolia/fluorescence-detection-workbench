@@ -58,6 +58,9 @@ describe('publication figure export', () => {
     expect(svg).toContain('data-series="uncertainty"');
     expect(svg).toContain('data-series="ann"');
     expect(svg).toContain('data-series="comparison"');
+    expect(svg).toContain('stroke="#64748b"');
+    expect(svg).toContain('stroke-dasharray="6 4"');
+    expect(svg.match(/stroke-dasharray="6 4"/g)).toHaveLength(2);
     expect(svg).toContain('data-role="legend"');
     expect(svg.split(String.fromCharCode(60) + 'title').length - 1).toBe(1);
     expect(svg.split(String.fromCharCode(60) + 'desc').length - 1).toBe(1);
