@@ -14,7 +14,11 @@ export interface BfnClipboardCapabilities {
 
 export type BfnClipboardResult =
   | { status: 'success'; operation: 'text' | 'image'; method: 'async-clipboard' | 'text-fallback' }
-  | { status: 'unsupported'; operation: 'text' | 'image'; reason: 'text-copy-unsupported' | 'image-png-copy-unsupported' }
+  | {
+      status: 'unsupported';
+      operation: 'text' | 'image';
+      reason: 'text-copy-unsupported' | 'image-png-copy-unsupported';
+    }
   | { status: 'failure'; operation: 'text' | 'image'; message: string };
 
 function asyncClipboard(): Clipboard | undefined {
@@ -24,13 +28,15 @@ function asyncClipboard(): Clipboard | undefined {
 
 function defaultWriteText(text: string): Promise<void> {
   const clipboard = asyncClipboard();
-  if (!clipboard || typeof clipboard.writeText !== 'function') return Promise.reject(new Error('Text clipboard write is unavailable.'));
+  if (!clipboard || typeof clipboard.writeText !== 'function')
+    return Promise.reject(new Error('Text clipboard write is unavailable.'));
   return clipboard.writeText(text);
 }
 
 function defaultWrite(items: readonly unknown[]): Promise<void> {
   const clipboard = asyncClipboard();
-  if (!clipboard || typeof clipboard.write !== 'function') return Promise.reject(new Error('Image clipboard write is unavailable.'));
+  if (!clipboard || typeof clipboard.write !== 'function')
+    return Promise.reject(new Error('Image clipboard write is unavailable.'));
   return clipboard.write(items as ClipboardItems);
 }
 
@@ -41,8 +47,12 @@ function defaultCreateClipboardItem(items: Record<string, Blob>): ClipboardItem 
 
 function defaultSupportsMimeType(mimeType: string): boolean {
   if (typeof ClipboardItem === 'undefined') return false;
-  const supports = (ClipboardItem as typeof ClipboardItem & { supports?: (type: string) => boolean }).supports;
-  return typeof supports === 'function' ? supports.call(ClipboardItem, mimeType) : mimeType === 'image/png';
+  const supports = (
+    ClipboardItem as typeof ClipboardItem & { supports?: (type: string) => boolean }
+  ).supports;
+  return typeof supports === 'function'
+    ? supports.call(ClipboardItem, mimeType)
+    : mimeType === 'image/png';
 }
 
 function defaultFallbackWriteText(text: string): boolean {
@@ -69,7 +79,14 @@ function defaultFallbackWriteText(text: string): boolean {
   }
 }
 
-function resolveEnvironment(environment?: BfnClipboardEnvironment): Required<Pick<BfnClipboardEnvironment, 'writeText' | 'write' | 'createClipboardItem' | 'supportsMimeType' | 'fallbackWriteText'>> {
+function resolveEnvironment(
+  environment?: BfnClipboardEnvironment,
+): Required<
+  Pick<
+    BfnClipboardEnvironment,
+    'writeText' | 'write' | 'createClipboardItem' | 'supportsMimeType' | 'fallbackWriteText'
+  >
+> {
   return {
     writeText: environment?.writeText ?? defaultWriteText,
     write: environment?.write ?? defaultWrite,
@@ -79,13 +96,23 @@ function resolveEnvironment(environment?: BfnClipboardEnvironment): Required<Pic
   };
 }
 
-export function getBfnClipboardCapabilities(environment?: BfnClipboardEnvironment): BfnClipboardCapabilities {
+export function getBfnClipboardCapabilities(
+  environment?: BfnClipboardEnvironment,
+): BfnClipboardCapabilities {
   const resolved = resolveEnvironment(environment);
   const explicit = environment !== undefined;
-  const hasText = explicit ? typeof environment.writeText === 'function' : typeof asyncClipboard()?.writeText === 'function';
-  const hasFallback = explicit ? typeof environment.fallbackWriteText === 'function' : typeof document !== 'undefined' && typeof document.execCommand === 'function';
-  const hasImageWrite = explicit ? typeof environment.write === 'function' : typeof asyncClipboard()?.write === 'function';
-  const hasItem = explicit ? typeof environment.createClipboardItem === 'function' : typeof ClipboardItem !== 'undefined';
+  const hasText = explicit
+    ? typeof environment.writeText === 'function'
+    : typeof asyncClipboard()?.writeText === 'function';
+  const hasFallback = explicit
+    ? typeof environment.fallbackWriteText === 'function'
+    : typeof document !== 'undefined' && typeof document.execCommand === 'function';
+  const hasImageWrite = explicit
+    ? typeof environment.write === 'function'
+    : typeof asyncClipboard()?.write === 'function';
+  const hasItem = explicit
+    ? typeof environment.createClipboardItem === 'function'
+    : typeof ClipboardItem !== 'undefined';
   let hasMime = false;
   if (hasItem) {
     try {
@@ -102,10 +129,17 @@ export function getBfnClipboardCapabilities(environment?: BfnClipboardEnvironmen
 }
 
 function failureMessage(error: unknown, fallback: string): string {
-  return error instanceof Error && error.message.length > 0 ? error.message : typeof error === 'string' && error.length > 0 ? error : fallback;
+  return error instanceof Error && error.message.length > 0
+    ? error.message
+    : typeof error === 'string' && error.length > 0
+      ? error
+      : fallback;
 }
 
-function runFallbackText(text: string, fallbackWriteText: (value: string) => boolean): BfnClipboardResult {
+function runFallbackText(
+  text: string,
+  fallbackWriteText: (value: string) => boolean,
+): BfnClipboardResult {
   try {
     const copied = fallbackWriteText(text);
     if (copied !== true) {
@@ -117,32 +151,48 @@ function runFallbackText(text: string, fallbackWriteText: (value: string) => boo
     }
     return { status: 'success', operation: 'text', method: 'text-fallback' };
   } catch (error) {
-    return { status: 'failure', operation: 'text', message: failureMessage(error, 'Text fallback failed.') };
+    return {
+      status: 'failure',
+      operation: 'text',
+      message: failureMessage(error, 'Text fallback failed.'),
+    };
   }
 }
 
-export async function copyBfnText(text: string, environment?: BfnClipboardEnvironment): Promise<BfnClipboardResult> {
+export async function copyBfnText(
+  text: string,
+  environment?: BfnClipboardEnvironment,
+): Promise<BfnClipboardResult> {
   const resolved = resolveEnvironment(environment);
-  const hasAsync = typeof environment === 'object' && environment !== undefined
-    ? typeof environment.writeText === 'function'
-    : typeof asyncClipboard()?.writeText === 'function';
-  const hasFallback = typeof environment === 'object' && environment !== undefined
-    ? typeof environment.fallbackWriteText === 'function'
-    : typeof document !== 'undefined' && typeof document.execCommand === 'function';
+  const hasAsync =
+    typeof environment === 'object' && environment !== undefined
+      ? typeof environment.writeText === 'function'
+      : typeof asyncClipboard()?.writeText === 'function';
+  const hasFallback =
+    typeof environment === 'object' && environment !== undefined
+      ? typeof environment.fallbackWriteText === 'function'
+      : typeof document !== 'undefined' && typeof document.execCommand === 'function';
   if (hasAsync) {
     try {
       await resolved.writeText(text);
       return { status: 'success', operation: 'text', method: 'async-clipboard' };
     } catch (error) {
       if (hasFallback) return runFallbackText(text, resolved.fallbackWriteText);
-      return { status: 'failure', operation: 'text', message: failureMessage(error, 'Text clipboard write failed.') };
+      return {
+        status: 'failure',
+        operation: 'text',
+        message: failureMessage(error, 'Text clipboard write failed.'),
+      };
     }
   }
   if (hasFallback) return runFallbackText(text, resolved.fallbackWriteText);
   return { status: 'unsupported', operation: 'text', reason: 'text-copy-unsupported' };
 }
 
-export async function copyBfnPng(blob: Blob, environment?: BfnClipboardEnvironment): Promise<BfnClipboardResult> {
+export async function copyBfnPng(
+  blob: Blob,
+  environment?: BfnClipboardEnvironment,
+): Promise<BfnClipboardResult> {
   const resolved = resolveEnvironment(environment);
   const capabilities = getBfnClipboardCapabilities(environment);
   if (!capabilities.imagePng) {
@@ -153,6 +203,10 @@ export async function copyBfnPng(blob: Blob, environment?: BfnClipboardEnvironme
     await resolved.write([item]);
     return { status: 'success', operation: 'image', method: 'async-clipboard' };
   } catch (error) {
-    return { status: 'failure', operation: 'image', message: failureMessage(error, 'Image clipboard write failed.') };
+    return {
+      status: 'failure',
+      operation: 'image',
+      message: failureMessage(error, 'Image clipboard write failed.'),
+    };
   }
 }

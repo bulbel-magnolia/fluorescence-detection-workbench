@@ -110,12 +110,24 @@ export function BfnResponseChart({
   const { t } = useTranslation();
   const project = projectProp ?? createDemoBfnProject();
   const resultIdentity = bfnChartResultIdentity(result);
-  const defaultViewState = useMemo<BfnChartViewState>(() => result ? defaultBfnChartViewState(result) : {
-    xScale: 'linear', yScale: 'linear', xDomainMode: 'auto', yDomainMode: 'auto',
-    showFullModel: true, showUncertainty: true, showAnn: false, cursorIndex: null,
-  }, [resultIdentity]);
-  const [internalViewState, setInternalViewState] = useState<BfnChartViewState>(() =>
-    defaultViewState,
+  const defaultViewState = useMemo<BfnChartViewState>(
+    () =>
+      result
+        ? defaultBfnChartViewState(result)
+        : {
+            xScale: 'linear',
+            yScale: 'linear',
+            xDomainMode: 'auto',
+            yDomainMode: 'auto',
+            showFullModel: true,
+            showUncertainty: true,
+            showAnn: false,
+            cursorIndex: null,
+          },
+    [resultIdentity],
+  );
+  const [internalViewState, setInternalViewState] = useState<BfnChartViewState>(
+    () => defaultViewState,
   );
   const pointerRef = useRef<SVGSVGElement>(null);
   const previousResultIdentityRef = useRef(resultIdentity);
@@ -123,7 +135,7 @@ export function BfnResponseChart({
   if (resultIdentityChanged) previousResultIdentityRef.current = resultIdentity;
   const activeViewState = resultIdentityChanged
     ? { ...(viewState ?? internalViewState), cursorIndex: null }
-    : viewState ?? internalViewState;
+    : (viewState ?? internalViewState);
 
   useEffect(() => {
     if (viewState || resultIdentity === 'empty') return;
@@ -132,14 +144,17 @@ export function BfnResponseChart({
 
   const model = useMemo(() => {
     if (!result) return null;
-    return suppliedModel ?? createBfnChartModel({
-      project,
-      result,
-      ...(comparison ? { comparison } : {}),
-      viewState: activeViewState,
-      geometry,
-      translate: (key) => t(key),
-    });
+    return (
+      suppliedModel ??
+      createBfnChartModel({
+        project,
+        result,
+        ...(comparison ? { comparison } : {}),
+        viewState: activeViewState,
+        geometry,
+        translate: (key) => t(key),
+      })
+    );
   }, [activeViewState, comparison, project, result, suppliedModel, t]);
 
   const updateView = (cursorIndex: number | null): void => {
@@ -157,7 +172,13 @@ export function BfnResponseChart({
     if (!localPoint) return null;
     const { x: localX, y: localY } = localPoint;
     if (localX < 0 || localX > width || localY < 0 || localY > height) return null;
-    if (localX < padding.left || localX > width - padding.right || localY < padding.top || localY > height - padding.bottom) return null;
+    if (
+      localX < padding.left ||
+      localX > width - padding.right ||
+      localY < padding.top ||
+      localY > height - padding.bottom
+    )
+      return null;
     return model.scales.x.invert(localX);
   };
 
@@ -167,8 +188,14 @@ export function BfnResponseChart({
     if (coordinate === null) return;
     const visiblePoints = result.points
       .map((point, index) => ({ point, index }))
-      .filter(({ point }) => point.coordinate >= model.domains.x[0] && point.coordinate <= model.domains.x[1]);
-    const nearestIndex = nearestPointIndex(visiblePoints.map(({ point }) => point), coordinate);
+      .filter(
+        ({ point }) =>
+          point.coordinate >= model.domains.x[0] && point.coordinate <= model.domains.x[1],
+      );
+    const nearestIndex = nearestPointIndex(
+      visiblePoints.map(({ point }) => point),
+      coordinate,
+    );
     if (nearestIndex >= 0) updateView(visiblePoints[nearestIndex]?.index ?? null);
   };
 
@@ -177,9 +204,15 @@ export function BfnResponseChart({
     const lastIndex = result.points.length - 1;
     let nextIndex: number | null = activeViewState.cursorIndex;
     if (event.key === 'ArrowLeft') {
-      nextIndex = activeViewState.cursorIndex === null ? lastIndex : Math.max(0, activeViewState.cursorIndex - 1);
+      nextIndex =
+        activeViewState.cursorIndex === null
+          ? lastIndex
+          : Math.max(0, activeViewState.cursorIndex - 1);
     } else if (event.key === 'ArrowRight') {
-      nextIndex = activeViewState.cursorIndex === null ? 0 : Math.min(lastIndex, activeViewState.cursorIndex + 1);
+      nextIndex =
+        activeViewState.cursorIndex === null
+          ? 0
+          : Math.min(lastIndex, activeViewState.cursorIndex + 1);
     } else if (event.key === 'Home') {
       nextIndex = 0;
     } else if (event.key === 'End') {
@@ -204,7 +237,8 @@ export function BfnResponseChart({
     );
   }
 
-  const title = result.mode === 'static' ? t('bfn.results.staticChart') : t('bfn.results.dynamicChart');
+  const title =
+    result.mode === 'static' ? t('bfn.results.staticChart') : t('bfn.results.dynamicChart');
   const cursor = model.cursor;
   return (
     <div className="bfn-chart" data-mode={result.mode} onPointerLeave={() => updateView(null)}>
@@ -221,21 +255,69 @@ export function BfnResponseChart({
         <title>{title}</title>
         {model.ticks.y.map((tick) => (
           <g key={`y-${tick.value}-${tick.position}`}>
-            <line className="bfn-chart__grid" x1={padding.left} x2={width - padding.right} y1={tick.position} y2={tick.position} />
-            <text className="bfn-chart__tick" x={padding.left - 10} y={tick.position + 4} textAnchor="end">{tick.label}</text>
+            <line
+              className="bfn-chart__grid"
+              x1={padding.left}
+              x2={width - padding.right}
+              y1={tick.position}
+              y2={tick.position}
+            />
+            <text
+              className="bfn-chart__tick"
+              x={padding.left - 10}
+              y={tick.position + 4}
+              textAnchor="end"
+            >
+              {tick.label}
+            </text>
           </g>
         ))}
         {model.ticks.x.map((tick) => (
-          <text className="bfn-chart__tick" key={`x-${tick.value}-${tick.position}`} x={tick.position} y={height - 18} textAnchor="middle">{tick.label}</text>
+          <text
+            className="bfn-chart__tick"
+            key={`x-${tick.value}-${tick.position}`}
+            x={tick.position}
+            y={height - 18}
+            textAnchor="middle"
+          >
+            {tick.label}
+          </text>
         ))}
-        {model.series.uncertainty ? <path className="bfn-chart__band" d={model.series.uncertainty.path} /> : null}
-        {model.series.comparison ? <path className="bfn-chart__comparison" data-run-role="comparison" d={model.series.comparison.path} /> : null}
-        {model.series.ann ? <path className="bfn-chart__ann" data-status={result.annApproximation?.status} d={model.series.ann.path} /> : null}
+        {model.series.uncertainty ? (
+          <path className="bfn-chart__band" d={model.series.uncertainty.path} />
+        ) : null}
+        {model.series.comparison ? (
+          <path
+            className="bfn-chart__comparison"
+            data-run-role="comparison"
+            d={model.series.comparison.path}
+          />
+        ) : null}
+        {model.series.ann ? (
+          <path
+            className="bfn-chart__ann"
+            data-status={result.annApproximation?.status}
+            d={model.series.ann.path}
+          />
+        ) : null}
         {model.series.full ? <path className="bfn-chart__line" d={model.series.full.path} /> : null}
         {cursor ? (
           <>
-            <line className="bfn-chart__crosshair" data-index={cursor.index} x1={cursor.x} x2={cursor.x} y1={padding.top} y2={height - padding.bottom} />
-            <circle className="bfn-chart__cursor" data-index={cursor.index} cx={cursor.x} cy={cursor.y} r="5" />
+            <line
+              className="bfn-chart__crosshair"
+              data-index={cursor.index}
+              x1={cursor.x}
+              x2={cursor.x}
+              y1={padding.top}
+              y2={height - padding.bottom}
+            />
+            <circle
+              className="bfn-chart__cursor"
+              data-index={cursor.index}
+              cx={cursor.x}
+              cy={cursor.y}
+              r="5"
+            />
             {cursor.comparison ? (
               <circle
                 className="bfn-chart__comparison-cursor"
@@ -248,16 +330,40 @@ export function BfnResponseChart({
             ) : null}
           </>
         ) : null}
-        <text className="bfn-chart__axis-label" x={width / 2} y={height - 2} textAnchor="middle">{model.labels.x}</text>
-        <text className="bfn-chart__axis-label" x="14" y={height / 2} textAnchor="middle" transform={`rotate(-90 14 ${height / 2})`}>{model.labels.y}</text>
+        <text className="bfn-chart__axis-label" x={width / 2} y={height - 2} textAnchor="middle">
+          {model.labels.x}
+        </text>
+        <text
+          className="bfn-chart__axis-label"
+          x="14"
+          y={height / 2}
+          textAnchor="middle"
+          transform={`rotate(-90 14 ${height / 2})`}
+        >
+          {model.labels.y}
+        </text>
       </svg>
-      <p id="bfn-chart-focus-instructions" className="bfn-chart__focus-instructions">{t('bfn.results.chart.focusInstructions')}</p>
-      {cursor ? <BfnChartTooltip project={project} result={result} {...(comparison ? { comparison } : {})} model={model} cursor={cursor} /> : null}
+      <p id="bfn-chart-focus-instructions" className="bfn-chart__focus-instructions">
+        {t('bfn.results.chart.focusInstructions')}
+      </p>
+      {cursor ? (
+        <BfnChartTooltip
+          project={project}
+          result={result}
+          {...(comparison ? { comparison } : {})}
+          model={model}
+          cursor={cursor}
+        />
+      ) : null}
       <div className="bfn-chart__legend" aria-label={t('bfn.results.chart.series')}>
         {model.series.full ? <span data-kind="full">{model.series.full.label}</span> : null}
-        {model.series.uncertainty ? <span data-kind="uncertainty">{t('bfn.results.chart.uncertaintyBand')}</span> : null}
+        {model.series.uncertainty ? (
+          <span data-kind="uncertainty">{t('bfn.results.chart.uncertaintyBand')}</span>
+        ) : null}
         {model.series.ann ? <span data-kind="ann">{t('bfn.results.chart.annOverlay')}</span> : null}
-        {model.series.comparison ? <span data-kind="comparison">{model.series.comparison.label}</span> : null}
+        {model.series.comparison ? (
+          <span data-kind="comparison">{model.series.comparison.label}</span>
+        ) : null}
       </div>
     </div>
   );

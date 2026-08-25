@@ -55,7 +55,10 @@ export function BfnChartControls({
     yMin: inputValue(viewState.yMinimum),
     yMax: inputValue(viewState.yMaximum),
   });
-  const [errors, setErrors] = useState<Record<'x' | 'y', string | undefined>>({ x: undefined, y: undefined });
+  const [errors, setErrors] = useState<Record<'x' | 'y', string | undefined>>({
+    x: undefined,
+    y: undefined,
+  });
   const [seriesError, setSeriesError] = useState<string | undefined>(undefined);
   const resultFeedbackIdentity = bfnChartResultIdentity(result);
 
@@ -147,9 +150,14 @@ export function BfnChartControls({
     const maximum = axis === 'x' ? model.domains.x[1] : model.domains.y[1];
     setDraft((current) => ({
       ...current,
-      ...(axis === 'x' ? { xMin: String(minimum), xMax: String(maximum) } : { yMin: String(minimum), yMax: String(maximum) }),
+      ...(axis === 'x'
+        ? { xMin: String(minimum), xMax: String(maximum) }
+        : { yMin: String(minimum), yMax: String(maximum) }),
     }));
-    const validated = validateManualDomain([minimum, maximum], axis === 'x' ? viewState.xScale : viewState.yScale);
+    const validated = validateManualDomain(
+      [minimum, maximum],
+      axis === 'x' ? viewState.xScale : viewState.yScale,
+    );
     if (!validated.valid) {
       setErrors((current) => ({ ...current, [axis]: t('bfn.results.chart.invalidDomain') }));
       return;
@@ -157,13 +165,16 @@ export function BfnChartControls({
     onViewStateChange({
       ...viewState,
       [axis === 'x' ? 'xDomainMode' : 'yDomainMode']: mode,
-      ...(axis === 'x' ? { xMinimum: minimum, xMaximum: maximum } : { yMinimum: minimum, yMaximum: maximum }),
+      ...(axis === 'x'
+        ? { xMinimum: minimum, xMaximum: maximum }
+        : { yMinimum: minimum, yMaximum: maximum }),
     });
     setErrors((current) => ({ ...current, [axis]: undefined }));
   };
 
   const updateDraft = (axis: BfnChartAxis, side: 'min' | 'max', raw: string): void => {
-    const key = axis === 'x' ? (side === 'min' ? 'xMin' : 'xMax') : side === 'min' ? 'yMin' : 'yMax';
+    const key =
+      axis === 'x' ? (side === 'min' ? 'xMin' : 'xMax') : side === 'min' ? 'yMin' : 'yMax';
     const nextDraft = { ...draft, [key]: raw };
     setDraft(nextDraft);
     const minimumRaw = nextDraft[axis === 'x' ? 'xMin' : 'yMin'];
@@ -175,9 +186,10 @@ export function BfnChartControls({
     if (!validated.valid) {
       setErrors((current) => ({
         ...current,
-        [axis]: validated.reason === 'log_domain_requires_positive_values'
-          ? t('bfn.results.chart.logPositive')
-          : t('bfn.results.chart.invalidDomain'),
+        [axis]:
+          validated.reason === 'log_domain_requires_positive_values'
+            ? t('bfn.results.chart.logPositive')
+            : t('bfn.results.chart.invalidDomain'),
       }));
       return;
     }
@@ -185,7 +197,9 @@ export function BfnChartControls({
     onViewStateChange({
       ...viewState,
       [axis === 'x' ? 'xDomainMode' : 'yDomainMode']: 'manual',
-      ...(axis === 'x' ? { xMinimum: minimum, xMaximum: maximum } : { yMinimum: minimum, yMaximum: maximum }),
+      ...(axis === 'x'
+        ? { xMinimum: minimum, xMaximum: maximum }
+        : { yMinimum: minimum, yMaximum: maximum }),
     });
   };
 
@@ -201,19 +215,35 @@ export function BfnChartControls({
         <div className="bfn-chart-axis__body">
           <span className="bfn-chart-axis__label">{t('bfn.results.chart.scale')}</span>
           <div className="bfn-chart-axis__segmented">
-            <button type="button" aria-pressed={scale === 'linear'} onClick={() => setScale(axis, 'linear')}>
+            <button
+              type="button"
+              aria-pressed={scale === 'linear'}
+              onClick={() => setScale(axis, 'linear')}
+            >
               {t('bfn.results.chart.linear')}
             </button>
-            <button type="button" aria-pressed={scale === 'log'} onClick={() => setScale(axis, 'log')}>
+            <button
+              type="button"
+              aria-pressed={scale === 'log'}
+              onClick={() => setScale(axis, 'log')}
+            >
               {t('bfn.results.chart.log10')}
             </button>
           </div>
           <span className="bfn-chart-axis__label">{t('bfn.results.chart.range')}</span>
           <div className="bfn-chart-axis__segmented">
-            <button type="button" aria-pressed={mode === 'auto'} onClick={() => setRangeMode(axis, 'auto')}>
+            <button
+              type="button"
+              aria-pressed={mode === 'auto'}
+              onClick={() => setRangeMode(axis, 'auto')}
+            >
               {t('bfn.results.chart.auto')}
             </button>
-            <button type="button" aria-pressed={mode === 'manual'} onClick={() => setRangeMode(axis, 'manual')}>
+            <button
+              type="button"
+              aria-pressed={mode === 'manual'}
+              onClick={() => setRangeMode(axis, 'manual')}
+            >
               {t('bfn.results.chart.manual')}
             </button>
           </div>
@@ -221,15 +251,27 @@ export function BfnChartControls({
             <div className="bfn-chart-axis__range-fields">
               <label>
                 <span>{t('bfn.results.chart.min')}</span>
-                <input type="number" value={minimum} onChange={(event) => updateDraft(axis, 'min', event.target.value)} />
+                <input
+                  type="number"
+                  value={minimum}
+                  onChange={(event) => updateDraft(axis, 'min', event.target.value)}
+                />
               </label>
               <label>
                 <span>{t('bfn.results.chart.max')}</span>
-                <input type="number" value={maximum} onChange={(event) => updateDraft(axis, 'max', event.target.value)} />
+                <input
+                  type="number"
+                  value={maximum}
+                  onChange={(event) => updateDraft(axis, 'max', event.target.value)}
+                />
               </label>
             </div>
           ) : null}
-          {errors[axis] ? <p className="bfn-chart-axis__error" role="status">{errors[axis]}</p> : null}
+          {errors[axis] ? (
+            <p className="bfn-chart-axis__error" role="status">
+              {errors[axis]}
+            </p>
+          ) : null}
         </div>
       </details>
     );
@@ -245,14 +287,29 @@ export function BfnChartControls({
     <div className="bfn-chart-controls" aria-label={t('bfn.results.chart.series')}>
       <div className="bfn-chart-controls__series">
         <span>{t('bfn.results.chart.series')}</span>
-        <button type="button" data-series="full" aria-pressed={viewState.showFullModel} onClick={() => setSeries('showFullModel')}>
+        <button
+          type="button"
+          data-series="full"
+          aria-pressed={viewState.showFullModel}
+          onClick={() => setSeries('showFullModel')}
+        >
           {t('bfn.results.chart.fullModel')}
         </button>
-        <button type="button" data-series="uncertainty" aria-pressed={viewState.showUncertainty} onClick={() => setSeries('showUncertainty')}>
+        <button
+          type="button"
+          data-series="uncertainty"
+          aria-pressed={viewState.showUncertainty}
+          onClick={() => setSeries('showUncertainty')}
+        >
           {t('bfn.results.chart.uncertaintyBand')}
         </button>
         {result.annApproximation ? (
-          <button type="button" data-series="ann" aria-pressed={viewState.showAnn} onClick={() => setSeries('showAnn')}>
+          <button
+            type="button"
+            data-series="ann"
+            aria-pressed={viewState.showAnn}
+            onClick={() => setSeries('showAnn')}
+          >
             {t('bfn.results.chart.annOverlay')}
           </button>
         ) : null}
@@ -265,7 +322,11 @@ export function BfnChartControls({
       <button type="button" className="bfn-chart-controls__reset" onClick={resetView}>
         {t('bfn.results.chart.resetView')}
       </button>
-      {seriesError ? <p className="bfn-chart-controls__error" role="status">{seriesError}</p> : null}
+      {seriesError ? (
+        <p className="bfn-chart-controls__error" role="status">
+          {seriesError}
+        </p>
+      ) : null}
     </div>
   );
 }

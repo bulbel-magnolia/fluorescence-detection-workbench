@@ -80,15 +80,15 @@ Export `defaultBfnChartViewState(result)`, `BfnChartLabels`, `BfnChartModel`, `B
 `chartMath.ts` exports:
 
 ```ts
-createScale(domain, range, scale)
-nearestPointIndex(points, coordinate)
-validateManualDomain(domain, scale)
-linearNiceTicks(domain, targetCount)
-logMajorTicks(domain)
-filterPointsInDomain(points, domain)
-visibleYValues(result, visibility, comparison)
-resolveAutoDomain(values, options)
-evaluateLogEligibility(axis, activeDomain, result, visibility, comparison)
+createScale(domain, range, scale);
+nearestPointIndex(points, coordinate);
+validateManualDomain(domain, scale);
+linearNiceTicks(domain, targetCount);
+logMajorTicks(domain);
+filterPointsInDomain(points, domain);
+visibleYValues(result, visibility, comparison);
+resolveAutoDomain(values, options);
+evaluateLogEligibility(axis, activeDomain, result, visibility, comparison);
 ```
 
 Reject non-positive log values explicitly; never clamp, `abs`, substitute epsilon, or interpolate. Only visible series inside the active X domain influence Y eligibility and automatic Y domains.

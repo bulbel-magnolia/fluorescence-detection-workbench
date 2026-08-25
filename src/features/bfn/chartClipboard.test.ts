@@ -45,8 +45,9 @@ describe('BFN clipboard capability and copy operations', () => {
       operation: 'text',
       reason: 'text-copy-unsupported',
     });
-    await expect(copyBfnText('x', { writeText: vi.fn(() => Promise.reject(new Error('blocked'))) }))
-      .resolves.toMatchObject({ status: 'failure', operation: 'text', message: 'blocked' });
+    await expect(
+      copyBfnText('x', { writeText: vi.fn(() => Promise.reject(new Error('blocked'))) }),
+    ).resolves.toMatchObject({ status: 'failure', operation: 'text', message: 'blocked' });
     await expect(copyBfnText('x', { fallbackWriteText: () => false })).resolves.toEqual({
       status: 'failure',
       operation: 'text',
@@ -116,7 +117,9 @@ describe('BFN clipboard capability and copy operations', () => {
       supportsMimeType: () => true,
     };
 
-    await expect(copyBfnPng(new Blob(['png'], { type: 'image/png' }), environment)).resolves.toEqual({
+    await expect(
+      copyBfnPng(new Blob(['png'], { type: 'image/png' }), environment),
+    ).resolves.toEqual({
       status: 'failure',
       operation: 'image',
       message: 'image blocked',
@@ -124,7 +127,11 @@ describe('BFN clipboard capability and copy operations', () => {
   });
 
   it('does not treat an undefined synchronous fallback result as success', async () => {
-    await expect(copyBfnText('x', { fallbackWriteText: (() => undefined) as unknown as (text: string) => boolean })).resolves.toEqual({
+    await expect(
+      copyBfnText('x', {
+        fallbackWriteText: (() => undefined) as unknown as (text: string) => boolean,
+      }),
+    ).resolves.toEqual({
       status: 'failure',
       operation: 'text',
       message: 'Text fallback did not complete the copy operation.',
@@ -135,7 +142,10 @@ describe('BFN clipboard capability and copy operations', () => {
     const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
     const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
     Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
-    Object.defineProperty(document, 'execCommand', { configurable: true, value: vi.fn(() => true) });
+    Object.defineProperty(document, 'execCommand', {
+      configurable: true,
+      value: vi.fn(() => true),
+    });
     const select = vi.spyOn(HTMLTextAreaElement.prototype, 'select').mockImplementation(() => {
       throw new Error('selection failed');
     });
@@ -152,7 +162,8 @@ describe('BFN clipboard capability and copy operations', () => {
       select.mockRestore();
       if (clipboardDescriptor) Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
       else Reflect.deleteProperty(navigator, 'clipboard');
-      if (execCommandDescriptor) Object.defineProperty(document, 'execCommand', execCommandDescriptor);
+      if (execCommandDescriptor)
+        Object.defineProperty(document, 'execCommand', execCommandDescriptor);
       else Reflect.deleteProperty(document, 'execCommand');
     }
   });

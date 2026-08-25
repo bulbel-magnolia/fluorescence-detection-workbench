@@ -203,7 +203,9 @@ describe('BFN result export menu', () => {
     expect(svg).not.toContain('data-series="ann"');
     const csvBlob = downloads.blobs[2]!;
     const csv = await readBlobText(csvBlob);
-    expect([...await readBlobBytes(csvBlob).then((bytes) => bytes.slice(0, 3))]).toEqual([0xef, 0xbb, 0xbf]);
+    expect([...(await readBlobBytes(csvBlob).then((bytes) => bytes.slice(0, 3)))]).toEqual([
+      0xef, 0xbb, 0xbf,
+    ]);
     expect(csv).toContain(result.id);
   });
 
@@ -263,7 +265,8 @@ describe('BFN result export menu', () => {
     const user = userEvent.setup();
     const fixture = exportFixture();
     const deferred = deferredPromise();
-    const writeText = vi.fn()
+    const writeText = vi
+      .fn()
       .mockImplementationOnce(() => deferred.promise)
       .mockResolvedValueOnce(undefined);
     const clipboardEnvironment: BfnClipboardEnvironment = { writeText };
@@ -275,12 +278,15 @@ describe('BFN result export menu', () => {
     expect(screen.getByRole('status')).not.toHaveTextContent('Data copied.');
     act(() => deferred.resolve());
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data copied.'));
-    expect(writeText).toHaveBeenNthCalledWith(1, serializeBfnResultTable({
-      project: fixture.project,
-      current: fixture.result,
-      delimiter: '\t',
-      bom: false,
-    }));
+    expect(writeText).toHaveBeenNthCalledWith(
+      1,
+      serializeBfnResultTable({
+        project: fixture.project,
+        current: fixture.result,
+        delimiter: '\t',
+        bom: false,
+      }),
+    );
 
     await user.click(screen.getByRole('button', { name: 'Copy caption' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Caption copied.'));
@@ -350,7 +356,8 @@ describe('BFN result export menu', () => {
     const newFixture = exportFixture('2026-08-27T09:45:00.000Z');
     const oldCopy = deferredPromise();
     const newCopy = deferredPromise();
-    const writeText = vi.fn<(text: string) => Promise<void>>()
+    const writeText = vi
+      .fn<(text: string) => Promise<void>>()
       .mockImplementationOnce(() => oldCopy.promise)
       .mockImplementationOnce(() => newCopy.promise);
     const clipboardEnvironment: BfnClipboardEnvironment = { writeText };
@@ -392,7 +399,8 @@ describe('BFN result export menu', () => {
     const oldImage = deferredValue<object>();
     const newImage = deferredValue<object>();
     const png = pngFixture();
-    const loadSvgImage = vi.fn()
+    const loadSvgImage = vi
+      .fn()
       .mockImplementationOnce(() => oldImage.promise)
       .mockImplementationOnce(() => newImage.promise);
     const pngEnvironment: BfnPngEnvironment = {
@@ -418,7 +426,9 @@ describe('BFN result export menu', () => {
         downloadEnvironment={downloads.environment}
       />,
     );
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Download PNG (3×)' })).toBeEnabled());
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Download PNG (3×)' })).toBeEnabled(),
+    );
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Download PNG (3×)' }));
     expect(screen.getByRole('button', { name: 'Download PNG (3×)' })).toBeDisabled();
@@ -437,12 +447,14 @@ describe('BFN result export menu', () => {
     });
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download ready.'));
     expect(downloads.downloads).toHaveLength(1);
-    expect(downloads.downloads[0]?.filename).toBe(createBfnExportFilename({
-      project: newFixture.project,
-      result: newFixture.result,
-      artifact: 'response-3x',
-      extension: 'png',
-    }));
+    expect(downloads.downloads[0]?.filename).toBe(
+      createBfnExportFilename({
+        project: newFixture.project,
+        result: newFixture.result,
+        artifact: 'response-3x',
+        extension: 'png',
+      }),
+    );
   });
 
   it('copies a publication PNG only after supported image clipboard APIs resolve', async () => {
@@ -484,9 +496,15 @@ describe('BFN result export menu', () => {
     await user.click(screen.getByText('Export'));
 
     expect(screen.getByRole('button', { name: 'Copy figure' })).toBeDisabled();
-    expect(screen.getByText('Image copy is unavailable. Use PNG export instead.')).toBeInTheDocument();
+    expect(
+      screen.getByText('Image copy is unavailable. Use PNG export instead.'),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Copy data' }));
-    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Copy failed. Check clipboard permission and try again.'));
+    await waitFor(() =>
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Copy failed. Check clipboard permission and try again.',
+      ),
+    );
     expect(screen.queryByText('Data copied.')).not.toBeInTheDocument();
   });
 
@@ -567,6 +585,8 @@ describe('BFN run provenance', () => {
     expect(screen.getAllByText('不可用')).toHaveLength(2);
     expect(screen.getByText('参数区间包络')).toBeInTheDocument();
     expect(screen.getByText('未经实验验证')).toBeInTheDocument();
-    expect(details).not.toHaveTextContent(/\bstatic\b|Not available|parameter_interval_envelope|not_validated/);
+    expect(details).not.toHaveTextContent(
+      /\bstatic\b|Not available|parameter_interval_envelope|not_validated/,
+    );
   });
 });

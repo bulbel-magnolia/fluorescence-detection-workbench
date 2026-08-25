@@ -13,9 +13,8 @@ interface BfnChartTooltipProps {
 
 function valueLabel(value: number, unit?: string): string {
   if (!Number.isFinite(value)) return '—';
-  const text = Math.abs(value) > 0 && Math.abs(value) < 0.001
-    ? value.toExponential(3)
-    : value.toFixed(3);
+  const text =
+    Math.abs(value) > 0 && Math.abs(value) < 0.001 ? value.toExponential(3) : value.toFixed(3);
   return unit ? `${text} ${unit}` : text;
 }
 
@@ -30,7 +29,13 @@ function annValue(result: BfnSimulationResult, index: number): number | null {
   );
 }
 
-export function BfnChartTooltip({ project, result, comparison, model, cursor }: BfnChartTooltipProps) {
+export function BfnChartTooltip({
+  project,
+  result,
+  comparison,
+  model,
+  cursor,
+}: BfnChartTooltipProps) {
   const { t } = useTranslation();
   const point = cursor?.point;
   const sources = project.network.inputSources;
@@ -39,12 +44,14 @@ export function BfnChartTooltip({ project, result, comparison, model, cursor }: 
     if (!point) return [];
     if (result.mode === 'static') {
       const value = point.inputs[result.primaryInputSourceId] ?? point.coordinate;
-      return [{
-        id: result.primaryInputSourceId,
-        label: primarySource?.outputPort.entity ?? result.primaryInputSourceId,
-        value,
-        unit: primarySource?.outputPort.unit,
-      }];
+      return [
+        {
+          id: result.primaryInputSourceId,
+          label: primarySource?.outputPort.entity ?? result.primaryInputSourceId,
+          value,
+          unit: primarySource?.outputPort.unit,
+        },
+      ];
     }
     return Object.entries(point.inputs).map(([id, value]) => {
       const source = sources.find((candidate) => candidate.id === id);
@@ -62,13 +69,21 @@ export function BfnChartTooltip({ project, result, comparison, model, cursor }: 
   const comparisonCursor = cursor.comparison;
   const comparisonCoordinate = comparisonCursor
     ? result.mode === 'dynamic'
-      ? comparisonCursor.point.timeHours ?? comparisonCursor.coordinate
-      : comparisonCursor.point.inputs[result.primaryInputSourceId] ?? comparisonCursor.coordinate
+      ? (comparisonCursor.point.timeHours ?? comparisonCursor.coordinate)
+      : (comparisonCursor.point.inputs[result.primaryInputSourceId] ?? comparisonCursor.coordinate)
     : null;
   return (
-    <aside className="bfn-chart-tooltip" data-index={cursor.index} role="note" aria-label={t('bfn.results.chart.computedPoint')} tabIndex={0}>
+    <aside
+      className="bfn-chart-tooltip"
+      data-index={cursor.index}
+      role="note"
+      aria-label={t('bfn.results.chart.computedPoint')}
+      tabIndex={0}
+    >
       <strong>{t('bfn.results.chart.computedPoint')}</strong>
-      {comparisonCursor ? <span className="bfn-chart-tooltip__run-label">{t('bfn.results.chart.currentRun')}</span> : null}
+      {comparisonCursor ? (
+        <span className="bfn-chart-tooltip__run-label">{t('bfn.results.chart.currentRun')}</span>
+      ) : null}
       <dl>
         {result.mode === 'dynamic' ? (
           <div>
@@ -77,7 +92,13 @@ export function BfnChartTooltip({ project, result, comparison, model, cursor }: 
           </div>
         ) : null}
         <div>
-          <dt>{t(result.mode === 'static' ? 'bfn.results.chart.cursorInput' : 'bfn.results.chart.cursorInputs')}</dt>
+          <dt>
+            {t(
+              result.mode === 'static'
+                ? 'bfn.results.chart.cursorInput'
+                : 'bfn.results.chart.cursorInputs',
+            )}
+          </dt>
           <dd>
             {inputRows.map((row) => (
               <span key={row.id} className="bfn-chart-tooltip__input">
@@ -110,8 +131,19 @@ export function BfnChartTooltip({ project, result, comparison, model, cursor }: 
           <strong>{comparison?.label ?? t('bfn.results.chart.comparisonRun')}</strong>
           <dl>
             <div>
-              <dt>{t(result.mode === 'dynamic' ? 'bfn.results.chart.time' : 'bfn.results.chart.cursorInput')}</dt>
-              <dd>{valueLabel(comparisonCoordinate, result.mode === 'dynamic' ? 'h' : model.labels.xUnit)}</dd>
+              <dt>
+                {t(
+                  result.mode === 'dynamic'
+                    ? 'bfn.results.chart.time'
+                    : 'bfn.results.chart.cursorInput',
+                )}
+              </dt>
+              <dd>
+                {valueLabel(
+                  comparisonCoordinate,
+                  result.mode === 'dynamic' ? 'h' : model.labels.xUnit,
+                )}
+              </dd>
             </div>
             <div>
               <dt>{t('bfn.results.chart.cursorOutput')}</dt>

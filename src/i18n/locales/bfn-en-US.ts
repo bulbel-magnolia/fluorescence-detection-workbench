@@ -427,7 +427,8 @@ export const bfnEnUS = {
         demo: 'demo ',
         uncertainty: 'uncertainty is shown as a parameter-interval envelope',
         annAccepted: 'the ANN approximation passed the current approximation-quality threshold',
-        annRejected: 'the ANN approximation did not pass the current approximation-quality threshold',
+        annRejected:
+          'the ANN approximation did not pass the current approximation-quality threshold',
         comparison: 'the historical result is shown for comparison',
         separator: '; ',
         terminator: '.',
@@ -440,7 +441,8 @@ export const bfnEnUS = {
       unknownTime: 'Unknown',
       option: '{{time}} · {{mode}} · {{range}}',
       cleared: 'Comparison cleared because it is no longer compatible or available.',
-      logFallback: '{{axes}} returned to Linear after adding the comparison. {{reason}} Manual bounds were kept.',
+      logFallback:
+        '{{axes}} returned to Linear after adding the comparison. {{reason}} Manual bounds were kept.',
     },
     provenance: {
       title: 'Run information',
@@ -470,7 +472,8 @@ export const bfnEnUS = {
     },
     chart: {
       computedPoint: 'Computed point (original simulation point)',
-      focusInstructions: 'Focus the chart. Use Left/Right to move by point, Home/End for the first or last point, and Escape to clear the readout.',
+      focusInstructions:
+        'Focus the chart. Use Left/Right to move by point, Home/End for the first or last point, and Escape to clear the readout.',
       time: 'Time (h)',
       cursorInput: 'Input',
       cursorInputs: 'Current inputs',
@@ -503,7 +506,8 @@ export const bfnEnUS = {
       apply: 'Apply range',
       invalidDomain: 'Enter finite values with minimum less than maximum.',
       logPositive: 'Log10 requires positive values in the current visible data.',
-      logValue: 'Log10 is unavailable for the current visible data (non-positive value: {{value}}).',
+      logValue:
+        'Log10 is unavailable for the current visible data (non-positive value: {{value}}).',
       noVisibleValues: 'No visible curve has values available for Log10.',
     },
   },

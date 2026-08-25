@@ -132,10 +132,7 @@ export function validateChartCoordinates(
  * to the lowest original index. Callers must pass a finite ascending sequence
  * validated by validateChartCoordinates.
  */
-export function nearestPointIndex(
-  points: readonly ChartCoordinate[],
-  coordinate: number,
-): number {
+export function nearestPointIndex(points: readonly ChartCoordinate[], coordinate: number): number {
   if (!Number.isFinite(coordinate) || points.length === 0) return -1;
   const lowerBound = (target: number): number => {
     let low = 0;
@@ -190,10 +187,7 @@ function niceStep(span: number, targetCount: number): number {
   return multiplier * magnitude;
 }
 
-export function linearNiceTicks(
-  domain: BfnChartDomain,
-  targetCount = 5,
-): readonly number[] {
+export function linearNiceTicks(domain: BfnChartDomain, targetCount = 5): readonly number[] {
   const [minimum, maximum] = domain;
   if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum > maximum) return [];
   if (minimum === maximum) return [minimum];
@@ -215,7 +209,11 @@ export function linearNiceTicks(
     if (count > 12) break;
   }
   const ticks: number[] = [];
-  for (let value = start, index = 0; value <= end + step * 1e-9 && index < 100; value += step, index += 1) {
+  for (
+    let value = start, index = 0;
+    value <= end + step * 1e-9 && index < 100;
+    value += step, index += 1
+  ) {
     ticks.push(Number(value.toPrecision(14)));
   }
   return ticks;
@@ -223,7 +221,13 @@ export function linearNiceTicks(
 
 export function logMajorTicks(domain: BfnChartDomain): readonly number[] {
   const [minimum, maximum] = domain;
-  if (minimum <= 0 || maximum <= 0 || !Number.isFinite(minimum) || !Number.isFinite(maximum) || minimum > maximum) {
+  if (
+    minimum <= 0 ||
+    maximum <= 0 ||
+    !Number.isFinite(minimum) ||
+    !Number.isFinite(maximum) ||
+    minimum > maximum
+  ) {
     return [];
   }
   const start = Math.ceil(Math.log10(minimum));
@@ -250,9 +254,7 @@ export function visibleYValues(
 ): number[] {
   const values = result.points.flatMap((point) => valuesForPoint(result, point, visibility));
   if (comparison) {
-    values.push(
-      ...comparison.result.points.flatMap((point) => [point.output]),
-    );
+    values.push(...comparison.result.points.flatMap((point) => [point.output]));
   }
   return values;
 }
@@ -269,7 +271,8 @@ function makeDomainResult(
   if (finite.length === 0) return { valid: true, domain: fallback };
   if (scale === 'log') {
     const invalid = finite.find((value) => value <= 0);
-    if (invalid !== undefined) return { valid: false, reason: 'non_positive_visible_value', value: invalid };
+    if (invalid !== undefined)
+      return { valid: false, reason: 'non_positive_visible_value', value: invalid };
     const minimum = Math.min(...finite);
     const maximum = Math.max(...finite);
     if (minimum === maximum) {
@@ -321,7 +324,11 @@ function visibleCoordinates(
   visibility: BfnChartVisibility | undefined,
 ): number[] {
   const annVisible = visibilityFlag(visibility, 'ann') && result.annApproximation !== null;
-  if (!visibilityFlag(visibility, 'full') && !visibilityFlag(visibility, 'uncertainty') && !annVisible) {
+  if (
+    !visibilityFlag(visibility, 'full') &&
+    !visibilityFlag(visibility, 'uncertainty') &&
+    !annVisible
+  ) {
     return [];
   }
   return result.points.map((point) => point.coordinate);
@@ -339,18 +346,23 @@ export function evaluateLogEligibility(
     const points = filterPointsInDomain(candidate.points, activeDomain);
     if (axis === 'x') {
       selected.push(
-        ...(comparisonVisible ? points.map((point) => point.coordinate) : visibleCoordinates({ ...candidate, points }, visibility)),
+        ...(comparisonVisible
+          ? points.map((point) => point.coordinate)
+          : visibleCoordinates({ ...candidate, points }, visibility)),
       );
       return;
     }
     for (const point of points) {
-      selected.push(...(comparisonVisible ? [point.output] : valuesForPoint(candidate, point, visibility)));
+      selected.push(
+        ...(comparisonVisible ? [point.output] : valuesForPoint(candidate, point, visibility)),
+      );
     }
   };
   append(result);
   if (comparison) append(comparison.result, true);
   if (selected.length === 0) return { valid: false, reason: 'no_visible_values', axis };
   const invalid = selected.find((value) => !Number.isFinite(value) || value <= 0);
-  if (invalid !== undefined) return { valid: false, reason: 'non_positive_visible_value', axis, value: invalid };
+  if (invalid !== undefined)
+    return { valid: false, reason: 'non_positive_visible_value', axis, value: invalid };
   return { valid: true };
 }

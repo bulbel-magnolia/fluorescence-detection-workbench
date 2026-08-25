@@ -26,8 +26,11 @@ export function formatBfnComparisonTime(
     try {
       return new Intl.DateTimeFormat('en-GB', comparisonTimeOptions).format(completedDate);
     } catch {
-      return String(completedDate.getHours()).padStart(2, '0') + ':' +
-        String(completedDate.getMinutes()).padStart(2, '0');
+      return (
+        String(completedDate.getHours()).padStart(2, '0') +
+        ':' +
+        String(completedDate.getMinutes()).padStart(2, '0')
+      );
     }
   }
 }
@@ -47,12 +50,13 @@ export function compatibleBfnRuns(
   current: BfnSimulationResult,
   runs: readonly BfnSimulationResult[],
 ): BfnSimulationResult[] {
-  return runs.filter((run) =>
-    run.id !== current.id &&
-    run.networkId === current.networkId &&
-    run.mode === current.mode &&
-    run.primaryInputSourceId === current.primaryInputSourceId &&
-    run.outputMonitorId === current.outputMonitorId,
+  return runs.filter(
+    (run) =>
+      run.id !== current.id &&
+      run.networkId === current.networkId &&
+      run.mode === current.mode &&
+      run.primaryInputSourceId === current.primaryInputSourceId &&
+      run.outputMonitorId === current.outputMonitorId,
   );
 }
 

@@ -114,8 +114,7 @@ export type BfnChartValidationResult =
   | { valid: false; reason: BfnChartValidationReason; axis?: BfnChartAxis; value?: number };
 
 export type BfnChartCoordinateValidation =
-  | { valid: true }
-  | { valid: false; reason: 'coordinates_must_be_finite_and_ascending' };
+  { valid: true } | { valid: false; reason: 'coordinates_must_be_finite_and_ascending' };
 
 export type BfnChartDomainResolution =
   | { valid: true; domain: BfnChartDomain }

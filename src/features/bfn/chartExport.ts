@@ -136,13 +136,19 @@ function pathElement(
   return `<path data-series="${kind}" d="${escapeXml(path)}" fill="none" stroke="${color}" stroke-width="2.25"${dash} stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${color};stroke-width:2.25;${dashStyle}stroke-linecap:round;stroke-linejoin:round"/>`;
 }
 
-function seriesLegend(series: BfnChartSeries, color: string, kind: 'full' | 'uncertainty' | 'ann' | 'comparison', index: number): string {
+function seriesLegend(
+  series: BfnChartSeries,
+  color: string,
+  kind: 'full' | 'uncertainty' | 'ann' | 'comparison',
+  index: number,
+): string {
   if (!seriesRenderable(series, kind)) return '';
   const label = series.label.trim().length > 0 ? series.label : SERIES_LABELS[kind];
   const y = 18 + index * 19;
-  const swatch = kind === 'uncertainty'
-    ? `<rect x="0" y="${y - 9}" width="20" height="10" fill="${color}" fill-opacity="0.22" stroke="${color}" style="fill:${color};fill-opacity:0.22;stroke:${color}"/>`
-    : `<line x1="0" y1="${y - 4}" x2="20" y2="${y - 4}" stroke="${color}" stroke-width="2.25"${kind === 'comparison' ? ' stroke-dasharray="6 4"' : ''} style="stroke:${color};stroke-width:2.25;${kind === 'comparison' ? 'stroke-dasharray:6 4;' : ''}"/>`;
+  const swatch =
+    kind === 'uncertainty'
+      ? `<rect x="0" y="${y - 9}" width="20" height="10" fill="${color}" fill-opacity="0.22" stroke="${color}" style="fill:${color};fill-opacity:0.22;stroke:${color}"/>`
+      : `<line x1="0" y1="${y - 4}" x2="20" y2="${y - 4}" stroke="${color}" stroke-width="2.25"${kind === 'comparison' ? ' stroke-dasharray="6 4"' : ''} style="stroke:${color};stroke-width:2.25;${kind === 'comparison' ? 'stroke-dasharray:6 4;' : ''}"/>`;
   return `<g data-role="legend-item" data-series="${kind}" transform="translate(0 0)">${swatch}<text x="28" y="${y}" fill="#203040" style="fill:#203040;font-size:11px">${escapeXml(label)}</text></g>`;
 }
 
@@ -247,27 +253,37 @@ export function serializeBfnResultTable({
   delimiter = ',',
   bom = false,
 }: SerializeBfnResultTableOptions): string {
-  if (delimiter.length === 0 || delimiter.includes('\r') || delimiter.includes('\n') || delimiter.includes('"')) {
+  if (
+    delimiter.length === 0 ||
+    delimiter.includes('\r') ||
+    delimiter.includes('\n') ||
+    delimiter.includes('"')
+  ) {
     throw new Error('Table delimiter must be a non-empty value without quotes or line breaks.');
   }
   const projectInputs = stableUnique(project.network.inputSources.map((source) => source.id));
   const projectModules = stableUnique(project.network.modules.map((module) => module.id));
   const allInputs = new Set<string>();
   const allModules = new Set<string>();
-  for (const point of [
-    ...current.points,
-    ...(comparison?.result.points ?? []),
-  ]) {
+  for (const point of [...current.points, ...(comparison?.result.points ?? [])]) {
     Object.keys(point.inputs).forEach((id) => allInputs.add(id));
     Object.keys(point.moduleOutputs).forEach((id) => allModules.add(id));
   }
   const inputIds = [...projectInputs, ...sortedOrphans(allInputs, new Set(projectInputs))];
   const moduleIds = [...projectModules, ...sortedOrphans(allModules, new Set(projectModules))];
   const headers = [
-    'run_id', 'run_role', 'completed_at', 'mode', 'coordinate', 'time_hours',
+    'run_id',
+    'run_role',
+    'completed_at',
+    'mode',
+    'coordinate',
+    'time_hours',
     ...inputIds.map((id) => `input:${id}`),
     ...moduleIds.map((id) => `module:${id}`),
-    'output', 'lower', 'upper', 'extrapolated',
+    'output',
+    'lower',
+    'upper',
+    'extrapolated',
   ];
   const rows: TableCellValue[][] = [headers];
   const appendRows = (result: BfnSimulationResult, role: 'current' | 'comparison'): void => {
@@ -290,14 +306,15 @@ export function serializeBfnResultTable({
   };
   appendRows(current, 'current');
   if (comparison) appendRows(comparison.result, 'comparison');
-  const body = rows.map((row) => row.map((value) => tableCell(value, delimiter)).join(delimiter)).join('\r\n');
+  const body = rows
+    .map((row) => row.map((value) => tableCell(value, delimiter)).join(delimiter))
+    .join('\r\n');
   return `${bom ? '\ufeff' : ''}${body}\r\n`;
 }
 
 function sanitizeFilenamePart(value: string, fallback: string): string {
-  const withoutControlCharacters = Array.from(
-    value,
-    (character) => character.charCodeAt(0) <= 0x1f ? '-' : character,
+  const withoutControlCharacters = Array.from(value, (character) =>
+    character.charCodeAt(0) <= 0x1f ? '-' : character,
   ).join('');
   const replaced = withoutControlCharacters
     .trim()
@@ -307,14 +324,18 @@ function sanitizeFilenamePart(value: string, fallback: string): string {
     .replace(/[. ]+$/g, '')
     .replace(/^-+|-+$/g, '');
   if (replaced.length === 0) return fallback;
-  if (/^(con|prn|aux|nul|clock\$|com[1-9]|lpt[1-9])(?:\.|$)/i.test(replaced)) return `bfn-${replaced}`;
+  if (/^(con|prn|aux|nul|clock\$|com[1-9]|lpt[1-9])(?:\.|$)/i.test(replaced))
+    return `bfn-${replaced}`;
   return replaced;
 }
 
 function compactTimestamp(value: string): string {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return sanitizeFilenamePart(value, 'unknown-time');
-  return parsed.toISOString().replace(/\.\d{3}Z$/, 'Z').replace(/:/g, '');
+  return parsed
+    .toISOString()
+    .replace(/\.\d{3}Z$/, 'Z')
+    .replace(/:/g, '');
 }
 
 export function createBfnExportFilename({
@@ -346,13 +367,22 @@ export function createBfnFigureCaption({
   const context = result.isDemo || project.isDemo ? 'demo ' : '';
   const axes = `${model.labels.y} versus ${model.labels.x}`;
   const parts = [captionText?.lead ?? `BFN ${context}${result.mode} response (${axes})`];
-  if (result.uncertaintyMethod === 'parameter_interval_envelope' && seriesIsShown(model.series.uncertainty)) {
+  if (
+    result.uncertaintyMethod === 'parameter_interval_envelope' &&
+    seriesIsShown(model.series.uncertainty)
+  ) {
     parts.push(captionText?.uncertainty ?? 'uncertainty is shown as a parameter-interval envelope');
   }
   if (seriesIsShown(model.series.ann) && result.annApproximation?.status === 'accepted') {
-    parts.push(captionText?.annAccepted ?? 'the ANN approximation passed the current approximation-quality threshold');
+    parts.push(
+      captionText?.annAccepted ??
+        'the ANN approximation passed the current approximation-quality threshold',
+    );
   } else if (seriesIsShown(model.series.ann) && result.annApproximation?.status === 'rejected') {
-    parts.push(captionText?.annRejected ?? 'the ANN approximation did not pass the current approximation-quality threshold');
+    parts.push(
+      captionText?.annRejected ??
+        'the ANN approximation did not pass the current approximation-quality threshold',
+    );
   }
   if (comparison && seriesIsShown(model.series.comparison)) {
     parts.push(captionText?.comparison ?? 'the historical result is shown for comparison');
@@ -375,7 +405,9 @@ function finiteRange(values: readonly (number | undefined)[]): string {
   return minimum === maximum ? String(minimum) : `${String(minimum)}–${String(maximum)}`;
 }
 
-export function createBfnProvenanceRows({ result }: CreateBfnProvenanceRowsOptions): BfnProvenanceRow[] {
+export function createBfnProvenanceRows({
+  result,
+}: CreateBfnProvenanceRowsOptions): BfnProvenanceRow[] {
   const primaryInputRange = finiteRange(
     result.points.map((point) => point.inputs[result.primaryInputSourceId]),
   );
@@ -392,9 +424,10 @@ export function createBfnProvenanceRows({ result }: CreateBfnProvenanceRowsOptio
     { key: 'time_range_hours', value: timeRangeHours },
     {
       key: 'uncertainty_method',
-      value: result.uncertaintyMethod === 'parameter_interval_envelope'
-        ? 'parameter-interval envelope'
-        : result.uncertaintyMethod,
+      value:
+        result.uncertaintyMethod === 'parameter_interval_envelope'
+          ? 'parameter-interval envelope'
+          : result.uncertaintyMethod,
     },
     { key: 'experimental_validity', value: result.experimentalValidity },
     { key: 'extrapolated', value: provenanceValue(result.extrapolated) },
@@ -414,7 +447,9 @@ export function createBfnProvenanceRows({ result }: CreateBfnProvenanceRowsOptio
 }
 
 function parseViewBox(svg: string): { width: number; height: number } {
-  const viewBox = svg.match(/\bviewBox\s*=\s*["']\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*["']/i);
+  const viewBox = svg.match(
+    /\bviewBox\s*=\s*["']\s*([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s+([+-]?(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)\s*["']/i,
+  );
   if (!viewBox) throw new Error('SVG viewBox is required for PNG export.');
   const width = Number(viewBox[3]);
   const height = Number(viewBox[4]);
@@ -425,7 +460,8 @@ function parseViewBox(svg: string): { width: number; height: number } {
 }
 
 function defaultCreateCanvas(width: number, height: number): BfnPngCanvas {
-  if (typeof document === 'undefined') throw new Error('Canvas export is unavailable outside a browser document.');
+  if (typeof document === 'undefined')
+    throw new Error('Canvas export is unavailable outside a browser document.');
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -438,7 +474,8 @@ function defaultLoadSvgImage(svg: string): Promise<BfnPngImage> {
   }
   const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
   const urlApi = typeof URL !== 'undefined' ? URL : undefined;
-  if (!urlApi?.createObjectURL) return Promise.reject(new Error('Object URL support is unavailable.'));
+  if (!urlApi?.createObjectURL)
+    return Promise.reject(new Error('Object URL support is unavailable.'));
   const url = urlApi.createObjectURL(blob);
   return new Promise<BfnPngImage>((resolve, reject) => {
     const image = new Image();
@@ -462,7 +499,10 @@ export async function renderBfnFigurePng(
   const viewBox = parseViewBox(svg);
   const width = Math.round(viewBox.width * 3);
   const height = Math.round(viewBox.height * 3);
-  const createCanvas = environment.createCanvas ?? ((canvasWidth?: number, canvasHeight?: number) => defaultCreateCanvas(canvasWidth ?? width, canvasHeight ?? height));
+  const createCanvas =
+    environment.createCanvas ??
+    ((canvasWidth?: number, canvasHeight?: number) =>
+      defaultCreateCanvas(canvasWidth ?? width, canvasHeight ?? height));
   const canvas = createCanvas(width, height);
   canvas.width = width;
   canvas.height = height;

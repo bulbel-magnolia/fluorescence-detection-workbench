@@ -863,374 +863,329 @@ export function BfnPlatformPage() {
   return (
     <div className="page page--bfn" data-workspace={view}>
       <div className="bfn-workbench-surface">
-      <div className="bfn-top-surface">
-      <BfnProjectToolbar
-        projectName={t(project.labelKey)}
-        networkName={t(project.network.labelKey)}
-        workspace={view}
-        saveStatus={saveStatus}
-        onWorkspaceChange={setView}
-        onImport={() => importRef.current?.click()}
-        onExport={exportProject}
-        onReset={() => setPendingDestructiveAction('reset-project')}
-      />
-      <input
-        ref={importRef}
-        className="visually-hidden"
-        type="file"
-        accept=".json,application/json"
-        aria-label={t('bfn.actions.import')}
-        onChange={(event) => void importProject(event.target.files?.[0])}
-      />
-
-      {view === 'design' ? (
-        <section className="bfn-run-toolbar" aria-label={t('bfn.runToolbar.label')}>
-          <BfnEditorToolbar
-            canUndo={history.past.length > 0}
-            canRedo={history.future.length > 0}
-            onUndo={undo}
-            onRedo={redo}
+        <div className="bfn-top-surface">
+          <BfnProjectToolbar
+            projectName={t(project.labelKey)}
+            networkName={t(project.network.labelKey)}
+            workspace={view}
+            saveStatus={saveStatus}
+            onWorkspaceChange={setView}
+            onImport={() => importRef.current?.click()}
+            onExport={exportProject}
+            onReset={() => setPendingDestructiveAction('reset-project')}
           />
-          <div className="bfn-mode-switch" role="group" aria-label={t('bfn.analysis.networkMode')}>
-            {(['static', 'dynamic'] as const).map((mode) => (
-              <button
-                key={mode}
-                type="button"
-                aria-pressed={project.network.mode === mode}
-                onClick={() => changeMode(mode)}
+          <input
+            ref={importRef}
+            className="visually-hidden"
+            type="file"
+            accept=".json,application/json"
+            aria-label={t('bfn.actions.import')}
+            onChange={(event) => void importProject(event.target.files?.[0])}
+          />
+
+          {view === 'design' ? (
+            <section className="bfn-run-toolbar" aria-label={t('bfn.runToolbar.label')}>
+              <BfnEditorToolbar
+                canUndo={history.past.length > 0}
+                canRedo={history.future.length > 0}
+                onUndo={undo}
+                onRedo={redo}
+              />
+              <div
+                className="bfn-mode-switch"
+                role="group"
+                aria-label={t('bfn.analysis.networkMode')}
               >
-                {t(`bfn.modes.${mode}`)}
-              </button>
-            ))}
-          </div>
-          <div className="bfn-run-toolbar__summary">
-            <span>{t('bfn.runToolbar.currentInput')}</span>
-            <strong>{configuredInputSummary(project, t)}</strong>
-          </div>
-          <Button
-            variant="secondary"
-            leadingIcon={<Icon name="settings" size={15} />}
-            onClick={openInputSettings}
-          >
-            {t('bfn.runToolbar.configureInput')}
-          </Button>
-          <Button
-            className="bfn-run-toolbar__run"
-            variant="primary"
-            leadingIcon={<Icon name="play" size={16} />}
-            onClick={runSimulation}
-          >
-            {result && resultFreshness === 'stale'
-              ? t('bfn.actions.rerun')
-              : t(simulationActionKey(project))}
-          </Button>
-        </section>
-      ) : null}
-      </div>
-      {notice ? (
-        <div className="bfn-notice" role="status">
-          {notice}
+                {(['static', 'dynamic'] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={project.network.mode === mode}
+                    onClick={() => changeMode(mode)}
+                  >
+                    {t(`bfn.modes.${mode}`)}
+                  </button>
+                ))}
+              </div>
+              <div className="bfn-run-toolbar__summary">
+                <span>{t('bfn.runToolbar.currentInput')}</span>
+                <strong>{configuredInputSummary(project, t)}</strong>
+              </div>
+              <Button
+                variant="secondary"
+                leadingIcon={<Icon name="settings" size={15} />}
+                onClick={openInputSettings}
+              >
+                {t('bfn.runToolbar.configureInput')}
+              </Button>
+              <Button
+                className="bfn-run-toolbar__run"
+                variant="primary"
+                leadingIcon={<Icon name="play" size={16} />}
+                onClick={runSimulation}
+              >
+                {result && resultFreshness === 'stale'
+                  ? t('bfn.actions.rerun')
+                  : t(simulationActionKey(project))}
+              </Button>
+            </section>
+          ) : null}
         </div>
-      ) : null}
-      {errorNotice ? (
-        <div className="bfn-notice bfn-notice--error" role="alert">
-          {errorNotice}
-        </div>
-      ) : null}
+        {notice ? (
+          <div className="bfn-notice" role="status">
+            {notice}
+          </div>
+        ) : null}
+        {errorNotice ? (
+          <div className="bfn-notice bfn-notice--error" role="alert">
+            {errorNotice}
+          </div>
+        ) : null}
 
-      {view === 'design' ? (
-        <div className="bfn-network-workspace">
-          <aside className="bfn-network-index">
-            <header>
-              <h2>{t('bfn.networkIndex.title')}</h2>
-            </header>
-            <div className="bfn-network-index__list">
-              <section className="bfn-network-index__group">
-                <h3>{t('bfn.nodeKinds.input')}</h3>
-                {project.network.inputSources.map((source) => (
+        {view === 'design' ? (
+          <div className="bfn-network-workspace">
+            <aside className="bfn-network-index">
+              <header>
+                <h2>{t('bfn.networkIndex.title')}</h2>
+              </header>
+              <div className="bfn-network-index__list">
+                <section className="bfn-network-index__group">
+                  <h3>{t('bfn.nodeKinds.input')}</h3>
+                  {project.network.inputSources.map((source) => (
+                    <button
+                      key={source.id}
+                      type="button"
+                      data-selected={selectedNodeId === source.id}
+                      onClick={() => selectNode(source.id)}
+                    >
+                      <strong>{t(source.labelKey)}</strong>
+                      <small>{bfnPortMetaLabel(source.outputPort, t)}</small>
+                    </button>
+                  ))}
+                </section>
+                <section className="bfn-network-index__group">
+                  <h3>{t('bfn.nodeKinds.module')}</h3>
+                  {project.network.modules.map((module) => (
+                    <button
+                      key={module.id}
+                      type="button"
+                      data-selected={selectedNodeId === module.id}
+                      onClick={() => selectNode(module.id)}
+                    >
+                      <strong>{t(module.labelKey)}</strong>
+                      <small>{bfnModuleFlowLabel(module, t)}</small>
+                    </button>
+                  ))}
                   <button
-                    key={source.id}
+                    className="bfn-catalog-shortcut"
                     type="button"
-                    data-selected={selectedNodeId === source.id}
-                    onClick={() => selectNode(source.id)}
+                    onClick={() => setModulePickerOpen(true)}
                   >
-                    <strong>{t(source.labelKey)}</strong>
-                    <small>{bfnPortMetaLabel(source.outputPort, t)}</small>
+                    <Icon name="plus" size={15} />
+                    {t('bfn.networkIndex.addFromRegistry')}
                   </button>
-                ))}
-              </section>
-              <section className="bfn-network-index__group">
-                <h3>{t('bfn.nodeKinds.module')}</h3>
-                {project.network.modules.map((module) => (
-                  <button
-                    key={module.id}
-                    type="button"
-                    data-selected={selectedNodeId === module.id}
-                    onClick={() => selectNode(module.id)}
-                  >
-                    <strong>{t(module.labelKey)}</strong>
-                    <small>{bfnModuleFlowLabel(module, t)}</small>
-                  </button>
-                ))}
-                <button
-                  className="bfn-catalog-shortcut"
-                  type="button"
-                  onClick={() => setModulePickerOpen(true)}
-                >
-                  <Icon name="plus" size={15} />
-                  {t('bfn.networkIndex.addFromRegistry')}
-                </button>
-              </section>
-              <section className="bfn-network-index__group">
-                <h3>{t('bfn.nodeKinds.output')}</h3>
-                {project.network.outputMonitors.map((monitor) => (
-                  <button
-                    key={monitor.id}
-                    type="button"
-                    data-selected={selectedNodeId === monitor.id}
-                    onClick={() => selectNode(monitor.id)}
-                  >
-                    <strong>{t(monitor.labelKey)}</strong>
-                    <small>{bfnPortMetaLabel(monitor.inputPort, t)}</small>
-                  </button>
-                ))}
-              </section>
-            </div>
-            <details className="bfn-connection-fallback">
-              <summary>
-                <Icon name="link" size={15} />
-                {t('bfn.connections.exact')}
-              </summary>
-              <section className="bfn-connection-builder" aria-label={t('bfn.connections.builder')}>
-                <header>
+                </section>
+                <section className="bfn-network-index__group">
+                  <h3>{t('bfn.nodeKinds.output')}</h3>
+                  {project.network.outputMonitors.map((monitor) => (
+                    <button
+                      key={monitor.id}
+                      type="button"
+                      data-selected={selectedNodeId === monitor.id}
+                      onClick={() => selectNode(monitor.id)}
+                    >
+                      <strong>{t(monitor.labelKey)}</strong>
+                      <small>{bfnPortMetaLabel(monitor.inputPort, t)}</small>
+                    </button>
+                  ))}
+                </section>
+              </div>
+              <details className="bfn-connection-fallback">
+                <summary>
                   <Icon name="link" size={15} />
-                  <strong>{t('bfn.connections.builder')}</strong>
-                </header>
-                <label>
-                  <span>{t('bfn.connections.source')}</span>
-                  <select
-                    aria-label={t('bfn.connections.source')}
-                    value={sourceEndpointValue}
-                    onChange={(event) => setSourceEndpointValue(event.target.value)}
-                  >
-                    <option value="">{t('bfn.connections.chooseSource')}</option>
-                    {options.outputs.map((entry) => (
-                      <option key={entry.value} value={entry.value}>
-                        {entry.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  <span>{t('bfn.connections.target')}</span>
-                  <select
-                    aria-label={t('bfn.connections.target')}
-                    value={targetEndpointValue}
-                    onChange={(event) => setTargetEndpointValue(event.target.value)}
-                  >
-                    <option value="">{t('bfn.connections.chooseTarget')}</option>
-                    {options.inputs.map((entry) => (
-                      <option key={entry.value} value={entry.value}>
-                        {entry.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                {sourceEndpoint && targetEndpoint ? (
-                  <div
-                    className="bfn-connection-check"
-                    data-valid={!draftIssues.some((issue) => issue.severity === 'error')}
-                  >
-                    {draftIssues.length
-                      ? validationMessage(t, draftIssues[0]!)
-                      : t('bfn.connections.compatible')}
-                  </div>
-                ) : null}
-                <Button
-                  variant="secondary"
-                  fullWidth
-                  disabled={
-                    !sourceEndpoint ||
-                    !targetEndpoint ||
-                    draftIssues.some((issue) => issue.severity === 'error')
-                  }
-                  onClick={createConnection}
+                  {t('bfn.connections.exact')}
+                </summary>
+                <section
+                  className="bfn-connection-builder"
+                  aria-label={t('bfn.connections.builder')}
                 >
-                  {t('bfn.connections.create')}
-                </Button>
-              </section>
-            </details>
-          </aside>
+                  <header>
+                    <Icon name="link" size={15} />
+                    <strong>{t('bfn.connections.builder')}</strong>
+                  </header>
+                  <label>
+                    <span>{t('bfn.connections.source')}</span>
+                    <select
+                      aria-label={t('bfn.connections.source')}
+                      value={sourceEndpointValue}
+                      onChange={(event) => setSourceEndpointValue(event.target.value)}
+                    >
+                      <option value="">{t('bfn.connections.chooseSource')}</option>
+                      {options.outputs.map((entry) => (
+                        <option key={entry.value} value={entry.value}>
+                          {entry.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>{t('bfn.connections.target')}</span>
+                    <select
+                      aria-label={t('bfn.connections.target')}
+                      value={targetEndpointValue}
+                      onChange={(event) => setTargetEndpointValue(event.target.value)}
+                    >
+                      <option value="">{t('bfn.connections.chooseTarget')}</option>
+                      {options.inputs.map((entry) => (
+                        <option key={entry.value} value={entry.value}>
+                          {entry.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  {sourceEndpoint && targetEndpoint ? (
+                    <div
+                      className="bfn-connection-check"
+                      data-valid={!draftIssues.some((issue) => issue.severity === 'error')}
+                    >
+                      {draftIssues.length
+                        ? validationMessage(t, draftIssues[0]!)
+                        : t('bfn.connections.compatible')}
+                    </div>
+                  ) : null}
+                  <Button
+                    variant="secondary"
+                    fullWidth
+                    disabled={
+                      !sourceEndpoint ||
+                      !targetEndpoint ||
+                      draftIssues.some((issue) => issue.severity === 'error')
+                    }
+                    onClick={createConnection}
+                  >
+                    {t('bfn.connections.create')}
+                  </Button>
+                </section>
+              </details>
+            </aside>
 
-          <section className="bfn-network-stage">
-            <header className="bfn-section-heading">
-              <div>
-                <h2>{t(project.network.labelKey)}</h2>
-              </div>
-              <div className="bfn-stage-header-actions">
-                <div className="bfn-stage-badges">
-                  <span>
-                    {project.network.modules.length} {t('bfn.canvas.modules')}
-                  </span>
-                  <span>
-                    {project.network.edges.length} {t('bfn.canvas.edges')}
-                  </span>
-                  <span>{t(`bfn.modes.${project.network.mode}`)}</span>
+            <section className="bfn-network-stage">
+              <header className="bfn-section-heading">
+                <div>
+                  <h2>{t(project.network.labelKey)}</h2>
                 </div>
-              </div>
-            </header>
-            <BfnNetworkCanvas
-              project={project}
-              selectedNodeId={selectedNodeId}
-              selectedEdgeId={selectedEdgeId}
-              onSelectNode={selectNode}
-              onSelectEdge={selectEdge}
-              onClearSelection={() => selectNode(null)}
-              onMoveNode={(nodeId, position) =>
-                updateProjectLive((current) => withNodePosition(current, nodeId, position))
-              }
-              onMoveNodeCommit={(nodeId, start, end) => {
-                if (start.x === end.x && start.y === end.y) return;
-                recordSnapshot(
-                  createBfnEditorSnapshot(
-                    withNodePosition(projectRef.current, nodeId, start),
-                    selectedNodeRef.current,
-                    selectedEdgeRef.current,
-                  ),
-                  'layout',
-                );
-              }}
-              evaluateConnection={(source, target) => {
-                const issue = checkIdealConnection(projectRef.current, source, target).find(
-                  (candidate) => candidate.severity === 'error',
-                );
-                return {
-                  compatible: !issue,
-                  message: issue ? validationMessage(t, issue) : null,
-                };
-              }}
-              onCreateConnection={createConnectionBetween}
-              onViewportChange={(viewport) => {
-                canvasViewportRef.current = viewport;
-              }}
-            />
-          </section>
+                <div className="bfn-stage-header-actions">
+                  <div className="bfn-stage-badges">
+                    <span>
+                      {project.network.modules.length} {t('bfn.canvas.modules')}
+                    </span>
+                    <span>
+                      {project.network.edges.length} {t('bfn.canvas.edges')}
+                    </span>
+                    <span>{t(`bfn.modes.${project.network.mode}`)}</span>
+                  </div>
+                </div>
+              </header>
+              <BfnNetworkCanvas
+                project={project}
+                selectedNodeId={selectedNodeId}
+                selectedEdgeId={selectedEdgeId}
+                onSelectNode={selectNode}
+                onSelectEdge={selectEdge}
+                onClearSelection={() => selectNode(null)}
+                onMoveNode={(nodeId, position) =>
+                  updateProjectLive((current) => withNodePosition(current, nodeId, position))
+                }
+                onMoveNodeCommit={(nodeId, start, end) => {
+                  if (start.x === end.x && start.y === end.y) return;
+                  recordSnapshot(
+                    createBfnEditorSnapshot(
+                      withNodePosition(projectRef.current, nodeId, start),
+                      selectedNodeRef.current,
+                      selectedEdgeRef.current,
+                    ),
+                    'layout',
+                  );
+                }}
+                evaluateConnection={(source, target) => {
+                  const issue = checkIdealConnection(projectRef.current, source, target).find(
+                    (candidate) => candidate.severity === 'error',
+                  );
+                  return {
+                    compatible: !issue,
+                    message: issue ? validationMessage(t, issue) : null,
+                  };
+                }}
+                onCreateConnection={createConnectionBetween}
+                onViewportChange={(viewport) => {
+                  canvasViewportRef.current = viewport;
+                }}
+              />
+            </section>
 
-          <aside className="bfn-inspector">
-            <header className="bfn-section-heading">
-              <div>
-                <h2>
-                  {selectedModule
-                    ? t(selectedModule.labelKey)
-                    : selectedSource
-                      ? t(selectedSource.labelKey)
-                      : selectedMonitor
-                        ? t(selectedMonitor.labelKey)
-                        : selectedEdge
-                          ? t('bfn.inspector.connection')
-                          : t('bfn.inspector.project')}
-                </h2>
-                <p className="bfn-inspector__subtitle">{inspectorSubtitle}</p>
-              </div>
-            </header>
-            <div className="bfn-inspector__body">
-              {selectedModule ? (
-                <>
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.effect')}</strong>
-                    </header>
-                    <p>{t(selectedModule.descriptionKey)}</p>
-                  </section>
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.inputsAndOutputs')}</strong>
-                    </header>
-                    <div className="bfn-signal-flow">
-                      <div className="bfn-signal-flow__group" data-direction="input">
-                        <span>{t('bfn.nodeKinds.input')}</span>
-                        {selectedModule.inputPorts.map((port) => (
-                          <article key={port.id}>
-                            <strong>{bfnPortPrimaryLabel(port, t)}</strong>
-                            <small>{bfnUnitLabel(port.unit, t)}</small>
-                          </article>
-                        ))}
-                      </div>
-                      <span className="bfn-signal-flow__arrow" aria-hidden="true">
-                        ↓
-                      </span>
-                      <div className="bfn-signal-flow__group" data-direction="output">
-                        <span>{t('bfn.nodeKinds.output')}</span>
-                        {selectedModule.outputPorts.map((port) => (
-                          <article key={port.id}>
-                            <strong>{bfnPortPrimaryLabel(port, t)}</strong>
-                            <small>{bfnUnitLabel(port.unit, t)}</small>
-                          </article>
-                        ))}
-                      </div>
-                    </div>
-                  </section>
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.keyParameters')}</strong>
-                    </header>
-                    <div className="bfn-parameter-list">
-                      <BfnPropertyGrid
-                        key={selectedModule.id}
-                        label={t('bfn.inspector.keyParameters')}
-                        rows={selectedParameterPresentations.slice(0, 4).map((row) => ({
-                          id: row.id,
-                          label: row.label,
-                          value: displayNumber(row.estimate.value),
-                          unit:
-                            row.estimate.unit === 'dimensionless'
-                              ? undefined
-                              : bfnUnitLabel(row.estimate.unit, t),
-                          symbol: row.showSymbolInSummary === false ? undefined : row.symbol,
-                          description: row.description,
-                        }))}
-                      />
-                    </div>
-                  </section>
-                  {selectedModuleModel?.mode === 'static' &&
-                  selectedModuleModel.response.family === 'independent_inputs' ? (
+            <aside className="bfn-inspector">
+              <header className="bfn-section-heading">
+                <div>
+                  <h2>
+                    {selectedModule
+                      ? t(selectedModule.labelKey)
+                      : selectedSource
+                        ? t(selectedSource.labelKey)
+                        : selectedMonitor
+                          ? t(selectedMonitor.labelKey)
+                          : selectedEdge
+                            ? t('bfn.inspector.connection')
+                            : t('bfn.inspector.project')}
+                  </h2>
+                  <p className="bfn-inspector__subtitle">{inspectorSubtitle}</p>
+                </div>
+              </header>
+              <div className="bfn-inspector__body">
+                {selectedModule ? (
+                  <>
                     <section className="bfn-inspector-block">
                       <header>
-                        <strong>{t('bfn.inspector.currentCalculation')}</strong>
+                        <strong>{t('bfn.inspector.effect')}</strong>
                       </header>
-                      <p>{t('bfn.assumptions.independentUnverified')}</p>
+                      <p>{t(selectedModule.descriptionKey)}</p>
                     </section>
-                  ) : null}
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.modelBasis')}</strong>
-                    </header>
-                    <div
-                      className="bfn-evidence-banner"
-                      data-grade={
-                        selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
-                      }
-                      data-evidence-tone={bfnEvidenceTone(
-                        selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade,
-                      )}
-                    >
-                      <strong>
-                        {t(
-                          `bfn.evidence.${
-                            selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
-                          }`,
-                        )}
-                      </strong>
-                    </div>
-                  </section>
-                  <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.detailedParameters')}</summary>
-                    {selectedParameterPresentations.length > 4 ? (
-                      <div className="bfn-parameter-list bfn-parameter-list--details">
+                    <section className="bfn-inspector-block">
+                      <header>
+                        <strong>{t('bfn.inspector.inputsAndOutputs')}</strong>
+                      </header>
+                      <div className="bfn-signal-flow">
+                        <div className="bfn-signal-flow__group" data-direction="input">
+                          <span>{t('bfn.nodeKinds.input')}</span>
+                          {selectedModule.inputPorts.map((port) => (
+                            <article key={port.id}>
+                              <strong>{bfnPortPrimaryLabel(port, t)}</strong>
+                              <small>{bfnUnitLabel(port.unit, t)}</small>
+                            </article>
+                          ))}
+                        </div>
+                        <span className="bfn-signal-flow__arrow" aria-hidden="true">
+                          ↓
+                        </span>
+                        <div className="bfn-signal-flow__group" data-direction="output">
+                          <span>{t('bfn.nodeKinds.output')}</span>
+                          {selectedModule.outputPorts.map((port) => (
+                            <article key={port.id}>
+                              <strong>{bfnPortPrimaryLabel(port, t)}</strong>
+                              <small>{bfnUnitLabel(port.unit, t)}</small>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    </section>
+                    <section className="bfn-inspector-block">
+                      <header>
+                        <strong>{t('bfn.inspector.keyParameters')}</strong>
+                      </header>
+                      <div className="bfn-parameter-list">
                         <BfnPropertyGrid
-                          key={`${selectedModule.id}-details`}
-                          label={t('bfn.inspector.detailedParameters')}
-                          rows={selectedParameterPresentations.slice(4).map((row) => ({
+                          key={selectedModule.id}
+                          label={t('bfn.inspector.keyParameters')}
+                          rows={selectedParameterPresentations.slice(0, 4).map((row) => ({
                             id: row.id,
                             label: row.label,
                             value: displayNumber(row.estimate.value),
@@ -1238,751 +1193,809 @@ export function BfnPlatformPage() {
                               row.estimate.unit === 'dimensionless'
                                 ? undefined
                                 : bfnUnitLabel(row.estimate.unit, t),
-                            symbol: row.symbol,
+                            symbol: row.showSymbolInSummary === false ? undefined : row.symbol,
                             description: row.description,
                           }))}
                         />
                       </div>
-                    ) : (
-                      <p className="bfn-inspector-empty">
-                        {t('bfn.inspector.noAdditionalParameters')}
+                    </section>
+                    {selectedModuleModel?.mode === 'static' &&
+                    selectedModuleModel.response.family === 'independent_inputs' ? (
+                      <section className="bfn-inspector-block">
+                        <header>
+                          <strong>{t('bfn.inspector.currentCalculation')}</strong>
+                        </header>
+                        <p>{t('bfn.assumptions.independentUnverified')}</p>
+                      </section>
+                    ) : null}
+                    <section className="bfn-inspector-block">
+                      <header>
+                        <strong>{t('bfn.inspector.modelBasis')}</strong>
+                      </header>
+                      <div
+                        className="bfn-evidence-banner"
+                        data-grade={
+                          selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
+                        }
+                        data-evidence-tone={bfnEvidenceTone(
+                          selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade,
+                        )}
+                      >
+                        <strong>
+                          {t(
+                            `bfn.evidence.${
+                              selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
+                            }`,
+                          )}
+                        </strong>
+                      </div>
+                    </section>
+                    <details className="bfn-inspector-details">
+                      <summary>{t('bfn.inspector.detailedParameters')}</summary>
+                      {selectedParameterPresentations.length > 4 ? (
+                        <div className="bfn-parameter-list bfn-parameter-list--details">
+                          <BfnPropertyGrid
+                            key={`${selectedModule.id}-details`}
+                            label={t('bfn.inspector.detailedParameters')}
+                            rows={selectedParameterPresentations.slice(4).map((row) => ({
+                              id: row.id,
+                              label: row.label,
+                              value: displayNumber(row.estimate.value),
+                              unit:
+                                row.estimate.unit === 'dimensionless'
+                                  ? undefined
+                                  : bfnUnitLabel(row.estimate.unit, t),
+                              symbol: row.symbol,
+                              description: row.description,
+                            }))}
+                          />
+                        </div>
+                      ) : (
+                        <p className="bfn-inspector-empty">
+                          {t('bfn.inspector.noAdditionalParameters')}
+                        </p>
+                      )}
+                    </details>
+                    <details className="bfn-inspector-details">
+                      <summary>{t('bfn.inspector.experimentAndData')}</summary>
+                      <div className="bfn-inspector-details__content">
+                        <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
+                        {selectedContext ? (
+                          <dl className="bfn-context-grid">
+                            <div>
+                              <dt>{t('bfn.context.host')}</dt>
+                              <dd>
+                                <em>{selectedContext.host}</em>
+                              </dd>
+                            </div>
+                            <div>
+                              <dt>{t('bfn.context.strain')}</dt>
+                              <dd>{bfnContextValueLabel(selectedContext.strain, t)}</dd>
+                            </div>
+                            <div>
+                              <dt>{t('bfn.context.medium')}</dt>
+                              <dd>{bfnContextValueLabel(selectedContext.medium, t)}</dd>
+                            </div>
+                            <div>
+                              <dt>{t('bfn.context.temperature')}</dt>
+                              <dd>{selectedContext.temperatureCelsius} °C</dd>
+                            </div>
+                          </dl>
+                        ) : null}
+                        <strong>{t('bfn.inspector.linkedData')}</strong>
+                        {selectedDatasets.length ? (
+                          <ul className="bfn-linked-datasets">
+                            {selectedDatasets.map((dataset) => (
+                              <li key={dataset.id}>{t(dataset.labelKey)}</li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>{t('bfn.inspector.notLinkedDataset')}</p>
+                        )}
+                      </div>
+                    </details>
+                    <details className="bfn-inspector-details">
+                      <summary>{t('bfn.inspector.mathematicalModel')}</summary>
+                      <p className="bfn-domain-range">
+                        {t('bfn.inspector.modelType')}:{' '}
+                        {selectedModuleModel
+                          ? t(`bfn.modelFamilies.${selectedModuleModel.family}`)
+                          : '—'}
                       </p>
-                    )}
-                  </details>
-                  <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.experimentAndData')}</summary>
-                    <div className="bfn-inspector-details__content">
-                      <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
-                      {selectedContext ? (
-                        <dl className="bfn-context-grid">
+                      <code className="bfn-formula">{formulaForModel(selectedModuleModel)}</code>
+                      <div className="bfn-math-parameters">
+                        {selectedParameterPresentations.map((row) => (
+                          <article key={row.id}>
+                            <span>{row.symbol ?? row.label}</span>
+                            <strong>{parameterValue(row.estimate, t)}</strong>
+                          </article>
+                        ))}
+                      </div>
+                      <p className="bfn-domain-range">
+                        {t('bfn.inspector.modelVersion')}: {selectedModuleModel?.version ?? '—'}
+                      </p>
+                    </details>
+                    <details className="bfn-inspector-details">
+                      <summary>{t('bfn.inspector.advancedInformation')}</summary>
+                      <section>
+                        <strong>{t('bfn.inspector.applicability')}</strong>
+                        {selectedDomain?.inputRanges.map((range) => {
+                          const port = [
+                            ...selectedModule.inputPorts,
+                            ...selectedModule.outputPorts,
+                          ].find((entry) => entry.id === range.portId);
+                          return (
+                            <p key={range.portId} className="bfn-domain-range">
+                              {port
+                                ? bfnEntityLabel(port.entity, t)
+                                : t('bfn.inspector.inputRange')}
+                              : {range.minimum}–{range.maximum} {bfnUnitLabel(range.unit, t)}
+                            </p>
+                          );
+                        })}
+                      </section>
+                      <section>
+                        <strong>{t('bfn.inspector.implementations')}</strong>
+                        {selectedImplementations.length ? (
+                          selectedImplementations.map((implementation) => (
+                            <div className="bfn-implementation" key={implementation.id}>
+                              <strong>{t(implementation.labelKey)}</strong>
+                              <span>
+                                {implementation.promoter} · {implementation.rbs}
+                              </span>
+                              <small
+                                data-evidence-tone={bfnEvidenceTone(implementation.evidenceGrade)}
+                              >
+                                {t(`bfn.evidence.${implementation.evidenceGrade}`)}
+                              </small>
+                            </div>
+                          ))
+                        ) : (
+                          <p className="bfn-inspector-empty">
+                            {t('bfn.inspector.noImplementation')}
+                          </p>
+                        )}
+                      </section>
+                    </details>
+                    <button
+                      className="danger-text-button"
+                      type="button"
+                      onClick={() => commitRemoveSelectedModule(selectedModule.id)}
+                    >
+                      <Icon name="trash" size={14} />
+                      {t('bfn.actions.removeModule')}
+                    </button>
+                  </>
+                ) : selectedSource ? (
+                  <>
+                    <section className="bfn-inspector-block bfn-inspector-block--source">
+                      <header>
+                        <strong>{t('bfn.inspector.inputSignal')}</strong>
+                      </header>
+                      <BfnPropertyGrid
+                        key={selectedSource.id}
+                        label={t('bfn.inspector.inputSignal')}
+                        rows={[
+                          {
+                            id: 'signal',
+                            label: t('bfn.inspector.signal'),
+                            value: bfnPortPrimaryLabel(selectedSource.outputPort, t),
+                          },
+                          {
+                            id: 'measurement',
+                            label: t('bfn.inspector.measurement'),
+                            value: bfnQuantityLabel(selectedSource.outputPort.quantityType, t),
+                          },
+                          {
+                            id: 'unit',
+                            label: t('bfn.inspector.unit'),
+                            value: bfnUnitLabel(selectedSource.outputPort.unit, t),
+                          },
+                          {
+                            id: 'analysis',
+                            label: t('bfn.inspector.analysisMode'),
+                            value: t(`bfn.modes.${project.network.mode}`),
+                          },
+                        ]}
+                      />
+                    </section>
+                    <button
+                      className="button button--secondary button--wide"
+                      type="button"
+                      onClick={openInputSettings}
+                    >
+                      {t('bfn.inspector.configureInput')}
+                    </button>
+                  </>
+                ) : selectedMonitor ? (
+                  <>
+                    <section className="bfn-inspector-block">
+                      <header>
+                        <strong>{t('bfn.inspector.output')}</strong>
+                      </header>
+                      <p>{t('bfn.inspector.monitorText')}</p>
+                      <BfnPropertyGrid
+                        key={selectedMonitor.id}
+                        label={t('bfn.inspector.output')}
+                        rows={[
+                          {
+                            id: 'signal',
+                            label: t('bfn.inspector.signal'),
+                            value: bfnPortPrimaryLabel(selectedMonitor.inputPort, t),
+                          },
+                          {
+                            id: 'measurement',
+                            label: t('bfn.inspector.measurement'),
+                            value: bfnQuantityLabel(selectedMonitor.inputPort.quantityType, t),
+                          },
+                          {
+                            id: 'unit',
+                            label: t('bfn.inspector.unit'),
+                            value: bfnUnitLabel(selectedMonitor.inputPort.unit, t),
+                          },
+                        ]}
+                      />
+                    </section>
+                  </>
+                ) : selectedEdge ? (
+                  <>
+                    <div className="bfn-edge-signal-flow">
+                      <div>
+                        <span>{t('bfn.connections.source')}</span>
+                        <strong>{nodeLabel(project, selectedEdge.source.nodeId, t)}</strong>
+                        <small>
+                          {selectedEdgeSourcePort
+                            ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                            : '—'}
+                        </small>
+                      </div>
+                      <span aria-hidden="true">↓</span>
+                      <div>
+                        <span>{t('bfn.connections.target')}</span>
+                        <strong>{nodeLabel(project, selectedEdge.target.nodeId, t)}</strong>
+                        <small>
+                          {selectedEdgeTargetPort
+                            ? t('bfn.inspector.signalInput', {
+                                signal: bfnPortPrimaryLabel(selectedEdgeTargetPort, t),
+                              })
+                            : '—'}
+                        </small>
+                      </div>
+                    </div>
+                    <details className="bfn-inspector-details">
+                      <summary>{t('bfn.inspector.advancedInformation')}</summary>
+                      <p className="bfn-edge-explanation">
+                        {t('bfn.inspector.edgeText', {
+                          signal: selectedEdgeSourcePort
+                            ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                            : t('bfn.parameters.outputSignal'),
+                          source: nodeLabel(project, selectedEdge.source.nodeId, t),
+                          target: nodeLabel(project, selectedEdge.target.nodeId, t),
+                        })}
+                      </p>
+                    </details>
+                    <button
+                      className="danger-text-button"
+                      type="button"
+                      onClick={() => commitRemoveSelectedEdge(selectedEdge.id)}
+                    >
+                      <Icon name="trash" size={14} />
+                      {t('bfn.actions.removeEdge')}
+                    </button>
+                  </>
+                ) : (
+                  <section className="bfn-inspector-block">
+                    <header>
+                      <strong>{t('bfn.inspector.project')}</strong>
+                    </header>
+                    <p>{t('bfn.inspector.projectText')}</p>
+                  </section>
+                )}
+              </div>
+            </aside>
+          </div>
+        ) : null}
+
+        {view === 'design' && inputSettingsOpen ? (
+          <div className="bfn-drawer-layer">
+            <button
+              className="bfn-drawer-scrim"
+              type="button"
+              aria-label={t('bfn.drawers.closeInput')}
+              onClick={closeInputSettings}
+            />
+            <aside
+              className="bfn-drawer bfn-input-settings-drawer"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="bfn-input-settings-title"
+            >
+              <header className="bfn-drawer__header">
+                <div>
+                  <span>{t(`bfn.modes.${project.network.mode}`)}</span>
+                  <h2 id="bfn-input-settings-title">{t('bfn.runToolbar.configureInput')}</h2>
+                </div>
+                <button
+                  className="bfn-drawer__close"
+                  type="button"
+                  aria-label={t('bfn.drawers.closeInput')}
+                  onClick={closeInputSettings}
+                >
+                  ×
+                </button>
+              </header>
+              {project.network.inputSources.map((source) => (
+                <section className="bfn-input-card" key={source.id}>
+                  <header>
+                    <div>
+                      <strong>{t(source.labelKey)}</strong>
+                    </div>
+                    <span>
+                      {bfnPortPrimaryLabel(source.outputPort, t)} ·{' '}
+                      {bfnUnitLabel(source.outputPort.unit, t)}
+                    </span>
+                  </header>
+                  {project.network.mode === 'static' ? (
+                    <>
+                      <label className="field">
+                        <span>{t('bfn.inputs.mode')}</span>
+                        <select
+                          aria-label={t('bfn.inputs.mode')}
+                          value={source.staticSpecification.type}
+                          onChange={(event) => {
+                            const type = event.target.value as BfnStaticInputSpecification['type'];
+                            updateSource(source.id, (current) => ({
+                              ...current,
+                              staticSpecification:
+                                type === 'fixed_value'
+                                  ? {
+                                      type,
+                                      value:
+                                        current.staticSpecification.type === 'fixed_value'
+                                          ? current.staticSpecification.value
+                                          : (current.staticSpecification.minimum +
+                                              current.staticSpecification.maximum) /
+                                            2,
+                                      unit: current.outputPort.unit,
+                                    }
+                                  : {
+                                      type,
+                                      minimum:
+                                        current.staticSpecification.type === 'working_range'
+                                          ? current.staticSpecification.minimum
+                                          : 5,
+                                      maximum:
+                                        current.staticSpecification.type === 'working_range'
+                                          ? current.staticSpecification.maximum
+                                          : 20,
+                                      points: 33,
+                                      unit: current.outputPort.unit,
+                                    },
+                            }));
+                          }}
+                        >
+                          <option value="fixed_value">{t('bfn.inputs.fixed')}</option>
+                          <option value="working_range">{t('bfn.inputs.workingRange')}</option>
+                        </select>
+                      </label>
+                      {source.staticSpecification.type === 'fixed_value' ? (
+                        <label className="field">
+                          <span>{t('bfn.inputs.value')}</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            value={source.staticSpecification.value}
+                            onChange={(event) =>
+                              updateSource(source.id, (current) => ({
+                                ...current,
+                                staticSpecification: {
+                                  type: 'fixed_value',
+                                  value: Math.max(0, Number(event.target.value)),
+                                  unit: current.outputPort.unit,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+                      ) : (
+                        <div className="bfn-input-grid">
+                          <label className="field">
+                            <span>{t('bfn.inputs.minimum')}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={source.staticSpecification.minimum}
+                              onChange={(event) =>
+                                updateSource(source.id, (current) => ({
+                                  ...current,
+                                  staticSpecification: {
+                                    ...(current.staticSpecification as typeof source.staticSpecification),
+                                    minimum: Math.max(0, Number(event.target.value)),
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>{t('bfn.inputs.maximum')}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              step="any"
+                              value={source.staticSpecification.maximum}
+                              onChange={(event) =>
+                                updateSource(source.id, (current) => ({
+                                  ...current,
+                                  staticSpecification: {
+                                    ...(current.staticSpecification as typeof source.staticSpecification),
+                                    maximum: Math.max(0, Number(event.target.value)),
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                          <label className="field">
+                            <span>{t('bfn.inputs.points')}</span>
+                            <input
+                              type="number"
+                              min="2"
+                              max="101"
+                              value={source.staticSpecification.points}
+                              onChange={(event) =>
+                                updateSource(source.id, (current) => ({
+                                  ...current,
+                                  staticSpecification: {
+                                    ...(current.staticSpecification as typeof source.staticSpecification),
+                                    points: Math.max(2, Math.min(101, Number(event.target.value))),
+                                  },
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <label className="field">
+                        <span>{t('bfn.inputs.mode')}</span>
+                        <select
+                          aria-label={t('bfn.inputs.mode')}
+                          value={source.dynamicSpecification.type}
+                          onChange={(event) => {
+                            const type = event.target.value as BfnDynamicInputSpecification['type'];
+                            const unit = source.outputPort.unit;
+                            const specification: BfnDynamicInputSpecification =
+                              type === 'constant'
+                                ? { type, value: 10, unit }
+                                : type === 'step'
+                                  ? { type, before: 0, after: 20, atHours: 1, unit }
+                                  : type === 'pulse'
+                                    ? {
+                                        type,
+                                        baseline: 0,
+                                        amplitude: 20,
+                                        startHours: 1,
+                                        durationHours: 2,
+                                        unit,
+                                      }
+                                    : type === 'periodic'
+                                      ? {
+                                          type,
+                                          baseline: 10,
+                                          amplitude: 8,
+                                          periodHours: 2,
+                                          phaseRadians: 0,
+                                          unit,
+                                        }
+                                      : {
+                                          type,
+                                          points: [
+                                            { timeHours: 0, value: 0 },
+                                            { timeHours: 1, value: 20 },
+                                            { timeHours: 4, value: 10 },
+                                          ],
+                                          unit,
+                                        };
+                            updateSource(source.id, (current) => ({
+                              ...current,
+                              dynamicSpecification: specification,
+                            }));
+                          }}
+                        >
+                          <option value="constant">{t('bfn.inputs.constant')}</option>
+                          <option value="step">{t('bfn.inputs.step')}</option>
+                          <option value="pulse">{t('bfn.inputs.pulse')}</option>
+                          <option value="periodic">{t('bfn.inputs.periodic')}</option>
+                          <option value="custom_time_series">{t('bfn.inputs.custom')}</option>
+                        </select>
+                      </label>
+                      <DynamicInputFields source={source} updateSource={updateSource} />
+                    </>
+                  )}
+                </section>
+              ))}
+              {project.network.mode === 'dynamic' ? (
+                <div className="bfn-input-grid">
+                  <label className="field">
+                    <span>{t('bfn.analysis.duration')}</span>
+                    <input
+                      type="number"
+                      min="0.1"
+                      step="0.1"
+                      value={project.analysis.durationHours}
+                      onChange={(event) =>
+                        updateProjectLive((current) => ({
+                          ...current,
+                          analysis: {
+                            ...current.analysis,
+                            durationHours: Math.max(0.1, Number(event.target.value)),
+                          },
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="field">
+                    <span>{t('bfn.analysis.timeStep')}</span>
+                    <input
+                      type="number"
+                      min="0.001"
+                      step="0.01"
+                      value={project.analysis.timeStepHours}
+                      onChange={(event) =>
+                        updateProjectLive((current) => ({
+                          ...current,
+                          analysis: {
+                            ...current.analysis,
+                            timeStepHours: Math.max(0.001, Number(event.target.value)),
+                          },
+                        }))
+                      }
+                    />
+                  </label>
+                </div>
+              ) : null}
+              <ValidationSummary
+                title={t('bfn.validation.title')}
+                readyMessage={t('bfn.validation.ready')}
+                issues={validationIssues.slice(0, 5).map((issue, index) => ({
+                  id: `${issue.code}-${issue.subjectId}-${index}`,
+                  severity: issue.severity,
+                  message: validationMessage(t, issue),
+                }))}
+              />
+              <Button
+                variant="primary"
+                fullWidth
+                leadingIcon={<Icon name="play" size={16} />}
+                onClick={runSimulation}
+              >
+                {result && resultFreshness === 'stale'
+                  ? t('bfn.actions.rerun')
+                  : t(simulationActionKey(project))}
+              </Button>
+            </aside>
+          </div>
+        ) : null}
+
+        {view === 'design' ? (
+          <BfnResultWorkspace
+            project={project}
+            result={result}
+            runs={runs}
+            resultFreshness={resultFreshness}
+            resultPanelOpen={resultPanelOpen}
+            onTogglePanel={() => setResultPanelOpen((open) => !open)}
+            onRunSimulation={runSimulation}
+            onRequestClearRuns={() => setPendingDestructiveAction('clear-runs')}
+            onSelectRun={(run) => {
+              setResult(run);
+              setResultBasisSignature(null);
+              setResultPanelOpen(true);
+            }}
+          />
+        ) : null}
+
+        {view === 'inverse' ? (
+          <div className="bfn-inverse-workspace">
+            <aside className="bfn-inverse-brief">
+              <header className="bfn-section-heading">
+                <div>
+                  <h2>{t('bfn.reverse.title')}</h2>
+                </div>
+              </header>
+              <p className="bfn-inverse-lead">{t('bfn.reverse.description')}</p>
+              <div className="bfn-target-grid">
+                <NumericTargetField
+                  label={t('bfn.reverse.inputMinimum')}
+                  value={reverseTarget.inputMinimum}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, inputMinimum: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.inputMaximum')}
+                  value={reverseTarget.inputMaximum}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, inputMaximum: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.threshold')}
+                  value={reverseTarget.thresholdTarget}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, thresholdTarget: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.basalMaximum')}
+                  value={reverseTarget.basalMaximum}
+                  step={0.01}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, basalMaximum: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.maximumMinimum')}
+                  value={reverseTarget.maximumMinimum}
+                  step={0.01}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, maximumMinimum: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.responseTime')}
+                  value={reverseTarget.responseTimeMaximumHours}
+                  step={0.1}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, responseTimeMaximumHours: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.burdenMaximum')}
+                  value={reverseTarget.burdenMaximum}
+                  step={0.05}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, burdenMaximum: value }))
+                  }
+                />
+                <NumericTargetField
+                  label={t('bfn.reverse.noiseMaximum')}
+                  value={reverseTarget.noiseMaximum}
+                  step={0.05}
+                  onChange={(value) =>
+                    setReverseTarget((current) => ({ ...current, noiseMaximum: value }))
+                  }
+                />
+              </div>
+              <label className="bfn-priority">
+                <span>
+                  <strong>{t('bfn.reverse.stabilityPriority')}</strong>
+                  <output>{reverseTarget.stabilityPriority.toFixed(2)}</output>
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value={reverseTarget.stabilityPriority}
+                  onChange={(event) =>
+                    setReverseTarget((current) => ({
+                      ...current,
+                      stabilityPriority: Number(event.target.value),
+                    }))
+                  }
+                />
+              </label>
+              <Button
+                variant="primary"
+                fullWidth
+                leadingIcon={<Icon name="network" size={16} />}
+                onClick={runReverse}
+              >
+                {t('bfn.reverse.search')}
+              </Button>
+            </aside>
+            <main className="bfn-candidate-results">
+              <header className="bfn-section-heading">
+                <div>
+                  <h2>{t('bfn.reverse.candidates')}</h2>
+                </div>
+                <span className="bfn-candidate-count">{reverseCandidates.length}</span>
+              </header>
+              {reverseCandidates.length ? (
+                <div className="bfn-candidate-list">
+                  {reverseCandidates.map((candidate, index) => (
+                    <article className="bfn-candidate" key={candidate.id}>
+                      <div className="bfn-candidate__rank">
+                        <span>{String(index + 1).padStart(2, '0')}</span>
+                        <small>
+                          {index === 0
+                            ? t('bfn.reverse.leadingCandidate')
+                            : t('bfn.reverse.alternativeCandidate')}
+                        </small>
+                      </div>
+                      <div className="bfn-candidate__identity">
+                        <span
+                          className="bfn-evidence-chip"
+                          data-evidence-tone={bfnEvidenceTone(candidate.evidenceGrade)}
+                        >
+                          {t(`bfn.evidence.${candidate.evidenceGrade}`)}
+                        </span>
+                        <h3>{t(candidate.labelKey)}</h3>
+                        <p className="bfn-candidate__parts">
+                          {bfnDesignVariableLabel(candidate.designVariables.promoter, t)} ·{' '}
+                          {bfnDesignVariableLabel(candidate.designVariables.rbs, t)}
+                        </p>
+                        <dl>
                           <div>
-                            <dt>{t('bfn.context.host')}</dt>
+                            <dt>{t('bfn.reverse.copyNumber')}</dt>
                             <dd>
-                              <em>{selectedContext.host}</em>
+                              {bfnDesignVariableLabel(candidate.designVariables.copyNumber, t)}
                             </dd>
                           </div>
                           <div>
-                            <dt>{t('bfn.context.strain')}</dt>
-                            <dd>{bfnContextValueLabel(selectedContext.strain, t)}</dd>
+                            <dt>{t('bfn.reverse.degradationTag')}</dt>
+                            <dd>
+                              {bfnDesignVariableLabel(candidate.designVariables.degradationTag, t)}
+                            </dd>
                           </div>
                           <div>
-                            <dt>{t('bfn.context.medium')}</dt>
-                            <dd>{bfnContextValueLabel(selectedContext.medium, t)}</dd>
-                          </div>
-                          <div>
-                            <dt>{t('bfn.context.temperature')}</dt>
-                            <dd>{selectedContext.temperatureCelsius} °C</dd>
+                            <dt>{t('bfn.reverse.receptorLevel')}</dt>
+                            <dd>
+                              {bfnDesignVariableLabel(candidate.designVariables.receptorLevel, t)}
+                            </dd>
                           </div>
                         </dl>
-                      ) : null}
-                      <strong>{t('bfn.inspector.linkedData')}</strong>
-                      {selectedDatasets.length ? (
-                        <ul className="bfn-linked-datasets">
-                          {selectedDatasets.map((dataset) => (
-                            <li key={dataset.id}>{t(dataset.labelKey)}</li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <p>{t('bfn.inspector.notLinkedDataset')}</p>
-                      )}
-                    </div>
-                  </details>
-                  <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.mathematicalModel')}</summary>
-                    <p className="bfn-domain-range">
-                      {t('bfn.inspector.modelType')}:{' '}
-                      {selectedModuleModel
-                        ? t(`bfn.modelFamilies.${selectedModuleModel.family}`)
-                        : '—'}
-                    </p>
-                    <code className="bfn-formula">{formulaForModel(selectedModuleModel)}</code>
-                    <div className="bfn-math-parameters">
-                      {selectedParameterPresentations.map((row) => (
-                        <article key={row.id}>
-                          <span>{row.symbol ?? row.label}</span>
-                          <strong>{parameterValue(row.estimate, t)}</strong>
-                        </article>
-                      ))}
-                    </div>
-                    <p className="bfn-domain-range">
-                      {t('bfn.inspector.modelVersion')}: {selectedModuleModel?.version ?? '—'}
-                    </p>
-                  </details>
-                  <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.advancedInformation')}</summary>
-                    <section>
-                      <strong>{t('bfn.inspector.applicability')}</strong>
-                      {selectedDomain?.inputRanges.map((range) => {
-                        const port = [
-                          ...selectedModule.inputPorts,
-                          ...selectedModule.outputPorts,
-                        ].find((entry) => entry.id === range.portId);
-                        return (
-                          <p key={range.portId} className="bfn-domain-range">
-                            {port ? bfnEntityLabel(port.entity, t) : t('bfn.inspector.inputRange')}:{' '}
-                            {range.minimum}–{range.maximum} {bfnUnitLabel(range.unit, t)}
-                          </p>
-                        );
-                      })}
-                    </section>
-                    <section>
-                      <strong>{t('bfn.inspector.implementations')}</strong>
-                      {selectedImplementations.length ? (
-                        selectedImplementations.map((implementation) => (
-                          <div className="bfn-implementation" key={implementation.id}>
-                            <strong>{t(implementation.labelKey)}</strong>
-                            <span>
-                              {implementation.promoter} · {implementation.rbs}
-                            </span>
-                            <small
-                              data-evidence-tone={bfnEvidenceTone(implementation.evidenceGrade)}
-                            >
-                              {t(`bfn.evidence.${implementation.evidenceGrade}`)}
-                            </small>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="bfn-inspector-empty">{t('bfn.inspector.noImplementation')}</p>
-                      )}
-                    </section>
-                  </details>
-                  <button
-                    className="danger-text-button"
-                    type="button"
-                    onClick={() => commitRemoveSelectedModule(selectedModule.id)}
-                  >
-                    <Icon name="trash" size={14} />
-                    {t('bfn.actions.removeModule')}
-                  </button>
-                </>
-              ) : selectedSource ? (
-                <>
-                  <section className="bfn-inspector-block bfn-inspector-block--source">
-                    <header>
-                      <strong>{t('bfn.inspector.inputSignal')}</strong>
-                    </header>
-                    <BfnPropertyGrid
-                      key={selectedSource.id}
-                      label={t('bfn.inspector.inputSignal')}
-                      rows={[
-                        {
-                          id: 'signal',
-                          label: t('bfn.inspector.signal'),
-                          value: bfnPortPrimaryLabel(selectedSource.outputPort, t),
-                        },
-                        {
-                          id: 'measurement',
-                          label: t('bfn.inspector.measurement'),
-                          value: bfnQuantityLabel(selectedSource.outputPort.quantityType, t),
-                        },
-                        {
-                          id: 'unit',
-                          label: t('bfn.inspector.unit'),
-                          value: bfnUnitLabel(selectedSource.outputPort.unit, t),
-                        },
-                        {
-                          id: 'analysis',
-                          label: t('bfn.inspector.analysisMode'),
-                          value: t(`bfn.modes.${project.network.mode}`),
-                        },
-                      ]}
-                    />
-                  </section>
-                  <button
-                    className="button button--secondary button--wide"
-                    type="button"
-                    onClick={openInputSettings}
-                  >
-                    {t('bfn.inspector.configureInput')}
-                  </button>
-                </>
-              ) : selectedMonitor ? (
-                <>
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.output')}</strong>
-                    </header>
-                    <p>{t('bfn.inspector.monitorText')}</p>
-                    <BfnPropertyGrid
-                      key={selectedMonitor.id}
-                      label={t('bfn.inspector.output')}
-                      rows={[
-                        {
-                          id: 'signal',
-                          label: t('bfn.inspector.signal'),
-                          value: bfnPortPrimaryLabel(selectedMonitor.inputPort, t),
-                        },
-                        {
-                          id: 'measurement',
-                          label: t('bfn.inspector.measurement'),
-                          value: bfnQuantityLabel(selectedMonitor.inputPort.quantityType, t),
-                        },
-                        {
-                          id: 'unit',
-                          label: t('bfn.inspector.unit'),
-                          value: bfnUnitLabel(selectedMonitor.inputPort.unit, t),
-                        },
-                      ]}
-                    />
-                  </section>
-                </>
-              ) : selectedEdge ? (
-                <>
-                  <div className="bfn-edge-signal-flow">
-                    <div>
-                      <span>{t('bfn.connections.source')}</span>
-                      <strong>{nodeLabel(project, selectedEdge.source.nodeId, t)}</strong>
-                      <small>
-                        {selectedEdgeSourcePort
-                          ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
-                          : '—'}
-                      </small>
-                    </div>
-                    <span aria-hidden="true">↓</span>
-                    <div>
-                      <span>{t('bfn.connections.target')}</span>
-                      <strong>{nodeLabel(project, selectedEdge.target.nodeId, t)}</strong>
-                      <small>
-                        {selectedEdgeTargetPort
-                          ? t('bfn.inspector.signalInput', {
-                              signal: bfnPortPrimaryLabel(selectedEdgeTargetPort, t),
-                            })
-                          : '—'}
-                      </small>
-                    </div>
-                  </div>
-                  <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.advancedInformation')}</summary>
-                    <p className="bfn-edge-explanation">
-                      {t('bfn.inspector.edgeText', {
-                        signal: selectedEdgeSourcePort
-                          ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
-                          : t('bfn.parameters.outputSignal'),
-                        source: nodeLabel(project, selectedEdge.source.nodeId, t),
-                        target: nodeLabel(project, selectedEdge.target.nodeId, t),
-                      })}
-                    </p>
-                  </details>
-                  <button
-                    className="danger-text-button"
-                    type="button"
-                    onClick={() => commitRemoveSelectedEdge(selectedEdge.id)}
-                  >
-                    <Icon name="trash" size={14} />
-                    {t('bfn.actions.removeEdge')}
-                  </button>
-                </>
-              ) : (
-                <section className="bfn-inspector-block">
-                  <header>
-                    <strong>{t('bfn.inspector.project')}</strong>
-                  </header>
-                  <p>{t('bfn.inspector.projectText')}</p>
-                </section>
-              )}
-            </div>
-          </aside>
-        </div>
-      ) : null}
-
-      {view === 'design' && inputSettingsOpen ? (
-        <div className="bfn-drawer-layer">
-          <button
-            className="bfn-drawer-scrim"
-            type="button"
-            aria-label={t('bfn.drawers.closeInput')}
-            onClick={closeInputSettings}
-          />
-          <aside
-            className="bfn-drawer bfn-input-settings-drawer"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="bfn-input-settings-title"
-          >
-            <header className="bfn-drawer__header">
-              <div>
-                <span>{t(`bfn.modes.${project.network.mode}`)}</span>
-                <h2 id="bfn-input-settings-title">{t('bfn.runToolbar.configureInput')}</h2>
-              </div>
-              <button
-                className="bfn-drawer__close"
-                type="button"
-                aria-label={t('bfn.drawers.closeInput')}
-                onClick={closeInputSettings}
-              >
-                ×
-              </button>
-            </header>
-            {project.network.inputSources.map((source) => (
-              <section className="bfn-input-card" key={source.id}>
-                <header>
-                  <div>
-                    <strong>{t(source.labelKey)}</strong>
-                  </div>
-                  <span>
-                    {bfnPortPrimaryLabel(source.outputPort, t)} ·{' '}
-                    {bfnUnitLabel(source.outputPort.unit, t)}
-                  </span>
-                </header>
-                {project.network.mode === 'static' ? (
-                  <>
-                    <label className="field">
-                      <span>{t('bfn.inputs.mode')}</span>
-                      <select
-                        aria-label={t('bfn.inputs.mode')}
-                        value={source.staticSpecification.type}
-                        onChange={(event) => {
-                          const type = event.target.value as BfnStaticInputSpecification['type'];
-                          updateSource(source.id, (current) => ({
-                            ...current,
-                            staticSpecification:
-                              type === 'fixed_value'
-                                ? {
-                                    type,
-                                    value:
-                                      current.staticSpecification.type === 'fixed_value'
-                                        ? current.staticSpecification.value
-                                        : (current.staticSpecification.minimum +
-                                            current.staticSpecification.maximum) /
-                                          2,
-                                    unit: current.outputPort.unit,
-                                  }
-                                : {
-                                    type,
-                                    minimum:
-                                      current.staticSpecification.type === 'working_range'
-                                        ? current.staticSpecification.minimum
-                                        : 5,
-                                    maximum:
-                                      current.staticSpecification.type === 'working_range'
-                                        ? current.staticSpecification.maximum
-                                        : 20,
-                                    points: 33,
-                                    unit: current.outputPort.unit,
-                                  },
-                          }));
-                        }}
+                      </div>
+                      <svg
+                        className="bfn-candidate__curve"
+                        viewBox="0 0 180 76"
+                        role="img"
+                        aria-label={t('bfn.reverse.predictedResponse')}
                       >
-                        <option value="fixed_value">{t('bfn.inputs.fixed')}</option>
-                        <option value="working_range">{t('bfn.inputs.workingRange')}</option>
-                      </select>
-                    </label>
-                    {source.staticSpecification.type === 'fixed_value' ? (
-                      <label className="field">
-                        <span>{t('bfn.inputs.value')}</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="any"
-                          value={source.staticSpecification.value}
-                          onChange={(event) =>
-                            updateSource(source.id, (current) => ({
-                              ...current,
-                              staticSpecification: {
-                                type: 'fixed_value',
-                                value: Math.max(0, Number(event.target.value)),
-                                unit: current.outputPort.unit,
-                              },
-                            }))
-                          }
+                        <line x1="4" x2="176" y1="70" y2="70" />
+                        <path d={responseSparkline(candidate)} />
+                      </svg>
+                      <div className="bfn-candidate__scores">
+                        <ScoreBar
+                          label={t('bfn.reverse.functionMatch')}
+                          value={candidate.scores.functionMatch}
                         />
-                      </label>
-                    ) : (
-                      <div className="bfn-input-grid">
-                        <label className="field">
-                          <span>{t('bfn.inputs.minimum')}</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            value={source.staticSpecification.minimum}
-                            onChange={(event) =>
-                              updateSource(source.id, (current) => ({
-                                ...current,
-                                staticSpecification: {
-                                  ...(current.staticSpecification as typeof source.staticSpecification),
-                                  minimum: Math.max(0, Number(event.target.value)),
-                                },
-                              }))
-                            }
-                          />
-                        </label>
-                        <label className="field">
-                          <span>{t('bfn.inputs.maximum')}</span>
-                          <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            value={source.staticSpecification.maximum}
-                            onChange={(event) =>
-                              updateSource(source.id, (current) => ({
-                                ...current,
-                                staticSpecification: {
-                                  ...(current.staticSpecification as typeof source.staticSpecification),
-                                  maximum: Math.max(0, Number(event.target.value)),
-                                },
-                              }))
-                            }
-                          />
-                        </label>
-                        <label className="field">
-                          <span>{t('bfn.inputs.points')}</span>
-                          <input
-                            type="number"
-                            min="2"
-                            max="101"
-                            value={source.staticSpecification.points}
-                            onChange={(event) =>
-                              updateSource(source.id, (current) => ({
-                                ...current,
-                                staticSpecification: {
-                                  ...(current.staticSpecification as typeof source.staticSpecification),
-                                  points: Math.max(2, Math.min(101, Number(event.target.value))),
-                                },
-                              }))
-                            }
-                          />
-                        </label>
+                        <ScoreBar label={t('bfn.reverse.burden')} value={candidate.scores.burden} />
+                        <ScoreBar label={t('bfn.reverse.noise')} value={candidate.scores.noise} />
+                        <ScoreBar
+                          label={t('bfn.reverse.geneticRisk')}
+                          value={candidate.scores.geneticRisk}
+                        />
                       </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <label className="field">
-                      <span>{t('bfn.inputs.mode')}</span>
-                      <select
-                        aria-label={t('bfn.inputs.mode')}
-                        value={source.dynamicSpecification.type}
-                        onChange={(event) => {
-                          const type = event.target.value as BfnDynamicInputSpecification['type'];
-                          const unit = source.outputPort.unit;
-                          const specification: BfnDynamicInputSpecification =
-                            type === 'constant'
-                              ? { type, value: 10, unit }
-                              : type === 'step'
-                                ? { type, before: 0, after: 20, atHours: 1, unit }
-                                : type === 'pulse'
-                                  ? {
-                                      type,
-                                      baseline: 0,
-                                      amplitude: 20,
-                                      startHours: 1,
-                                      durationHours: 2,
-                                      unit,
-                                    }
-                                  : type === 'periodic'
-                                    ? {
-                                        type,
-                                        baseline: 10,
-                                        amplitude: 8,
-                                        periodHours: 2,
-                                        phaseRadians: 0,
-                                        unit,
-                                      }
-                                    : {
-                                        type,
-                                        points: [
-                                          { timeHours: 0, value: 0 },
-                                          { timeHours: 1, value: 20 },
-                                          { timeHours: 4, value: 10 },
-                                        ],
-                                        unit,
-                                      };
-                          updateSource(source.id, (current) => ({
-                            ...current,
-                            dynamicSpecification: specification,
-                          }));
-                        }}
-                      >
-                        <option value="constant">{t('bfn.inputs.constant')}</option>
-                        <option value="step">{t('bfn.inputs.step')}</option>
-                        <option value="pulse">{t('bfn.inputs.pulse')}</option>
-                        <option value="periodic">{t('bfn.inputs.periodic')}</option>
-                        <option value="custom_time_series">{t('bfn.inputs.custom')}</option>
-                      </select>
-                    </label>
-                    <DynamicInputFields source={source} updateSource={updateSource} />
-                  </>
-                )}
-              </section>
-            ))}
-            {project.network.mode === 'dynamic' ? (
-              <div className="bfn-input-grid">
-                <label className="field">
-                  <span>{t('bfn.analysis.duration')}</span>
-                  <input
-                    type="number"
-                    min="0.1"
-                    step="0.1"
-                    value={project.analysis.durationHours}
-                    onChange={(event) =>
-                      updateProjectLive((current) => ({
-                        ...current,
-                        analysis: {
-                          ...current.analysis,
-                          durationHours: Math.max(0.1, Number(event.target.value)),
-                        },
-                      }))
-                    }
-                  />
-                </label>
-                <label className="field">
-                  <span>{t('bfn.analysis.timeStep')}</span>
-                  <input
-                    type="number"
-                    min="0.001"
-                    step="0.01"
-                    value={project.analysis.timeStepHours}
-                    onChange={(event) =>
-                      updateProjectLive((current) => ({
-                        ...current,
-                        analysis: {
-                          ...current.analysis,
-                          timeStepHours: Math.max(0.001, Number(event.target.value)),
-                        },
-                      }))
-                    }
-                  />
-                </label>
-              </div>
-            ) : null}
-            <ValidationSummary
-              title={t('bfn.validation.title')}
-              readyMessage={t('bfn.validation.ready')}
-              issues={validationIssues.slice(0, 5).map((issue, index) => ({
-                id: `${issue.code}-${issue.subjectId}-${index}`,
-                severity: issue.severity,
-                message: validationMessage(t, issue),
-              }))}
-            />
-            <Button
-              variant="primary"
-              fullWidth
-              leadingIcon={<Icon name="play" size={16} />}
-              onClick={runSimulation}
-            >
-              {result && resultFreshness === 'stale'
-                ? t('bfn.actions.rerun')
-                : t(simulationActionKey(project))}
-            </Button>
-          </aside>
-        </div>
-      ) : null}
-
-      {view === 'design' ? (
-        <BfnResultWorkspace
-          project={project}
-          result={result}
-          runs={runs}
-          resultFreshness={resultFreshness}
-          resultPanelOpen={resultPanelOpen}
-          onTogglePanel={() => setResultPanelOpen((open) => !open)}
-          onRunSimulation={runSimulation}
-          onRequestClearRuns={() => setPendingDestructiveAction('clear-runs')}
-          onSelectRun={(run) => {
-            setResult(run);
-            setResultBasisSignature(null);
-            setResultPanelOpen(true);
-          }}
-        />
-      ) : null}
-
-      {view === 'inverse' ? (
-        <div className="bfn-inverse-workspace">
-          <aside className="bfn-inverse-brief">
-            <header className="bfn-section-heading">
-              <div>
-                <h2>{t('bfn.reverse.title')}</h2>
-              </div>
-            </header>
-            <p className="bfn-inverse-lead">{t('bfn.reverse.description')}</p>
-            <div className="bfn-target-grid">
-              <NumericTargetField
-                label={t('bfn.reverse.inputMinimum')}
-                value={reverseTarget.inputMinimum}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, inputMinimum: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.inputMaximum')}
-                value={reverseTarget.inputMaximum}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, inputMaximum: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.threshold')}
-                value={reverseTarget.thresholdTarget}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, thresholdTarget: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.basalMaximum')}
-                value={reverseTarget.basalMaximum}
-                step={0.01}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, basalMaximum: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.maximumMinimum')}
-                value={reverseTarget.maximumMinimum}
-                step={0.01}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, maximumMinimum: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.responseTime')}
-                value={reverseTarget.responseTimeMaximumHours}
-                step={0.1}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, responseTimeMaximumHours: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.burdenMaximum')}
-                value={reverseTarget.burdenMaximum}
-                step={0.05}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, burdenMaximum: value }))
-                }
-              />
-              <NumericTargetField
-                label={t('bfn.reverse.noiseMaximum')}
-                value={reverseTarget.noiseMaximum}
-                step={0.05}
-                onChange={(value) =>
-                  setReverseTarget((current) => ({ ...current, noiseMaximum: value }))
-                }
-              />
-            </div>
-            <label className="bfn-priority">
-              <span>
-                <strong>{t('bfn.reverse.stabilityPriority')}</strong>
-                <output>{reverseTarget.stabilityPriority.toFixed(2)}</output>
-              </span>
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.05"
-                value={reverseTarget.stabilityPriority}
-                onChange={(event) =>
-                  setReverseTarget((current) => ({
-                    ...current,
-                    stabilityPriority: Number(event.target.value),
-                  }))
-                }
-              />
-            </label>
-            <Button
-              variant="primary"
-              fullWidth
-              leadingIcon={<Icon name="network" size={16} />}
-              onClick={runReverse}
-            >
-              {t('bfn.reverse.search')}
-            </Button>
-          </aside>
-          <main className="bfn-candidate-results">
-            <header className="bfn-section-heading">
-              <div>
-                <h2>{t('bfn.reverse.candidates')}</h2>
-              </div>
-              <span className="bfn-candidate-count">{reverseCandidates.length}</span>
-            </header>
-            {reverseCandidates.length ? (
-              <div className="bfn-candidate-list">
-                {reverseCandidates.map((candidate, index) => (
-                  <article className="bfn-candidate" key={candidate.id}>
-                    <div className="bfn-candidate__rank">
-                      <span>{String(index + 1).padStart(2, '0')}</span>
-                      <small>
-                        {index === 0
-                          ? t('bfn.reverse.leadingCandidate')
-                          : t('bfn.reverse.alternativeCandidate')}
-                      </small>
-                    </div>
-                    <div className="bfn-candidate__identity">
-                      <span
-                        className="bfn-evidence-chip"
-                        data-evidence-tone={bfnEvidenceTone(candidate.evidenceGrade)}
-                      >
-                        {t(`bfn.evidence.${candidate.evidenceGrade}`)}
-                      </span>
-                      <h3>{t(candidate.labelKey)}</h3>
-                      <p className="bfn-candidate__parts">
-                        {bfnDesignVariableLabel(candidate.designVariables.promoter, t)} ·{' '}
-                        {bfnDesignVariableLabel(candidate.designVariables.rbs, t)}
-                      </p>
-                      <dl>
-                        <div>
-                          <dt>{t('bfn.reverse.copyNumber')}</dt>
-                          <dd>{bfnDesignVariableLabel(candidate.designVariables.copyNumber, t)}</dd>
+                      <details className="bfn-candidate__details">
+                        <summary>{t('bfn.reverse.detailedScore')}</summary>
+                        <div className="bfn-candidate__total">
+                          <span>{t('bfn.reverse.compositeLoss')}</span>
+                          <strong>{candidate.scores.total.toFixed(3)}</strong>
+                          <small>{t('bfn.reverse.lowerIsBetter')}</small>
                         </div>
-                        <div>
-                          <dt>{t('bfn.reverse.degradationTag')}</dt>
-                          <dd>
-                            {bfnDesignVariableLabel(candidate.designVariables.degradationTag, t)}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{t('bfn.reverse.receptorLevel')}</dt>
-                          <dd>
-                            {bfnDesignVariableLabel(candidate.designVariables.receptorLevel, t)}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                    <svg
-                      className="bfn-candidate__curve"
-                      viewBox="0 0 180 76"
-                      role="img"
-                      aria-label={t('bfn.reverse.predictedResponse')}
-                    >
-                      <line x1="4" x2="176" y1="70" y2="70" />
-                      <path d={responseSparkline(candidate)} />
-                    </svg>
-                    <div className="bfn-candidate__scores">
-                      <ScoreBar
-                        label={t('bfn.reverse.functionMatch')}
-                        value={candidate.scores.functionMatch}
-                      />
-                      <ScoreBar label={t('bfn.reverse.burden')} value={candidate.scores.burden} />
-                      <ScoreBar label={t('bfn.reverse.noise')} value={candidate.scores.noise} />
-                      <ScoreBar
-                        label={t('bfn.reverse.geneticRisk')}
-                        value={candidate.scores.geneticRisk}
-                      />
-                    </div>
-                    <details className="bfn-candidate__details">
-                      <summary>{t('bfn.reverse.detailedScore')}</summary>
-                      <div className="bfn-candidate__total">
-                        <span>{t('bfn.reverse.compositeLoss')}</span>
-                        <strong>{candidate.scores.total.toFixed(3)}</strong>
-                        <small>{t('bfn.reverse.lowerIsBetter')}</small>
-                      </div>
-                    </details>
-                    <footer>
-                      <Icon name="flask" size={15} />
-                      <span>{t(candidate.recommendedValidationKey)}</span>
-                    </footer>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                title={t('bfn.reverse.empty')}
-                description={t('bfn.reverse.emptyHint')}
-                visual={<span>{t('bfn.reverse.emptyVisual')}</span>}
-              />
-            )}
-          </main>
-        </div>
-      ) : null}
+                      </details>
+                      <footer>
+                        <Icon name="flask" size={15} />
+                        <span>{t(candidate.recommendedValidationKey)}</span>
+                      </footer>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title={t('bfn.reverse.empty')}
+                  description={t('bfn.reverse.emptyHint')}
+                  visual={<span>{t('bfn.reverse.emptyVisual')}</span>}
+                />
+              )}
+            </main>
+          </div>
+        ) : null}
       </div>
 
       {view === 'design' && modulePickerOpen ? (

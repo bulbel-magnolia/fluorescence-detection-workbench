@@ -49,11 +49,7 @@ function browserDownloadEnvironment(): BfnDownloadEnvironment {
   };
 }
 
-function downloadBlob(
-  blob: Blob,
-  filename: string,
-  environment: BfnDownloadEnvironment,
-): void {
+function downloadBlob(blob: Blob, filename: string, environment: BfnDownloadEnvironment): void {
   const url = environment.createObjectURL(blob);
   let anchor: HTMLAnchorElement | null = null;
   let revoked = false;
@@ -126,23 +122,27 @@ export function BfnExportMenu({
     return requestTokenRef.current;
   };
   const requestIsCurrent = (token: number): boolean => requestTokenRef.current === token;
-  const svg = (): string => serializeBfnFigureSvg({
-    model,
-    result,
-    ...(comparison ? { comparison } : {}),
-    title: result.mode === 'static' ? t('bfn.results.staticChart') : t('bfn.results.dynamicChart'),
-    description: t('bfn.results.exportMenu.figureDescription', { runId: result.id }),
-  });
-  const filename = (artifact: string, extension: string): string => createBfnExportFilename({
-    project,
-    result,
-    artifact,
-    extension,
-  });
-  const announceDownload = (): void => setFeedback({
-    kind: 'status',
-    message: t('bfn.results.exportMenu.downloadReady'),
-  });
+  const svg = (): string =>
+    serializeBfnFigureSvg({
+      model,
+      result,
+      ...(comparison ? { comparison } : {}),
+      title:
+        result.mode === 'static' ? t('bfn.results.staticChart') : t('bfn.results.dynamicChart'),
+      description: t('bfn.results.exportMenu.figureDescription', { runId: result.id }),
+    });
+  const filename = (artifact: string, extension: string): string =>
+    createBfnExportFilename({
+      project,
+      result,
+      artifact,
+      extension,
+    });
+  const announceDownload = (): void =>
+    setFeedback({
+      kind: 'status',
+      message: t('bfn.results.exportMenu.downloadReady'),
+    });
   const handleSvgDownload = (): void => {
     setFeedback(null);
     try {
@@ -176,10 +176,8 @@ export function BfnExportMenu({
       setFeedback({ kind: 'alert', message: t('bfn.results.exportMenu.exportFailed') });
     }
   };
-  const createPng = (): Promise<Blob> => renderBfnFigurePng(
-    svg(),
-    pngEnvironment ? { environment: pngEnvironment } : {},
-  );
+  const createPng = (): Promise<Blob> =>
+    renderBfnFigurePng(svg(), pngEnvironment ? { environment: pngEnvironment } : {});
   const handlePngDownload = async (): Promise<void> => {
     const token = beginOperation('downloadPng', t('bfn.results.exportMenu.preparing'));
     try {
@@ -205,9 +203,11 @@ export function BfnExportMenu({
     if (copyResult.status === 'unsupported') {
       setFeedback({
         kind: 'alert',
-        message: t(copyResult.operation === 'image'
-          ? 'bfn.results.exportMenu.imageUnsupported'
-          : 'bfn.results.exportMenu.textUnsupported'),
+        message: t(
+          copyResult.operation === 'image'
+            ? 'bfn.results.exportMenu.imageUnsupported'
+            : 'bfn.results.exportMenu.textUnsupported',
+        ),
       });
       return;
     }
@@ -242,41 +242,43 @@ export function BfnExportMenu({
       if (requestIsCurrent(token)) setOperation(null);
     }
   };
-  const handleCopyData = (): Promise<void> => copyText(
-    'copyData',
-    serializeBfnResultTable({
-      project,
-      current: result,
-      ...(comparison ? { comparison } : {}),
-      delimiter: '\t',
-      bom: false,
-    }),
-    'copyDataSuccess',
-  );
-  const handleCopyCaption = (): Promise<void> => copyText(
-    'copyCaption',
-    createBfnFigureCaption({
-      project,
-      result,
-      model,
-      ...(comparison ? { comparison } : {}),
-      captionText: {
-        lead: t('bfn.results.exportMenu.caption.lead', {
-          demo: result.isDemo || project.isDemo ? t('bfn.results.exportMenu.caption.demo') : '',
-          mode: t(`bfn.modes.${result.mode}`),
-          yAxis: model.labels.y,
-          xAxis: model.labels.x,
-        }),
-        uncertainty: t('bfn.results.exportMenu.caption.uncertainty'),
-        annAccepted: t('bfn.results.exportMenu.caption.annAccepted'),
-        annRejected: t('bfn.results.exportMenu.caption.annRejected'),
-        comparison: t('bfn.results.exportMenu.caption.comparison'),
-        separator: t('bfn.results.exportMenu.caption.separator'),
-        terminator: t('bfn.results.exportMenu.caption.terminator'),
-      },
-    }),
-    'copyCaptionSuccess',
-  );
+  const handleCopyData = (): Promise<void> =>
+    copyText(
+      'copyData',
+      serializeBfnResultTable({
+        project,
+        current: result,
+        ...(comparison ? { comparison } : {}),
+        delimiter: '\t',
+        bom: false,
+      }),
+      'copyDataSuccess',
+    );
+  const handleCopyCaption = (): Promise<void> =>
+    copyText(
+      'copyCaption',
+      createBfnFigureCaption({
+        project,
+        result,
+        model,
+        ...(comparison ? { comparison } : {}),
+        captionText: {
+          lead: t('bfn.results.exportMenu.caption.lead', {
+            demo: result.isDemo || project.isDemo ? t('bfn.results.exportMenu.caption.demo') : '',
+            mode: t(`bfn.modes.${result.mode}`),
+            yAxis: model.labels.y,
+            xAxis: model.labels.x,
+          }),
+          uncertainty: t('bfn.results.exportMenu.caption.uncertainty'),
+          annAccepted: t('bfn.results.exportMenu.caption.annAccepted'),
+          annRejected: t('bfn.results.exportMenu.caption.annRejected'),
+          comparison: t('bfn.results.exportMenu.caption.comparison'),
+          separator: t('bfn.results.exportMenu.caption.separator'),
+          terminator: t('bfn.results.exportMenu.caption.terminator'),
+        },
+      }),
+      'copyCaptionSuccess',
+    );
   const busy = operation !== null;
 
   return (
@@ -285,21 +287,39 @@ export function BfnExportMenu({
       <div className="bfn-export-menu__body">
         <div className="bfn-export-menu__group">
           <span>{t('bfn.results.exportMenu.downloadGroup')}</span>
-          <button type="button" disabled={busy} onClick={handleSvgDownload}>{t('bfn.results.exportMenu.downloadSvg')}</button>
-          <button type="button" disabled={busy} onClick={() => void handlePngDownload()}>{t('bfn.results.exportMenu.downloadPng')}</button>
-          <button type="button" disabled={busy} onClick={handleCsvDownload}>{t('bfn.results.exportMenu.downloadCsv')}</button>
+          <button type="button" disabled={busy} onClick={handleSvgDownload}>
+            {t('bfn.results.exportMenu.downloadSvg')}
+          </button>
+          <button type="button" disabled={busy} onClick={() => void handlePngDownload()}>
+            {t('bfn.results.exportMenu.downloadPng')}
+          </button>
+          <button type="button" disabled={busy} onClick={handleCsvDownload}>
+            {t('bfn.results.exportMenu.downloadCsv')}
+          </button>
         </div>
         <div className="bfn-export-menu__group">
           <span>{t('bfn.results.exportMenu.copyGroup')}</span>
-          <button type="button" disabled={busy || !clipboardCapabilities.imagePng} onClick={() => void handleCopyFigure()}>{t('bfn.results.exportMenu.copyFigure')}</button>
-          <button type="button" disabled={busy} onClick={() => void handleCopyData()}>{t('bfn.results.exportMenu.copyData')}</button>
-          <button type="button" disabled={busy} onClick={() => void handleCopyCaption()}>{t('bfn.results.exportMenu.copyCaption')}</button>
+          <button
+            type="button"
+            disabled={busy || !clipboardCapabilities.imagePng}
+            onClick={() => void handleCopyFigure()}
+          >
+            {t('bfn.results.exportMenu.copyFigure')}
+          </button>
+          <button type="button" disabled={busy} onClick={() => void handleCopyData()}>
+            {t('bfn.results.exportMenu.copyData')}
+          </button>
+          <button type="button" disabled={busy} onClick={() => void handleCopyCaption()}>
+            {t('bfn.results.exportMenu.copyCaption')}
+          </button>
         </div>
         {!clipboardCapabilities.imagePng ? (
           <p className="bfn-export-menu__hint">{t('bfn.results.exportMenu.imageUnsupported')}</p>
         ) : null}
         {feedback ? (
-          <p className="bfn-export-menu__feedback" role={feedback.kind}>{feedback.message}</p>
+          <p className="bfn-export-menu__feedback" role={feedback.kind}>
+            {feedback.message}
+          </p>
         ) : null}
       </div>
     </details>

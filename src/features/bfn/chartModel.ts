@@ -59,11 +59,17 @@ function positiveExtent(values: readonly number[], fallback: BfnChartDomain): Bf
   return [minimum, maximum];
 }
 
-function sourceForResult(project: CreateBfnChartModelInput['project'], result: BfnSimulationResult) {
+function sourceForResult(
+  project: CreateBfnChartModelInput['project'],
+  result: BfnSimulationResult,
+) {
   return project.network.inputSources.find((source) => source.id === result.primaryInputSourceId);
 }
 
-function monitorForResult(project: CreateBfnChartModelInput['project'], result: BfnSimulationResult) {
+function monitorForResult(
+  project: CreateBfnChartModelInput['project'],
+  result: BfnSimulationResult,
+) {
   return project.network.outputMonitors.find((monitor) => monitor.id === result.outputMonitorId);
 }
 
@@ -121,7 +127,9 @@ function filterIndexedPoints(
   points: readonly IndexedSimulationPoint[],
   domain: BfnChartDomain,
 ): IndexedSimulationPoint[] {
-  return points.filter(({ point }) => point.coordinate >= domain[0] && point.coordinate <= domain[1]);
+  return points.filter(
+    ({ point }) => point.coordinate >= domain[0] && point.coordinate <= domain[1],
+  );
 }
 
 function pointsForSeries(
@@ -209,11 +217,14 @@ function uncertaintySegments(
 function bandPath(segments: readonly UncertaintySegment[]): string {
   return segments
     .filter(({ upper, lower }) => upper.length > 0 && lower.length > 0)
-    .map(({ upper, lower }) => `${linePath(upper)} ${lower
-      .slice()
-      .reverse()
-      .map((point) => `L ${point.x} ${point.y}`)
-      .join(' ')} Z`)
+    .map(
+      ({ upper, lower }) =>
+        `${linePath(upper)} ${lower
+          .slice()
+          .reverse()
+          .map((point) => `L ${point.x} ${point.y}`)
+          .join(' ')} Z`,
+    )
     .join(' ');
 }
 
@@ -225,7 +236,10 @@ function visibilityFromState(state: CreateBfnChartModelInput['viewState']): BfnC
   };
 }
 
-function resultWithPoints(result: BfnSimulationResult, points: readonly BfnSimulationPoint[]): BfnSimulationResult {
+function resultWithPoints(
+  result: BfnSimulationResult,
+  points: readonly BfnSimulationPoint[],
+): BfnSimulationResult {
   return { ...result, points: [...points] };
 }
 
@@ -271,9 +285,10 @@ function seriesFor(
   mapX: (value: number) => number,
   mapY: (value: number) => number,
 ): BfnChartSeries {
-  const valueFor = kind === 'ann'
-    ? (point: BfnSimulationPoint) => annValue(result, point) ?? Number.NaN
-    : (point: BfnSimulationPoint) => point.output;
+  const valueFor =
+    kind === 'ann'
+      ? (point: BfnSimulationPoint) => annValue(result, point) ?? Number.NaN
+      : (point: BfnSimulationPoint) => point.output;
   const seriesPoints = pointsForSeries(points, valueFor, mapX, mapY);
   return {
     kind,
@@ -322,7 +337,9 @@ export function createBfnChartModel({
   const indexedResultPoints = indexSimulationPoints(result.points);
   const filteredIndexedResultPoints = filterIndexedPoints(indexedResultPoints, xDomain);
   const filteredResultPoints = filteredIndexedResultPoints.map(({ point }) => point);
-  const indexedComparisonPoints = comparisonResult ? indexSimulationPoints(comparisonResult.points) : [];
+  const indexedComparisonPoints = comparisonResult
+    ? indexSimulationPoints(comparisonResult.points)
+    : [];
   const filteredIndexedComparisonPoints = filterIndexedPoints(indexedComparisonPoints, xDomain);
   const filteredComparisonPoints = filteredIndexedComparisonPoints.map(({ point }) => point);
   const yValues = visibleYValues(
@@ -343,22 +360,32 @@ export function createBfnChartModel({
     true,
   );
   const yDomain = ySelection.domain;
-  const xLog = viewState.xScale === 'log'
-    ? xSelection.validation.valid
-      ? evaluateLogEligibility('x', xDomain, result, visible, comparison)
-      : withValidationAxis(xSelection.validation, 'x')
-    : ({ valid: true } as const);
-  const yLog = viewState.yScale === 'log'
-    ? ySelection.validation.valid
-      ? evaluateLogEligibility('y', xDomain, result, visible, comparison)
-      : withValidationAxis(ySelection.validation, 'y')
-    : ({ valid: true } as const);
+  const xLog =
+    viewState.xScale === 'log'
+      ? xSelection.validation.valid
+        ? evaluateLogEligibility('x', xDomain, result, visible, comparison)
+        : withValidationAxis(xSelection.validation, 'x')
+      : ({ valid: true } as const);
+  const yLog =
+    viewState.yScale === 'log'
+      ? ySelection.validation.valid
+        ? evaluateLogEligibility('y', xDomain, result, visible, comparison)
+        : withValidationAxis(ySelection.validation, 'y')
+      : ({ valid: true } as const);
   const appliedXScale: BfnChartScale = viewState.xScale === 'log' && xLog.valid ? 'log' : 'linear';
   const appliedYScale: BfnChartScale = viewState.yScale === 'log' && yLog.valid ? 'log' : 'linear';
   const innerWidth = Math.max(1, geometry.width - geometry.padding.left - geometry.padding.right);
   const innerHeight = Math.max(1, geometry.height - geometry.padding.top - geometry.padding.bottom);
-  const xScale = createScale(xDomain, [geometry.padding.left, geometry.padding.left + innerWidth], appliedXScale);
-  const yScale = createScale(yDomain, [geometry.padding.top + innerHeight, geometry.padding.top], appliedYScale);
+  const xScale = createScale(
+    xDomain,
+    [geometry.padding.left, geometry.padding.left + innerWidth],
+    appliedXScale,
+  );
+  const yScale = createScale(
+    yDomain,
+    [geometry.padding.top + innerHeight, geometry.padding.top],
+    appliedYScale,
+  );
   const mapX = (value: number): number => xScale.map(value);
   const mapY = (value: number): number => yScale.map(value);
   const labels = {
@@ -367,10 +394,12 @@ export function createBfnChartModel({
         ? fallbackTranslation(translate, 'bfn.results.timeAxis', 'Time (hours)')
         : source
           ? `${source.outputPort.entity} (${source.outputPort.unit})`
-          : result.primaryInputSourceId || fallbackTranslation(translate, 'bfn.results.inputAxis', 'Input'),
+          : result.primaryInputSourceId ||
+            fallbackTranslation(translate, 'bfn.results.inputAxis', 'Input'),
     y: monitor
       ? `${monitor.inputPort.entity} (${monitor.inputPort.unit})`
-      : result.outputMonitorId || fallbackTranslation(translate, 'bfn.results.outputAxis', 'Output'),
+      : result.outputMonitorId ||
+        fallbackTranslation(translate, 'bfn.results.outputAxis', 'Output'),
     ...(source ? { xEntity: source.outputPort.entity, xUnit: source.outputPort.unit } : {}),
     ...(monitor ? { yEntity: monitor.inputPort.entity, yUnit: monitor.inputPort.unit } : {}),
   };
@@ -389,7 +418,7 @@ export function createBfnChartModel({
       )
     : undefined;
   const uncertaintySeries = viewState.showUncertainty
-      ? (() => {
+    ? (() => {
         const segments = uncertaintySegments(fullPoints, mapX, mapY);
         const upper = segments.flatMap(({ upper: segmentUpper }) => segmentUpper);
         const path = bandPath(segments);
@@ -404,54 +433,79 @@ export function createBfnChartModel({
         };
       })()
     : undefined;
-  const annSeries = viewState.showAnn && result.annApproximation
-    ? seriesFor('ann', fallbackTranslation(translate, 'bfn.results.annOverlay', 'ANN approximation'), result, fullPoints, mapX, mapY)
-    : undefined;
+  const annSeries =
+    viewState.showAnn && result.annApproximation
+      ? seriesFor(
+          'ann',
+          fallbackTranslation(translate, 'bfn.results.annOverlay', 'ANN approximation'),
+          result,
+          fullPoints,
+          mapX,
+          mapY,
+        )
+      : undefined;
   const comparisonSeries = comparison
-    ? seriesFor('comparison', comparison.label, comparison.result, filteredIndexedComparisonPoints, mapX, mapY)
+    ? seriesFor(
+        'comparison',
+        comparison.label,
+        comparison.result,
+        filteredIndexedComparisonPoints,
+        mapX,
+        mapY,
+      )
     : undefined;
 
-  const cursorPoint = viewState.cursorIndex === null ? undefined : result.points[viewState.cursorIndex];
-  const cursor = cursorPoint && viewState.cursorIndex !== null && cursorPoint.coordinate >= xDomain[0] && cursorPoint.coordinate <= xDomain[1]
-    ? (() => {
-        const x = mapX(cursorPoint.coordinate);
-        const y = mapY(cursorPoint.output);
-        const nearestComparison = comparisonResult && coordinateValidation.comparison?.valid
-          ? nearestBfnPointOnValidatedGrid(comparisonResult.points, cursorPoint.coordinate)
-          : null;
-        const comparisonCursor = nearestComparison &&
-          nearestComparison.point.coordinate >= xDomain[0] &&
-          nearestComparison.point.coordinate <= xDomain[1]
-          ? (() => {
-              const comparisonX = mapX(nearestComparison.point.coordinate);
-              const comparisonY = mapY(nearestComparison.point.output);
-              return Number.isFinite(comparisonX) && Number.isFinite(comparisonY)
-                ? {
-                    index: nearestComparison.index,
-                    coordinate: nearestComparison.point.coordinate,
-                    x: comparisonX,
-                    y: comparisonY,
-                    point: nearestComparison.point,
-                    value: nearestComparison.point.output,
-                  }
-                : undefined;
-            })()
-          : undefined;
-        return Number.isFinite(cursorPoint.coordinate) && Number.isFinite(cursorPoint.output) && Number.isFinite(x) && Number.isFinite(y)
-          ? {
-              index: viewState.cursorIndex,
-              coordinate: cursorPoint.coordinate,
-              x,
-              y,
-              point: cursorPoint,
-              value: cursorPoint.output,
-              lower: cursorPoint.lower,
-              upper: cursorPoint.upper,
-              ...(comparisonCursor ? { comparison: comparisonCursor } : {}),
-            }
-          : undefined;
-      })()
-    : undefined;
+  const cursorPoint =
+    viewState.cursorIndex === null ? undefined : result.points[viewState.cursorIndex];
+  const cursor =
+    cursorPoint &&
+    viewState.cursorIndex !== null &&
+    cursorPoint.coordinate >= xDomain[0] &&
+    cursorPoint.coordinate <= xDomain[1]
+      ? (() => {
+          const x = mapX(cursorPoint.coordinate);
+          const y = mapY(cursorPoint.output);
+          const nearestComparison =
+            comparisonResult && coordinateValidation.comparison?.valid
+              ? nearestBfnPointOnValidatedGrid(comparisonResult.points, cursorPoint.coordinate)
+              : null;
+          const comparisonCursor =
+            nearestComparison &&
+            nearestComparison.point.coordinate >= xDomain[0] &&
+            nearestComparison.point.coordinate <= xDomain[1]
+              ? (() => {
+                  const comparisonX = mapX(nearestComparison.point.coordinate);
+                  const comparisonY = mapY(nearestComparison.point.output);
+                  return Number.isFinite(comparisonX) && Number.isFinite(comparisonY)
+                    ? {
+                        index: nearestComparison.index,
+                        coordinate: nearestComparison.point.coordinate,
+                        x: comparisonX,
+                        y: comparisonY,
+                        point: nearestComparison.point,
+                        value: nearestComparison.point.output,
+                      }
+                    : undefined;
+                })()
+              : undefined;
+          return Number.isFinite(cursorPoint.coordinate) &&
+            Number.isFinite(cursorPoint.output) &&
+            Number.isFinite(x) &&
+            Number.isFinite(y)
+            ? {
+                index: viewState.cursorIndex,
+                coordinate: cursorPoint.coordinate,
+                x,
+                y,
+                point: cursorPoint,
+                value: cursorPoint.output,
+                lower: cursorPoint.lower,
+                upper: cursorPoint.upper,
+                ...(comparisonCursor ? { comparison: comparisonCursor } : {}),
+              }
+            : undefined;
+        })()
+      : undefined;
   return {
     geometry,
     labels,

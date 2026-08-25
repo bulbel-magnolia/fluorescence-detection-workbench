@@ -51,7 +51,9 @@ describe('publication figure export', () => {
     expect(svg).toContain('<svg');
     expect(svg).toContain('viewBox="0 0 760 300"');
     expect(svg).toContain('<title id="bfn-figure-title">Response &lt;A&amp;B&gt;</title>');
-    expect(svg).toContain('<desc id="bfn-figure-description">A &quot;publication&quot; figure</desc>');
+    expect(svg).toContain(
+      '<desc id="bfn-figure-description">A &quot;publication&quot; figure</desc>',
+    );
     expect(svg).toMatch(/<rect[^>]+fill="#ffffff"/);
     expect(svg).toContain('font-family="Arial, Helvetica, sans-serif"');
     expect(svg).toContain('data-series="full"');
@@ -126,17 +128,21 @@ describe('raw table export', () => {
       outputPort: { ...project.network.inputSources[0]!.outputPort, id: 'secondary-output' },
     });
     const precise = 0.12345678901234566;
-    result.points = [{
-      ...result.points[0]!,
-      inputs: { 'source-ahl': 5, 'orphan-z': 9, 'orphan-a': 7 },
-      moduleOutputs: { 'module-ahl-sensor': precise, 'orphan-module-z': 3, 'orphan-module-a': 2 },
-      output: precise,
-    }];
-    comparison.result.points = [{
-      ...comparison.result.points[0]!,
-      inputs: { 'source-ahl': 6, 'orphan-b': 8 },
-      moduleOutputs: { reporter: 0.5 },
-    }];
+    result.points = [
+      {
+        ...result.points[0]!,
+        inputs: { 'source-ahl': 5, 'orphan-z': 9, 'orphan-a': 7 },
+        moduleOutputs: { 'module-ahl-sensor': precise, 'orphan-module-z': 3, 'orphan-module-a': 2 },
+        output: precise,
+      },
+    ];
+    comparison.result.points = [
+      {
+        ...comparison.result.points[0]!,
+        inputs: { 'source-ahl': 6, 'orphan-b': 8 },
+        moduleOutputs: { reporter: 0.5 },
+      },
+    ];
 
     const csv = serializeBfnResultTable({
       project,
@@ -146,15 +152,34 @@ describe('raw table export', () => {
       bom: true,
     });
     const [header, currentRow, comparisonRow] = csv.slice(1).trimEnd().split('\r\n');
-    if (!header || !currentRow || !comparisonRow) throw new Error('Expected header, current, and comparison rows');
+    if (!header || !currentRow || !comparisonRow)
+      throw new Error('Expected header, current, and comparison rows');
 
     expect(csv.charCodeAt(0)).toBe(0xfeff);
-    expect(header).toBe([
-      'run_id', 'run_role', 'completed_at', 'mode', 'coordinate', 'time_hours',
-      'input:source-ahl', '"input:source,secondary"', 'input:orphan-a', 'input:orphan-b', 'input:orphan-z',
-      'module:module-ahl-sensor', 'module:module-reporter', 'module:orphan-module-a', 'module:orphan-module-z', 'module:reporter',
-      'output', 'lower', 'upper', 'extrapolated',
-    ].join(','));
+    expect(header).toBe(
+      [
+        'run_id',
+        'run_role',
+        'completed_at',
+        'mode',
+        'coordinate',
+        'time_hours',
+        'input:source-ahl',
+        '"input:source,secondary"',
+        'input:orphan-a',
+        'input:orphan-b',
+        'input:orphan-z',
+        'module:module-ahl-sensor',
+        'module:module-reporter',
+        'module:orphan-module-a',
+        'module:orphan-module-z',
+        'module:reporter',
+        'output',
+        'lower',
+        'upper',
+        'extrapolated',
+      ].join(','),
+    );
     expect(currentRow).toContain(`,current,`);
     expect(comparisonRow).toContain(`,comparison,`);
     expect(currentRow).toContain(String(precise));
@@ -177,7 +202,9 @@ describe('raw table export', () => {
     expect(tsv.split('\r\n')[0]).toContain('\tinput:source-ahl\tmodule:module-ahl-sensor');
     expect(tsv).toContain('\tcurrent\t');
     expect(tsv).toContain('\tcomparison\t');
-    expect(tsv.split('\r\n')).toHaveLength(result.points.length + comparison.result.points.length + 2);
+    expect(tsv.split('\r\n')).toHaveLength(
+      result.points.length + comparison.result.points.length + 2,
+    );
   });
 });
 
@@ -187,18 +214,27 @@ describe('export metadata helpers', () => {
     project.id = 'CON: project / alpha?';
     project.network.id = 'network*one|two';
 
-    expect(createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' })).toBe(
-      'CON-project-alpha_network-one-two_static_2026-08-25T120500Z_response.svg',
-    );
-    expect(createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }))
-      .not.toMatch(/[\\/:*?"<>|]/);
+    expect(
+      createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }),
+    ).toBe('CON-project-alpha_network-one-two_static_2026-08-25T120500Z_response.svg');
+    expect(
+      createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }),
+    ).not.toMatch(/[\\/:*?"<>|]/);
 
     project.id = 'CON.txt';
-    expect(createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }))
-      .toMatch(/^bfn-CON\.txt_/);
+    expect(
+      createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }),
+    ).toMatch(/^bfn-CON\.txt_/);
     project.id = `alpha${String.fromCharCode(1)}beta`;
-    const controlSafeFilename = createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' });
-    expect(Array.from(controlSafeFilename).some((character) => character.charCodeAt(0) <= 0x1f)).toBe(false);
+    const controlSafeFilename = createBfnExportFilename({
+      project,
+      result,
+      artifact: 'response',
+      extension: 'svg',
+    });
+    expect(
+      Array.from(controlSafeFilename).some((character) => character.charCodeAt(0) <= 0x1f),
+    ).toBe(false);
   });
 
   it('describes only known figure semantics and provenance fields', () => {
@@ -235,7 +271,12 @@ describe('export metadata helpers', () => {
       geometry,
       translate: (key) => key,
     });
-    const hiddenCaption = createBfnFigureCaption({ project, result, model: hiddenModel, comparison });
+    const hiddenCaption = createBfnFigureCaption({
+      project,
+      result,
+      model: hiddenModel,
+      comparison,
+    });
     expect(hiddenCaption).not.toContain('uncertainty is shown');
     expect(hiddenCaption).not.toContain('ANN approximation passed');
     expect(hiddenCaption).toContain('historical result is shown for comparison');
@@ -247,14 +288,21 @@ describe('export metadata helpers', () => {
       geometry,
       translate: (key) => key,
     });
-    const noComparisonCaption = createBfnFigureCaption({ project, result, model: noComparisonModel, comparison });
+    const noComparisonCaption = createBfnFigureCaption({
+      project,
+      result,
+      model: noComparisonModel,
+      comparison,
+    });
     expect(noComparisonCaption).not.toContain('historical result is shown for comparison');
 
     result.points = [
       { ...result.points[0]!, coordinate: 2, inputs: { 'source-ahl': 2 }, timeHours: 0 },
       { ...result.points[0]!, coordinate: 4, inputs: { 'source-ahl': 4 }, timeHours: 3.5 },
     ];
-    const rangeValues = Object.fromEntries(createBfnProvenanceRows({ result }).map((row) => [row.key, row.value]));
+    const rangeValues = Object.fromEntries(
+      createBfnProvenanceRows({ result }).map((row) => [row.key, row.value]),
+    );
     expect(rangeValues.primary_input_range).toBe('2–4');
     expect(rangeValues.time_range_hours).toBe('0–3.5');
   });

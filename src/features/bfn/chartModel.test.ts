@@ -26,10 +26,18 @@ describe('createBfnChartModel', () => {
 
     expect(model.labels.x).toContain('3OC6-HSL');
     expect(model.labels.y).toContain('normalized_reporter_expression');
-    expect(model.domains.x[0]).toBeLessThanOrEqual(result.points[0]?.coordinate ?? Number.POSITIVE_INFINITY);
-    expect(model.domains.x[1]).toBeGreaterThanOrEqual(result.points.at(-1)?.coordinate ?? Number.NEGATIVE_INFINITY);
-    expect(model.domains.y[0]).toBeLessThanOrEqual(result.points[0]?.lower ?? Number.POSITIVE_INFINITY);
-    expect(model.domains.y[1]).toBeGreaterThanOrEqual(result.points.at(-1)?.upper ?? Number.NEGATIVE_INFINITY);
+    expect(model.domains.x[0]).toBeLessThanOrEqual(
+      result.points[0]?.coordinate ?? Number.POSITIVE_INFINITY,
+    );
+    expect(model.domains.x[1]).toBeGreaterThanOrEqual(
+      result.points.at(-1)?.coordinate ?? Number.NEGATIVE_INFINITY,
+    );
+    expect(model.domains.y[0]).toBeLessThanOrEqual(
+      result.points[0]?.lower ?? Number.POSITIVE_INFINITY,
+    );
+    expect(model.domains.y[1]).toBeGreaterThanOrEqual(
+      result.points.at(-1)?.upper ?? Number.NEGATIVE_INFINITY,
+    );
     expect(model.series.full?.path.startsWith('M ')).toBe(true);
     expect(model.series.uncertainty?.path.endsWith('Z')).toBe(true);
     expect(model.series.ann?.path.startsWith('M ')).toBe(true);
@@ -76,13 +84,15 @@ describe('createBfnChartModel', () => {
       showUncertainty: false,
       showAnn: false,
     };
-    expect(() => createBfnChartModel({
-      project,
-      result: yResult,
-      viewState: yViewState,
-      geometry,
-      translate: (key: string) => key,
-    })).not.toThrow();
+    expect(() =>
+      createBfnChartModel({
+        project,
+        result: yResult,
+        viewState: yViewState,
+        geometry,
+        translate: (key: string) => key,
+      }),
+    ).not.toThrow();
     const yModel = createBfnChartModel({
       project,
       result: yResult,
@@ -251,7 +261,9 @@ describe('createBfnChartModel', () => {
       translate: (key: string) => key,
     });
     const paths = [model.series.full?.path, model.series.uncertainty?.path, model.series.ann?.path];
-    expect(paths.every((path) => typeof path === 'string' && !/NaN|Infinity/.test(path))).toBe(true);
+    expect(paths.every((path) => typeof path === 'string' && !/NaN|Infinity/.test(path))).toBe(
+      true,
+    );
     expect(model.domains.y[0]).toBeLessThanOrEqual(-2);
     expect(model.domains.y[1]).toBeGreaterThanOrEqual(2);
     expect(model.cursor).toBeDefined();
@@ -259,7 +271,11 @@ describe('createBfnChartModel', () => {
     expect(Number.isFinite(model.cursor?.y)).toBe(true);
     expect(model.requestedScales.y).toBe('log');
     expect(model.scales.y.scale).toBe('linear');
-    expect(model.validation.yLog).toMatchObject({ valid: false, reason: 'non_positive_visible_value', axis: 'y' });
+    expect(model.validation.yLog).toMatchObject({
+      valid: false,
+      reason: 'non_positive_visible_value',
+      axis: 'y',
+    });
   });
 
   it('preserves source indices after manual X-domain filtering', () => {
@@ -267,7 +283,8 @@ describe('createBfnChartModel', () => {
     const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
     const firstVisibleCoordinate = result.points[1]?.coordinate;
     const lastCoordinate = result.points.at(-1)?.coordinate;
-    if (firstVisibleCoordinate === undefined || lastCoordinate === undefined) throw new Error('Expected demo points');
+    if (firstVisibleCoordinate === undefined || lastCoordinate === undefined)
+      throw new Error('Expected demo points');
     const model = createBfnChartModel({
       project,
       result,

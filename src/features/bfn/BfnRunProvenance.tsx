@@ -45,19 +45,32 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
     [
       'primaryInputRange',
       hasPrimaryInputRange
-        ? provenance.primary_input_range ?? t('bfn.results.provenance.notAvailable')
+        ? (provenance.primary_input_range ?? t('bfn.results.provenance.notAvailable'))
         : t('bfn.results.provenance.notAvailable'),
     ],
     [
       'timeRangeHours',
       hasTimeRange
-        ? provenance.time_range_hours ?? t('bfn.results.provenance.notAvailable')
+        ? (provenance.time_range_hours ?? t('bfn.results.provenance.notAvailable'))
         : t('bfn.results.provenance.notAvailable'),
     ],
-    ['modelVersions', result.modelVersions.length ? result.modelVersions.join(' · ') : t('bfn.results.provenance.notAvailable')],
-    ['contextIds', result.contextIds.length ? result.contextIds.join(' · ') : t('bfn.results.provenance.notAvailable')],
+    [
+      'modelVersions',
+      result.modelVersions.length
+        ? result.modelVersions.join(' · ')
+        : t('bfn.results.provenance.notAvailable'),
+    ],
+    [
+      'contextIds',
+      result.contextIds.length
+        ? result.contextIds.join(' · ')
+        : t('bfn.results.provenance.notAvailable'),
+    ],
     ['uncertaintyMethod', t(uncertaintyMethodKeys[result.uncertaintyMethod])],
-    ['extrapolated', t(result.extrapolated ? 'bfn.results.provenance.yes' : 'bfn.results.provenance.no')],
+    [
+      'extrapolated',
+      t(result.extrapolated ? 'bfn.results.provenance.yes' : 'bfn.results.provenance.no'),
+    ],
     ['isDemo', t(result.isDemo ? 'bfn.results.provenance.yes' : 'bfn.results.provenance.no')],
     ['experimentalValidity', t(experimentalValidityKeys[result.experimentalValidity])],
     ['annApproximation', annValue],

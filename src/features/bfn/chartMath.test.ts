@@ -29,7 +29,12 @@ function resultWithPoints(points: BfnSimulationPoint[]): BfnSimulationResult {
       inputSourceIds: ['source-test'],
       weights: [0.1],
       effectiveIntercept: 0.2,
-      metrics: { r2: 0.99, nrmse: 0.01, maximumAbsoluteError: 0.1, predictionIntervalCoverage: 0.95 },
+      metrics: {
+        r2: 0.99,
+        nrmse: 0.01,
+        maximumAbsoluteError: 0.1,
+        predictionIntervalCoverage: 0.95,
+      },
       thresholds: { minimumR2: 0.9, maximumNrmse: 0.1 },
       status: 'accepted',
       representation: 'ann_affine_approximation',
@@ -92,7 +97,9 @@ describe('chart math', () => {
       valid: false,
       reason: 'coordinates_must_be_finite_and_ascending',
     });
-    expect(validateChartCoordinates([{ coordinate: 1 }, { coordinate: 4 }])).toEqual({ valid: true });
+    expect(validateChartCoordinates([{ coordinate: 1 }, { coordinate: 4 }])).toEqual({
+      valid: true,
+    });
   }, 250);
 
   it('validates manual domains and positive log domains', () => {
@@ -120,8 +127,24 @@ describe('chart math', () => {
 
   it('filters points by an active domain and keeps normalized linear output in 0-1', () => {
     const result = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 0.2, lower: 0.1, upper: 0.3, extrapolated: false },
-      { coordinate: 10, inputs: { 'source-test': 10 }, moduleOutputs: {}, output: 0.8, lower: 0.7, upper: 0.9, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 0.2,
+        lower: 0.1,
+        upper: 0.3,
+        extrapolated: false,
+      },
+      {
+        coordinate: 10,
+        inputs: { 'source-test': 10 },
+        moduleOutputs: {},
+        output: 0.8,
+        lower: 0.7,
+        upper: 0.9,
+        extrapolated: false,
+      },
     ]);
     expect(filterPointsInDomain(result.points, [2, 9])).toHaveLength(0);
     expect(
@@ -134,11 +157,35 @@ describe('chart math', () => {
 
   it('expands linear domains for actual out-of-range values and includes visible ANN/comparison values', () => {
     const result = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 0.2, lower: -0.1, upper: 0.4, extrapolated: false },
-      { coordinate: 10, inputs: { 'source-test': 10 }, moduleOutputs: {}, output: 1.8, lower: 1.5, upper: 2, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 0.2,
+        lower: -0.1,
+        upper: 0.4,
+        extrapolated: false,
+      },
+      {
+        coordinate: 10,
+        inputs: { 'source-test': 10 },
+        moduleOutputs: {},
+        output: 1.8,
+        lower: 1.5,
+        upper: 2,
+        extrapolated: false,
+      },
     ]);
     const comparison = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 4, lower: 4, upper: 4, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 4,
+        lower: 4,
+        upper: 4,
+        extrapolated: false,
+      },
     ]);
     const values = visibleYValues(result, visibility, { result: comparison, label: 'comparison' });
     expect(values.find((value) => Math.abs(value - 0.3) < 1e-9)).toBeDefined();
@@ -150,28 +197,92 @@ describe('chart math', () => {
 
   it('allows a manual X domain to exclude non-positive points for log X', () => {
     const result = resultWithPoints([
-      { coordinate: -1, inputs: { 'source-test': -1 }, moduleOutputs: {}, output: 0.2, lower: 0.1, upper: 0.3, extrapolated: false },
-      { coordinate: 0, inputs: { 'source-test': 0 }, moduleOutputs: {}, output: 0.3, lower: 0.2, upper: 0.4, extrapolated: false },
-      { coordinate: 10, inputs: { 'source-test': 10 }, moduleOutputs: {}, output: 0.8, lower: 0.7, upper: 0.9, extrapolated: false },
+      {
+        coordinate: -1,
+        inputs: { 'source-test': -1 },
+        moduleOutputs: {},
+        output: 0.2,
+        lower: 0.1,
+        upper: 0.3,
+        extrapolated: false,
+      },
+      {
+        coordinate: 0,
+        inputs: { 'source-test': 0 },
+        moduleOutputs: {},
+        output: 0.3,
+        lower: 0.2,
+        upper: 0.4,
+        extrapolated: false,
+      },
+      {
+        coordinate: 10,
+        inputs: { 'source-test': 10 },
+        moduleOutputs: {},
+        output: 0.8,
+        lower: 0.7,
+        upper: 0.9,
+        extrapolated: false,
+      },
     ]);
     expect(evaluateLogEligibility('x', [1, 20], result, visibility)).toEqual({ valid: true });
-    expect(evaluateLogEligibility('x', [-2, 20], result, visibility)).toMatchObject({ valid: false });
+    expect(evaluateLogEligibility('x', [-2, 20], result, visibility)).toMatchObject({
+      valid: false,
+    });
   });
 
   it('does not let hidden uncertainty block a log Y axis', () => {
     const result = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 10, lower: -1, upper: 20, extrapolated: false },
-      { coordinate: 2, inputs: { 'source-test': 2 }, moduleOutputs: {}, output: 20, lower: -2, upper: 30, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 10,
+        lower: -1,
+        upper: 20,
+        extrapolated: false,
+      },
+      {
+        coordinate: 2,
+        inputs: { 'source-test': 2 },
+        moduleOutputs: {},
+        output: 20,
+        lower: -2,
+        upper: 30,
+        extrapolated: false,
+      },
     ]);
-    expect(evaluateLogEligibility('y', [1, 2], result, { showFullModel: true, showUncertainty: false, showAnn: false })).toEqual({ valid: true });
+    expect(
+      evaluateLogEligibility('y', [1, 2], result, {
+        showFullModel: true,
+        showUncertainty: false,
+        showAnn: false,
+      }),
+    ).toEqual({ valid: true });
   });
 
   it('treats the visible comparison line as eligible when current Y series are hidden', () => {
     const result = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 10, lower: 8, upper: 12, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 10,
+        lower: 8,
+        upper: 12,
+        extrapolated: false,
+      },
     ]);
     const comparison = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 20, lower: 18, upper: 22, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 20,
+        lower: 18,
+        upper: 22,
+        extrapolated: false,
+      },
     ]);
     expect(
       evaluateLogEligibility(
@@ -187,7 +298,15 @@ describe('chart math', () => {
   it('does not count an unavailable ANN as visible X data', () => {
     const result = {
       ...resultWithPoints([
-        { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 10, lower: 8, upper: 12, extrapolated: false },
+        {
+          coordinate: 1,
+          inputs: { 'source-test': 1 },
+          moduleOutputs: {},
+          output: 10,
+          lower: 8,
+          upper: 12,
+          extrapolated: false,
+        },
       ]),
       annApproximation: null,
     };
@@ -209,7 +328,13 @@ describe('chart math', () => {
       valid: false,
       reason: 'minimum_not_less_than_maximum',
     });
-    expect(resolveAutoDomain([], { scale: 'linear', fallback: [Number.NEGATIVE_INFINITY, 1], detailed: true })).toEqual({
+    expect(
+      resolveAutoDomain([], {
+        scale: 'linear',
+        fallback: [Number.NEGATIVE_INFINITY, 1],
+        detailed: true,
+      }),
+    ).toEqual({
       valid: false,
       reason: 'domain_values_must_be_finite',
     });
@@ -217,9 +342,23 @@ describe('chart math', () => {
 
   it('rejects visible negative uncertainty and ANN values without transforming them', () => {
     const negativeUncertainty = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 10, lower: -1, upper: 20, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': 1 },
+        moduleOutputs: {},
+        output: 10,
+        lower: -1,
+        upper: 20,
+        extrapolated: false,
+      },
     ]);
-    expect(visibleYValues(negativeUncertainty, { showFullModel: false, showUncertainty: true, showAnn: false })).toContain(-1);
+    expect(
+      visibleYValues(negativeUncertainty, {
+        showFullModel: false,
+        showUncertainty: true,
+        showAnn: false,
+      }),
+    ).toContain(-1);
     expect(
       evaluateLogEligibility('y', [1, 2], negativeUncertainty, {
         showFullModel: false,
@@ -229,7 +368,15 @@ describe('chart math', () => {
     ).toEqual({ valid: false, reason: 'non_positive_visible_value', axis: 'y', value: -1 });
 
     const negativeAnn = resultWithPoints([
-      { coordinate: 1, inputs: { 'source-test': -10 }, moduleOutputs: {}, output: 10, lower: 8, upper: 12, extrapolated: false },
+      {
+        coordinate: 1,
+        inputs: { 'source-test': -10 },
+        moduleOutputs: {},
+        output: 10,
+        lower: 8,
+        upper: 12,
+        extrapolated: false,
+      },
     ]);
     const annEligibility = evaluateLogEligibility('y', [1, 2], negativeAnn, {
       showFullModel: false,
