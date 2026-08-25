@@ -135,9 +135,14 @@ export interface BfnChartModel {
     x: BfnChartDomain;
     y: BfnChartDomain;
   };
+  /** Scale functions applied to geometry; requestedScales preserves the user request when a fallback is used. */
   scales: {
     x: BfnChartScaleFunctions;
     y: BfnChartScaleFunctions;
+  };
+  requestedScales: {
+    x: BfnChartScale;
+    y: BfnChartScale;
   };
   ticks: {
     x: readonly BfnChartTick[];

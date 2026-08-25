@@ -214,4 +214,70 @@ describe('createBfnChartModel', () => {
     expect(missingIdModel.labels.x).toBe('Input');
     expect(missingIdModel.labels.y).toBe('Output');
   });
+
+  it('keeps invalid-log paths and cursor geometry finite while exposing requested and applied scales', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const approximation = result.annApproximation;
+    if (!approximation) throw new Error('Expected demo result ANN approximation');
+    const sourceId = result.primaryInputSourceId;
+    const invalidResult = {
+      ...result,
+      points: result.points.slice(0, 2).map((point, index) => ({
+        ...point,
+        inputs: { [sourceId]: index === 0 ? 1 : -1 },
+        output: index === 0 ? 1 : -1,
+        lower: index === 0 ? 0.5 : -2,
+        upper: index === 0 ? 2 : -0.5,
+      })),
+      annApproximation: {
+        ...approximation,
+        inputSourceIds: [sourceId],
+        weights: [1],
+        effectiveIntercept: 0,
+      },
+    };
+    const model = createBfnChartModel({
+      project,
+      result: invalidResult,
+      viewState: {
+        ...defaultBfnChartViewState(invalidResult),
+        yScale: 'log',
+        cursorIndex: 1,
+      },
+      geometry,
+      translate: (key: string) => key,
+    });
+    const paths = [model.series.full?.path, model.series.uncertainty?.path, model.series.ann?.path];
+    expect(paths.every((path) => typeof path === 'string' && !/NaN|Infinity/.test(path))).toBe(true);
+    expect(model.cursor).toBeDefined();
+    expect(Number.isFinite(model.cursor?.x)).toBe(true);
+    expect(Number.isFinite(model.cursor?.y)).toBe(true);
+    expect(model.requestedScales.y).toBe('log');
+    expect(model.scales.y.scale).toBe('linear');
+    expect(model.validation.yLog).toMatchObject({ valid: false, reason: 'non_positive_visible_value', axis: 'y' });
+  });
+
+  it('preserves source indices after manual X-domain filtering', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const firstVisibleCoordinate = result.points[1]?.coordinate;
+    const lastCoordinate = result.points.at(-1)?.coordinate;
+    if (firstVisibleCoordinate === undefined || lastCoordinate === undefined) throw new Error('Expected demo points');
+    const model = createBfnChartModel({
+      project,
+      result,
+      viewState: {
+        ...defaultBfnChartViewState(result),
+        xDomainMode: 'manual',
+        xMinimum: firstVisibleCoordinate,
+        xMaximum: lastCoordinate,
+      },
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(model.series.full?.points[0]?.index).toBe(1);
+    expect(model.series.uncertainty?.points[0]?.index).toBe(1);
+    expect(model.series.ann?.points[0]?.index).toBe(1);
+  });
 });

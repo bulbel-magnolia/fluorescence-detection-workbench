@@ -118,7 +118,9 @@ export function nearestPointIndex(
   points: readonly ChartCoordinate[],
   coordinate: number,
 ): number {
-  if (points.length === 0) return -1;
+  if (!Number.isFinite(coordinate) || points.length === 0 || points.some((point) => !Number.isFinite(point.coordinate))) {
+    return -1;
+  }
   let low = 0;
   let high = points.length - 1;
   while (low <= high) {
@@ -234,6 +236,8 @@ function makeDomainResult(
 ): BfnChartDomainResolution {
   const scale = options.scale ?? 'linear';
   const fallback = options.fallback ?? (scale === 'log' ? [1, 10] : [0, 1]);
+  const fallbackValidation = validateManualDomain(fallback, scale);
+  if (!fallbackValidation.valid) return { valid: false, reason: fallbackValidation.reason };
   const finite = finiteValues(values);
   if (finite.length === 0) return { valid: true, domain: fallback };
   if (scale === 'log') {
@@ -289,7 +293,8 @@ function visibleCoordinates(
   result: BfnSimulationResult,
   visibility: BfnChartVisibility | undefined,
 ): number[] {
-  if (!visibilityFlag(visibility, 'full') && !visibilityFlag(visibility, 'uncertainty') && !visibilityFlag(visibility, 'ann')) {
+  const annVisible = visibilityFlag(visibility, 'ann') && result.annApproximation !== null;
+  if (!visibilityFlag(visibility, 'full') && !visibilityFlag(visibility, 'uncertainty') && !annVisible) {
     return [];
   }
   return result.points.map((point) => point.coordinate);

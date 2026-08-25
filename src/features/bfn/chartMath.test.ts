@@ -65,6 +65,11 @@ describe('chart math', () => {
     expect(nearestPointIndex(points, 4)).toBe(1);
   });
 
+  it('rejects nonfinite nearest-point queries and coordinates', () => {
+    expect(nearestPointIndex([{ coordinate: 1 }, { coordinate: 4 }], Number.NaN)).toBe(-1);
+    expect(nearestPointIndex([{ coordinate: Number.NaN }], 1)).toBe(-1);
+  }, 250);
+
   it('validates manual domains and positive log domains', () => {
     expect(validateManualDomain({ minimum: 2, maximum: 1 }, 'linear')).toEqual({
       valid: false,
@@ -152,6 +157,37 @@ describe('chart math', () => {
         { result: comparison, label: 'prior run' },
       ),
     ).toEqual({ valid: true });
+  });
+
+  it('does not count an unavailable ANN as visible X data', () => {
+    const result = {
+      ...resultWithPoints([
+        { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 10, lower: 8, upper: 12, extrapolated: false },
+      ]),
+      annApproximation: null,
+    };
+    expect(
+      evaluateLogEligibility('x', [1, 2], result, {
+        showFullModel: false,
+        showUncertainty: false,
+        showAnn: true,
+      }),
+    ).toEqual({ valid: false, reason: 'no_visible_values', axis: 'x' });
+  });
+
+  it('rejects invalid auto-domain fallbacks for the requested scale', () => {
+    expect(resolveAutoDomain([], { scale: 'log', fallback: [0, 1], detailed: true })).toEqual({
+      valid: false,
+      reason: 'log_domain_requires_positive_values',
+    });
+    expect(resolveAutoDomain([], { scale: 'linear', fallback: [2, 1], detailed: true })).toEqual({
+      valid: false,
+      reason: 'minimum_not_less_than_maximum',
+    });
+    expect(resolveAutoDomain([], { scale: 'linear', fallback: [Number.NEGATIVE_INFINITY, 1], detailed: true })).toEqual({
+      valid: false,
+      reason: 'domain_values_must_be_finite',
+    });
   });
 
   it('rejects visible negative uncertainty and ANN values without transforming them', () => {

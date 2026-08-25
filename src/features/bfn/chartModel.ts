@@ -113,13 +113,27 @@ function pointsForSeries(
   mapX: (value: number) => number,
   mapY: (value: number) => number,
 ): BfnChartSeriesPoint[] {
-  return points.map((point, index) => ({
-    index,
-    coordinate: point.coordinate,
-    value: valueFor(point),
-    x: mapX(point.coordinate),
-    y: mapY(valueFor(point)),
-  }));
+  return points
+    .map((point, index) => {
+      const value = valueFor(point);
+      const x = mapX(point.coordinate);
+      const y = mapY(value);
+      const sourceIndex = result.points.indexOf(point);
+      return {
+        index: sourceIndex >= 0 ? sourceIndex : index,
+        coordinate: point.coordinate,
+        value,
+        x,
+        y,
+      };
+    })
+    .filter(
+      (point) =>
+        Number.isFinite(point.coordinate) &&
+        Number.isFinite(point.value) &&
+        Number.isFinite(point.x) &&
+        Number.isFinite(point.y),
+    );
 }
 
 function linePath(points: readonly BfnChartSeriesPoint[]): string {
@@ -257,13 +271,6 @@ export function createBfnChartModel({
     true,
   );
   const yDomain = ySelection.domain;
-  const innerWidth = Math.max(1, geometry.width - geometry.padding.left - geometry.padding.right);
-  const innerHeight = Math.max(1, geometry.height - geometry.padding.top - geometry.padding.bottom);
-  const xScale = createScale(xDomain, [geometry.padding.left, geometry.padding.left + innerWidth], viewState.xScale);
-  const yScale = createScale(yDomain, [geometry.padding.top + innerHeight, geometry.padding.top], viewState.yScale);
-  const mapX = (value: number): number => xScale.map(value);
-  const mapY = (value: number): number => yScale.map(value);
-
   const xLog = viewState.xScale === 'log'
     ? xSelection.validation.valid
       ? evaluateLogEligibility('x', xDomain, result, visible, comparison)
@@ -274,6 +281,14 @@ export function createBfnChartModel({
       ? evaluateLogEligibility('y', xDomain, result, visible, comparison)
       : withValidationAxis(ySelection.validation, 'y')
     : ({ valid: true } as const);
+  const appliedXScale: BfnChartScale = viewState.xScale === 'log' && xLog.valid ? 'log' : 'linear';
+  const appliedYScale: BfnChartScale = viewState.yScale === 'log' && yLog.valid ? 'log' : 'linear';
+  const innerWidth = Math.max(1, geometry.width - geometry.padding.left - geometry.padding.right);
+  const innerHeight = Math.max(1, geometry.height - geometry.padding.top - geometry.padding.bottom);
+  const xScale = createScale(xDomain, [geometry.padding.left, geometry.padding.left + innerWidth], appliedXScale);
+  const yScale = createScale(yDomain, [geometry.padding.top + innerHeight, geometry.padding.top], appliedYScale);
+  const mapX = (value: number): number => xScale.map(value);
+  const mapY = (value: number): number => yScale.map(value);
   const labels = {
     x:
       result.mode === 'dynamic'
@@ -289,15 +304,13 @@ export function createBfnChartModel({
   };
 
   const fullPoints = filteredResultPoints;
-  const uncertaintyUpper = fullPoints.map((point) => ({ ...point, output: point.upper }));
-  const uncertaintyLower = fullPoints.map((point) => ({ ...point, output: point.lower }));
   const fullSeries = viewState.showFullModel
     ? seriesFor('full', fallbackTranslation(translate, 'bfn.results.fullModel', 'Full model'), result, fullPoints, mapX, mapY)
     : undefined;
   const uncertaintySeries = viewState.showUncertainty
     ? (() => {
-        const upper = pointsForSeries(result, uncertaintyUpper, (point) => point.output, mapX, mapY);
-        const lower = pointsForSeries(result, uncertaintyLower, (point) => point.output, mapX, mapY);
+        const upper = pointsForSeries(result, fullPoints, (point) => point.upper, mapX, mapY);
+        const lower = pointsForSeries(result, fullPoints, (point) => point.lower, mapX, mapY);
         return {
           kind: 'uncertainty' as const,
           label: fallbackTranslation(translate, 'bfn.results.uncertaintyBand', 'Uncertainty'),
@@ -318,25 +331,32 @@ export function createBfnChartModel({
 
   const cursorPoint = viewState.cursorIndex === null ? undefined : result.points[viewState.cursorIndex];
   const cursor = cursorPoint && viewState.cursorIndex !== null && cursorPoint.coordinate >= xDomain[0] && cursorPoint.coordinate <= xDomain[1]
-    ? {
-        index: viewState.cursorIndex,
-        coordinate: cursorPoint.coordinate,
-        x: mapX(cursorPoint.coordinate),
-        y: mapY(cursorPoint.output),
-        point: cursorPoint,
-        value: cursorPoint.output,
-        lower: cursorPoint.lower,
-        upper: cursorPoint.upper,
-      }
+    ? (() => {
+        const x = mapX(cursorPoint.coordinate);
+        const y = mapY(cursorPoint.output);
+        return Number.isFinite(cursorPoint.coordinate) && Number.isFinite(cursorPoint.output) && Number.isFinite(x) && Number.isFinite(y)
+          ? {
+              index: viewState.cursorIndex,
+              coordinate: cursorPoint.coordinate,
+              x,
+              y,
+              point: cursorPoint,
+              value: cursorPoint.output,
+              lower: cursorPoint.lower,
+              upper: cursorPoint.upper,
+            }
+          : undefined;
+      })()
     : undefined;
   return {
     geometry,
     labels,
     domains: { x: xDomain, y: yDomain },
     scales: { x: xScale, y: yScale },
+    requestedScales: { x: viewState.xScale, y: viewState.yScale },
     ticks: {
-      x: ticksFor(xDomain, viewState.xScale, mapX),
-      y: ticksFor(yDomain, viewState.yScale, mapY),
+      x: ticksFor(xDomain, appliedXScale, mapX),
+      y: ticksFor(yDomain, appliedYScale, mapY),
     },
     series: {
       ...(fullSeries ? { full: fullSeries } : {}),
