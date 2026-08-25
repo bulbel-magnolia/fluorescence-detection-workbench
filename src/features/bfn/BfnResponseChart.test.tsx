@@ -23,9 +23,12 @@ describe('BfnResponseChart exact reading', () => {
     const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
     const viewState = defaultBfnChartViewState(result);
     const model = createBfnChartModel({ project, result, viewState, geometry, translate: (key) => i18n.t(key) });
-    const targetIndex = Math.min(10, result.points.length - 1);
-    const target = result.points[targetIndex];
-    if (!target) throw new Error('Expected a target point');
+    const lowerIndex = Math.min(10, result.points.length - 2);
+    const upperIndex = lowerIndex + 1;
+    const lower = result.points[lowerIndex];
+    const upper = result.points[upperIndex];
+    if (!lower || !upper) throw new Error('Expected two adjacent points');
+    const betweenCoordinate = lower.coordinate + (upper.coordinate - lower.coordinate) * 0.35;
     const onCursorIndexChange = vi.fn();
     render(<BfnResponseChart project={project} result={result} onCursorIndexChange={onCursorIndexChange} />);
     const svg = screen.getByRole('img', { name: 'Input-output response' });
@@ -34,13 +37,13 @@ describe('BfnResponseChart exact reading', () => {
       value: () => ({ left: 0, top: 0, width: 760, height: 300, right: 760, bottom: 300 }),
     });
 
-    const exactClientX = model.scales.x.map(target.coordinate);
-    fireEvent.pointerMove(svg, { clientX: exactClientX, clientY: 150 });
+    const betweenClientX = model.scales.x.map(betweenCoordinate);
+    fireEvent.pointerMove(svg, { clientX: betweenClientX, clientY: 150 });
 
     expect(screen.getByRole('note')).toHaveTextContent('Computed point');
-    expect(onCursorIndexChange).toHaveBeenCalledWith(targetIndex);
-    expect(screen.getByRole('note')).toHaveAttribute('data-index', String(targetIndex));
-    expect(screen.getByRole('note')).toHaveTextContent(String(target.output.toFixed(3)));
+    expect(onCursorIndexChange).toHaveBeenCalledWith(lowerIndex);
+    expect(screen.getByRole('note')).toHaveAttribute('data-index', String(lowerIndex));
+    expect(screen.getByRole('note')).toHaveTextContent(String(lower.output.toFixed(3)));
     expect(screen.getByRole('note')).toHaveTextContent('Input');
     expect(screen.getByRole('note')).toHaveTextContent('3OC6-HSL');
     expect(screen.getByRole('note')).toHaveTextContent('nM');
@@ -49,14 +52,22 @@ describe('BfnResponseChart exact reading', () => {
     expect(screen.getByRole('note')).toHaveTextContent('Upper');
     if (result.annApproximation) expect(screen.getByRole('note')).toHaveTextContent('ANN approximation');
     expect(screen.getByRole('note')).not.toHaveTextContent('Interpolated');
-    fireEvent.pointerMove(svg, { clientX: exactClientX, clientY: 150 });
+    const expectedMarker = model.series.full?.points[lowerIndex];
+    if (!expectedMarker) throw new Error('Expected a full-model marker');
+    expect(document.querySelector('.bfn-chart__crosshair')).toHaveAttribute('data-index', String(lowerIndex));
+    expect(document.querySelector('.bfn-chart__crosshair')).toHaveAttribute('x1', String(expectedMarker.x));
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', String(lowerIndex));
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('cx', String(expectedMarker.x));
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('cy', String(expectedMarker.y));
+    fireEvent.pointerMove(svg, { clientX: model.scales.x.map(lower.coordinate + (upper.coordinate - lower.coordinate) * 0.45), clientY: 150 });
     expect(onCursorIndexChange).toHaveBeenCalledTimes(1);
   });
 
   it('supports point navigation keys and Escape without changing editor shortcuts', () => {
     const project = createDemoBfnProject();
     const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
-    render(<BfnResponseChart project={project} result={result} />);
+    const parentKeyDown = vi.fn();
+    render(<div onKeyDown={parentKeyDown}><BfnResponseChart project={project} result={result} /></div>);
     const svg = screen.getByRole('img', { name: 'Input-output response' });
 
     svg.focus();
@@ -71,11 +82,22 @@ describe('BfnResponseChart exact reading', () => {
     expect(screen.getByRole('note')).toHaveTextContent(`${result.points[0]?.coordinate?.toFixed(3)} nM`);
     expect(preventDefault).toHaveBeenCalledTimes(1);
     expect(stopPropagation).toHaveBeenCalledTimes(1);
+    expect(parentKeyDown).not.toHaveBeenCalled();
     const beforeShortcut = screen.getByRole('note').textContent;
     const shortcut = createEvent.keyDown(svg, { key: 'z', ctrlKey: true });
     const shortcutPreventDefault = vi.spyOn(shortcut, 'preventDefault');
+    const shortcutStopPropagation = vi.spyOn(shortcut, 'stopPropagation');
     fireEvent(svg, shortcut);
     expect(shortcutPreventDefault).not.toHaveBeenCalled();
+    expect(shortcutStopPropagation).not.toHaveBeenCalled();
+    expect(parentKeyDown).toHaveBeenCalledTimes(1);
+    const metaShortcut = createEvent.keyDown(svg, { key: 'z', metaKey: true });
+    const metaPreventDefault = vi.spyOn(metaShortcut, 'preventDefault');
+    const metaStopPropagation = vi.spyOn(metaShortcut, 'stopPropagation');
+    fireEvent(svg, metaShortcut);
+    expect(metaPreventDefault).not.toHaveBeenCalled();
+    expect(metaStopPropagation).not.toHaveBeenCalled();
+    expect(parentKeyDown).toHaveBeenCalledTimes(2);
     expect(screen.getByRole('note').textContent).toBe(beforeShortcut);
     fireEvent.keyDown(svg, { key: 'End' });
     expect(screen.getByRole('note')).toHaveTextContent(
@@ -100,6 +122,39 @@ describe('BfnResponseChart exact reading', () => {
     expect(note).toHaveTextContent('source-extra');
     expect(note).toHaveTextContent('Extrapolated');
     expect(note).toHaveTextContent('Output');
+    expect(note).toHaveTextContent('Lower');
+    expect(note).toHaveTextContent('Upper');
+  });
+
+  it('shows ANN values only for visible accepted/rejected overlays and omits the overlay when absent', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const approximation = result.annApproximation;
+    if (!approximation) throw new Error('Expected a static ANN approximation');
+    const first = result.points[0];
+    if (!first) throw new Error('Expected a static simulation point');
+    const annValue = approximation.inputSourceIds.reduce(
+      (sum, sourceId, index) => sum + (first.inputs[sourceId] ?? 0) * (approximation.weights[index] ?? 0),
+      approximation.effectiveIntercept,
+    );
+    const { rerender } = render(<BfnResponseChart project={project} result={result} />);
+    const svg = screen.getByRole('img', { name: 'Input-output response' });
+    fireEvent.keyDown(svg, { key: 'Home' });
+    expect(screen.getByRole('note')).toHaveTextContent('ANN approximation');
+    expect(screen.getByRole('note')).toHaveTextContent(annValue.toFixed(3));
+    const hiddenView = { ...defaultBfnChartViewState(result), showAnn: false, cursorIndex: 0 };
+    rerender(<BfnResponseChart project={project} result={result} viewState={hiddenView} />);
+    expect(screen.getByRole('note')).not.toHaveTextContent('ANN approximation');
+    expect(document.querySelector('.bfn-chart__ann')).not.toBeInTheDocument();
+    const rejected = { ...result, annApproximation: { ...approximation, status: 'rejected' as const } };
+    rerender(<BfnResponseChart project={project} result={rejected} viewState={{ ...defaultBfnChartViewState(rejected), cursorIndex: 0 }} />);
+    expect(screen.getByRole('note')).toHaveTextContent('ANN approximation did not pass the current approximation-quality threshold');
+    const absent = { ...result, annApproximation: null };
+    const absentView = { ...defaultBfnChartViewState(absent), cursorIndex: 0 };
+    rerender(<BfnResponseChart project={project} result={absent} viewState={absentView} />);
+    rerender(<BfnResponseChart project={project} result={absent} viewState={absentView} />);
+    expect(screen.getByRole('note')).not.toHaveTextContent('ANN approximation');
+    expect(document.querySelector('.bfn-chart__ann')).not.toBeInTheDocument();
   });
 
   it('notifies once for a nearest point and resets a stale local cursor when same-id data changes', () => {
