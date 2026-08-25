@@ -82,6 +82,15 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 - `docs/ui-audit/direct-manipulation/` 保存 6 张 1440×900 浏览器截图，分别记录默认编辑器、兼容拖线、无效目标、连线完成、撤销/重做和多输入节点；
 - 1280×720 复核中页面无横向溢出，画布内部滚动保持可用；所有端口位于对应节点边缘，多输入端口保持独立纵向位置。
 
+### 2026-08-25 BFN Batch 2.1 + Batch 3 验收
+
+- TypeScript `tsc --noEmit`、ESLint 全项目检查与本轮 21 个文本文件的 Prettier 检查通过；
+- 全量 Vitest 为 64 个测试文件、349 个测试通过；新增结果 computation signature、Undo/Redo 新鲜度恢复、Overlay 快捷键锁、固定工作台、属性折叠、结果 Dock、颜色语义和自动保存状态回归；
+- Vite 生产构建通过，199 个模块完成转换；主 JavaScript chunk 为 608.15 kB，构建保留既有代码拆分提示；
+- 结果签名排除节点位置、选择、Drawer、Dock、时间戳和滚动等 UI 状态，包含当前求解使用的输入、模块、模型、参数、连接、输出、分析设置和 registry 数据；
+- 1440×900 与 1280×720 均完成真实浏览器交互检查。1280×720 下页面 `clientHeight` 与 `scrollHeight` 均为 720 px，结果 Dock 展开后页面高度不变；画布和属性栏分别管理内部滚动；
+- `docs/ui-audit/workbench-polish/` 保存 10 张截图，覆盖默认工作台、属性首层/展开层、结果 Dock、选中/兼容/过期状态、按目标设计、导航、1280×720 和深色模式。
+
 当前自动化覆盖：
 
 - 检测状态合法转换与断线状态保护；

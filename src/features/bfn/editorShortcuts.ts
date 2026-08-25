@@ -1,5 +1,9 @@
 export type BfnEditorShortcut = 'undo' | 'redo' | 'delete-selection';
 
+export function isBfnEditorOverlayOpen(root: ParentNode = document): boolean {
+  return root.querySelector('[aria-modal=true]') !== null;
+}
+
 export function isBfnEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof Element)) return false;
   if (target.closest('input, textarea, select, [contenteditable="true"]')) return true;

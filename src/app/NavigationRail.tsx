@@ -9,7 +9,7 @@ interface NavigationItem {
   icon: IconName;
 }
 
-type NavigationGroupKey = 'overview' | 'detection' | 'modeling' | 'system';
+type NavigationGroupKey = 'detection' | 'modeling' | 'system';
 
 const overviewItem: NavigationItem = { section: 'overview', icon: 'overview' };
 const detectionItems: NavigationItem[] = [
@@ -32,7 +32,6 @@ export function NavigationRail() {
   const setSection = useAppStore((state) => state.setSection);
   const transportMode = useAppStore((state) => state.transportMode);
   const groups: Array<{ key: NavigationGroupKey; items: NavigationItem[] }> = [
-    { key: 'overview', items: [overviewItem] },
     { key: 'detection', items: detectionItems },
     { key: 'modeling', items: [modelingItem] },
     {
@@ -55,6 +54,17 @@ export function NavigationRail() {
         </div>
       </div>
       <nav aria-label={t('common.primaryNavigation')}>
+        <button
+          type="button"
+          className={`nav-rail__overview${section === overviewItem.section ? ' is-active' : ''}`}
+          onClick={() => setSection(overviewItem.section)}
+          aria-current={section === overviewItem.section ? 'page' : undefined}
+          aria-label={t(`nav.${overviewItem.section}`)}
+          title={t(`nav.${overviewItem.section}`)}
+        >
+          <Icon name={overviewItem.icon} />
+          <span>{t(`nav.${overviewItem.section}`)}</span>
+        </button>
         {groups.map((group) => (
           <div
             className="nav-rail__group"

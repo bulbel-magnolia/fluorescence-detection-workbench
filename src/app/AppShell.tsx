@@ -58,16 +58,17 @@ export function AppShell() {
 
   return (
     <>
-      <a className='skip-link' href='#main-content'>
+      <a className="skip-link" href="#main-content">
         {t('common.skipToContent')}
       </a>
-      <div className='app-shell' data-detection-state={detectionState}>
+      <div className="app-shell" data-detection-state={detectionState}>
         <NavigationRail />
-        <div className='app-frame'>
-          <TopBar />
+        <div className="app-frame" data-section={section}>
+          {section === 'modeling' ? null : <TopBar />}
           <main
-            id='main-content'
-            className='page-viewport'
+            id="main-content"
+            className="page-viewport"
+            data-section={section}
             key={section}
             ref={mainRef}
             tabIndex={-1}

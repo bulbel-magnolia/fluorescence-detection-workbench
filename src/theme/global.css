@@ -186,6 +186,12 @@ button:not(:disabled):active {
   border-top: 1px solid rgb(255 255 255 / 7%);
 }
 
+.nav-rail__overview + .nav-rail__group {
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
 .nav-rail__group-label {
   padding: 0 13px 4px;
   color: #6f909e;
@@ -303,6 +309,10 @@ button:not(:disabled):active {
   min-width: 0;
   min-height: 0;
   grid-template-rows: 68px minmax(0, 1fr);
+}
+
+.app-frame[data-section='modeling'] {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .top-bar {
@@ -483,6 +493,10 @@ button:not(:disabled):active {
     linear-gradient(90deg, rgb(10 37 64 / 2.4%) 1px, transparent 1px), var(--paper);
   background-size: 32px 32px;
   animation: page-in 280ms ease both;
+}
+
+.page-viewport[data-section='modeling'] {
+  overflow: hidden;
 }
 
 .page {

@@ -5,12 +5,17 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Icon } from '../../components/Icon';
-import { PageHeader } from '../../components/PageHeader';
 import { StatusPill } from '../../components/StatusPill';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
+import {
+  BfnProjectToolbar,
+  type BfnPrimaryWorkspace,
+  type BfnSaveStatus,
+} from './BfnProjectToolbar';
 import { BfnResponseChart } from './BfnResponseChart';
+import { createBfnComputationSignature } from './computationSignature';
 import {
   areBfnProjectsEquivalent,
   createBfnEditorHistory,
@@ -22,7 +27,7 @@ import {
   type BfnEditorHistory,
   type BfnEditorSnapshot,
 } from './editorHistory';
-import { bfnEditorShortcut } from './editorShortcuts';
+import { bfnEditorShortcut, isBfnEditorOverlayOpen } from './editorShortcuts';
 import { BFN_CANVAS_SIZE, findBfnModulePlacement, type BfnCanvasViewport } from './nodePlacement';
 import {
   bfnModuleCatalog,
@@ -77,12 +82,8 @@ import {
 } from './validation';
 import './bfn-platform.css';
 
-type BfnPrimaryWorkspace = 'design' | 'inverse';
 type ResultFreshness = 'current' | 'stale';
-type SaveStatus = 'saved' | 'error';
 type DestructiveAction = 'reset-project' | 'clear-runs';
-
-const primaryWorkspaces: BfnPrimaryWorkspace[] = ['design', 'inverse'];
 
 interface EndpointOption {
   value: string;
@@ -362,11 +363,11 @@ export function BfnPlatformPage() {
   const [sourceEndpointValue, setSourceEndpointValue] = useState('');
   const [targetEndpointValue, setTargetEndpointValue] = useState('');
   const [result, setResult] = useState<BfnSimulationResult | null>(null);
-  const [resultFreshness, setResultFreshness] = useState<ResultFreshness>('current');
+  const [resultBasisSignature, setResultBasisSignature] = useState<string | null>(null);
   const [resultPanelOpen, setResultPanelOpen] = useState(false);
   const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
+  const [saveStatus, setSaveStatus] = useState<BfnSaveStatus>('saved');
   const [runs, setRuns] = useState(loadBfnRuns);
   const [reverseTarget, setReverseTarget] = useState<BfnReverseTarget>(() =>
     structuredClone(defaultBfnReverseTarget),
@@ -381,7 +382,6 @@ export function BfnPlatformPage() {
   const projectRef = useRef(project);
   const selectedNodeRef = useRef(selectedNodeId);
   const selectedEdgeRef = useRef(selectedEdgeId);
-  const resultRef = useRef(result);
   const historyRef = useRef(history);
   const inputEditStartRef = useRef<BfnEditorSnapshot | null>(null);
   const canvasViewportRef = useRef<BfnCanvasViewport>({
@@ -390,23 +390,56 @@ export function BfnPlatformPage() {
     width: BFN_CANVAS_SIZE.width,
     height: 410,
   });
+  const autosaveTimerRef = useRef<number | null>(null);
+  const autosavePendingRef = useRef(false);
+  const latestProjectRef = useRef(project);
 
   projectRef.current = project;
   selectedNodeRef.current = selectedNodeId;
   selectedEdgeRef.current = selectedEdgeId;
-  resultRef.current = result;
   historyRef.current = history;
+  latestProjectRef.current = project;
 
   useEffect(() => {
-    try {
-      saveBfnProject(project);
-      setSaveStatus('saved');
-    } catch {
-      setSaveStatus('error');
-    }
+    setSaveStatus('saving');
+    autosavePendingRef.current = true;
+    if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+    autosaveTimerRef.current = window.setTimeout(() => {
+      autosaveTimerRef.current = null;
+      try {
+        saveBfnProject(project);
+        autosavePendingRef.current = false;
+        setSaveStatus('saved');
+      } catch {
+        setSaveStatus('error');
+      }
+    }, 320);
+
+    return () => {
+      if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
+    };
   }, [project]);
 
+  useEffect(
+    () => () => {
+      if (!autosavePendingRef.current) return;
+      try {
+        saveBfnProject(latestProjectRef.current);
+        autosavePendingRef.current = false;
+      } catch {
+        // The visible error state is handled while mounted; unmount must remain side-effect safe.
+      }
+    },
+    [],
+  );
+
   const validationIssues = useMemo(() => validateBfnProject(project), [project]);
+  const currentComputationSignature = useMemo(
+    () => createBfnComputationSignature(project),
+    [project],
+  );
+  const resultFreshness: ResultFreshness =
+    result && resultBasisSignature !== currentComputationSignature ? 'stale' : 'current';
   const options = useMemo(() => endpointOptions(project, t), [project, t, i18n.language]);
   const sourceEndpoint = parseEndpoint(sourceEndpointValue);
   const targetEndpoint = parseEndpoint(targetEndpointValue);
@@ -475,10 +508,6 @@ export function BfnPlatformPage() {
     setSelectedEdgeId(edgeId);
   };
 
-  const markResultStale = (): void => {
-    if (resultRef.current) setResultFreshness('stale');
-  };
-
   const currentEditorSnapshot = (): BfnEditorSnapshot =>
     createBfnEditorSnapshot(projectRef.current, selectedNodeRef.current, selectedEdgeRef.current);
 
@@ -486,14 +515,10 @@ export function BfnPlatformPage() {
     updateHistory(recordBfnEditorSnapshot(historyRef.current, snapshot, kind));
   };
 
-  const updateProjectLive = (
-    updater: (current: BfnProject) => BfnProject,
-    semantic: boolean,
-  ): void => {
+  const updateProjectLive = (updater: (current: BfnProject) => BfnProject): void => {
     const next = { ...updater(projectRef.current), updatedAt: new Date().toISOString() };
     projectRef.current = next;
     setProject(next);
-    if (semantic) markResultStale();
     setNotice(null);
     setErrorNotice(null);
   };
@@ -508,7 +533,6 @@ export function BfnPlatformPage() {
     recordSnapshot(before, kind);
     projectRef.current = next;
     setProject(next);
-    if (kind === 'semantic') markResultStale();
     setNotice(null);
     setErrorNotice(null);
     return true;
@@ -529,7 +553,6 @@ export function BfnPlatformPage() {
     if (!transition) return;
     updateHistory(transition.history);
     restoreEditorSnapshot(transition.snapshot);
-    if (transition.kind === 'semantic') markResultStale();
     setNotice(t('bfn.notices.undone'));
   };
 
@@ -538,7 +561,6 @@ export function BfnPlatformPage() {
     if (!transition) return;
     updateHistory(transition.history);
     restoreEditorSnapshot(transition.snapshot);
-    if (transition.kind === 'semantic') markResultStale();
     setNotice(t('bfn.notices.redone'));
   };
 
@@ -571,18 +593,15 @@ export function BfnPlatformPage() {
       source: BfnProject['network']['inputSources'][number],
     ) => BfnProject['network']['inputSources'][number],
   ): void => {
-    updateProjectLive(
-      (current) => ({
-        ...current,
-        network: {
-          ...current.network,
-          inputSources: current.network.inputSources.map((source) =>
-            source.id === sourceId ? updater(source) : source,
-          ),
-        },
-      }),
-      true,
-    );
+    updateProjectLive((current) => ({
+      ...current,
+      network: {
+        ...current.network,
+        inputSources: current.network.inputSources.map((source) =>
+          source.id === sourceId ? updater(source) : source,
+        ),
+      },
+    }));
   };
 
   const changeMode = (mode: BfnProject['network']['mode']): void => {
@@ -600,8 +619,7 @@ export function BfnPlatformPage() {
       const current = projectRef.current;
       const next = runBfnSimulation(current);
       setResult(next);
-      resultRef.current = next;
-      setResultFreshness('current');
+      setResultBasisSignature(createBfnComputationSignature(current));
       setResultPanelOpen(true);
       setInputSettingsOpen(false);
       setRuns(saveBfnRun(next));
@@ -736,9 +754,8 @@ export function BfnPlatformPage() {
       const imported = parseBfnProject(await file.text());
       projectRef.current = imported;
       setProject(imported);
-      resultRef.current = null;
       setResult(null);
-      setResultFreshness('current');
+      setResultBasisSignature(null);
       setResultPanelOpen(false);
       selectNode(imported.network.modules[0]?.id ?? null);
       clearEditorHistory();
@@ -756,9 +773,8 @@ export function BfnPlatformPage() {
     localStorage.setItem(BFN_PROJECT_STORAGE_KEY, JSON.stringify(next));
     clearBfnRuns();
     setRuns([]);
-    resultRef.current = null;
     setResult(null);
-    setResultFreshness('current');
+    setResultBasisSignature(null);
     setResultPanelOpen(false);
     selectNode(next.network.modules[0]?.id ?? null);
     clearEditorHistory();
@@ -810,13 +826,28 @@ export function BfnPlatformPage() {
 
   useEffect(() => {
     const handleKeyboard = (event: KeyboardEvent): void => {
+      const overlayOpen =
+        inputSettingsOpen ||
+        modulePickerOpen ||
+        pendingDestructiveAction !== null ||
+        isBfnEditorOverlayOpen();
       if (event.key === 'Escape') {
-        if (inputSettingsOpen) closeInputSettings();
-        if (modulePickerOpen) setModulePickerOpen(false);
+        if (pendingDestructiveAction !== null) return;
+        if (inputSettingsOpen) {
+          event.preventDefault();
+          closeInputSettings();
+          return;
+        }
+        if (modulePickerOpen) {
+          event.preventDefault();
+          setModulePickerOpen(false);
+          return;
+        }
+        if (overlayOpen) return;
       }
-      if (view !== 'design') return;
+      if (view !== 'design' || overlayOpen) return;
       const shortcut = bfnEditorShortcut(event);
-      if (!shortcut || (inputSettingsOpen && shortcut !== 'delete-selection')) return;
+      if (!shortcut) return;
       if (shortcut === 'undo') {
         if (historyRef.current.past.length === 0) return;
         event.preventDefault();
@@ -845,51 +876,16 @@ export function BfnPlatformPage() {
   });
 
   return (
-    <div className="page page--bfn">
-      <PageHeader
-        eyebrow={t('bfn.project.current')}
-        title={t(project.labelKey)}
-        subtitle={t('bfn.project.networkSummary', { network: t(project.network.labelKey) })}
-        meta={
-          <div className="bfn-project-status">
-            <StatusPill label={t('bfn.status.demoProject')} tone="warning" />
-            <StatusPill
-              label={
-                saveStatus === 'saved' ? t('bfn.project.autoSaved') : t('bfn.project.saveFailed')
-              }
-              tone={saveStatus === 'saved' ? 'success' : 'danger'}
-            />
-          </div>
-        }
-        actions={
-          <div className="bfn-project-actions">
-            <Button
-              variant="tertiary"
-              leadingIcon={<Icon name="import" size={16} />}
-              onClick={() => importRef.current?.click()}
-            >
-              {t('bfn.actions.import')}
-            </Button>
-            <Button
-              variant="tertiary"
-              leadingIcon={<Icon name="export" size={16} />}
-              onClick={exportProject}
-            >
-              {t('bfn.actions.export')}
-            </Button>
-            <details className="bfn-more-actions">
-              <summary>{t('bfn.actions.more')}</summary>
-              <button
-                className="danger-text-button"
-                type="button"
-                onClick={() => setPendingDestructiveAction('reset-project')}
-              >
-                <Icon name="reset" size={15} />
-                {t('bfn.actions.reset')}
-              </button>
-            </details>
-          </div>
-        }
+    <div className="page page--bfn" data-workspace={view}>
+      <BfnProjectToolbar
+        projectName={t(project.labelKey)}
+        networkName={t(project.network.labelKey)}
+        workspace={view}
+        saveStatus={saveStatus}
+        onWorkspaceChange={setView}
+        onImport={() => importRef.current?.click()}
+        onExport={exportProject}
+        onReset={() => setPendingDestructiveAction('reset-project')}
       />
       <input
         ref={importRef}
@@ -899,21 +895,6 @@ export function BfnPlatformPage() {
         aria-label={t('bfn.actions.import')}
         onChange={(event) => void importProject(event.target.files?.[0])}
       />
-
-      <nav className="bfn-workspace-tabs" role="tablist" aria-label={t('bfn.workflow.label')}>
-        {primaryWorkspaces.map((workspaceView) => (
-          <button
-            key={workspaceView}
-            type="button"
-            role="tab"
-            aria-selected={view === workspaceView}
-            className={view === workspaceView ? 'is-active' : ''}
-            onClick={() => setView(workspaceView)}
-          >
-            <strong>{t(`bfn.workflow.${workspaceView}.title`)}</strong>
-          </button>
-        ))}
-      </nav>
 
       {view === 'design' ? (
         <section className="bfn-run-toolbar" aria-label={t('bfn.runToolbar.label')}>
@@ -1118,7 +1099,7 @@ export function BfnPlatformPage() {
               onSelectEdge={selectEdge}
               onClearSelection={() => selectNode(null)}
               onMoveNode={(nodeId, position) =>
-                updateProjectLive((current) => withNodePosition(current, nodeId, position), false)
+                updateProjectLive((current) => withNodePosition(current, nodeId, position))
               }
               onMoveNodeCommit={(nodeId, start, end) => {
                 if (start.x === end.x && start.y === end.y) return;
@@ -1202,10 +1183,10 @@ export function BfnPlatformPage() {
                   </section>
                   <section className="bfn-inspector-block">
                     <header>
-                      <strong>{t('bfn.inspector.responseParameters')}</strong>
+                      <strong>{t('bfn.inspector.keyParameters')}</strong>
                     </header>
                     <div className="bfn-parameter-list">
-                      {selectedParameterPresentations.map((row) => (
+                      {selectedParameterPresentations.slice(0, 4).map((row) => (
                         <article key={row.id}>
                           <header>
                             <strong>{row.label}</strong>
@@ -1230,33 +1211,6 @@ export function BfnPlatformPage() {
                   ) : null}
                   <section className="bfn-inspector-block">
                     <header>
-                      <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
-                    </header>
-                    {selectedContext ? (
-                      <dl className="bfn-context-grid">
-                        <div>
-                          <dt>{t('bfn.context.host')}</dt>
-                          <dd>
-                            <em>{selectedContext.host}</em>
-                          </dd>
-                        </div>
-                        <div>
-                          <dt>{t('bfn.context.strain')}</dt>
-                          <dd>{bfnContextValueLabel(selectedContext.strain, t)}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('bfn.context.medium')}</dt>
-                          <dd>{bfnContextValueLabel(selectedContext.medium, t)}</dd>
-                        </div>
-                        <div>
-                          <dt>{t('bfn.context.temperature')}</dt>
-                          <dd>{selectedContext.temperatureCelsius} °C</dd>
-                        </div>
-                      </dl>
-                    ) : null}
-                  </section>
-                  <section className="bfn-inspector-block">
-                    <header>
                       <strong>{t('bfn.inspector.modelBasis')}</strong>
                     </header>
                     <div
@@ -1274,22 +1228,67 @@ export function BfnPlatformPage() {
                       </strong>
                     </div>
                   </section>
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.linkedData')}</strong>
-                    </header>
-                    {selectedDatasets.length ? (
-                      <ul className="bfn-linked-datasets">
-                        {selectedDatasets.map((dataset) => (
-                          <li key={dataset.id}>{t(dataset.labelKey)}</li>
-                        ))}
-                      </ul>
-                    ) : (
-                      <p>{t('bfn.inspector.notLinkedDataset')}</p>
-                    )}
-                  </section>
                   <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.showMath')}</summary>
+                    <summary>{t('bfn.inspector.detailedParameters')}</summary>
+                    {selectedParameterPresentations.length > 4 ? (
+                      <div className="bfn-parameter-list bfn-parameter-list--details">
+                        {selectedParameterPresentations.slice(4).map((row) => (
+                          <article key={row.id}>
+                            <header>
+                              <strong>{row.label}</strong>
+                              {row.symbol ? <span>{row.symbol}</span> : null}
+                            </header>
+                            <b>{parameterValue(row.estimate, t, false)}</b>
+                            <p>{row.description}</p>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="bfn-inspector-empty">
+                        {t('bfn.inspector.noAdditionalParameters')}
+                      </p>
+                    )}
+                  </details>
+                  <details className="bfn-inspector-details">
+                    <summary>{t('bfn.inspector.experimentAndData')}</summary>
+                    <div className="bfn-inspector-details__content">
+                      <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
+                      {selectedContext ? (
+                        <dl className="bfn-context-grid">
+                          <div>
+                            <dt>{t('bfn.context.host')}</dt>
+                            <dd>
+                              <em>{selectedContext.host}</em>
+                            </dd>
+                          </div>
+                          <div>
+                            <dt>{t('bfn.context.strain')}</dt>
+                            <dd>{bfnContextValueLabel(selectedContext.strain, t)}</dd>
+                          </div>
+                          <div>
+                            <dt>{t('bfn.context.medium')}</dt>
+                            <dd>{bfnContextValueLabel(selectedContext.medium, t)}</dd>
+                          </div>
+                          <div>
+                            <dt>{t('bfn.context.temperature')}</dt>
+                            <dd>{selectedContext.temperatureCelsius} °C</dd>
+                          </div>
+                        </dl>
+                      ) : null}
+                      <strong>{t('bfn.inspector.linkedData')}</strong>
+                      {selectedDatasets.length ? (
+                        <ul className="bfn-linked-datasets">
+                          {selectedDatasets.map((dataset) => (
+                            <li key={dataset.id}>{t(dataset.labelKey)}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p>{t('bfn.inspector.notLinkedDataset')}</p>
+                      )}
+                    </div>
+                  </details>
+                  <details className="bfn-inspector-details">
+                    <summary>{t('bfn.inspector.mathematicalModel')}</summary>
                     <p className="bfn-domain-range">
                       {t('bfn.inspector.modelType')}:{' '}
                       {selectedModuleModel
@@ -1297,23 +1296,20 @@ export function BfnPlatformPage() {
                         : '—'}
                     </p>
                     <code className="bfn-formula">{formulaForModel(selectedModuleModel)}</code>
-                    <dl className="bfn-parameter-grid">
+                    <div className="bfn-math-parameters">
                       {selectedParameterPresentations.map((row) => (
-                        <div key={row.id}>
-                          <dt>
-                            {row.label}
-                            {row.symbol ? <small> · {row.symbol}</small> : null}
-                          </dt>
-                          <dd>{parameterValue(row.estimate, t)}</dd>
-                        </div>
+                        <article key={row.id}>
+                          <span>{row.symbol ?? row.label}</span>
+                          <strong>{parameterValue(row.estimate, t)}</strong>
+                        </article>
                       ))}
-                    </dl>
+                    </div>
                     <p className="bfn-domain-range">
                       {t('bfn.inspector.modelVersion')}: {selectedModuleModel?.version ?? '—'}
                     </p>
                   </details>
                   <details className="bfn-inspector-details">
-                    <summary>{t('bfn.inspector.showAdvanced')}</summary>
+                    <summary>{t('bfn.inspector.advancedInformation')}</summary>
                     <section>
                       <strong>{t('bfn.inspector.applicability')}</strong>
                       {selectedDomain?.inputRanges.map((range) => {
@@ -1369,12 +1365,8 @@ export function BfnPlatformPage() {
                         })}
                       </small>
                     </div>
-                  </section>
-                  <section className="bfn-inspector-block">
-                    <header>
-                      <strong>{t('bfn.inspector.currentAnalysis')}</strong>
-                    </header>
-                    <div className="bfn-object-signal">
+                    <div className="bfn-inspector-inline-fact">
+                      <span>{t('bfn.inspector.currentAnalysis')}</span>
                       <strong>{t(`bfn.modes.${project.network.mode}`)}</strong>
                     </div>
                   </section>
@@ -1387,16 +1379,18 @@ export function BfnPlatformPage() {
                   </button>
                 </>
               ) : selectedMonitor ? (
-                <section className="bfn-inspector-block">
-                  <header>
-                    <strong>{t('bfn.inspector.output')}</strong>
-                  </header>
-                  <p>{t('bfn.inspector.monitorText')}</p>
-                  <div className="bfn-object-signal">
-                    <strong>{bfnPortPrimaryLabel(selectedMonitor.inputPort, t)}</strong>
-                    <small>{bfnPortMetaLabel(selectedMonitor.inputPort, t)}</small>
-                  </div>
-                </section>
+                <>
+                  <section className="bfn-inspector-block">
+                    <header>
+                      <strong>{t('bfn.inspector.output')}</strong>
+                    </header>
+                    <p>{t('bfn.inspector.monitorText')}</p>
+                    <div className="bfn-object-signal">
+                      <strong>{bfnPortPrimaryLabel(selectedMonitor.inputPort, t)}</strong>
+                      <small>{bfnPortMetaLabel(selectedMonitor.inputPort, t)}</small>
+                    </div>
+                  </section>
+                </>
               ) : selectedEdge ? (
                 <>
                   <div className="bfn-edge-signal-flow">
@@ -1422,15 +1416,18 @@ export function BfnPlatformPage() {
                       </small>
                     </div>
                   </div>
-                  <p className="bfn-edge-explanation">
-                    {t('bfn.inspector.edgeText', {
-                      signal: selectedEdgeSourcePort
-                        ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
-                        : t('bfn.parameters.outputSignal'),
-                      source: nodeLabel(project, selectedEdge.source.nodeId, t),
-                      target: nodeLabel(project, selectedEdge.target.nodeId, t),
-                    })}
-                  </p>
+                  <details className="bfn-inspector-details">
+                    <summary>{t('bfn.inspector.advancedInformation')}</summary>
+                    <p className="bfn-edge-explanation">
+                      {t('bfn.inspector.edgeText', {
+                        signal: selectedEdgeSourcePort
+                          ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                          : t('bfn.parameters.outputSignal'),
+                        source: nodeLabel(project, selectedEdge.source.nodeId, t),
+                        target: nodeLabel(project, selectedEdge.target.nodeId, t),
+                      })}
+                    </p>
+                  </details>
                   <button
                     className="danger-text-button"
                     type="button"
@@ -1684,16 +1681,13 @@ export function BfnPlatformPage() {
                     step="0.1"
                     value={project.analysis.durationHours}
                     onChange={(event) =>
-                      updateProjectLive(
-                        (current) => ({
-                          ...current,
-                          analysis: {
-                            ...current.analysis,
-                            durationHours: Math.max(0.1, Number(event.target.value)),
-                          },
-                        }),
-                        true,
-                      )
+                      updateProjectLive((current) => ({
+                        ...current,
+                        analysis: {
+                          ...current.analysis,
+                          durationHours: Math.max(0.1, Number(event.target.value)),
+                        },
+                      }))
                     }
                   />
                 </label>
@@ -1705,16 +1699,13 @@ export function BfnPlatformPage() {
                     step="0.01"
                     value={project.analysis.timeStepHours}
                     onChange={(event) =>
-                      updateProjectLive(
-                        (current) => ({
-                          ...current,
-                          analysis: {
-                            ...current.analysis,
-                            timeStepHours: Math.max(0.001, Number(event.target.value)),
-                          },
-                        }),
-                        true,
-                      )
+                      updateProjectLive((current) => ({
+                        ...current,
+                        analysis: {
+                          ...current.analysis,
+                          timeStepHours: Math.max(0.001, Number(event.target.value)),
+                        },
+                      }))
                     }
                   />
                 </label>
@@ -1869,7 +1860,7 @@ export function BfnPlatformPage() {
                       type="button"
                       onClick={() => {
                         setResult(run);
-                        setResultFreshness('stale');
+                        setResultBasisSignature(null);
                         setResultPanelOpen(true);
                       }}
                     >
@@ -1883,12 +1874,7 @@ export function BfnPlatformPage() {
                 )}
               </section>
             </div>
-          ) : (
-            <div className="bfn-result-panel__collapsed">
-              <strong>{result ? t('bfn.results.collapsedResult') : t('bfn.results.notRun')}</strong>
-              <span>{result ? t('bfn.results.expandHint') : t('bfn.results.emptyHint')}</span>
-            </div>
-          )}
+          ) : null}
         </section>
       ) : null}
 

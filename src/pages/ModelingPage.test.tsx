@@ -16,8 +16,11 @@ describe('biological network design workspace', () => {
     render(<ModelingPage />);
 
     expect(screen.getByRole('heading', { name: '生物网络演示项目' })).toBeInTheDocument();
-    expect(screen.getByText('当前网络：AHL 响应与报告网络')).toBeInTheDocument();
-    expect(screen.getByText('已自动保存')).toBeInTheDocument();
+    const projectToolbar = document.querySelector<HTMLElement>('.bfn-project-toolbar');
+    expect(projectToolbar).not.toBeNull();
+    if (!projectToolbar) throw new Error('Project toolbar was not rendered.');
+    expect(within(projectToolbar).getByText('AHL 响应与报告网络')).toBeInTheDocument();
+    expect(await screen.findByText('已自动保存')).toBeInTheDocument();
     const workspaceTabs = screen.getAllByRole('tab');
     expect(workspaceTabs).toHaveLength(2);
     expect(screen.getByRole('tab', { name: '网络设计' })).toHaveAttribute('aria-selected', 'true');
@@ -141,7 +144,11 @@ describe('biological network design workspace', () => {
     await user.click(screen.getByRole('button', { name: '收起分析结果' }));
 
     expect(screen.queryByRole('img', { name: '输入—输出响应' })).not.toBeInTheDocument();
-    expect(screen.getByText('分析结果已收起')).toBeInTheDocument();
+    expect(document.querySelector('.bfn-result-panel')).toHaveAttribute('data-open', 'false');
+    expect(screen.getByRole('button', { name: '展开分析结果' })).toHaveAttribute(
+      'aria-expanded',
+      'false',
+    );
     expect(screen.getByRole('application', { name: '生物网络画布' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '展开分析结果' }));
@@ -230,13 +237,18 @@ describe('biological network design workspace', () => {
     expect(primaryParameters).not.toBeNull();
     if (!primaryParameters) throw new Error('Primary parameter list was not rendered.');
     expect(within(primaryParameters).getByText('输入 1 半响应点')).toBeInTheDocument();
-    expect(within(primaryParameters).getByText('输入 2 贡献系数')).toBeInTheDocument();
+    expect(within(primaryParameters).queryByText('输入 2 贡献系数')).not.toBeInTheDocument();
     expect(within(primaryParameters).queryByText(/^(K1|n1|α1|K2|n2|α2)$/)).not.toBeInTheDocument();
-    const stored = JSON.parse(localStorage.getItem(BFN_PROJECT_STORAGE_KEY) ?? '{}') as {
-      network?: { modules?: unknown[]; edges?: unknown[] };
-    };
-    expect(stored.network?.modules).toHaveLength(3);
-    expect(stored.network?.edges).toHaveLength(3);
+    await user.click(within(inspector).getByText('详细参数'));
+    const detailedParameters = within(inspector).getByText('详细参数').closest('details');
+    expect(detailedParameters).toHaveTextContent('输入 2 贡献系数');
+    await waitFor(() => {
+      const stored = JSON.parse(localStorage.getItem(BFN_PROJECT_STORAGE_KEY) ?? '{}') as {
+        network?: { modules?: unknown[]; edges?: unknown[] };
+      };
+      expect(stored.network?.modules).toHaveLength(3);
+      expect(stored.network?.edges).toHaveLength(3);
+    });
   });
 
   it('returns several clearly ranked target-design candidates', async () => {
@@ -273,7 +285,7 @@ describe('biological network design workspace', () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
-    await user.click(screen.getByText('更多操作'));
+    await user.click(screen.getByLabelText('更多操作'));
     await user.click(screen.getByRole('button', { name: '重置演示项目' }));
     const dialog = screen.getByRole('alertdialog', { name: '重置演示项目？' });
     expect(dialog).toHaveTextContent('当前本地模型和运行记录将被内置演示项目覆盖');

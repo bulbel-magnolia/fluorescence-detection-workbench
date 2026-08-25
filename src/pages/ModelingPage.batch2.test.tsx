@@ -84,7 +84,12 @@ describe('biological network design Batch 2 interactions', () => {
 
     expect(screen.getByText('网络或输入已修改')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '撤销' }));
+    expect(screen.queryByText('网络或输入已修改')).not.toBeInTheDocument();
+    expect(screen.getByText('当前结果')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '重做' }));
     expect(screen.getByText('网络或输入已修改')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '撤销' }));
+    expect(screen.getByText('当前结果')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '设置输入' }));
     expect(
       within(screen.getByRole('dialog', { name: '设置输入' })).getByRole('combobox', {
@@ -111,6 +116,66 @@ describe('biological network design Batch 2 interactions', () => {
     expect(screen.queryByText('网络或输入已修改')).not.toBeInTheDocument();
     expect(screen.getByText('当前结果')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重做' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: '重做' }));
+    expect(screen.queryByText('网络或输入已修改')).not.toBeInTheDocument();
+    expect(screen.getByText('当前结果')).toBeInTheDocument();
+  });
+
+  it('blocks Delete while the module drawer is open', async () => {
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: 'AHL 响应, 功能模块' }));
+    await user.click(screen.getByRole('button', { name: '添加模块' }));
+    const dialog = screen.getByRole('dialog', { name: '添加模块' });
+
+    fireEvent.keyDown(dialog, { key: 'Delete' });
+    expect(screen.getByRole('button', { name: 'AHL 响应, 功能模块' })).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: '添加模块' })).not.toBeInTheDocument();
+  });
+
+  it('blocks project undo and Delete while the input drawer is open', async () => {
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: '动态分析' }));
+    await user.click(screen.getByRole('button', { name: 'AHL 响应, 功能模块' }));
+    await user.click(screen.getByRole('button', { name: '设置输入' }));
+    const dialog = screen.getByRole('dialog', { name: '设置输入' });
+
+    fireEvent.keyDown(dialog, { key: 'z', ctrlKey: true });
+    fireEvent.keyDown(dialog, { key: 'Delete' });
+    expect(screen.getByRole('button', { name: '动态分析' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: 'AHL 响应, 功能模块' })).toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('dialog', { name: '设置输入' })).not.toBeInTheDocument();
+  });
+
+  it('blocks undo and redo behind a confirmation dialog', async () => {
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: '动态分析' }));
+    await user.click(screen.getByRole('button', { name: '添加模块' }));
+    const picker = screen.getByRole('dialog', { name: '添加模块' });
+    await user.click(within(picker).getAllByRole('button', { name: '添加到网络' })[2]!);
+    await user.click(screen.getByRole('button', { name: '撤销' }));
+    expect(screen.queryByRole('button', { name: '双输入响应, 功能模块' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('更多操作'));
+    await user.click(screen.getByRole('button', { name: '重置演示项目' }));
+    const dialog = screen.getByRole('alertdialog', { name: '重置演示项目？' });
+    fireEvent.keyDown(dialog, { key: 'z', ctrlKey: true });
+    fireEvent.keyDown(dialog, { key: 'y', ctrlKey: true });
+
+    expect(screen.getByRole('button', { name: '动态分析' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    expect(screen.queryByRole('button', { name: '双输入响应, 功能模块' })).not.toBeInTheDocument();
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
   });
 
   it('keeps exact connection as a collapsed fallback', () => {

@@ -40,6 +40,8 @@ describe('desktop application shell', () => {
     render(<App />);
     const navigation = screen.getByRole('navigation');
     expect(within(navigation).getAllByRole('button')).toHaveLength(6);
+    expect(within(navigation).queryByRole('group', { name: '概览' })).not.toBeInTheDocument();
+    expect(within(navigation).getByRole('button', { name: '概览' })).toBeInTheDocument();
     expect(within(navigation).getByRole('group', { name: '检测' })).toBeInTheDocument();
     expect(within(navigation).getByRole('group', { name: '建模' })).toBeInTheDocument();
     expect(within(navigation).getByRole('group', { name: '系统' })).toBeInTheDocument();
@@ -156,7 +158,9 @@ describe('desktop application shell', () => {
     render(<App />);
 
     expect(screen.getByText('演示项目')).toBeInTheDocument();
-    expect(screen.getByText('建模工作台')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '生物网络演示项目' })).toBeInTheDocument();
+    expect(document.querySelector('.top-bar')).not.toBeInTheDocument();
+    expect(screen.queryByText('建模工作台')).not.toBeInTheDocument();
     expect(screen.queryByText('HC-08D')).not.toBeInTheDocument();
     expect(screen.queryByText('未连接设备')).not.toBeInTheDocument();
     expect(screen.queryByText('连接状态')).not.toBeInTheDocument();
