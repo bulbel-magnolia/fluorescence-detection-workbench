@@ -91,6 +91,24 @@ describe('BFN clipboard capability and copy operations', () => {
     });
   });
 
+  it('degrades a throwing image MIME capability probe to an explicit unsupported result', async () => {
+    const environment: BfnClipboardEnvironment = {
+      write: vi.fn(() => Promise.resolve()),
+      createClipboardItem: (items) => items,
+      supportsMimeType: () => {
+        throw new Error('capability probe failed');
+      },
+    };
+    const png = new Blob(['png'], { type: 'image/png' });
+
+    expect(getBfnClipboardCapabilities(environment).imagePng).toBe(false);
+    await expect(copyBfnPng(png, environment)).resolves.toEqual({
+      status: 'unsupported',
+      operation: 'image',
+      reason: 'image-png-copy-unsupported',
+    });
+  });
+
   it('returns a failure when the image clipboard write rejects', async () => {
     const environment: BfnClipboardEnvironment = {
       write: vi.fn(() => Promise.reject(new Error('image blocked'))),
@@ -111,5 +129,31 @@ describe('BFN clipboard capability and copy operations', () => {
       operation: 'text',
       message: 'Text fallback did not complete the copy operation.',
     });
+  });
+
+  it('removes the temporary textarea when the default fallback selection throws', async () => {
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const execCommandDescriptor = Object.getOwnPropertyDescriptor(document, 'execCommand');
+    Object.defineProperty(navigator, 'clipboard', { configurable: true, value: undefined });
+    Object.defineProperty(document, 'execCommand', { configurable: true, value: vi.fn(() => true) });
+    const select = vi.spyOn(HTMLTextAreaElement.prototype, 'select').mockImplementation(() => {
+      throw new Error('selection failed');
+    });
+    const before = document.querySelectorAll('textarea').length;
+
+    try {
+      await expect(copyBfnText('x')).resolves.toMatchObject({
+        status: 'failure',
+        operation: 'text',
+        message: 'selection failed',
+      });
+      expect(document.querySelectorAll('textarea')).toHaveLength(before);
+    } finally {
+      select.mockRestore();
+      if (clipboardDescriptor) Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+      if (execCommandDescriptor) Object.defineProperty(document, 'execCommand', execCommandDescriptor);
+      else Reflect.deleteProperty(document, 'execCommand');
+    }
   });
 });

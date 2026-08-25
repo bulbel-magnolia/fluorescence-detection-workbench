@@ -52,15 +52,21 @@ function defaultFallbackWriteText(text: string): boolean {
   textarea.setAttribute('readonly', '');
   textarea.style.position = 'fixed';
   textarea.style.opacity = '0';
-  document.body?.appendChild(textarea);
-  textarea.select();
-  let copied = false;
   try {
-    copied = document.execCommand('copy');
+    document.body?.appendChild(textarea);
+    textarea.select();
+    return document.execCommand('copy');
   } finally {
-    textarea.remove();
+    try {
+      textarea.remove();
+    } catch {
+      try {
+        textarea.parentNode?.removeChild(textarea);
+      } catch {
+        // Cleanup is best effort; the copy result is still reported by the caller.
+      }
+    }
   }
-  return copied;
 }
 
 function resolveEnvironment(environment?: BfnClipboardEnvironment): Required<Pick<BfnClipboardEnvironment, 'writeText' | 'write' | 'createClipboardItem' | 'supportsMimeType' | 'fallbackWriteText'>> {
@@ -80,7 +86,14 @@ export function getBfnClipboardCapabilities(environment?: BfnClipboardEnvironmen
   const hasFallback = explicit ? typeof environment.fallbackWriteText === 'function' : typeof document !== 'undefined' && typeof document.execCommand === 'function';
   const hasImageWrite = explicit ? typeof environment.write === 'function' : typeof asyncClipboard()?.write === 'function';
   const hasItem = explicit ? typeof environment.createClipboardItem === 'function' : typeof ClipboardItem !== 'undefined';
-  const hasMime = hasItem && resolved.supportsMimeType('image/png');
+  let hasMime = false;
+  if (hasItem) {
+    try {
+      hasMime = resolved.supportsMimeType('image/png') === true;
+    } catch {
+      hasMime = false;
+    }
+  }
   return {
     text: hasText,
     textFallback: hasFallback,

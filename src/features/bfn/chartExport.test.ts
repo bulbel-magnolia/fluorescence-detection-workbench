@@ -94,6 +94,24 @@ describe('publication figure export', () => {
     expect(svg).not.toContain('data-series="uncertainty"');
     expect(svg).not.toContain('data-series="ann"');
   });
+
+  it('renders an uncertainty band when the shared model provides band geometry without a line path', () => {
+    const { result, model } = chartFixture();
+    const uncertainty = model.series.uncertainty;
+    if (!uncertainty) throw new Error('Expected uncertainty geometry');
+    const bandOnlyModel = {
+      ...model,
+      series: {
+        ...model.series,
+        uncertainty: { ...uncertainty, path: '', band: uncertainty.path },
+      },
+    };
+
+    const svg = serializeBfnFigureSvg({ model: bandOnlyModel, result });
+
+    expect(svg).toMatch(/<path data-series="uncertainty"[^>]+d="M [^"]+"/);
+    expect(svg).toContain('<g data-role="legend-item" data-series="uncertainty"');
+  });
 });
 
 describe('raw table export', () => {
@@ -171,6 +189,13 @@ describe('export metadata helpers', () => {
     );
     expect(createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }))
       .not.toMatch(/[\\/:*?"<>|]/);
+
+    project.id = 'CON.txt';
+    expect(createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' }))
+      .toMatch(/^bfn-CON\.txt_/);
+    project.id = `alpha${String.fromCharCode(1)}beta`;
+    const controlSafeFilename = createBfnExportFilename({ project, result, artifact: 'response', extension: 'svg' });
+    expect(Array.from(controlSafeFilename).some((character) => character.charCodeAt(0) <= 0x1f)).toBe(false);
   });
 
   it('describes only known figure semantics and provenance fields', () => {

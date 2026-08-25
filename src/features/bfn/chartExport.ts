@@ -95,20 +95,36 @@ function numberText(value: number): string {
   return Number.isFinite(value) ? String(value) : '';
 }
 
+function seriesPathData(
+  series: BfnChartSeries,
+  kind: 'full' | 'uncertainty' | 'ann' | 'comparison',
+): string {
+  if (kind !== 'uncertainty') return series.path;
+  return (series.band ?? '').trim().length > 0 ? series.band! : series.path;
+}
+
+function seriesRenderable(
+  series: BfnChartSeries,
+  kind: 'full' | 'uncertainty' | 'ann' | 'comparison',
+): boolean {
+  return series.visible && seriesPathData(series, kind).trim().length > 0;
+}
+
 function pathElement(
   series: BfnChartSeries,
   color: string,
   kind: 'full' | 'uncertainty' | 'ann' | 'comparison',
 ): string {
-  if (!series.visible || series.path.trim().length === 0) return '';
+  const path = seriesPathData(series, kind);
+  if (!seriesRenderable(series, kind)) return '';
   if (kind === 'uncertainty') {
-    return `<path data-series="uncertainty" d="${escapeXml(series.band ?? series.path)}" fill="${color}" fill-opacity="0.22" stroke="none" style="fill:${color};fill-opacity:0.22;stroke:none"/>`;
+    return `<path data-series="uncertainty" d="${escapeXml(path)}" fill="${color}" fill-opacity="0.22" stroke="none" style="fill:${color};fill-opacity:0.22;stroke:none"/>`;
   }
-  return `<path data-series="${kind}" d="${escapeXml(series.path)}" fill="none" stroke="${color}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${color};stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round"/>`;
+  return `<path data-series="${kind}" d="${escapeXml(path)}" fill="none" stroke="${color}" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round" style="fill:none;stroke:${color};stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round"/>`;
 }
 
 function seriesLegend(series: BfnChartSeries, color: string, kind: 'full' | 'uncertainty' | 'ann' | 'comparison', index: number): string {
-  if (!series.visible || (series.path.trim().length === 0 && (series.band ?? '').trim().length === 0)) return '';
+  if (!seriesRenderable(series, kind)) return '';
   const label = series.label.trim().length > 0 ? series.label : SERIES_LABELS[kind];
   const y = 18 + index * 19;
   const swatch = kind === 'uncertainty'
@@ -167,7 +183,7 @@ export function serializeBfnFigureSvg({
     comparisonSeries ? pathElement(comparisonSeries, SERIES_COLORS.comparison, 'comparison') : '',
   ].join('');
   const visibleSeries = [full, uncertainty, ann, comparisonSeries].filter(
-    (series): series is BfnChartSeries => Boolean(series?.visible && (series.path.trim() || (series.band ?? '').trim())),
+    (series): series is BfnChartSeries => Boolean(series && seriesRenderable(series, series.kind)),
   );
   const legendMarkup = visibleSeries
     .map((series, index) => seriesLegend(series, SERIES_COLORS[series.kind], series.kind, index))
@@ -266,7 +282,11 @@ export function serializeBfnResultTable({
 }
 
 function sanitizeFilenamePart(value: string, fallback: string): string {
-  const replaced = value
+  const withoutControlCharacters = Array.from(
+    value,
+    (character) => character.charCodeAt(0) <= 0x1f ? '-' : character,
+  ).join('');
+  const replaced = withoutControlCharacters
     .trim()
     .replace(/[<>:"/\\|?*]+/g, '-')
     .replace(/\s+/g, '-')
@@ -274,7 +294,7 @@ function sanitizeFilenamePart(value: string, fallback: string): string {
     .replace(/[. ]+$/g, '')
     .replace(/^-+|-+$/g, '');
   if (replaced.length === 0) return fallback;
-  if (/^(con|prn|aux|nul|clock\$|com[1-9]|lpt[1-9])$/i.test(replaced)) return `bfn-${replaced}`;
+  if (/^(con|prn|aux|nul|clock\$|com[1-9]|lpt[1-9])(?:\.|$)/i.test(replaced)) return `bfn-${replaced}`;
   return replaced;
 }
 
@@ -300,7 +320,7 @@ export function createBfnExportFilename({
 }
 
 function seriesIsShown(series: BfnChartSeries | undefined): boolean {
-  return Boolean(series?.visible && (series.path.trim().length > 0 || (series.band ?? '').trim().length > 0));
+  return Boolean(series && seriesRenderable(series, series.kind));
 }
 
 export function createBfnFigureCaption({
