@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   copyBfnPng,
@@ -85,14 +85,44 @@ export function BfnExportMenu({
   downloadEnvironment,
   pngEnvironment,
 }: BfnExportMenuProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [operation, setOperation] = useState<Operation>(null);
   const [feedback, setFeedback] = useState<Feedback>(null);
+  const requestTokenRef = useRef(0);
+  const language = i18n.resolvedLanguage ?? i18n.language;
   const clipboardCapabilities = useMemo(
     () => getBfnClipboardCapabilities(clipboardEnvironment),
     [clipboardEnvironment],
   );
-  const resolvedDownloadEnvironment = downloadEnvironment ?? browserDownloadEnvironment();
+  const resolvedDownloadEnvironment = useMemo(
+    () => downloadEnvironment ?? browserDownloadEnvironment(),
+    [downloadEnvironment],
+  );
+
+  useEffect(() => {
+    requestTokenRef.current += 1;
+    setOperation(null);
+    setFeedback(null);
+    return () => {
+      requestTokenRef.current += 1;
+    };
+  }, [
+    project,
+    result,
+    model,
+    clipboardEnvironment,
+    downloadEnvironment,
+    pngEnvironment,
+    language,
+  ]);
+
+  const beginOperation = (nextOperation: Exclude<Operation, null>, message: string): number => {
+    requestTokenRef.current += 1;
+    setOperation(nextOperation);
+    setFeedback({ kind: 'status', message });
+    return requestTokenRef.current;
+  };
+  const requestIsCurrent = (token: number): boolean => requestTokenRef.current === token;
   const svg = (): string => serializeBfnFigureSvg({
     model,
     result,
@@ -141,16 +171,17 @@ export function BfnExportMenu({
     pngEnvironment ? { environment: pngEnvironment } : {},
   );
   const handlePngDownload = async (): Promise<void> => {
-    setOperation('downloadPng');
-    setFeedback({ kind: 'status', message: t('bfn.results.exportMenu.preparing') });
+    const token = beginOperation('downloadPng', t('bfn.results.exportMenu.preparing'));
     try {
       const blob = await createPng();
+      if (!requestIsCurrent(token)) return;
       downloadBlob(blob, filename('response-3x', 'png'), resolvedDownloadEnvironment);
       announceDownload();
     } catch {
+      if (!requestIsCurrent(token)) return;
       setFeedback({ kind: 'alert', message: t('bfn.results.exportMenu.exportFailed') });
     } finally {
-      setOperation(null);
+      if (requestIsCurrent(token)) setOperation(null);
     }
   };
   const handleCopyResult = (
@@ -177,24 +208,28 @@ export function BfnExportMenu({
     value: string,
     successKey: 'copyDataSuccess' | 'copyCaptionSuccess',
   ): Promise<void> => {
-    setOperation(nextOperation);
-    setFeedback({ kind: 'status', message: t('bfn.results.exportMenu.copying') });
+    const token = beginOperation(nextOperation, t('bfn.results.exportMenu.copying'));
     try {
-      handleCopyResult(await copyBfnText(value, clipboardEnvironment), successKey);
+      const copyResult = await copyBfnText(value, clipboardEnvironment);
+      if (!requestIsCurrent(token)) return;
+      handleCopyResult(copyResult, successKey);
     } finally {
-      setOperation(null);
+      if (requestIsCurrent(token)) setOperation(null);
     }
   };
   const handleCopyFigure = async (): Promise<void> => {
-    setOperation('copyFigure');
-    setFeedback({ kind: 'status', message: t('bfn.results.exportMenu.copying') });
+    const token = beginOperation('copyFigure', t('bfn.results.exportMenu.copying'));
     try {
       const blob = await createPng();
-      handleCopyResult(await copyBfnPng(blob, clipboardEnvironment), 'copyFigureSuccess');
+      if (!requestIsCurrent(token)) return;
+      const copyResult = await copyBfnPng(blob, clipboardEnvironment);
+      if (!requestIsCurrent(token)) return;
+      handleCopyResult(copyResult, 'copyFigureSuccess');
     } catch {
+      if (!requestIsCurrent(token)) return;
       setFeedback({ kind: 'alert', message: t('bfn.results.exportMenu.copyFailed') });
     } finally {
-      setOperation(null);
+      if (requestIsCurrent(token)) setOperation(null);
     }
   };
   const handleCopyData = (): Promise<void> => copyText(

@@ -22,9 +22,9 @@ const geometry = {
   padding: { left: 62, right: 24, top: 24, bottom: 48 },
 } as const;
 
-function exportFixture() {
+function exportFixture(completedAt = '2026-08-26T08:30:00.000Z') {
   const project = createDemoBfnProject();
-  const result = runBfnSimulation(project, '2026-08-26T08:30:00.000Z');
+  const result = runBfnSimulation(project, completedAt);
   const model = createBfnChartModel({
     project,
     result,
@@ -83,6 +83,16 @@ function deferredPromise() {
   let resolve!: () => void;
   let reject!: (reason: Error) => void;
   const promise = new Promise<void>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function deferredValue<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
     resolve = resolvePromise;
     reject = rejectPromise;
   });
@@ -276,6 +286,107 @@ describe('BFN result export menu', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Caption copied.'));
     expect(writeText).toHaveBeenNthCalledWith(2, expect.stringContaining('Steady-state analysis'));
     expect(writeText.mock.calls[1]?.[0]).not.toMatch(/\bstatic\b/);
+  });
+
+  it('invalidates an old text copy without letting its completion overwrite or unlock a newer request', async () => {
+    const user = userEvent.setup();
+    const oldFixture = exportFixture('2026-08-26T08:30:00.000Z');
+    const newFixture = exportFixture('2026-08-27T09:45:00.000Z');
+    const oldCopy = deferredPromise();
+    const newCopy = deferredPromise();
+    const writeText = vi.fn<(text: string) => Promise<void>>()
+      .mockImplementationOnce(() => oldCopy.promise)
+      .mockImplementationOnce(() => newCopy.promise);
+    const clipboardEnvironment: BfnClipboardEnvironment = { writeText };
+    const { rerender } = render(
+      <BfnExportMenu {...oldFixture} clipboardEnvironment={clipboardEnvironment} />,
+    );
+    await user.click(screen.getByText('Export'));
+    await user.click(screen.getByRole('button', { name: 'Copy data' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Copying…');
+
+    rerender(<BfnExportMenu {...newFixture} clipboardEnvironment={clipboardEnvironment} />);
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Copy data' })).toBeEnabled());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Copy data' }));
+    expect(screen.getByRole('button', { name: 'Copy data' })).toBeDisabled();
+    expect(screen.getByRole('status')).toHaveTextContent('Copying…');
+
+    await act(async () => {
+      oldCopy.resolve();
+      await oldCopy.promise;
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Copying…');
+    expect(screen.getByRole('button', { name: 'Copy data' })).toBeDisabled();
+
+    await act(async () => {
+      newCopy.resolve();
+      await newCopy.promise;
+    });
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Data copied.'));
+    expect(screen.getByRole('button', { name: 'Copy data' })).toBeEnabled();
+    expect(writeText.mock.calls[0]?.[0]).toContain(oldFixture.result.id);
+    expect(writeText.mock.calls[1]?.[0]).toContain(newFixture.result.id);
+  });
+
+  it('does not download a stale PNG and lets only the replacement request publish feedback', async () => {
+    const user = userEvent.setup();
+    const oldFixture = exportFixture('2026-08-26T08:30:00.000Z');
+    const newFixture = exportFixture('2026-08-27T09:45:00.000Z');
+    const oldImage = deferredValue<object>();
+    const newImage = deferredValue<object>();
+    const png = pngFixture();
+    const loadSvgImage = vi.fn()
+      .mockImplementationOnce(() => oldImage.promise)
+      .mockImplementationOnce(() => newImage.promise);
+    const pngEnvironment: BfnPngEnvironment = {
+      ...png.environment,
+      loadSvgImage,
+    };
+    const downloads = downloadFixture();
+    const { rerender } = render(
+      <BfnExportMenu
+        {...oldFixture}
+        pngEnvironment={pngEnvironment}
+        downloadEnvironment={downloads.environment}
+      />,
+    );
+    await user.click(screen.getByText('Export'));
+    await user.click(screen.getByRole('button', { name: 'Download PNG (3×)' }));
+    expect(screen.getByRole('status')).toHaveTextContent('Preparing export…');
+
+    rerender(
+      <BfnExportMenu
+        {...newFixture}
+        pngEnvironment={pngEnvironment}
+        downloadEnvironment={downloads.environment}
+      />,
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Download PNG (3×)' })).toBeEnabled());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Download PNG (3×)' }));
+    expect(screen.getByRole('button', { name: 'Download PNG (3×)' })).toBeDisabled();
+
+    await act(async () => {
+      oldImage.resolve({});
+      await oldImage.promise;
+    });
+    expect(downloads.downloads).toHaveLength(0);
+    expect(screen.getByRole('status')).toHaveTextContent('Preparing export…');
+    expect(screen.getByRole('button', { name: 'Download PNG (3×)' })).toBeDisabled();
+
+    await act(async () => {
+      newImage.resolve({});
+      await newImage.promise;
+    });
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Download ready.'));
+    expect(downloads.downloads).toHaveLength(1);
+    expect(downloads.downloads[0]?.filename).toBe(createBfnExportFilename({
+      project: newFixture.project,
+      result: newFixture.result,
+      artifact: 'response-3x',
+      extension: 'png',
+    }));
   });
 
   it('copies a publication PNG only after supported image clipboard APIs resolve', async () => {
