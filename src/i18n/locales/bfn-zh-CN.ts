@@ -427,6 +427,7 @@ export const bfnZhCN = {
       label: '与历史运行对比',
       noneSelected: '不进行对比',
       noneAvailable: '暂无可比较的历史运行。',
+      unknownTime: '未知',
       option: '{{time}} · {{mode}} · {{range}}',
       cleared: '对比已清除：所选运行已不可用或与当前结果不兼容。',
       logFallback: '加入对比后，{{axes}}已切回线性刻度。{{reason}} 手动范围保持不变。',

@@ -293,4 +293,71 @@ describe('BfnResponseChart exact reading', () => {
     expect(screen.getByLabelText('Series')).toHaveTextContent('Current run');
     expect(screen.getByLabelText('Series')).toHaveTextContent('Comparison run · 18:00');
   });
+
+  it('keeps a multi-input comparison tooltip focusable while pointer moves within the chart wrapper', () => {
+    const project = createDemoBfnProject();
+    project.network.mode = 'dynamic';
+    const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');
+    const first = base.points[0];
+    if (!first) throw new Error('Expected a dynamic simulation point');
+    const extraInputs = Object.fromEntries(
+      Array.from({ length: 12 }, (_, index) => [
+        `source-extra-${String(index + 1).padStart(2, '0')}`,
+        index + 1,
+      ]),
+    );
+    const current = {
+      ...base,
+      id: 'run-dynamic-current',
+      points: [{
+        ...first,
+        inputs: { ...first.inputs, ...extraInputs },
+      }],
+    };
+    const historical = {
+      ...base,
+      id: 'run-dynamic-history',
+      completedAt: '2026-08-25T18:32:00.000Z',
+      points: [{ ...first, output: first.output + 0.08 }],
+    };
+    const comparison = { result: historical, label: 'Comparison run · 18:32' };
+    const viewState = { ...defaultBfnChartViewState(current), cursorIndex: 0 };
+    const model = createBfnChartModel({
+      project,
+      result: current,
+      comparison,
+      viewState,
+      geometry,
+      translate: (key) => i18n.t(key),
+    });
+    const onCursorIndexChange = vi.fn();
+    render(
+      <BfnResponseChart
+        project={project}
+        result={current}
+        comparison={comparison}
+        viewState={viewState}
+        model={model}
+        onCursorIndexChange={onCursorIndexChange}
+      />,
+    );
+
+    const tooltip = screen.getByRole('note');
+    expect(tooltip).toHaveTextContent('3OC6-HSL');
+    expect(tooltip).toHaveTextContent('source-extra-01');
+    expect(tooltip).toHaveTextContent('source-extra-12');
+    expect(tooltip).toHaveTextContent('Comparison run · 18:32');
+    expect(tooltip).toHaveAttribute('tabindex', '0');
+    tooltip.focus();
+    expect(document.activeElement).toBe(tooltip);
+
+    const svg = screen.getByRole('img', { name: 'Dynamic response' });
+    fireEvent.pointerLeave(svg, { relatedTarget: tooltip });
+    expect(onCursorIndexChange).not.toHaveBeenCalled();
+
+    const wrapper = document.querySelector('.bfn-chart');
+    if (!wrapper) throw new Error('Expected the chart wrapper');
+    fireEvent.pointerLeave(wrapper);
+    expect(onCursorIndexChange).toHaveBeenCalledWith(null);
+  });
 });

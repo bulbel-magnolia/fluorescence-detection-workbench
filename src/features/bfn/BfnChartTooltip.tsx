@@ -66,7 +66,7 @@ export function BfnChartTooltip({ project, result, comparison, model, cursor }: 
       : comparisonCursor.point.inputs[result.primaryInputSourceId] ?? comparisonCursor.coordinate
     : null;
   return (
-    <aside className="bfn-chart-tooltip" data-index={cursor.index} role="note" aria-label={t('bfn.results.chart.computedPoint')}>
+    <aside className="bfn-chart-tooltip" data-index={cursor.index} role="note" aria-label={t('bfn.results.chart.computedPoint')} tabIndex={0}>
       <strong>{t('bfn.results.chart.computedPoint')}</strong>
       {comparisonCursor ? <span className="bfn-chart-tooltip__run-label">{t('bfn.results.chart.currentRun')}</span> : null}
       <dl>

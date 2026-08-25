@@ -437,6 +437,7 @@ export const bfnEnUS = {
       label: 'Compare with historical run',
       noneSelected: 'Do not compare',
       noneAvailable: 'No compatible historical runs.',
+      unknownTime: 'Unknown',
       option: '{{time}} · {{mode}} · {{range}}',
       cleared: 'Comparison cleared because it is no longer compatible or available.',
       logFallback: '{{axes}} returned to Linear after adding the comparison. {{reason}} Manual bounds were kept.',

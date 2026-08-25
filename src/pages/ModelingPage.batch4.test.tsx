@@ -582,6 +582,38 @@ describe('Batch 4 precise chart reading controls', () => {
     expect(panel.querySelector('.bfn-chart__comparison')).not.toBeInTheDocument();
   });
 
+  it('renders a localized compact comparison label for a repository-accepted invalid timestamp', async () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');
+    const comparison = {
+      ...base,
+      id: 'run-invalid-comparison-time',
+      completedAt: 'not-a-timestamp',
+    };
+    const current = { ...base, id: 'run-valid-current-time' };
+    saveBfnRun(comparison);
+    saveBfnRun(current);
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+    await user.click(screen.getByRole('button', { name: 'Expand analysis results' }));
+    const history = document.querySelector('.bfn-run-history') as HTMLElement;
+    const currentButton = within(history).getByText(
+      new Date(current.completedAt).toLocaleString('en-US'),
+    ).closest('button');
+    if (!currentButton) throw new Error('Current run button was not rendered');
+    await user.click(currentButton);
+    const panel = document.querySelector('.bfn-result-panel') as HTMLElement;
+
+    await user.selectOptions(
+      within(panel).getByRole('combobox', { name: 'Compare with historical run' }),
+      comparison.id,
+    );
+
+    expect(panel.querySelector('.bfn-chart__legend')).toHaveTextContent(
+      'Comparison run · Unknown',
+    );
+  });
+
   it('clears the selected comparison when run history is cleared', async () => {
     const project = createDemoBfnProject();
     const base = runBfnSimulation(project, '2026-08-26T10:00:00.000Z');

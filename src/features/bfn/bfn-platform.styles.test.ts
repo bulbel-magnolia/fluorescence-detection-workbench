@@ -103,6 +103,12 @@ describe('scientific desktop visual semantics', () => {
     expect(workbenchCss).toMatch(/\.bfn-network-workspace\s*\{[\s\S]*?border-radius:\s*0;/);
   });
 
+  it('bounds dense chart tooltips and allows direct scrolling and focus interaction', () => {
+    expect(resultsCss).toMatch(
+      /\.bfn-chart-tooltip\s*\{[\s\S]*max-height:\s*calc\(100% - 44px\);[\s\S]*overflow-y:\s*auto;[\s\S]*pointer-events:\s*auto;/,
+    );
+  });
+
   it('extends the same flat desktop language to shared application pages', () => {
     expect(desktopCss).toMatch(
       /\.desktop-surface\s*\{[\s\S]*?background:\s*var\(--ui-bg-pane\);[\s\S]*?border:\s*var\(--ui-divider\);/,

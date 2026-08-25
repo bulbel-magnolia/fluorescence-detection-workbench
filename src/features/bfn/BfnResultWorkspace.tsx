@@ -142,7 +142,11 @@ export function BfnResultWorkspace({
       ? {
           result: comparisonRun,
           label: t('bfn.results.chart.comparisonRunLabel', {
-            time: formatBfnComparisonTime(comparisonRun.completedAt, i18n.language),
+            time: formatBfnComparisonTime(
+              comparisonRun.completedAt,
+              i18n.language,
+              t('bfn.results.comparison.unknownTime'),
+            ),
           }),
         }
       : undefined,

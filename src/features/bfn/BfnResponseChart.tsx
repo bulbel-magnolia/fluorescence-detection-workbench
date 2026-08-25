@@ -207,7 +207,7 @@ export function BfnResponseChart({
   const title = result.mode === 'static' ? t('bfn.results.staticChart') : t('bfn.results.dynamicChart');
   const cursor = model.cursor;
   return (
-    <div className="bfn-chart" data-mode={result.mode}>
+    <div className="bfn-chart" data-mode={result.mode} onPointerLeave={() => updateView(null)}>
       <svg
         ref={pointerRef}
         viewBox={`0 0 ${width} ${height}`}
@@ -216,7 +216,6 @@ export function BfnResponseChart({
         aria-describedby="bfn-chart-focus-instructions"
         tabIndex={0}
         onPointerMove={handlePointerMove}
-        onPointerLeave={() => updateView(null)}
         onKeyDown={handleKeyDown}
       >
         <title>{title}</title>

@@ -4,6 +4,7 @@ import {
   compatibleBfnRuns,
   formatBfnComparisonTime,
   nearestBfnComparisonPoint,
+  nearestBfnPointOnValidatedGrid,
 } from './runComparison';
 import { runBfnSimulation } from './simulation';
 
@@ -55,5 +56,41 @@ describe('BFN historical-run comparison', () => {
       expect(formatted).toMatch(/^\d{2}:\d{2}$/);
       expect(formatted).not.toMatch(/2026|25|45|AM|PM|上午|下午/i);
     }
+  });
+
+  it('uses the localized short fallback for repository-accepted invalid timestamps', () => {
+    expect(formatBfnComparisonTime('not-a-timestamp', 'zh-CN', '未知')).toBe('未知');
+    expect(formatBfnComparisonTime('not-a-timestamp', 'en-US', 'Unknown')).toBe('Unknown');
+  });
+
+  it('falls back to a safe locale when the active language tag is invalid', () => {
+    expect(formatBfnComparisonTime('2026-08-25T18:32:45', 'invalid_locale', 'Unknown')).toBe(
+      '18:32',
+    );
+  });
+
+  it('reads a validated historical grid with logarithmic indexed access', () => {
+    const project = createDemoBfnProject();
+    const history = runBfnSimulation(project, '2026-08-25T09:00:00.000Z');
+    const template = history.points[0];
+    if (!template) throw new Error('Expected a simulation point');
+    const points = Array.from({ length: 4096 }, (_, index) => ({
+      ...template,
+      coordinate: index,
+      output: index / 4096,
+    }));
+    let indexedReads = 0;
+    const measuredPoints = new Proxy(points, {
+      get(target, property, receiver) {
+        if (typeof property === 'string' && /^\d+$/.test(property)) indexedReads += 1;
+        const value: unknown = Reflect.get(target, property, receiver);
+        return value;
+      },
+    });
+
+    const nearest = nearestBfnPointOnValidatedGrid(measuredPoints, 2048.4);
+
+    expect(nearest?.index).toBe(2048);
+    expect(indexedReads).toBeLessThanOrEqual(32);
   });
 });

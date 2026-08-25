@@ -6,13 +6,40 @@ export interface BfnNearestComparisonPoint {
   point: BfnSimulationPoint;
 }
 
+const comparisonTimeOptions: Intl.DateTimeFormatOptions = {
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+};
+
 /** Keep shared chart legends compact while respecting the active locale. */
-export function formatBfnComparisonTime(completedAt: string, language: string): string {
-  return new Intl.DateTimeFormat(language, {
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).format(new Date(completedAt));
+export function formatBfnComparisonTime(
+  completedAt: string,
+  language: string,
+  fallback = '--:--',
+): string {
+  const completedDate = new Date(completedAt);
+  if (!Number.isFinite(completedDate.getTime())) return fallback;
+  try {
+    return new Intl.DateTimeFormat(language, comparisonTimeOptions).format(completedDate);
+  } catch {
+    try {
+      return new Intl.DateTimeFormat('en-GB', comparisonTimeOptions).format(completedDate);
+    } catch {
+      return String(completedDate.getHours()).padStart(2, '0') + ':' +
+        String(completedDate.getMinutes()).padStart(2, '0');
+    }
+  }
+}
+
+/** Read a point from a coordinate grid that has already passed chart validation. */
+export function nearestBfnPointOnValidatedGrid(
+  points: readonly BfnSimulationPoint[],
+  coordinate: number,
+): BfnNearestComparisonPoint | null {
+  const index = nearestPointIndex(points, coordinate);
+  const point = points[index];
+  return index >= 0 && point ? { index, point } : null;
 }
 
 /** Preserve repository recency order while applying the scientific identity contract. */
@@ -35,7 +62,5 @@ export function nearestBfnComparisonPoint(
   coordinate: number,
 ): BfnNearestComparisonPoint | null {
   if (!validateChartCoordinates(result.points).valid) return null;
-  const index = nearestPointIndex(result.points, coordinate);
-  const point = result.points[index];
-  return index >= 0 && point ? { index, point } : null;
+  return nearestBfnPointOnValidatedGrid(result.points, coordinate);
 }

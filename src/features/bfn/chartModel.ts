@@ -22,7 +22,7 @@ import type {
   CreateBfnChartModelInput,
 } from './chartTypes';
 import type { BfnSimulationPoint, BfnSimulationResult } from './types';
-import { nearestBfnComparisonPoint } from './runComparison';
+import { nearestBfnPointOnValidatedGrid } from './runComparison';
 
 function finiteExtent(values: readonly number[], fallback: BfnChartDomain): BfnChartDomain {
   const finite = values.filter((value) => Number.isFinite(value));
@@ -416,8 +416,8 @@ export function createBfnChartModel({
     ? (() => {
         const x = mapX(cursorPoint.coordinate);
         const y = mapY(cursorPoint.output);
-        const nearestComparison = comparisonResult
-          ? nearestBfnComparisonPoint(comparisonResult, cursorPoint.coordinate)
+        const nearestComparison = comparisonResult && coordinateValidation.comparison?.valid
+          ? nearestBfnPointOnValidatedGrid(comparisonResult.points, cursorPoint.coordinate)
           : null;
         const comparisonCursor = nearestComparison &&
           nearestComparison.point.coordinate >= xDomain[0] &&

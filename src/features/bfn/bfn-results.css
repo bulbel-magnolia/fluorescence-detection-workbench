@@ -526,6 +526,8 @@
   top: 34px;
   left: 10px;
   max-width: min(260px, calc(100% - 20px));
+  max-height: calc(100% - 44px);
+  overflow-y: auto;
   padding: 7px 8px;
   color: var(--ui-text-secondary);
   background: color-mix(in srgb, var(--ui-bg-pane) 94%, transparent);
@@ -533,7 +535,7 @@
   border-radius: var(--ui-radius-xs);
   box-shadow: var(--ui-shadow-sm);
   font-size: 10px;
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .bfn-chart-tooltip > strong {
