@@ -515,7 +515,7 @@ describe('Batch 4 precise chart reading controls', () => {
     const comparison = {
       ...base,
       id: 'run-comparison-compatible',
-      completedAt: '2026-08-25T09:00:00.000Z',
+      completedAt: '2026-08-25T18:32:00',
       points: base.points.map((point) => ({ ...point, output: point.output + 0.08 })),
     };
     const incompatible = {
@@ -554,16 +554,18 @@ describe('Batch 4 precise chart reading controls', () => {
     setItemSpy.mockClear();
 
     const selector = within(panel).getByRole('combobox', { name: 'Compare with historical run' });
+    const fullComparisonTime = new Date(comparison.completedAt).toLocaleString('en-US');
     expect(within(selector).getByRole('option', { name: /Steady-state.*nM/ })).toHaveTextContent(
-      new Date(comparison.completedAt).toLocaleString('en-US'),
+      fullComparisonTime,
     );
     await user.selectOptions(selector, comparison.id);
 
     expect(panel.querySelector('.bfn-chart__comparison')).toHaveAttribute('data-run-role', 'comparison');
     const legend = panel.querySelector('.bfn-chart__legend') as HTMLElement;
     expect(legend).toHaveTextContent('Current run');
-    expect(legend).toHaveTextContent('Comparison run');
-    expect(legend).toHaveTextContent(new Date(comparison.completedAt).toLocaleString('en-US'));
+    expect(legend).toHaveTextContent('Comparison run · 18:32');
+    expect(legend).not.toHaveTextContent(fullComparisonTime);
+    expect(legend).not.toHaveTextContent(':00');
     expect(within(xAxis).getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(xAxis).getAllByRole('spinbutton').map((input) => (input as HTMLInputElement).value)).toEqual(xBoundsBefore);
     expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).toBe(projectBefore);

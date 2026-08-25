@@ -6,6 +6,15 @@ export interface BfnNearestComparisonPoint {
   point: BfnSimulationPoint;
 }
 
+/** Keep shared chart legends compact while respecting the active locale. */
+export function formatBfnComparisonTime(completedAt: string, language: string): string {
+  return new Intl.DateTimeFormat(language, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(new Date(completedAt));
+}
+
 /** Preserve repository recency order while applying the scientific identity contract. */
 export function compatibleBfnRuns(
   current: BfnSimulationResult,

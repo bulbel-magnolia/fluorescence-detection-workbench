@@ -261,7 +261,7 @@ describe('BfnResponseChart exact reading', () => {
         { ...base.points[1]!, coordinate: 20.2, inputs: { ...base.points[1]!.inputs, [sourceId]: 20.2 }, output: 0.74 },
       ],
     };
-    const comparison = { result: historical, label: 'Comparison run · 8/25/2026, 6:00:00 PM' };
+    const comparison = { result: historical, label: 'Comparison run · 18:00' };
     const viewState = { ...defaultBfnChartViewState(current), cursorIndex: 0 };
     const model = createBfnChartModel({
       project,
@@ -285,12 +285,12 @@ describe('BfnResponseChart exact reading', () => {
     const tooltip = screen.getByRole('note');
     expect(tooltip).toHaveTextContent('Current run');
     expect(tooltip).toHaveTextContent('10.000 nM');
-    expect(tooltip).toHaveTextContent('Comparison run · 8/25/2026, 6:00:00 PM');
+    expect(tooltip).toHaveTextContent('Comparison run · 18:00');
     expect(tooltip).toHaveTextContent('9.800 nM');
     expect(tooltip).toHaveTextContent('0.420');
     expect(document.querySelector('.bfn-chart__comparison')).toHaveAttribute('data-run-role', 'comparison');
     expect(document.querySelector('.bfn-chart__comparison-cursor')).toHaveAttribute('data-coordinate', '9.8');
     expect(screen.getByLabelText('Series')).toHaveTextContent('Current run');
-    expect(screen.getByLabelText('Series')).toHaveTextContent('Comparison run · 8/25/2026, 6:00:00 PM');
+    expect(screen.getByLabelText('Series')).toHaveTextContent('Comparison run · 18:00');
   });
 });

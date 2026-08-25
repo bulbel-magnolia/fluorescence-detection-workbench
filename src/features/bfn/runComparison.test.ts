@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from './fixtures';
-import { compatibleBfnRuns, nearestBfnComparisonPoint } from './runComparison';
+import {
+  compatibleBfnRuns,
+  formatBfnComparisonTime,
+  nearestBfnComparisonPoint,
+} from './runComparison';
 import { runBfnSimulation } from './simulation';
 
 describe('BFN historical-run comparison', () => {
@@ -42,5 +46,14 @@ describe('BFN historical-run comparison', () => {
     expect(nearest?.point.coordinate).toBe(9.8);
     expect(nearest?.point.output).toBe(0.41);
     expect(nearest?.point.coordinate).not.toBe(10);
+  });
+
+  it('formats a stable short 24-hour legend time without date, seconds, or day period', () => {
+    for (const language of ['en-US', 'zh-CN']) {
+      const formatted = formatBfnComparisonTime('2026-08-25T18:32:45', language);
+      expect(formatted).toBe('18:32');
+      expect(formatted).toMatch(/^\d{2}:\d{2}$/);
+      expect(formatted).not.toMatch(/2026|25|45|AM|PM|上午|下午/i);
+    }
   });
 });

@@ -300,7 +300,7 @@ describe('BFN result export menu', () => {
         output: point.output + 0.05,
       })),
     };
-    const comparison = { result: comparisonResult, label: 'Comparison run' };
+    const comparison = { result: comparisonResult, label: 'Comparison run · 16:30' };
     const model = createBfnChartModel({
       project: fixture.project,
       result: fixture.result,
@@ -333,8 +333,11 @@ describe('BFN result export menu', () => {
     await user.click(screen.getByRole('button', { name: 'Copy caption' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Caption copied.'));
 
-    expect(await readBlobText(downloads.blobs[0]!)).toContain('data-series="comparison"');
+    const downloadedSvg = await readBlobText(downloads.blobs[0]!);
+    expect(downloadedSvg).toContain('data-series="comparison"');
+    expect(downloadedSvg).toContain('Comparison run · 16:30');
     expect(loadSvgImage.mock.calls[0]?.[0]).toContain('data-series="comparison"');
+    expect(loadSvgImage.mock.calls[0]?.[0]).toContain('Comparison run · 16:30');
     expect(await readBlobText(downloads.blobs[2]!)).toContain(',comparison,');
     expect(writeText.mock.calls[0]?.[0]).toContain('\tcomparison\t');
     expect(writeText.mock.calls[0]?.[0]).toContain(comparisonResult.id);

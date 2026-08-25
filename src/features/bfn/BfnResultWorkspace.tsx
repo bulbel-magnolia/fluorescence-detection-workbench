@@ -16,7 +16,7 @@ import {
 } from './chartTypes';
 import { BfnResponseChart, bfnChartResultIdentity } from './BfnResponseChart';
 import { BfnRunProvenance } from './BfnRunProvenance';
-import { compatibleBfnRuns } from './runComparison';
+import { compatibleBfnRuns, formatBfnComparisonTime } from './runComparison';
 import type { BfnProject, BfnSimulationResult } from './types';
 import { bfnUnitLabel } from './presentation';
 
@@ -142,7 +142,7 @@ export function BfnResultWorkspace({
       ? {
           result: comparisonRun,
           label: t('bfn.results.chart.comparisonRunLabel', {
-            time: new Date(comparisonRun.completedAt).toLocaleString(i18n.language),
+            time: formatBfnComparisonTime(comparisonRun.completedAt, i18n.language),
           }),
         }
       : undefined,
