@@ -421,4 +421,70 @@ describe('Batch 4 precise chart reading controls', () => {
     expect(within(document.querySelector('.bfn-run-history') as HTMLElement).getByText(/After an analysis/)).toBeInTheDocument();
     expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).toBe(projectBeforeHistoryActions);
   });
+
+  it('keeps export and copy actions isolated from project storage, freshness, history, and Undo/Redo', async () => {
+    const clipboardDescriptor = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+    const createObjectUrlDescriptor = Object.getOwnPropertyDescriptor(URL, 'createObjectURL');
+    const revokeObjectUrlDescriptor = Object.getOwnPropertyDescriptor(URL, 'revokeObjectURL');
+    const writeText = vi.fn(() => Promise.resolve());
+    const createObjectURL = vi.fn(() => 'blob:bfn-integration-export');
+    const revokeObjectURL = vi.fn();
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(URL, 'createObjectURL', {
+      configurable: true,
+      value: createObjectURL,
+    });
+    Object.defineProperty(URL, 'revokeObjectURL', {
+      configurable: true,
+      value: revokeObjectURL,
+    });
+    const anchorClick = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+
+    try {
+      const setItemSpy = vi.spyOn(Storage.prototype, 'setItem');
+      render(<ModelingPage />);
+      await waitFor(() => expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).not.toBeNull());
+      await user.click(screen.getByRole('button', { name: 'Run steady-state analysis' }));
+      const panel = document.querySelector('.bfn-result-panel') as HTMLElement;
+      const undo = screen.getByRole('button', { name: 'Undo' });
+      const redo = screen.getByRole('button', { name: 'Redo' });
+      const projectBefore = localStorage.getItem(BFN_PROJECT_STORAGE_KEY);
+      const historyBefore = localStorage.getItem(BFN_RUN_STORAGE_KEY);
+      const freshnessBefore = panel.querySelector('.inline-status')?.textContent;
+      const undoBefore = undo.hasAttribute('disabled');
+      const redoBefore = redo.hasAttribute('disabled');
+      setItemSpy.mockClear();
+
+      await user.click(within(panel).getByText('Export'));
+      await user.click(within(panel).getByRole('button', { name: 'Download SVG' }));
+      await user.click(within(panel).getByRole('button', { name: 'Copy data' }));
+      await waitFor(() => expect(within(panel).getByRole('status')).toHaveTextContent('Data copied.'));
+      await user.click(within(panel).getByRole('button', { name: 'Copy caption' }));
+      await waitFor(() => expect(within(panel).getByRole('status')).toHaveTextContent('Caption copied.'));
+
+      expect(anchorClick).toHaveBeenCalledOnce();
+      expect(createObjectURL).toHaveBeenCalledOnce();
+      expect(revokeObjectURL).toHaveBeenCalledWith('blob:bfn-integration-export');
+      expect(writeText).toHaveBeenCalledTimes(2);
+      expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).toBe(projectBefore);
+      expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(historyBefore);
+      expect(setItemSpy.mock.calls.filter(([key]) => key === BFN_PROJECT_STORAGE_KEY)).toHaveLength(0);
+      expect(setItemSpy.mock.calls.filter(([key]) => key === BFN_RUN_STORAGE_KEY)).toHaveLength(0);
+      expect(panel.querySelector('.inline-status')?.textContent).toBe(freshnessBefore);
+      expect(undo.hasAttribute('disabled')).toBe(undoBefore);
+      expect(redo.hasAttribute('disabled')).toBe(redoBefore);
+    } finally {
+      anchorClick.mockRestore();
+      if (clipboardDescriptor) Object.defineProperty(navigator, 'clipboard', clipboardDescriptor);
+      else Reflect.deleteProperty(navigator, 'clipboard');
+      if (createObjectUrlDescriptor) Object.defineProperty(URL, 'createObjectURL', createObjectUrlDescriptor);
+      else Reflect.deleteProperty(URL, 'createObjectURL');
+      if (revokeObjectUrlDescriptor) Object.defineProperty(URL, 'revokeObjectURL', revokeObjectUrlDescriptor);
+      else Reflect.deleteProperty(URL, 'revokeObjectURL');
+    }
+  });
 });

@@ -5,9 +5,11 @@ import { Button } from '../../components/Button';
 import { InlineStatus } from '../../components/InlineStatus';
 import { StatusPill } from '../../components/StatusPill';
 import { BfnChartControls } from './BfnChartControls';
+import { BfnExportMenu } from './BfnExportMenu';
 import { createBfnChartModel } from './chartModel';
 import { defaultBfnChartViewState, type BfnChartGeometry, type BfnChartViewState } from './chartTypes';
 import { BfnResponseChart, bfnChartResultIdentity } from './BfnResponseChart';
+import { BfnRunProvenance } from './BfnRunProvenance';
 import type { BfnProject, BfnSimulationResult } from './types';
 import { bfnUnitLabel } from './presentation';
 
@@ -155,14 +157,17 @@ export function BfnResultWorkspace({
           {result && viewState && model ? (
             <>
               <div className="bfn-chart-column">
-                <BfnChartControls
-                  project={project}
-                  result={result}
-                  model={model}
-                  viewState={viewState}
-                  onViewStateChange={setViewState}
-                  onReset={resetView}
-                />
+                <div className="bfn-chart-toolbar">
+                  <BfnChartControls
+                    project={project}
+                    result={result}
+                    model={model}
+                    viewState={viewState}
+                    onViewStateChange={setViewState}
+                    onReset={resetView}
+                  />
+                  <BfnExportMenu project={project} result={result} model={model} />
+                </div>
                 <BfnResponseChart project={project} result={result} viewState={viewState} onViewStateChange={setViewState} model={model} />
               </div>
               <div className="bfn-result-facts">
@@ -171,7 +176,7 @@ export function BfnResultWorkspace({
                 <article><span>{t('bfn.results.parameterRange')}</span><strong>{resultInputRange(result, project, t)}</strong><small>{t('bfn.results.rangeHint')}</small></article>
               </div>
               {result.mode === 'static' ? <AnnResultCard result={result} /> : <DynamicMetricsCard result={result} />}
-              <details className="bfn-result-details"><summary>{t('bfn.results.showDetails')}</summary><dl><div><dt>{t('bfn.results.engineVersion')}</dt><dd>{result.engineVersion}</dd></div><div><dt>{t('bfn.results.modelVersion')}</dt><dd>{result.modelVersions.join(' · ')}</dd></div><div><dt>{t('bfn.results.computedPoints')}</dt><dd>{result.points.length}</dd></div></dl></details>
+              <BfnRunProvenance result={result} />
             </>
           ) : <BfnResponseChart project={project} result={result} />}
           <section className="bfn-run-history">
