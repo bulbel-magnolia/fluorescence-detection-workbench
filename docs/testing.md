@@ -345,3 +345,20 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 - 结果 Dock、逆向候选排序、中英文结构和全局导航保持可操作。
 
 桌面浏览器审计在 1440×900 下生成 9 张截图，并在 1280×720 下额外测量布局边界。1280×720 的文档宽度与视口宽度均为 1280 px，页面级水平溢出为 0；项目工具栏、分析工具栏、三栏工作区与结果 Dock 均位于视口内。画布保留自身滚动条以浏览完整 980×520 工程空间。审计记录见 `docs/ui-audit/scientific-desktop/README.md`。
+
+## 2026-08-26 Batch 4 科学结果与图稿工作流验收
+
+自动化新增覆盖：
+
+- 图表坐标验证、线性与 Log10 刻度、自动/手动范围、重置、系列独立显隐和科学计数法标签；
+- 指针与键盘精确点光标、静态/动态工具提示、多输入工具提示滚动和焦点保持；
+- SVG 向量输出、3× PNG 栅格输出、CSV 原始精度、剪贴板图像/数据/图注及平台能力失败提示；
+- 运行溯源、未知时间与未知值本地化、参数快照和 Demo/未验证边界；
+- 按 networkId、mode、primaryInputSourceId、outputMonitorId 筛选兼容历史运行，一次叠加一条历史曲线，并在独立采样网格上读取最近真实点；
+- 对比运行失效时自动清除，Log10 与历史非正坐标冲突时回退，不推断历史运行缺失字段。
+
+阶段门禁实际通过 TypeScript、ESLint、75 个 Vitest 文件中的 456 个测试，以及 Vite 生产构建。构建转换 214 个模块，主 JavaScript chunk 为 666.98 kB、gzip 202.62 kB，并保留大于 500 kB 的既有代码拆分提示。
+
+浏览器审计生成 10 张 1440×900 PNG。1280×720 下 document 与 body 的 clientWidth、scrollWidth 均为 1280 px，页面级水平溢出为 0；分析模式、输入设置、运行、X/Y 轴、导出和历史对比控件均在视口内可用。结果面板与工作台底边相差 0.67 px（子像素布局舍入），保持底部 Dock 结构。
+
+实际界面导出核验结果：SVG 包含 3 条 path、12 个 text 元素、白色背景且不含 `<image>`；PNG 为 2280×900；CSV 含 UTF-8 BOM、1 行表头和 33 行原始结果。完整截图说明、尺寸与导出文件见 `docs/ui-audit/scientific-results/README.md`。
