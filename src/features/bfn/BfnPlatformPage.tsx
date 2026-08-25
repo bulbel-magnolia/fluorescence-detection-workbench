@@ -9,6 +9,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
+import { BfnPropertyGrid } from './BfnPropertyGrid';
 import {
   BfnProjectToolbar,
   type BfnPrimaryWorkspace,
@@ -488,6 +489,19 @@ export function BfnPlatformPage() {
         selectedModuleModel.sourceDatasetIds.includes(dataset.id),
       )
     : [];
+  const inspectorSubtitle = selectedModule
+    ? bfnModuleFlowLabel(selectedModule, t)
+    : selectedSource
+      ? bfnPortMetaLabel(selectedSource.outputPort, t)
+      : selectedMonitor
+        ? bfnPortMetaLabel(selectedMonitor.inputPort, t)
+        : selectedEdge
+          ? `${nodeLabel(project, selectedEdge.source.nodeId, t)} → ${nodeLabel(
+              project,
+              selectedEdge.target.nodeId,
+              t,
+            )}`
+          : t(project.network.labelKey);
 
   const updateHistory = (next: BfnEditorHistory): void => {
     historyRef.current = next;
@@ -898,6 +912,12 @@ export function BfnPlatformPage() {
 
       {view === 'design' ? (
         <section className="bfn-run-toolbar" aria-label={t('bfn.runToolbar.label')}>
+          <BfnEditorToolbar
+            canUndo={history.past.length > 0}
+            canRedo={history.future.length > 0}
+            onUndo={undo}
+            onRedo={redo}
+          />
           <div className="bfn-mode-switch" role="group" aria-label={t('bfn.analysis.networkMode')}>
             {(['static', 'dynamic'] as const).map((mode) => (
               <button
@@ -1074,12 +1094,6 @@ export function BfnPlatformPage() {
                 <h2>{t(project.network.labelKey)}</h2>
               </div>
               <div className="bfn-stage-header-actions">
-                <BfnEditorToolbar
-                  canUndo={history.past.length > 0}
-                  canRedo={history.future.length > 0}
-                  onUndo={undo}
-                  onRedo={redo}
-                />
                 <div className="bfn-stage-badges">
                   <span>
                     {project.network.modules.length} {t('bfn.canvas.modules')}
@@ -1142,6 +1156,7 @@ export function BfnPlatformPage() {
                           ? t('bfn.inspector.connection')
                           : t('bfn.inspector.project')}
                 </h2>
+                <p className="bfn-inspector__subtitle">{inspectorSubtitle}</p>
               </div>
             </header>
             <div className="bfn-inspector__body">
@@ -1186,18 +1201,21 @@ export function BfnPlatformPage() {
                       <strong>{t('bfn.inspector.keyParameters')}</strong>
                     </header>
                     <div className="bfn-parameter-list">
-                      {selectedParameterPresentations.slice(0, 4).map((row) => (
-                        <article key={row.id}>
-                          <header>
-                            <strong>{row.label}</strong>
-                            {row.symbol && row.showSymbolInSummary !== false ? (
-                              <span>{row.symbol}</span>
-                            ) : null}
-                          </header>
-                          <b>{parameterValue(row.estimate, t, false)}</b>
-                          <p>{row.description}</p>
-                        </article>
-                      ))}
+                      <BfnPropertyGrid
+                        key={selectedModule.id}
+                        label={t('bfn.inspector.keyParameters')}
+                        rows={selectedParameterPresentations.slice(0, 4).map((row) => ({
+                          id: row.id,
+                          label: row.label,
+                          value: displayNumber(row.estimate.value),
+                          unit:
+                            row.estimate.unit === 'dimensionless'
+                              ? undefined
+                              : bfnUnitLabel(row.estimate.unit, t),
+                          symbol: row.showSymbolInSummary === false ? undefined : row.symbol,
+                          description: row.description,
+                        }))}
+                      />
                     </div>
                   </section>
                   {selectedModuleModel?.mode === 'static' &&
@@ -1232,16 +1250,21 @@ export function BfnPlatformPage() {
                     <summary>{t('bfn.inspector.detailedParameters')}</summary>
                     {selectedParameterPresentations.length > 4 ? (
                       <div className="bfn-parameter-list bfn-parameter-list--details">
-                        {selectedParameterPresentations.slice(4).map((row) => (
-                          <article key={row.id}>
-                            <header>
-                              <strong>{row.label}</strong>
-                              {row.symbol ? <span>{row.symbol}</span> : null}
-                            </header>
-                            <b>{parameterValue(row.estimate, t, false)}</b>
-                            <p>{row.description}</p>
-                          </article>
-                        ))}
+                        <BfnPropertyGrid
+                          key={`${selectedModule.id}-details`}
+                          label={t('bfn.inspector.detailedParameters')}
+                          rows={selectedParameterPresentations.slice(4).map((row) => ({
+                            id: row.id,
+                            label: row.label,
+                            value: displayNumber(row.estimate.value),
+                            unit:
+                              row.estimate.unit === 'dimensionless'
+                                ? undefined
+                                : bfnUnitLabel(row.estimate.unit, t),
+                            symbol: row.symbol,
+                            description: row.description,
+                          }))}
+                        />
                       </div>
                     ) : (
                       <p className="bfn-inspector-empty">
@@ -1357,18 +1380,32 @@ export function BfnPlatformPage() {
                     <header>
                       <strong>{t('bfn.inspector.inputSignal')}</strong>
                     </header>
-                    <div className="bfn-object-signal">
-                      <strong>{bfnPortPrimaryLabel(selectedSource.outputPort, t)}</strong>
-                      <small>
-                        {t('bfn.inspector.unitValue', {
-                          unit: bfnUnitLabel(selectedSource.outputPort.unit, t),
-                        })}
-                      </small>
-                    </div>
-                    <div className="bfn-inspector-inline-fact">
-                      <span>{t('bfn.inspector.currentAnalysis')}</span>
-                      <strong>{t(`bfn.modes.${project.network.mode}`)}</strong>
-                    </div>
+                    <BfnPropertyGrid
+                      key={selectedSource.id}
+                      label={t('bfn.inspector.inputSignal')}
+                      rows={[
+                        {
+                          id: 'signal',
+                          label: t('bfn.inspector.signal'),
+                          value: bfnPortPrimaryLabel(selectedSource.outputPort, t),
+                        },
+                        {
+                          id: 'measurement',
+                          label: t('bfn.inspector.measurement'),
+                          value: bfnQuantityLabel(selectedSource.outputPort.quantityType, t),
+                        },
+                        {
+                          id: 'unit',
+                          label: t('bfn.inspector.unit'),
+                          value: bfnUnitLabel(selectedSource.outputPort.unit, t),
+                        },
+                        {
+                          id: 'analysis',
+                          label: t('bfn.inspector.analysisMode'),
+                          value: t(`bfn.modes.${project.network.mode}`),
+                        },
+                      ]}
+                    />
                   </section>
                   <button
                     className="button button--secondary button--wide"
@@ -1385,10 +1422,27 @@ export function BfnPlatformPage() {
                       <strong>{t('bfn.inspector.output')}</strong>
                     </header>
                     <p>{t('bfn.inspector.monitorText')}</p>
-                    <div className="bfn-object-signal">
-                      <strong>{bfnPortPrimaryLabel(selectedMonitor.inputPort, t)}</strong>
-                      <small>{bfnPortMetaLabel(selectedMonitor.inputPort, t)}</small>
-                    </div>
+                    <BfnPropertyGrid
+                      key={selectedMonitor.id}
+                      label={t('bfn.inspector.output')}
+                      rows={[
+                        {
+                          id: 'signal',
+                          label: t('bfn.inspector.signal'),
+                          value: bfnPortPrimaryLabel(selectedMonitor.inputPort, t),
+                        },
+                        {
+                          id: 'measurement',
+                          label: t('bfn.inspector.measurement'),
+                          value: bfnQuantityLabel(selectedMonitor.inputPort.quantityType, t),
+                        },
+                        {
+                          id: 'unit',
+                          label: t('bfn.inspector.unit'),
+                          value: bfnUnitLabel(selectedMonitor.inputPort.unit, t),
+                        },
+                      ]}
+                    />
                   </section>
                 </>
               ) : selectedEdge ? (
@@ -2111,21 +2165,14 @@ export function BfnPlatformPage() {
                     )
                   : [];
                 return (
-                  <article key={entry.id}>
-                    <div
-                      className="bfn-module-catalog__curve"
-                      data-family={entry.id}
-                      aria-hidden="true"
-                    >
-                      <i />
-                      <i />
-                      <i />
+                  <article className="bfn-module-row" key={entry.id}>
+                    <div className="bfn-module-row__identity">
+                      <h3>{t(entry.labelKey)}</h3>
+                      <p className="bfn-module-catalog__flow">
+                        {bfnModuleFlowLabel(previewModule, t)}
+                      </p>
+                      <p>{t(entry.descriptionKey)}</p>
                     </div>
-                    <h3>{t(entry.labelKey)}</h3>
-                    <p>{t(entry.descriptionKey)}</p>
-                    <p className="bfn-module-catalog__flow">
-                      {bfnModuleFlowLabel(previewModule, t)}
-                    </p>
                     <dl>
                       <div>
                         <dt>{t('bfn.registry.modelBasis')}</dt>
@@ -2144,14 +2191,14 @@ export function BfnPlatformPage() {
                         </dd>
                       </div>
                     </dl>
-                    <button
-                      className="button button--secondary button--wide"
-                      type="button"
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leadingIcon={<Icon name="plus" size={14} />}
                       onClick={() => addCatalogModule(entry.id)}
                     >
-                      <Icon name="plus" size={15} />
                       {t('bfn.registry.addToCanvas')}
-                    </button>
+                    </Button>
                   </article>
                 );
               })}

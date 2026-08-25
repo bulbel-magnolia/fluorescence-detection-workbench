@@ -88,7 +88,10 @@ describe('biological network design workspace', () => {
       within(inspector).getByText('决定输入变化对报告信号变化幅度的影响。'),
     ).toBeInTheDocument();
     expect(within(inspector).getAllByText('基础输出').length).toBeGreaterThan(0);
-    expect(within(inspector).getByText('输入为零或很低时仍保留的报告信号。')).toBeInTheDocument();
+    await user.click(within(inspector).getByRole('button', { name: '基础输出' }));
+    expect(within(inspector).getByRole('note')).toHaveTextContent(
+      '输入为零或很低时仍保留的报告信号。',
+    );
   });
 
   it('runs steady-state analysis and presents the result at task level', async () => {

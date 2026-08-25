@@ -51,17 +51,17 @@ describe('biological network design Batch 3 workbench', () => {
     expect(screen.getByText(/y =/)).toBeInTheDocument();
   });
 
-  it('shows the current analysis mode in the input object primary layer', async () => {
+  it('shows the current analysis mode in the input property grid', async () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('button', { name: '3OC6-HSL浓度 · nM' }));
     const inspector = document.querySelector('.bfn-inspector__body');
-    const currentAnalysis = inspector?.querySelector('.bfn-inspector-inline-fact');
+    const propertyGrid = inspector?.querySelector('.bfn-property-grid');
 
-    expect(currentAnalysis).toHaveTextContent('当前分析');
-    expect(currentAnalysis).toHaveTextContent('稳态分析');
-    expect(currentAnalysis?.closest('details')).toBeNull();
+    expect(propertyGrid).toHaveTextContent('分析模式');
+    expect(propertyGrid).toHaveTextContent('稳态分析');
+    expect(propertyGrid?.closest('details')).toBeNull();
   });
 
   it('keeps the output quantity in the output object primary layer', async () => {
@@ -72,7 +72,9 @@ describe('biological network design Batch 3 workbench', () => {
     const inspector = document.querySelector('.bfn-inspector__body');
 
     expect(inspector).toHaveTextContent('报告信号');
-    expect(inspector).toHaveTextContent('相对表达水平');
+    expect(inspector).toHaveTextContent('表达水平');
+    expect(inspector).toHaveTextContent('相对值');
+    expect(inspector?.querySelector('.bfn-property-grid')).toBeInTheDocument();
     expect(inspector?.querySelector('details')).toBeNull();
   });
 

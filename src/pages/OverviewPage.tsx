@@ -116,7 +116,7 @@ export function OverviewPage() {
             </strong>
             <p>{t('overview.queueDescription')}</p>
           </div>
-          <StatusPill label={t('common.local')} tone="signal" />
+          <StatusPill label={t('common.local')} tone="info" />
         </article>
 
         <article className="panel overview-recent">

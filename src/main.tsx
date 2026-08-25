@@ -2,9 +2,10 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './i18n';
 import { App } from './app/App';
-import './theme/tokens.css';
 import './theme/global.css';
 import './theme/cyber-scientific.css';
+import './theme/tokens.css';
+import './theme/scientific-desktop.css';
 
 const root = document.getElementById('root');
 if (!root) {

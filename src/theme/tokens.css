@@ -1,49 +1,128 @@
 :root {
   color-scheme: light;
-  --font-display: Bahnschrift, 'Microsoft YaHei UI', sans-serif;
-  --font-body: Aptos, 'Segoe UI Variable', 'Microsoft YaHei UI', sans-serif;
-  --ink-950: #071927;
-  --ink-900: #0a2540;
-  --ink-800: #12374f;
-  --ink-700: #36566a;
-  --ink-600: #587182;
-  --ink-500: #7d929f;
-  --ink-300: #b9c8d0;
-  --ink-200: #d9e3e8;
-  --ink-100: #edf2f4;
-  --paper: #f7f8f5;
-  --surface: #ffffff;
-  --surface-raised: #fbfcfa;
-  --teal-700: #067974;
-  --teal-600: #0a9f9a;
-  --teal-500: #19b8ad;
-  --teal-100: #dff4f1;
-  --magenta-600: #c62d72;
-  --magenta-500: #df3f86;
-  --magenta-100: #fbe4ef;
-  --amber-600: #b97912;
-  --amber-500: #e7a837;
-  --amber-100: #fff2d8;
-  --red-600: #b83b43;
-  --red-100: #fde8e8;
-  --blue-700: #275b82;
-  --blue-100: #e7f0f7;
-  --color-bg-canvas: var(--paper);
-  --color-bg-surface: var(--surface);
-  --color-bg-subtle: var(--ink-100);
-  --color-text-primary: var(--ink-950);
-  --color-text-secondary: var(--ink-600);
-  --color-border-default: var(--ink-200);
-  --color-action-primary: var(--teal-700);
-  --color-action-primary-hover: #056965;
-  --color-signal: var(--magenta-600);
-  --color-success: var(--teal-700);
-  --color-warning: var(--amber-600);
-  --color-danger: var(--red-600);
-  --color-info: var(--blue-700);
-  --radius-sm: 8px;
-  --radius-md: 13px;
-  --radius-lg: 18px;
-  --shadow-panel: 0 1px 0 rgb(7 25 39 / 4%), 0 12px 35px rgb(7 25 39 / 5%);
-  --shadow-floating: 0 20px 60px rgb(7 25 39 / 14%);
+  --font-display: 'Segoe UI Variable Display', 'Microsoft YaHei UI', sans-serif;
+  --font-body: 'Segoe UI Variable Text', 'Microsoft YaHei UI', sans-serif;
+  --font-numeric: 'Cascadia Mono', Consolas, monospace;
+
+  --ui-bg-app: #e9eef1;
+  --ui-bg-pane: #f8fafb;
+  --ui-bg-canvas: #f1f5f6;
+  --ui-bg-hover: #edf2f4;
+  --ui-bg-selected: #e2eef2;
+  --ui-bg-disabled: #e5eaed;
+
+  --ui-border-subtle: #d4dde2;
+  --ui-border-default: #bdc9d0;
+  --ui-border-strong: #83939d;
+
+  --ui-text-primary: #1b2831;
+  --ui-text-secondary: #52626d;
+  --ui-text-muted: #74828b;
+  --ui-text-on-accent: #ffffff;
+
+  --ui-accent: #176b82;
+  --ui-accent-hover: #105b70;
+  --ui-accent-subtle: #dcecf1;
+  --ui-focus-ring: #4b91a5;
+
+  --ui-success: #347956;
+  --ui-success-subtle: #e3f0e8;
+  --ui-warning: #936416;
+  --ui-warning-subtle: #f6ecd9;
+  --ui-error: #ad454c;
+  --ui-error-subtle: #f7e4e6;
+  --ui-signal: #b63b6d;
+  --ui-signal-subtle: #f4e0e8;
+  --ui-inactive: #929da4;
+
+  --ui-radius-xs: 2px;
+  --ui-radius-sm: 4px;
+  --ui-radius-md: 7px;
+  --ui-divider: 1px solid var(--ui-border-subtle);
+  --ui-control-height-sm: 28px;
+  --ui-control-height: 32px;
+  --ui-shadow-floating: 0 16px 42px rgb(21 35 44 / 18%);
+  --ui-transition: 120ms ease;
+
+  /* Compatibility aliases for the existing application styles. */
+  --ink-950: var(--ui-text-primary);
+  --ink-900: var(--ui-text-primary);
+  --ink-800: var(--ui-text-secondary);
+  --ink-700: var(--ui-text-secondary);
+  --ink-600: var(--ui-text-secondary);
+  --ink-500: var(--ui-text-muted);
+  --ink-400: var(--ui-border-strong);
+  --ink-300: var(--ui-border-strong);
+  --ink-200: var(--ui-border-default);
+  --ink-100: var(--ui-bg-hover);
+  --paper: var(--ui-bg-app);
+  --surface: var(--ui-bg-pane);
+  --surface-raised: var(--ui-bg-pane);
+  --teal-700: var(--ui-accent);
+  --teal-600: var(--ui-accent);
+  --teal-500: var(--ui-accent);
+  --teal-100: var(--ui-accent-subtle);
+  --magenta-600: var(--ui-signal);
+  --magenta-500: var(--ui-signal);
+  --magenta-100: var(--ui-signal-subtle);
+  --amber-600: var(--ui-warning);
+  --amber-500: var(--ui-warning);
+  --amber-100: var(--ui-warning-subtle);
+  --red-600: var(--ui-error);
+  --red-100: var(--ui-error-subtle);
+  --blue-700: var(--ui-accent);
+  --blue-100: var(--ui-accent-subtle);
+  --color-bg-canvas: var(--ui-bg-app);
+  --color-bg-surface: var(--ui-bg-pane);
+  --color-bg-subtle: var(--ui-bg-hover);
+  --color-text-primary: var(--ui-text-primary);
+  --color-text-secondary: var(--ui-text-secondary);
+  --color-border-default: var(--ui-border-default);
+  --color-action-primary: var(--ui-accent);
+  --color-action-primary-hover: var(--ui-accent-hover);
+  --color-signal: var(--ui-signal);
+  --color-success: var(--ui-success);
+  --color-warning: var(--ui-warning);
+  --color-danger: var(--ui-error);
+  --color-info: var(--ui-accent);
+  --radius-sm: var(--ui-radius-sm);
+  --radius-md: var(--ui-radius-md);
+  --radius-lg: var(--ui-radius-md);
+  --shadow-panel: none;
+  --shadow-floating: var(--ui-shadow-floating);
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --ui-bg-app: #111820;
+  --ui-bg-pane: #182129;
+  --ui-bg-canvas: #141d24;
+  --ui-bg-hover: #222d36;
+  --ui-bg-selected: #1b3540;
+  --ui-bg-disabled: #202a32;
+
+  --ui-border-subtle: #293741;
+  --ui-border-default: #394953;
+  --ui-border-strong: #61727d;
+
+  --ui-text-primary: #edf2f4;
+  --ui-text-secondary: #b6c1c8;
+  --ui-text-muted: #8b98a2;
+  --ui-text-on-accent: #071319;
+
+  --ui-accent: #62aabd;
+  --ui-accent-hover: #76b7c8;
+  --ui-accent-subtle: #1c3943;
+  --ui-focus-ring: #78bbcc;
+
+  --ui-success: #70b48e;
+  --ui-success-subtle: #20382d;
+  --ui-warning: #d2a657;
+  --ui-warning-subtle: #3a3020;
+  --ui-error: #d77980;
+  --ui-error-subtle: #3d272c;
+  --ui-signal: #dc73a2;
+  --ui-signal-subtle: #3b2631;
+  --ui-inactive: #6f7b83;
+  --ui-shadow-floating: 0 18px 48px rgb(0 0 0 / 42%);
 }

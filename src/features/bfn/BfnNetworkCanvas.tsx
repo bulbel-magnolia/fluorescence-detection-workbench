@@ -501,6 +501,17 @@ export function BfnNetworkCanvas({
           >
             <path d="M0,0 L0,6 L9,3 z" />
           </marker>
+          <marker
+            id="bfn-preview-arrow-compatible"
+            markerWidth="10"
+            markerHeight="10"
+            refX="8"
+            refY="3"
+            orient="auto"
+            markerUnits="strokeWidth"
+          >
+            <path d="M0,0 L0,6 L9,3 z" />
+          </marker>
         </defs>
         {project.network.edges.map((edge) => (
           <g key={edge.id} data-selected={selectedEdgeId === edge.id} data-enabled={edge.enabled}>
@@ -527,7 +538,11 @@ export function BfnNetworkCanvas({
             className="bfn-canvas-edge bfn-canvas-edge--preview"
             data-target-compatible={selectedTargetStatus?.compatible ?? false}
             d={connectionPath(connectionDrag.sourcePoint, connectionDrag.pointerPoint)}
-            markerEnd="url(#bfn-preview-arrow)"
+            markerEnd={
+              selectedTargetStatus?.compatible
+                ? 'url(#bfn-preview-arrow-compatible)'
+                : 'url(#bfn-preview-arrow)'
+            }
           />
         ) : null}
       </svg>
