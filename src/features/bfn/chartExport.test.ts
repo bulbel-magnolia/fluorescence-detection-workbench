@@ -50,8 +50,8 @@ describe('publication figure export', () => {
 
     expect(svg).toContain('<svg');
     expect(svg).toContain('viewBox="0 0 760 300"');
-    expect(svg).toContain('<title>Response &lt;A&amp;B&gt;</title>');
-    expect(svg).toContain('<desc>A &quot;publication&quot; figure</desc>');
+    expect(svg).toContain('<title id="bfn-figure-title">Response &lt;A&amp;B&gt;</title>');
+    expect(svg).toContain('<desc id="bfn-figure-description">A &quot;publication&quot; figure</desc>');
     expect(svg).toMatch(/<rect[^>]+fill="#ffffff"/);
     expect(svg).toContain('font-family="Arial, Helvetica, sans-serif"');
     expect(svg).toContain('data-series="full"');
@@ -59,6 +59,8 @@ describe('publication figure export', () => {
     expect(svg).toContain('data-series="ann"');
     expect(svg).toContain('data-series="comparison"');
     expect(svg).toContain('data-role="legend"');
+    expect(svg.split(String.fromCharCode(60) + 'title').length - 1).toBe(1);
+    expect(svg.split(String.fromCharCode(60) + 'desc').length - 1).toBe(1);
     expect(svg).toContain('Previous &lt;run&gt;');
     expect(svg).toMatch(/<path[^>]+d="M [^"]+"/);
     expect(svg).toMatch(/<text[^>]*>[^<]+<\/text>/);
@@ -123,18 +125,21 @@ describe('raw table export', () => {
       bom: true,
     });
     const [header, currentRow, comparisonRow] = csv.slice(1).trimEnd().split('\r\n');
+    if (!header || !currentRow || !comparisonRow) throw new Error('Expected header, current, and comparison rows');
 
     expect(csv.charCodeAt(0)).toBe(0xfeff);
     expect(header).toBe([
       'run_id', 'run_role', 'completed_at', 'mode', 'coordinate', 'time_hours',
       'input:source-ahl', '"input:source,secondary"', 'input:orphan-a', 'input:orphan-b', 'input:orphan-z',
-      'module:module-ahl-sensor', 'module:module-reporter', 'module:orphan-module-a', 'module:orphan-module-z',
+      'module:module-ahl-sensor', 'module:module-reporter', 'module:orphan-module-a', 'module:orphan-module-z', 'module:reporter',
       'output', 'lower', 'upper', 'extrapolated',
     ].join(','));
     expect(currentRow).toContain(`,current,`);
     expect(comparisonRow).toContain(`,comparison,`);
     expect(currentRow).toContain(String(precise));
     expect(currentRow).toContain(',7,,9,');
+    expect(comparisonRow.split(',').at(-5)).toBe('0.5');
+    expect(comparisonRow.split(',').at(-6)).toBe('');
   });
 
   it('emits tab-separated tidy rows without a BOM and without removing hidden raw columns', () => {
@@ -189,6 +194,41 @@ describe('export metadata helpers', () => {
       experimental_validity: result.experimentalValidity,
     });
     expect(values.ann_approximation).toBe('Passed the current approximation-quality threshold');
+
+    const hiddenModel = createBfnChartModel({
+      project,
+      result,
+      comparison,
+      viewState: {
+        ...defaultBfnChartViewState(result),
+        showUncertainty: false,
+        showAnn: false,
+      },
+      geometry,
+      translate: (key) => key,
+    });
+    const hiddenCaption = createBfnFigureCaption({ project, result, model: hiddenModel, comparison });
+    expect(hiddenCaption).not.toContain('uncertainty is shown');
+    expect(hiddenCaption).not.toContain('ANN approximation passed');
+    expect(hiddenCaption).toContain('historical result is shown for comparison');
+
+    const noComparisonModel = createBfnChartModel({
+      project,
+      result,
+      viewState: defaultBfnChartViewState(result),
+      geometry,
+      translate: (key) => key,
+    });
+    const noComparisonCaption = createBfnFigureCaption({ project, result, model: noComparisonModel, comparison });
+    expect(noComparisonCaption).not.toContain('historical result is shown for comparison');
+
+    result.points = [
+      { ...result.points[0]!, coordinate: 2, inputs: { 'source-ahl': 2 }, timeHours: 0 },
+      { ...result.points[0]!, coordinate: 4, inputs: { 'source-ahl': 4 }, timeHours: 3.5 },
+    ];
+    const rangeValues = Object.fromEntries(createBfnProvenanceRows({ result }).map((row) => [row.key, row.value]));
+    expect(rangeValues.primary_input_range).toBe('2–4');
+    expect(rangeValues.time_range_hours).toBe('0–3.5');
   });
 });
 

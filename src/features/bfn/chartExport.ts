@@ -1,5 +1,5 @@
 import type { BfnChartComparison, BfnChartModel, BfnChartSeries } from './chartTypes';
-import type { BfnProject, BfnSimulationPoint, BfnSimulationResult } from './types';
+import type { BfnProject, BfnSimulationResult } from './types';
 
 export interface SerializeBfnFigureSvgOptions {
   model: BfnChartModel;
@@ -180,7 +180,7 @@ export function serializeBfnFigureSvg({
   const descriptionText = description ?? defaultDescription(result);
   const axisMarkup = `${tickMarkup('x', model.ticks.x, model.geometry)}${tickMarkup('y', model.ticks.y, model.geometry)}`;
   const axisLabels = `<text x="${numberText(padding.left + (width - padding.left - padding.right) / 2)}" y="${numberText(height - 10)}" text-anchor="middle" fill="#203040" style="fill:#203040;font-size:12px;font-weight:600">${escapeXml(model.labels.x)}</text><text x="16" y="${numberText(padding.top + (height - padding.top - padding.bottom) / 2)}" transform="rotate(-90 16 ${numberText(padding.top + (height - padding.top - padding.bottom) / 2)})" text-anchor="middle" fill="#203040" style="fill:#203040;font-size:12px;font-weight:600">${escapeXml(model.labels.y)}</text>`;
-  const metadata = `<title>${escapeXml(titleText)}</title><desc>${escapeXml(descriptionText)}</desc><metadata font-family="Arial, Helvetica, sans-serif" data-run-id="${escapeXml(result.id)}" data-engine-version="${escapeXml(result.engineVersion)}" data-mode="${escapeXml(result.mode)}" data-uncertainty-method="${escapeXml(result.uncertaintyMethod)}"/>`;
+  const metadata = `<metadata font-family="Arial, Helvetica, sans-serif" data-run-id="${escapeXml(result.id)}" data-engine-version="${escapeXml(result.engineVersion)}" data-mode="${escapeXml(result.mode)}" data-uncertainty-method="${escapeXml(result.uncertaintyMethod)}" data-model-versions="${escapeXml(result.modelVersions.join(','))}" data-context-ids="${escapeXml(result.contextIds.join(','))}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${numberText(width)}" height="${numberText(height)}" viewBox="0 0 ${numberText(width)} ${numberText(height)}" role="img" aria-labelledby="bfn-figure-title bfn-figure-description" data-x-scale="${escapeXml(model.requestedScales.x)}" data-y-scale="${escapeXml(model.requestedScales.y)}" data-x-domain="${escapeXml(xDomain)}" data-y-domain="${escapeXml(yDomain)}" style="font-family:Arial, Helvetica, sans-serif;background:#ffffff"><title id="bfn-figure-title">${escapeXml(titleText)}</title><desc id="bfn-figure-description">${escapeXml(descriptionText)}</desc>${metadata}<rect x="0" y="0" width="${numberText(width)}" height="${numberText(height)}" fill="#ffffff" style="fill:#ffffff"/><g data-role="axes" fill="none" stroke="#637383" stroke-width="1" style="fill:none;stroke:#637383;stroke-width:1"><line x1="${numberText(yAxis)}" y1="${numberText(padding.top)}" x2="${numberText(yAxis)}" y2="${numberText(xAxis)}"/><line x1="${numberText(yAxis)}" y1="${numberText(xAxis)}" x2="${numberText(width - padding.right)}" y2="${numberText(xAxis)}"/></g>${axisMarkup}${seriesMarkup}${axisLabels}${legendMarkup ? `<g data-role="legend" transform="translate(${numberText(legendX)} ${numberText(legendY)})" style="font-family:Arial, Helvetica, sans-serif">${legendMarkup}</g>` : ''}</svg>`;
 }
 
@@ -210,27 +210,6 @@ function tableCell(value: TableCellValue, delimiter: string): string {
   return raw;
 }
 
-function pointValue(point: BfnSimulationPoint, field: string, kind: 'input' | 'module'): number | undefined {
-  const source = kind === 'input' ? point.inputs : point.moduleOutputs;
-  return source[field];
-}
-
-function canonicalModuleId(id: string, projectIds: readonly string[]): string {
-  if (projectIds.includes(id)) return id;
-  const prefixed = `module-${id}`;
-  if (projectIds.includes(prefixed)) return prefixed;
-  const withoutPrefix = id.startsWith('module-') ? id.slice('module-'.length) : id;
-  const matching = projectIds.find((projectId) => projectId === withoutPrefix || projectId === `module-${withoutPrefix}`);
-  return matching ?? id;
-}
-
-function modulePointValue(point: BfnSimulationPoint, projectId: string): number | undefined {
-  const direct = point.moduleOutputs[projectId];
-  if (direct !== undefined) return direct;
-  if (projectId.startsWith('module-')) return point.moduleOutputs[projectId.slice('module-'.length)];
-  return point.moduleOutputs[`module-${projectId}`];
-}
-
 /** Export all raw point values in a stable, tidy CSV/TSV table. */
 export function serializeBfnResultTable({
   project,
@@ -251,7 +230,7 @@ export function serializeBfnResultTable({
     ...(comparison?.result.points ?? []),
   ]) {
     Object.keys(point.inputs).forEach((id) => allInputs.add(id));
-    Object.keys(point.moduleOutputs).forEach((id) => allModules.add(canonicalModuleId(id, projectModules)));
+    Object.keys(point.moduleOutputs).forEach((id) => allModules.add(id));
   }
   const inputIds = [...projectInputs, ...sortedOrphans(allInputs, new Set(projectInputs))];
   const moduleIds = [...projectModules, ...sortedOrphans(allModules, new Set(projectModules))];
@@ -271,8 +250,8 @@ export function serializeBfnResultTable({
         result.mode,
         point.coordinate,
         point.timeHours,
-        ...inputIds.map((id) => pointValue(point, id, 'input')),
-        ...moduleIds.map((id) => modulePointValue(point, id)),
+        ...inputIds.map((id) => point.inputs[id]),
+        ...moduleIds.map((id) => point.moduleOutputs[id]),
         point.output,
         point.lower,
         point.upper,
@@ -320,6 +299,10 @@ export function createBfnExportFilename({
   return `${projectId}_${networkId}_${mode}_${time}_${artifactPart}.${extensionPart}`;
 }
 
+function seriesIsShown(series: BfnChartSeries | undefined): boolean {
+  return Boolean(series?.visible && (series.path.trim().length > 0 || (series.band ?? '').trim().length > 0));
+}
+
 export function createBfnFigureCaption({
   project,
   result,
@@ -329,15 +312,15 @@ export function createBfnFigureCaption({
   const context = result.isDemo || project.isDemo ? 'demo ' : '';
   const axes = `${model.labels.y} versus ${model.labels.x}`;
   const parts = [`BFN ${context}${result.mode} response (${axes})`];
-  if (result.uncertaintyMethod === 'parameter_interval_envelope') {
+  if (result.uncertaintyMethod === 'parameter_interval_envelope' && seriesIsShown(model.series.uncertainty)) {
     parts.push('uncertainty is shown as a parameter-interval envelope');
   }
-  if (result.annApproximation?.status === 'accepted') {
+  if (seriesIsShown(model.series.ann) && result.annApproximation?.status === 'accepted') {
     parts.push('the ANN approximation passed the current approximation-quality threshold');
-  } else if (result.annApproximation?.status === 'rejected') {
+  } else if (seriesIsShown(model.series.ann) && result.annApproximation?.status === 'rejected') {
     parts.push('the ANN approximation did not pass the current approximation-quality threshold');
   }
-  if (comparison) parts.push('the historical result is shown for comparison');
+  if (comparison && seriesIsShown(model.series.comparison)) parts.push('the historical result is shown for comparison');
   return `${parts.join('; ')}.`;
 }
 
@@ -346,7 +329,21 @@ function provenanceValue(value: string | number | boolean | readonly string[]): 
   return String(value);
 }
 
+function finiteRange(values: readonly (number | undefined)[]): string {
+  const finite = values.filter(
+    (value): value is number => typeof value === 'number' && Number.isFinite(value),
+  );
+  if (finite.length === 0) return 'Not available';
+  const minimum = Math.min(...finite);
+  const maximum = Math.max(...finite);
+  return minimum === maximum ? String(minimum) : `${String(minimum)}–${String(maximum)}`;
+}
+
 export function createBfnProvenanceRows({ result }: CreateBfnProvenanceRowsOptions): BfnProvenanceRow[] {
+  const primaryInputRange = finiteRange(
+    result.points.map((point) => point.inputs[result.primaryInputSourceId]),
+  );
+  const timeRangeHours = finiteRange(result.points.map((point) => point.timeHours));
   const rows: BfnProvenanceRow[] = [
     { key: 'run_id', value: result.id },
     { key: 'completed_at', value: result.completedAt },
@@ -355,6 +352,8 @@ export function createBfnProvenanceRows({ result }: CreateBfnProvenanceRowsOptio
     { key: 'network_id', value: result.networkId },
     { key: 'primary_input_source_id', value: result.primaryInputSourceId },
     { key: 'output_monitor_id', value: result.outputMonitorId },
+    { key: 'primary_input_range', value: primaryInputRange },
+    { key: 'time_range_hours', value: timeRangeHours },
     {
       key: 'uncertainty_method',
       value: result.uncertaintyMethod === 'parameter_interval_envelope'

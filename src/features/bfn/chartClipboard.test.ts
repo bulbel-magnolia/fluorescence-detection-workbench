@@ -104,4 +104,12 @@ describe('BFN clipboard capability and copy operations', () => {
       message: 'image blocked',
     });
   });
+
+  it('does not treat an undefined synchronous fallback result as success', async () => {
+    await expect(copyBfnText('x', { fallbackWriteText: (() => undefined) as unknown as (text: string) => boolean })).resolves.toEqual({
+      status: 'failure',
+      operation: 'text',
+      message: 'Text fallback did not complete the copy operation.',
+    });
+  });
 });

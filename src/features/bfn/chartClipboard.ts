@@ -3,7 +3,7 @@ export interface BfnClipboardEnvironment {
   write?: (items: readonly unknown[]) => Promise<void> | void;
   createClipboardItem?: (items: Record<string, Blob>) => unknown;
   supportsMimeType?: (mimeType: string) => boolean;
-  fallbackWriteText?: (text: string) => boolean | void;
+  fallbackWriteText?: (text: string) => boolean;
 }
 
 export interface BfnClipboardCapabilities {
@@ -92,10 +92,10 @@ function failureMessage(error: unknown, fallback: string): string {
   return error instanceof Error && error.message.length > 0 ? error.message : typeof error === 'string' && error.length > 0 ? error : fallback;
 }
 
-function runFallbackText(text: string, fallbackWriteText: (value: string) => boolean | void): BfnClipboardResult {
+function runFallbackText(text: string, fallbackWriteText: (value: string) => boolean): BfnClipboardResult {
   try {
     const copied = fallbackWriteText(text);
-    if (copied === false) {
+    if (copied !== true) {
       return {
         status: 'failure',
         operation: 'text',
