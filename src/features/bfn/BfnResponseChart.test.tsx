@@ -43,6 +43,7 @@ describe('BfnResponseChart exact reading', () => {
     expect(screen.getByRole('note')).toHaveTextContent('Computed point');
     expect(onCursorIndexChange).toHaveBeenCalledWith(lowerIndex);
     expect(screen.getByRole('note')).toHaveAttribute('data-index', String(lowerIndex));
+    expect(screen.getByRole('note')).toHaveTextContent(`${lower.coordinate.toFixed(3)} nM`);
     expect(screen.getByRole('note')).toHaveTextContent(String(lower.output.toFixed(3)));
     expect(screen.getByRole('note')).toHaveTextContent('Input');
     expect(screen.getByRole('note')).toHaveTextContent('3OC6-HSL');
