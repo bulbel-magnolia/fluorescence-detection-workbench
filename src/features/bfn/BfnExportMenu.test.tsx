@@ -7,7 +7,6 @@ import { createBfnChartModel } from './chartModel';
 import type { BfnPngCanvas, BfnPngCanvasContext, BfnPngEnvironment } from './chartExport';
 import {
   createBfnExportFilename,
-  createBfnFigureCaption,
   createBfnProvenanceRows,
   serializeBfnResultTable,
 } from './chartExport';
@@ -31,7 +30,7 @@ function exportFixture() {
     result,
     viewState: defaultBfnChartViewState(result),
     geometry,
-    translate: (key) => key,
+    translate: (key) => i18n.t(key),
   });
   return { project, result, model };
 }
@@ -71,7 +70,12 @@ function downloadFixture() {
     anchor.click = () => downloads.push({ href: anchor.href, filename: anchor.download });
     return anchor;
   });
-  const environment: BfnDownloadEnvironment = { createObjectURL, revokeObjectURL, createAnchor };
+  const environment: BfnDownloadEnvironment = {
+    createObjectURL,
+    revokeObjectURL,
+    createAnchor,
+    scheduleCleanup: (cleanup) => cleanup(),
+  };
   return { blobs, downloads, createObjectURL, revokeObjectURL, environment };
 }
 
@@ -193,6 +197,58 @@ describe('BFN result export menu', () => {
     expect(csv).toContain(result.id);
   });
 
+  it('defers object URL revocation until the scheduled cleanup runs and removes the anchor immediately', async () => {
+    const user = userEvent.setup();
+    const cleanups: Array<() => void> = [];
+    const revokeObjectURL = vi.fn();
+    const anchor = document.createElement('a');
+    const click = vi.fn();
+    anchor.click = click;
+    const environment: BfnDownloadEnvironment = {
+      createObjectURL: () => 'blob:bfn-delayed-cleanup',
+      revokeObjectURL,
+      createAnchor: () => anchor,
+      scheduleCleanup: (cleanup) => cleanups.push(cleanup),
+    };
+    render(<BfnExportMenu {...exportFixture()} downloadEnvironment={environment} />);
+    await user.click(screen.getByText('Export'));
+
+    await user.click(screen.getByRole('button', { name: 'Download SVG' }));
+
+    expect(click).toHaveBeenCalledOnce();
+    expect(anchor.isConnected).toBe(false);
+    expect(cleanups).toHaveLength(1);
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    cleanups[0]!();
+    expect(revokeObjectURL).toHaveBeenCalledOnce();
+    expect(revokeObjectURL).toHaveBeenCalledWith('blob:bfn-delayed-cleanup');
+  });
+
+  it('revokes the object URL immediately and removes the anchor when download click fails', async () => {
+    const user = userEvent.setup();
+    const revokeObjectURL = vi.fn();
+    const scheduleCleanup = vi.fn();
+    const anchor = document.createElement('a');
+    anchor.click = () => {
+      throw new Error('download blocked');
+    };
+    const environment: BfnDownloadEnvironment = {
+      createObjectURL: () => 'blob:bfn-failed-download',
+      revokeObjectURL,
+      createAnchor: () => anchor,
+      scheduleCleanup,
+    };
+    render(<BfnExportMenu {...exportFixture()} downloadEnvironment={environment} />);
+    await user.click(screen.getByText('Export'));
+
+    await user.click(screen.getByRole('button', { name: 'Download SVG' }));
+
+    expect(anchor.isConnected).toBe(false);
+    expect(scheduleCleanup).not.toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledOnce();
+    expect(screen.getByRole('alert')).toHaveTextContent('Export failed. Try again.');
+  });
+
   it('announces text-copy success only after the clipboard promise resolves and copies TSV plus the current caption', async () => {
     const user = userEvent.setup();
     const fixture = exportFixture();
@@ -218,7 +274,8 @@ describe('BFN result export menu', () => {
 
     await user.click(screen.getByRole('button', { name: 'Copy caption' }));
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Caption copied.'));
-    expect(writeText).toHaveBeenNthCalledWith(2, createBfnFigureCaption(fixture));
+    expect(writeText).toHaveBeenNthCalledWith(2, expect.stringContaining('Steady-state analysis'));
+    expect(writeText.mock.calls[1]?.[0]).not.toMatch(/\bstatic\b/);
   });
 
   it('copies a publication PNG only after supported image clipboard APIs resolve', async () => {
@@ -265,6 +322,24 @@ describe('BFN result export menu', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Copy failed. Check clipboard permission and try again.'));
     expect(screen.queryByText('Data copied.')).not.toBeInTheDocument();
   });
+
+  it('copies a fully localized Chinese caption without fixed English caption fragments', async () => {
+    await i18n.changeLanguage('zh-CN');
+    const user = userEvent.setup();
+    const writeText = vi.fn<(text: string) => Promise<void>>(() => Promise.resolve());
+    render(<BfnExportMenu {...exportFixture()} clipboardEnvironment={{ writeText }} />);
+    await user.click(screen.getByText('导出'));
+
+    await user.click(screen.getByRole('button', { name: '复制图注' }));
+    await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('图注已复制。'));
+
+    const caption = writeText.mock.calls[0]?.[0] ?? '';
+    expect(caption).toContain('稳态分析');
+    expect(caption).toContain('相对于');
+    expect(caption).toContain('参数区间包络');
+    expect(caption).toContain('当前近似质量阈值');
+    expect(caption).not.toMatch(/\bstatic\b|versus|parameter-interval envelope|ANN approximation/);
+  });
 });
 
 describe('BFN run provenance', () => {
@@ -285,7 +360,8 @@ describe('BFN run provenance', () => {
     expect(screen.getByText(result.id)).toBeInTheDocument();
     expect(screen.getByText(result.completedAt)).toBeInTheDocument();
     expect(screen.getByText(result.engineVersion)).toBeInTheDocument();
-    expect(screen.getByText(result.mode)).toBeInTheDocument();
+    expect(screen.getByText('Steady-state analysis')).toBeInTheDocument();
+    expect(details).not.toHaveTextContent(/\bstatic\b/);
     expect(screen.getByText(result.networkId)).toBeInTheDocument();
     expect(screen.getByText(result.primaryInputSourceId)).toBeInTheDocument();
     expect(screen.getByText(result.outputMonitorId)).toBeInTheDocument();
@@ -302,5 +378,28 @@ describe('BFN run provenance', () => {
     );
     expect(screen.getByText(provenance.primary_input_range!)).toBeInTheDocument();
     expect(screen.getByText(provenance.time_range_hours!)).toBeInTheDocument();
+  });
+
+  it('localizes enum values and missing ranges without exposing helper English sentinels', async () => {
+    await i18n.changeLanguage('zh-CN');
+    const user = userEvent.setup();
+    const { result } = exportFixture();
+    const missingRanges = {
+      ...result,
+      points: result.points.map((point) => ({
+        ...point,
+        inputs: { ...point.inputs, [result.primaryInputSourceId]: Number.NaN },
+        timeHours: Number.NaN,
+      })),
+    };
+    const { container } = render(<BfnRunProvenance result={missingRanges} />);
+    await user.click(screen.getByText('运行信息'));
+
+    const details = container.querySelector('details');
+    expect(screen.getByText('稳态分析')).toBeInTheDocument();
+    expect(screen.getAllByText('不可用')).toHaveLength(2);
+    expect(screen.getByText('参数区间包络')).toBeInTheDocument();
+    expect(screen.getByText('未经实验验证')).toBeInTheDocument();
+    expect(details).not.toHaveTextContent(/\bstatic\b|Not available|parameter_interval_envelope|not_validated/);
   });
 });

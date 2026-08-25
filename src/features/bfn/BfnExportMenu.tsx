@@ -22,6 +22,7 @@ export interface BfnDownloadEnvironment {
   createObjectURL: (blob: Blob) => string;
   revokeObjectURL: (url: string) => void;
   createAnchor: () => HTMLAnchorElement;
+  scheduleCleanup: (cleanup: () => void) => void;
 }
 
 export interface BfnExportMenuProps {
@@ -41,6 +42,9 @@ function browserDownloadEnvironment(): BfnDownloadEnvironment {
     createObjectURL: (blob) => URL.createObjectURL(blob),
     revokeObjectURL: (url) => URL.revokeObjectURL(url),
     createAnchor: () => document.createElement('a'),
+    scheduleCleanup: (cleanup) => {
+      setTimeout(cleanup, 0);
+    },
   };
 }
 
@@ -50,16 +54,26 @@ function downloadBlob(
   environment: BfnDownloadEnvironment,
 ): void {
   const url = environment.createObjectURL(blob);
-  const anchor = environment.createAnchor();
+  let anchor: HTMLAnchorElement | null = null;
+  let revoked = false;
+  const cleanup = (): void => {
+    if (revoked) return;
+    revoked = true;
+    environment.revokeObjectURL(url);
+  };
   try {
+    anchor = environment.createAnchor();
     anchor.href = url;
     anchor.download = filename;
     anchor.hidden = true;
     document.body?.appendChild(anchor);
     anchor.click();
+    environment.scheduleCleanup(cleanup);
+  } catch (error) {
+    cleanup();
+    throw error;
   } finally {
-    anchor.remove();
-    environment.revokeObjectURL(url);
+    anchor?.remove();
   }
 }
 
@@ -190,7 +204,25 @@ export function BfnExportMenu({
   );
   const handleCopyCaption = (): Promise<void> => copyText(
     'copyCaption',
-    createBfnFigureCaption({ project, result, model }),
+    createBfnFigureCaption({
+      project,
+      result,
+      model,
+      captionText: {
+        lead: t('bfn.results.exportMenu.caption.lead', {
+          demo: result.isDemo || project.isDemo ? t('bfn.results.exportMenu.caption.demo') : '',
+          mode: t(`bfn.modes.${result.mode}`),
+          yAxis: model.labels.y,
+          xAxis: model.labels.x,
+        }),
+        uncertainty: t('bfn.results.exportMenu.caption.uncertainty'),
+        annAccepted: t('bfn.results.exportMenu.caption.annAccepted'),
+        annRejected: t('bfn.results.exportMenu.caption.annRejected'),
+        comparison: t('bfn.results.exportMenu.caption.comparison'),
+        separator: t('bfn.results.exportMenu.caption.separator'),
+        terminator: t('bfn.results.exportMenu.caption.terminator'),
+      },
+    }),
     'copyCaptionSuccess',
   );
   const busy = operation !== null;

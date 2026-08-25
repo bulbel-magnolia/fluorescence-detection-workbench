@@ -34,6 +34,17 @@ export interface CreateBfnFigureCaptionOptions {
   result: BfnSimulationResult;
   model: BfnChartModel;
   comparison?: BfnChartComparison;
+  captionText?: BfnFigureCaptionText;
+}
+
+export interface BfnFigureCaptionText {
+  lead: string;
+  uncertainty: string;
+  annAccepted: string;
+  annRejected: string;
+  comparison: string;
+  separator?: string;
+  terminator?: string;
 }
 
 export interface CreateBfnProvenanceRowsOptions {
@@ -328,20 +339,23 @@ export function createBfnFigureCaption({
   result,
   model,
   comparison,
+  captionText,
 }: CreateBfnFigureCaptionOptions): string {
   const context = result.isDemo || project.isDemo ? 'demo ' : '';
   const axes = `${model.labels.y} versus ${model.labels.x}`;
-  const parts = [`BFN ${context}${result.mode} response (${axes})`];
+  const parts = [captionText?.lead ?? `BFN ${context}${result.mode} response (${axes})`];
   if (result.uncertaintyMethod === 'parameter_interval_envelope' && seriesIsShown(model.series.uncertainty)) {
-    parts.push('uncertainty is shown as a parameter-interval envelope');
+    parts.push(captionText?.uncertainty ?? 'uncertainty is shown as a parameter-interval envelope');
   }
   if (seriesIsShown(model.series.ann) && result.annApproximation?.status === 'accepted') {
-    parts.push('the ANN approximation passed the current approximation-quality threshold');
+    parts.push(captionText?.annAccepted ?? 'the ANN approximation passed the current approximation-quality threshold');
   } else if (seriesIsShown(model.series.ann) && result.annApproximation?.status === 'rejected') {
-    parts.push('the ANN approximation did not pass the current approximation-quality threshold');
+    parts.push(captionText?.annRejected ?? 'the ANN approximation did not pass the current approximation-quality threshold');
   }
-  if (comparison && seriesIsShown(model.series.comparison)) parts.push('the historical result is shown for comparison');
-  return `${parts.join('; ')}.`;
+  if (comparison && seriesIsShown(model.series.comparison)) {
+    parts.push(captionText?.comparison ?? 'the historical result is shown for comparison');
+  }
+  return `${parts.join(captionText?.separator ?? '; ')}${captionText?.terminator ?? '.'}`;
 }
 
 function provenanceValue(value: string | number | boolean | readonly string[]): string {

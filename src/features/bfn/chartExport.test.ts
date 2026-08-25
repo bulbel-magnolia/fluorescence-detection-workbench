@@ -255,6 +255,46 @@ describe('export metadata helpers', () => {
     expect(rangeValues.primary_input_range).toBe('2–4');
     expect(rangeValues.time_range_hours).toBe('0–3.5');
   });
+  it('applies custom localized caption segments while preserving scientific visibility and status logic', () => {
+    const { project, result, comparison, model } = chartFixture();
+    const captionText = {
+      lead: '本地化主句',
+      uncertainty: '本地化不确定性',
+      annAccepted: '本地化 ANN 通过',
+      annRejected: '本地化 ANN 未通过',
+      comparison: '本地化历史对照',
+      separator: '；',
+      terminator: '。',
+    };
+
+    expect(createBfnFigureCaption({ project, result, model, comparison, captionText })).toBe(
+      '本地化主句；本地化不确定性；本地化 ANN 通过；本地化历史对照。',
+    );
+
+    const rejectedResult = {
+      ...result,
+      annApproximation: result.annApproximation
+        ? { ...result.annApproximation, status: 'rejected' as const }
+        : null,
+    };
+    const rejectedModel = createBfnChartModel({
+      project,
+      result: rejectedResult,
+      comparison,
+      viewState: defaultBfnChartViewState(rejectedResult),
+      geometry,
+      translate: (key) => key,
+    });
+    const rejectedCaption = createBfnFigureCaption({
+      project,
+      result: rejectedResult,
+      model: rejectedModel,
+      comparison,
+      captionText,
+    });
+    expect(rejectedCaption).toContain('本地化 ANN 未通过');
+    expect(rejectedCaption).not.toContain('本地化 ANN 通过');
+  });
 });
 
 describe('PNG export', () => {

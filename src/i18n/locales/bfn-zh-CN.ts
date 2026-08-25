@@ -412,6 +412,16 @@ export const bfnZhCN = {
       imageUnsupported: '当前环境不支持复制图像，请改用 PNG 导出。',
       textUnsupported: '当前环境不支持复制文本，请改用下载。',
       figureDescription: 'BFN 运行 {{runId}} 的响应图。',
+      caption: {
+        lead: 'BFN {{demo}}{{mode}}响应（{{yAxis}}相对于{{xAxis}}）',
+        demo: '演示',
+        uncertainty: '不确定性以参数区间包络显示',
+        annAccepted: 'ANN 近似已通过当前近似质量阈值',
+        annRejected: 'ANN 近似未通过当前近似质量阈值',
+        comparison: '同时显示历史结果用于对照',
+        separator: '；',
+        terminator: '。',
+      },
     },
     provenance: {
       title: '运行信息',

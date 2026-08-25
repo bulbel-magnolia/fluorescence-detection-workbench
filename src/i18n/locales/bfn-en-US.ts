@@ -422,6 +422,16 @@ export const bfnEnUS = {
       imageUnsupported: 'Image copy is unavailable. Use PNG export instead.',
       textUnsupported: 'Clipboard text copy is unavailable. Use a download instead.',
       figureDescription: 'Response figure for BFN run {{runId}}.',
+      caption: {
+        lead: 'BFN {{demo}}{{mode}} response ({{yAxis}} versus {{xAxis}})',
+        demo: 'demo ',
+        uncertainty: 'uncertainty is shown as a parameter-interval envelope',
+        annAccepted: 'the ANN approximation passed the current approximation-quality threshold',
+        annRejected: 'the ANN approximation did not pass the current approximation-quality threshold',
+        comparison: 'the historical result is shown for comparison',
+        separator: '; ',
+        terminator: '.',
+      },
     },
     provenance: {
       title: 'Run information',
