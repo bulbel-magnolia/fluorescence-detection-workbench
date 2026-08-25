@@ -19,6 +19,12 @@ export const zhCN = {
     team: '团队',
     settings: '设置',
   },
+  navGroups: {
+    overview: '概览',
+    detection: '检测',
+    modeling: '建模',
+    system: '系统',
+  },
   common: {
     scan: '扫描设备',
     connect: '连接',
@@ -87,6 +93,8 @@ export const zhCN = {
     syncPending: '{{count}} 条待同步',
     syncIdle: '已保存到本机',
     account: '未登录',
+    modelingContext: '建模工作台',
+    modelingFocus: '围绕当前网络完成设计与分析',
   },
   overview: {
     eyebrow: '任务概览',

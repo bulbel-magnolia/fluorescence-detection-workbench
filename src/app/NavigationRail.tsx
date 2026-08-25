@@ -4,31 +4,42 @@ import { Icon, type IconName } from '../components/Icon';
 import { useAppStore } from '../store/appStore';
 import { supabaseConfigured } from '../features/cloud/supabaseClient';
 
-const items: Array<{ section: NavigationSection; icon: IconName }> = [
-  { section: 'overview', icon: 'overview' },
+interface NavigationItem {
+  section: NavigationSection;
+  icon: IconName;
+}
+
+type NavigationGroupKey = 'overview' | 'detection' | 'modeling' | 'system';
+
+const overviewItem: NavigationItem = { section: 'overview', icon: 'overview' };
+const detectionItems: NavigationItem[] = [
   { section: 'detection', icon: 'pulse' },
-  { section: 'modeling', icon: 'network' },
   { section: 'import', icon: 'import' },
   { section: 'history', icon: 'history' },
-  { section: 'settings', icon: 'settings' },
 ];
+const modelingItem: NavigationItem = { section: 'modeling', icon: 'network' };
 
-const teamItem: { section: NavigationSection; icon: IconName } = {
+const teamItem: NavigationItem = {
   section: 'team',
   icon: 'team',
 };
 
-const settingsItem = items[items.length - 1]!;
+const settingsItem: NavigationItem = { section: 'settings', icon: 'settings' };
 
 export function NavigationRail() {
   const { t } = useTranslation();
   const section = useAppStore((state) => state.section);
   const setSection = useAppStore((state) => state.setSection);
   const transportMode = useAppStore((state) => state.transportMode);
-  const navItems =
-    supabaseConfigured || section === 'team'
-      ? [...items.slice(0, -1), teamItem, settingsItem]
-      : items;
+  const groups: Array<{ key: NavigationGroupKey; items: NavigationItem[] }> = [
+    { key: 'overview', items: [overviewItem] },
+    { key: 'detection', items: detectionItems },
+    { key: 'modeling', items: [modelingItem] },
+    {
+      key: 'system',
+      items: supabaseConfigured || section === 'team' ? [teamItem, settingsItem] : [settingsItem],
+    },
+  ];
 
   return (
     <aside className="nav-rail">
@@ -44,27 +55,39 @@ export function NavigationRail() {
         </div>
       </div>
       <nav aria-label={t('common.primaryNavigation')}>
-        {navItems.map((item) => (
-          <button
-            key={item.section}
-            type="button"
-            className={section === item.section ? 'is-active' : ''}
-            onClick={() => setSection(item.section)}
-            aria-current={section === item.section ? 'page' : undefined}
-            aria-label={t(`nav.${item.section}`)}
-            title={t(`nav.${item.section}`)}
+        {groups.map((group) => (
+          <div
+            className="nav-rail__group"
+            key={group.key}
+            role="group"
+            aria-label={t(`navGroups.${group.key}`)}
           >
-            <Icon name={item.icon} />
-            <span>{t(`nav.${item.section}`)}</span>
-          </button>
+            <span className="nav-rail__group-label">{t(`navGroups.${group.key}`)}</span>
+            {group.items.map((item) => (
+              <button
+                key={item.section}
+                type="button"
+                className={section === item.section ? 'is-active' : ''}
+                onClick={() => setSection(item.section)}
+                aria-current={section === item.section ? 'page' : undefined}
+                aria-label={t(`nav.${item.section}`)}
+                title={t(`nav.${item.section}`)}
+              >
+                <Icon name={item.icon} />
+                <span>{t(`nav.${item.section}`)}</span>
+              </button>
+            ))}
+          </div>
         ))}
       </nav>
-      <div className="nav-rail__footer">
-        <span className={transportMode === 'hc08d' ? 'hardware-beacon' : 'demo-beacon'} />
-        <div>
-          <strong>{transportMode === 'hc08d' ? 'HC-08D' : t('common.demoMode')}</strong>
+      {section !== 'modeling' ? (
+        <div className="nav-rail__footer">
+          <span className={transportMode === 'hc08d' ? 'hardware-beacon' : 'demo-beacon'} />
+          <div>
+            <strong>{transportMode === 'hc08d' ? 'HC-08D' : t('common.demoMode')}</strong>
+          </div>
         </div>
-      </div>
+      ) : null}
     </aside>
   );
 }

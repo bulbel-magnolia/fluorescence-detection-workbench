@@ -15,8 +15,16 @@ describe('biological network design workspace', () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
-    expect(screen.getByRole('heading', { name: '生物网络设计' })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /搭建网络/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: '生物网络演示项目' })).toBeInTheDocument();
+    expect(screen.getByText('当前网络：AHL 响应与报告网络')).toBeInTheDocument();
+    expect(screen.getByText('已自动保存')).toBeInTheDocument();
+    const workspaceTabs = screen.getAllByRole('tab');
+    expect(workspaceTabs).toHaveLength(2);
+    expect(screen.getByRole('tab', { name: '网络设计' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('tab', { name: '按目标设计' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: '查看响应' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: '模块库' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('尚未运行分析').length).toBeGreaterThan(0);
     const canvas = screen.getByRole('application', { name: '生物网络画布' });
     expect(canvas).toBeInTheDocument();
     expect(screen.getAllByText('AHL 响应').length).toBeGreaterThan(0);
@@ -84,23 +92,73 @@ describe('biological network design workspace', () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
-    await user.click(screen.getByRole('tab', { name: /查看响应/ }));
-    expect(screen.getByRole('combobox', { name: '输入方式' })).toHaveValue('working_range');
     await user.click(screen.getByRole('button', { name: '运行稳态分析' }));
 
     expect(await screen.findByRole('img', { name: '输入—输出响应' })).toBeInTheDocument();
+    expect(screen.getByRole('application', { name: '生物网络画布' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '网络设计' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByText('近似效果良好')).toBeInTheDocument();
     expect(screen.getByText('在参数适用范围内')).toBeInTheDocument();
     expect(screen.getByText('当前输出')).toBeInTheDocument();
+  });
+
+  it('keeps the previous result visible and marks it stale after input changes', async () => {
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+
+    await user.click(screen.getByRole('button', { name: '运行稳态分析' }));
+    expect(await screen.findByText('当前结果')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '设置输入' }));
+    const inputDialog = screen.getByRole('dialog', { name: '设置输入' });
+    await user.selectOptions(
+      within(inputDialog).getByRole('combobox', { name: '输入方式' }),
+      'fixed_value',
+    );
+    await user.click(within(inputDialog).getByRole('button', { name: '关闭输入设置' }));
+
+    const staleNotice = screen
+      .getByText('网络或输入已修改')
+      .closest<HTMLElement>('.bfn-result-stale');
+    expect(staleNotice).not.toBeNull();
+    if (!staleNotice) throw new Error('Stale result notice was not rendered.');
+    expect(
+      within(staleNotice).getByText('当前结果来自修改前的状态，可保留用于对照。'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: '输入—输出响应' })).toBeInTheDocument();
+
+    await user.click(within(staleNotice).getByRole('button', { name: '重新运行' }));
+    expect(screen.queryByText('网络或输入已修改')).not.toBeInTheDocument();
+    expect(screen.getByText('当前结果')).toBeInTheDocument();
+  });
+
+  it('collapses and reopens results without leaving network design', async () => {
+    const user = userEvent.setup();
+    render(<ModelingPage />);
+
+    await user.click(screen.getByRole('button', { name: '运行稳态分析' }));
+    expect(await screen.findByRole('img', { name: '输入—输出响应' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '收起分析结果' }));
+
+    expect(screen.queryByRole('img', { name: '输入—输出响应' })).not.toBeInTheDocument();
+    expect(screen.getByText('分析结果已收起')).toBeInTheDocument();
+    expect(screen.getByRole('application', { name: '生物网络画布' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '展开分析结果' }));
+    expect(screen.getByRole('img', { name: '输入—输出响应' })).toBeInTheDocument();
   });
 
   it('computes a fixed point without showing a simplified relationship', async () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
-    await user.click(screen.getByRole('tab', { name: /查看响应/ }));
-    await user.selectOptions(screen.getByRole('combobox', { name: '输入方式' }), 'fixed_value');
-    await user.click(screen.getByRole('button', { name: '运行稳态分析' }));
+    await user.click(screen.getByRole('button', { name: '设置输入' }));
+    const inputDialog = screen.getByRole('dialog', { name: '设置输入' });
+    await user.selectOptions(
+      within(inputDialog).getByRole('combobox', { name: '输入方式' }),
+      'fixed_value',
+    );
+    await user.click(within(inputDialog).getByRole('button', { name: '运行稳态分析' }));
 
     expect(await screen.findByText('未生成')).toBeInTheDocument();
     expect(
@@ -113,9 +171,10 @@ describe('biological network design workspace', () => {
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('button', { name: '动态分析' }));
-    await user.click(screen.getByRole('tab', { name: /查看响应/ }));
-    expect(screen.getByRole('combobox', { name: '输入方式' })).toHaveValue('step');
-    await user.click(screen.getByRole('button', { name: '运行动态分析' }));
+    await user.click(screen.getByRole('button', { name: '设置输入' }));
+    const inputDialog = screen.getByRole('dialog', { name: '设置输入' });
+    expect(within(inputDialog).getByRole('combobox', { name: '输入方式' })).toHaveValue('step');
+    await user.click(within(inputDialog).getByRole('button', { name: '运行动态分析' }));
 
     expect(await screen.findByRole('img', { name: '动态响应' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: '动态响应指标' })).toBeInTheDocument();
@@ -140,21 +199,27 @@ describe('biological network design workspace', () => {
     expect(screen.getByRole('button', { name: '建立连接' })).toBeDisabled();
   });
 
-  it('adds a module from the library without inventing a connection', async () => {
+  it('adds a module from a drawer without leaving the current network', async () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
-    await user.click(screen.getByRole('tab', { name: /模块库/ }));
-    const ahlCard = screen.getByRole('heading', { name: 'AHL 响应' }).closest('article');
+    await user.click(screen.getByRole('button', { name: '添加模块' }));
+    const moduleDialog = screen.getByRole('dialog', { name: '添加模块' });
+    expect(screen.getByRole('application', { name: '生物网络画布' })).toBeInTheDocument();
+    const ahlCard = within(moduleDialog)
+      .getByRole('heading', { name: 'AHL 响应' })
+      .closest('article');
     expect(ahlCard).not.toBeNull();
     if (!ahlCard) throw new Error('AHL catalog card was not rendered.');
     expect(within(ahlCard).getByText('根据 3OC6-HSL 浓度计算启动子活性。')).toBeInTheDocument();
     expect(within(ahlCard).getByText('3OC6-HSL 浓度 → 启动子活性')).toBeInTheDocument();
     expect(within(ahlCard).getByText('模型依据')).toBeInTheDocument();
 
-    const addButtons = screen.getAllByRole('button', { name: '添加到网络' });
+    const addButtons = within(moduleDialog).getAllByRole('button', { name: '添加到网络' });
     await user.click(addButtons[2]!);
 
+    expect(screen.queryByRole('dialog', { name: '添加模块' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '网络设计' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('button', { name: '双输入响应, 功能模块' })).toBeInTheDocument();
     const inspector = screen.getByRole('heading', { name: '双输入响应' }).closest('aside');
     expect(inspector).not.toBeNull();
@@ -192,8 +257,11 @@ describe('biological network design workspace', () => {
     await i18n.changeLanguage('en-US');
 
     await waitFor(() => {
-      expect(screen.getByRole('tab', { name: /Build network/ })).toBeInTheDocument();
-      expect(screen.getByRole('tab', { name: /View response/ })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Network design' })).toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'Design to target' })).toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'View response' })).not.toBeInTheDocument();
+      expect(screen.queryByRole('tab', { name: 'Module library' })).not.toBeInTheDocument();
+      expect(screen.getByText('Autosaved')).toBeInTheDocument();
       expect(screen.getByText('Demo project')).toBeInTheDocument();
       expect(
         screen.queryByText(/Complete model first|Identity propagation/),

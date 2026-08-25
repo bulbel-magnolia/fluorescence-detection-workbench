@@ -62,10 +62,12 @@ import {
 } from './validation';
 import './bfn-platform.css';
 
-type BfnWorkspaceView = 'network' | 'analysis' | 'inverse' | 'evidence';
+type BfnPrimaryWorkspace = 'design' | 'inverse';
+type ResultFreshness = 'current' | 'stale';
+type SaveStatus = 'saved' | 'error';
 type DestructiveAction = 'reset-project' | 'remove-module' | 'remove-edge' | 'clear-runs';
 
-const workspaceViews: BfnWorkspaceView[] = ['network', 'analysis', 'inverse', 'evidence'];
+const primaryWorkspaces: BfnPrimaryWorkspace[] = ['design', 'inverse'];
 
 interface EndpointOption {
   value: string;
@@ -242,17 +244,72 @@ function simulationNoticeKey(project: BfnProject): string {
     : 'bfn.notices.staticCompleted';
 }
 
-function configuredInputRange(project: BfnProject, t: TFunction): string {
+function configuredInputSummary(project: BfnProject, t: TFunction): string {
   const source = project.network.inputSources[0];
-  if (!source) return '—';
-  if (project.network.mode === 'dynamic') {
-    return '0–' + project.analysis.durationHours + ' h';
+  if (!source) return t('bfn.runToolbar.noInput');
+  const unit = bfnUnitLabel(source.outputPort.unit, t);
+  const sourceLabel = t(source.labelKey);
+  if (project.network.mode === 'static') {
+    const specification = source.staticSpecification;
+    const value =
+      specification.type === 'working_range'
+        ? `${specification.minimum}–${specification.maximum} ${unit}`
+        : `${specification.value} ${unit}`;
+    return `${sourceLabel}：${value}`;
   }
-  const specification = source.staticSpecification;
-  const unit = bfnUnitLabel(specification.unit, t);
-  return specification.type === 'working_range'
-    ? specification.minimum + '–' + specification.maximum + ' ' + unit
-    : specification.value + ' ' + unit;
+  const specification = source.dynamicSpecification;
+  const value = (() => {
+    switch (specification.type) {
+      case 'constant':
+        return t('bfn.runToolbar.constantSummary', { value: specification.value, unit });
+      case 'step':
+        return t('bfn.runToolbar.stepSummary', {
+          before: specification.before,
+          after: specification.after,
+          unit,
+        });
+      case 'pulse':
+        return t('bfn.runToolbar.pulseSummary', {
+          baseline: specification.baseline,
+          amplitude: specification.amplitude,
+          unit,
+        });
+      case 'periodic':
+        return t('bfn.runToolbar.periodicSummary', {
+          baseline: specification.baseline,
+          amplitude: specification.amplitude,
+          unit,
+        });
+      case 'custom_time_series':
+        return t('bfn.runToolbar.customSummary', { count: specification.points.length, unit });
+    }
+  })();
+  return `${sourceLabel}：${value}`;
+}
+
+function resultInputRange(result: BfnSimulationResult, project: BfnProject, t: TFunction): string {
+  if (result.mode === 'dynamic') {
+    const first = result.points[0]?.inputs[result.primaryInputSourceId];
+    const last = result.points.at(-1)?.inputs[result.primaryInputSourceId];
+    const duration = result.points.at(-1)?.timeHours ?? 0;
+    return first === undefined || last === undefined
+      ? `0–${displayNumber(duration, 1)} h`
+      : `${displayNumber(first)} → ${displayNumber(last)} · 0–${displayNumber(duration, 1)} h`;
+  }
+  const values = result.points
+    .map((point) => point.inputs[result.primaryInputSourceId])
+    .filter((value): value is number => value !== undefined);
+  if (values.length === 0) return '—';
+  const unit = bfnUnitLabel(
+    project.network.inputSources.find((source) => source.id === result.primaryInputSourceId)
+      ?.outputPort.unit ?? 'dimensionless',
+    t,
+  );
+  const minimum = Math.min(...values);
+  const maximum = Math.max(...values);
+  return minimum === maximum
+    ? `${displayNumber(minimum)} ${unit}`
+    : `${displayNumber(minimum)}–${displayNumber(maximum)} ${unit}`;
 }
 
 export function BfnPlatformPage() {
@@ -260,7 +317,7 @@ export function BfnPlatformPage() {
   const [project, setProject] = useState<BfnProject>(
     () => loadBfnProject() ?? createDemoBfnProject(),
   );
-  const [view, setView] = useState<BfnWorkspaceView>('network');
+  const [view, setView] = useState<BfnPrimaryWorkspace>('design');
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
     project.network.modules[0]?.id ?? null,
   );
@@ -268,6 +325,11 @@ export function BfnPlatformPage() {
   const [sourceEndpointValue, setSourceEndpointValue] = useState('');
   const [targetEndpointValue, setTargetEndpointValue] = useState('');
   const [result, setResult] = useState<BfnSimulationResult | null>(null);
+  const [resultFreshness, setResultFreshness] = useState<ResultFreshness>('current');
+  const [resultPanelOpen, setResultPanelOpen] = useState(false);
+  const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
+  const [modulePickerOpen, setModulePickerOpen] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
   const [runs, setRuns] = useState(loadBfnRuns);
   const [reverseTarget, setReverseTarget] = useState<BfnReverseTarget>(() =>
     structuredClone(defaultBfnReverseTarget),
@@ -280,8 +342,24 @@ export function BfnPlatformPage() {
   const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    saveBfnProject(project);
+    try {
+      saveBfnProject(project);
+      setSaveStatus('saved');
+    } catch {
+      setSaveStatus('error');
+    }
   }, [project]);
+
+  useEffect(() => {
+    if (!inputSettingsOpen && !modulePickerOpen) return undefined;
+    const closeOnEscape = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return;
+      setInputSettingsOpen(false);
+      setModulePickerOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [inputSettingsOpen, modulePickerOpen]);
 
   const validationIssues = useMemo(() => validateBfnProject(project), [project]);
   const options = useMemo(() => endpointOptions(project, t), [project, t, i18n.language]);
@@ -335,7 +413,7 @@ export function BfnPlatformPage() {
 
   const updateProject = (updater: (current: BfnProject) => BfnProject): void => {
     setProject((current) => ({ ...updater(current), updatedAt: new Date().toISOString() }));
-    setResult(null);
+    if (result) setResultFreshness('stale');
     setNotice(null);
     setErrorNotice(null);
   };
@@ -370,8 +448,10 @@ export function BfnPlatformPage() {
     try {
       const next = runBfnSimulation(project);
       setResult(next);
+      setResultFreshness('current');
+      setResultPanelOpen(true);
+      setInputSettingsOpen(false);
       setRuns(saveBfnRun(next));
-      setView('analysis');
       setNotice(t(simulationNoticeKey(project), { count: next.points.length }));
       setErrorNotice(null);
     } catch (error) {
@@ -456,7 +536,8 @@ export function BfnPlatformPage() {
     }));
     setSelectedNodeId(module.id);
     setSelectedEdgeId(null);
-    setView('network');
+    setView('design');
+    setModulePickerOpen(false);
     setNotice(t('bfn.notices.moduleAdded'));
   };
 
@@ -493,6 +574,8 @@ export function BfnPlatformPage() {
       const imported = parseBfnProject(await file.text());
       setProject(imported);
       setResult(null);
+      setResultFreshness('current');
+      setResultPanelOpen(false);
       setSelectedNodeId(imported.network.modules[0]?.id ?? null);
       setSelectedEdgeId(null);
       setNotice(t('bfn.notices.imported'));
@@ -509,6 +592,8 @@ export function BfnPlatformPage() {
     clearBfnRuns();
     setRuns([]);
     setResult(null);
+    setResultFreshness('current');
+    setResultPanelOpen(false);
     setSelectedNodeId(next.network.modules[0]?.id ?? null);
     setSelectedEdgeId(null);
     setReverseCandidates([]);
@@ -594,22 +679,61 @@ export function BfnPlatformPage() {
   return (
     <div className="page page--bfn">
       <PageHeader
-        title={t('modeling.title')}
-        subtitle={t('bfn.subtitle')}
-        meta={<StatusPill label={t('bfn.status.demoProject')} tone="warning" />}
+        eyebrow={t('bfn.project.current')}
+        title={t(project.labelKey)}
+        subtitle={t('bfn.project.networkSummary', { network: t(project.network.labelKey) })}
+        meta={
+          <div className="bfn-project-status">
+            <StatusPill label={t('bfn.status.demoProject')} tone="warning" />
+            <StatusPill
+              label={
+                saveStatus === 'saved' ? t('bfn.project.autoSaved') : t('bfn.project.saveFailed')
+              }
+              tone={saveStatus === 'saved' ? 'success' : 'danger'}
+            />
+          </div>
+        }
         actions={
-          <Button
-            variant="tertiary"
-            leadingIcon={<Icon name="export" size={16} />}
-            onClick={exportProject}
-          >
-            {t('bfn.actions.export')}
-          </Button>
+          <div className="bfn-project-actions">
+            <Button
+              variant="tertiary"
+              leadingIcon={<Icon name="import" size={16} />}
+              onClick={() => importRef.current?.click()}
+            >
+              {t('bfn.actions.import')}
+            </Button>
+            <Button
+              variant="tertiary"
+              leadingIcon={<Icon name="export" size={16} />}
+              onClick={exportProject}
+            >
+              {t('bfn.actions.export')}
+            </Button>
+            <details className="bfn-more-actions">
+              <summary>{t('bfn.actions.more')}</summary>
+              <button
+                className="danger-text-button"
+                type="button"
+                onClick={() => setPendingDestructiveAction('reset-project')}
+              >
+                <Icon name="reset" size={15} />
+                {t('bfn.actions.reset')}
+              </button>
+            </details>
+          </div>
         }
       />
+      <input
+        ref={importRef}
+        className="visually-hidden"
+        type="file"
+        accept=".json,application/json"
+        aria-label={t('bfn.actions.import')}
+        onChange={(event) => void importProject(event.target.files?.[0])}
+      />
 
-      <nav className="bfn-workflow" role="tablist" aria-label={t('bfn.workflow.label')}>
-        {workspaceViews.map((workspaceView) => (
+      <nav className="bfn-workspace-tabs" role="tablist" aria-label={t('bfn.workflow.label')}>
+        {primaryWorkspaces.map((workspaceView) => (
           <button
             key={workspaceView}
             type="button"
@@ -619,50 +743,47 @@ export function BfnPlatformPage() {
             onClick={() => setView(workspaceView)}
           >
             <strong>{t(`bfn.workflow.${workspaceView}.title`)}</strong>
-            <small>{t(`bfn.workflow.${workspaceView}.description`)}</small>
           </button>
         ))}
       </nav>
 
-      <div className="bfn-toolbar">
-        <div className="bfn-mode-switch" role="group" aria-label={t('bfn.analysis.networkMode')}>
-          {(['static', 'dynamic'] as const).map((mode) => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={project.network.mode === mode}
-              onClick={() => changeMode(mode)}
-            >
-              {t(`bfn.modes.${mode}`)}
-            </button>
-          ))}
-        </div>
-        <div className="bfn-file-actions">
-          <button type="button" onClick={() => importRef.current?.click()}>
-            <Icon name="import" size={15} />
-            {t('bfn.actions.import')}
-          </button>
-          <input
-            ref={importRef}
-            className="visually-hidden"
-            type="file"
-            accept=".json,application/json"
-            aria-label={t('bfn.actions.import')}
-            onChange={(event) => void importProject(event.target.files?.[0])}
-          />
-          <details className="bfn-more-actions">
-            <summary>{t('bfn.actions.more')}</summary>
-            <button
-              className="danger-text-button"
-              type="button"
-              onClick={() => setPendingDestructiveAction('reset-project')}
-            >
-              <Icon name="reset" size={15} />
-              {t('bfn.actions.reset')}
-            </button>
-          </details>
-        </div>
-      </div>
+      {view === 'design' ? (
+        <section className="bfn-run-toolbar" aria-label={t('bfn.runToolbar.label')}>
+          <div className="bfn-mode-switch" role="group" aria-label={t('bfn.analysis.networkMode')}>
+            {(['static', 'dynamic'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                aria-pressed={project.network.mode === mode}
+                onClick={() => changeMode(mode)}
+              >
+                {t(`bfn.modes.${mode}`)}
+              </button>
+            ))}
+          </div>
+          <div className="bfn-run-toolbar__summary">
+            <span>{t('bfn.runToolbar.currentInput')}</span>
+            <strong>{configuredInputSummary(project, t)}</strong>
+          </div>
+          <Button
+            variant="secondary"
+            leadingIcon={<Icon name="settings" size={15} />}
+            onClick={() => setInputSettingsOpen(true)}
+          >
+            {t('bfn.runToolbar.configureInput')}
+          </Button>
+          <Button
+            className="bfn-run-toolbar__run"
+            variant="primary"
+            leadingIcon={<Icon name="play" size={16} />}
+            onClick={runSimulation}
+          >
+            {result && resultFreshness === 'stale'
+              ? t('bfn.actions.rerun')
+              : t(simulationActionKey(project))}
+          </Button>
+        </section>
+      ) : null}
       {notice ? (
         <div className="bfn-notice" role="status">
           {notice}
@@ -674,7 +795,7 @@ export function BfnPlatformPage() {
         </div>
       ) : null}
 
-      {view === 'network' ? (
+      {view === 'design' ? (
         <div className="bfn-network-workspace">
           <aside className="bfn-network-index">
             <header>
@@ -715,7 +836,7 @@ export function BfnPlatformPage() {
                 <button
                   className="bfn-catalog-shortcut"
                   type="button"
-                  onClick={() => setView('evidence')}
+                  onClick={() => setModulePickerOpen(true)}
                 >
                   <Icon name="plus" size={15} />
                   {t('bfn.networkIndex.addFromRegistry')}
@@ -1084,7 +1205,7 @@ export function BfnPlatformPage() {
                   <button
                     className="button button--secondary button--wide"
                     type="button"
-                    onClick={() => setView('analysis')}
+                    onClick={() => setInputSettingsOpen(true)}
                   >
                     {t('bfn.inspector.configureInput')}
                   </button>
@@ -1156,13 +1277,33 @@ export function BfnPlatformPage() {
         </div>
       ) : null}
 
-      {view === 'analysis' ? (
-        <div className="bfn-analysis-workspace">
-          <aside className="bfn-analysis-settings">
-            <header className="bfn-section-heading">
+      {view === 'design' && inputSettingsOpen ? (
+        <div className="bfn-drawer-layer">
+          <button
+            className="bfn-drawer-scrim"
+            type="button"
+            aria-label={t('bfn.drawers.closeInput')}
+            onClick={() => setInputSettingsOpen(false)}
+          />
+          <aside
+            className="bfn-drawer bfn-input-settings-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bfn-input-settings-title"
+          >
+            <header className="bfn-drawer__header">
               <div>
-                <h2>{t('bfn.analysis.title')}</h2>
+                <span>{t(`bfn.modes.${project.network.mode}`)}</span>
+                <h2 id="bfn-input-settings-title">{t('bfn.runToolbar.configureInput')}</h2>
               </div>
+              <button
+                className="bfn-drawer__close"
+                type="button"
+                aria-label={t('bfn.drawers.closeInput')}
+                onClick={() => setInputSettingsOpen(false)}
+              >
+                ×
+              </button>
             </header>
             {project.network.inputSources.map((source) => (
               <section className="bfn-input-card" key={source.id}>
@@ -1412,106 +1553,161 @@ export function BfnPlatformPage() {
               leadingIcon={<Icon name="play" size={16} />}
               onClick={runSimulation}
             >
-              {t(simulationActionKey(project))}
+              {result && resultFreshness === 'stale'
+                ? t('bfn.actions.rerun')
+                : t(simulationActionKey(project))}
             </Button>
           </aside>
-
-          <main className="bfn-analysis-results">
-            <header className="bfn-section-heading">
-              <div>
-                <h2>{t('bfn.results.title')}</h2>
-              </div>
-              <StatusPill
-                label={result ? t('bfn.results.complete') : t('bfn.results.awaiting')}
-                tone={result ? 'success' : 'neutral'}
-              />
-            </header>
-            <BfnResponseChart result={result} />
-            {result ? (
-              <>
-                <div className="bfn-result-facts">
-                  <article>
-                    <span>{t('bfn.results.finalOutput')}</span>
-                    <strong>{displayNumber(currentOutput(result) ?? 0)}</strong>
-                    <small>
-                      {bfnUnitLabel(
-                        project.network.outputMonitors[0]?.inputPort.unit ?? 'dimensionless',
-                        t,
-                      )}
-                    </small>
-                  </article>
-                  <article>
-                    <span>{t('bfn.results.domainStatus')}</span>
-                    <strong>
-                      {result.extrapolated
-                        ? t('bfn.results.extrapolated')
-                        : t('bfn.results.inDomain')}
-                    </strong>
-                    <small>
-                      {result.extrapolated
-                        ? t('bfn.results.extrapolatedHint')
-                        : t('bfn.results.inDomainHint')}
-                    </small>
-                  </article>
-                  <article>
-                    <span>{t('bfn.results.parameterRange')}</span>
-                    <strong>{configuredInputRange(project, t)}</strong>
-                    <small>{t('bfn.results.rangeHint')}</small>
-                  </article>
-                </div>
-                {result.mode === 'static' ? (
-                  <AnnResultCard result={result} />
-                ) : (
-                  <DynamicMetricsCard result={result} />
-                )}
-                <details className="bfn-result-details">
-                  <summary>{t('bfn.results.showDetails')}</summary>
-                  <dl>
-                    <div>
-                      <dt>{t('bfn.results.engineVersion')}</dt>
-                      <dd>{result.engineVersion}</dd>
-                    </div>
-                    <div>
-                      <dt>{t('bfn.results.modelVersion')}</dt>
-                      <dd>{result.modelVersions.join(' · ')}</dd>
-                    </div>
-                    <div>
-                      <dt>{t('bfn.results.computedPoints')}</dt>
-                      <dd>{result.points.length}</dd>
-                    </div>
-                  </dl>
-                </details>
-              </>
-            ) : null}
-            <section className="bfn-run-history">
-              <header>
-                <div>
-                  <h3>{t('bfn.runs.title')}</h3>
-                </div>
-                {runs.length ? (
-                  <button
-                    className="danger-text-button"
-                    type="button"
-                    onClick={() => setPendingDestructiveAction('clear-runs')}
-                  >
-                    {t('bfn.runs.clear')}
-                  </button>
-                ) : null}
-              </header>
-              {runs.length ? (
-                runs.map((run) => (
-                  <button key={run.id} type="button" onClick={() => setResult(run)}>
-                    <span>{new Date(run.completedAt).toLocaleString(i18n.language)}</span>
-                    <strong>{t(`bfn.modes.${run.mode}`)}</strong>
-                    <code>{displayNumber(run.points.at(-1)?.output ?? 0)}</code>
-                  </button>
-                ))
-              ) : (
-                <p>{t('bfn.runs.empty')}</p>
-              )}
-            </section>
-          </main>
         </div>
+      ) : null}
+
+      {view === 'design' ? (
+        <section className="bfn-result-panel" data-open={resultPanelOpen}>
+          <header className="bfn-result-panel__header">
+            <div>
+              <h2>{t('bfn.results.title')}</h2>
+              <span>
+                {result
+                  ? t('bfn.results.lastRun', {
+                      time: new Date(result.completedAt).toLocaleString(i18n.language),
+                    })
+                  : t('bfn.results.notRun')}
+              </span>
+            </div>
+            <div className="bfn-result-panel__actions">
+              <StatusPill
+                label={
+                  !result
+                    ? t('bfn.results.awaiting')
+                    : resultFreshness === 'stale'
+                      ? t('bfn.results.stale')
+                      : t('bfn.results.current')
+                }
+                tone={!result ? 'neutral' : resultFreshness === 'stale' ? 'warning' : 'success'}
+              />
+              <button
+                className="bfn-result-panel__toggle"
+                type="button"
+                aria-expanded={resultPanelOpen}
+                onClick={() => setResultPanelOpen((open) => !open)}
+              >
+                {resultPanelOpen ? t('bfn.results.collapse') : t('bfn.results.expand')}
+              </button>
+            </div>
+          </header>
+          {result && resultFreshness === 'stale' ? (
+            <div className="bfn-result-stale" role="status">
+              <div>
+                <strong>{t('bfn.results.staleTitle')}</strong>
+                <span>{t('bfn.results.staleHint')}</span>
+              </div>
+              <Button variant="secondary" size="sm" onClick={runSimulation}>
+                {t('bfn.actions.rerun')}
+              </Button>
+            </div>
+          ) : null}
+          {resultPanelOpen ? (
+            <div className="bfn-analysis-results">
+              <BfnResponseChart result={result} />
+              {result ? (
+                <>
+                  <div className="bfn-result-facts">
+                    <article>
+                      <span>{t('bfn.results.finalOutput')}</span>
+                      <strong>{displayNumber(currentOutput(result) ?? 0)}</strong>
+                      <small>
+                        {bfnUnitLabel(
+                          project.network.outputMonitors[0]?.inputPort.unit ?? 'dimensionless',
+                          t,
+                        )}
+                      </small>
+                    </article>
+                    <article>
+                      <span>{t('bfn.results.domainStatus')}</span>
+                      <strong>
+                        {result.extrapolated
+                          ? t('bfn.results.extrapolated')
+                          : t('bfn.results.inDomain')}
+                      </strong>
+                      <small>
+                        {result.extrapolated
+                          ? t('bfn.results.extrapolatedHint')
+                          : t('bfn.results.inDomainHint')}
+                      </small>
+                    </article>
+                    <article>
+                      <span>{t('bfn.results.parameterRange')}</span>
+                      <strong>{resultInputRange(result, project, t)}</strong>
+                      <small>{t('bfn.results.rangeHint')}</small>
+                    </article>
+                  </div>
+                  {result.mode === 'static' ? (
+                    <AnnResultCard result={result} />
+                  ) : (
+                    <DynamicMetricsCard result={result} />
+                  )}
+                  <details className="bfn-result-details">
+                    <summary>{t('bfn.results.showDetails')}</summary>
+                    <dl>
+                      <div>
+                        <dt>{t('bfn.results.engineVersion')}</dt>
+                        <dd>{result.engineVersion}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('bfn.results.modelVersion')}</dt>
+                        <dd>{result.modelVersions.join(' · ')}</dd>
+                      </div>
+                      <div>
+                        <dt>{t('bfn.results.computedPoints')}</dt>
+                        <dd>{result.points.length}</dd>
+                      </div>
+                    </dl>
+                  </details>
+                </>
+              ) : null}
+              <section className="bfn-run-history">
+                <header>
+                  <div>
+                    <h3>{t('bfn.runs.title')}</h3>
+                  </div>
+                  {runs.length ? (
+                    <button
+                      className="danger-text-button"
+                      type="button"
+                      onClick={() => setPendingDestructiveAction('clear-runs')}
+                    >
+                      {t('bfn.runs.clear')}
+                    </button>
+                  ) : null}
+                </header>
+                {runs.length ? (
+                  runs.map((run) => (
+                    <button
+                      key={run.id}
+                      type="button"
+                      onClick={() => {
+                        setResult(run);
+                        setResultFreshness('stale');
+                        setResultPanelOpen(true);
+                      }}
+                    >
+                      <span>{new Date(run.completedAt).toLocaleString(i18n.language)}</span>
+                      <strong>{t(`bfn.modes.${run.mode}`)}</strong>
+                      <code>{displayNumber(run.points.at(-1)?.output ?? 0)}</code>
+                    </button>
+                  ))
+                ) : (
+                  <p>{t('bfn.runs.empty')}</p>
+                )}
+              </section>
+            </div>
+          ) : (
+            <div className="bfn-result-panel__collapsed">
+              <strong>{result ? t('bfn.results.collapsedResult') : t('bfn.results.notRun')}</strong>
+              <span>{result ? t('bfn.results.expandHint') : t('bfn.results.emptyHint')}</span>
+            </div>
+          )}
+        </section>
       ) : null}
 
       {view === 'inverse' ? (
@@ -1708,14 +1904,35 @@ export function BfnPlatformPage() {
         </div>
       ) : null}
 
-      {view === 'evidence' ? (
-        <div className="bfn-evidence-workspace">
-          <section className="bfn-registry-catalog">
-            <header className="bfn-section-heading">
+      {view === 'design' && modulePickerOpen ? (
+        <div className="bfn-drawer-layer">
+          <button
+            className="bfn-drawer-scrim"
+            type="button"
+            aria-label={t('bfn.drawers.closeModulePicker')}
+            onClick={() => setModulePickerOpen(false)}
+          />
+          <aside
+            className="bfn-drawer bfn-module-picker"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="bfn-module-picker-title"
+          >
+            <header className="bfn-drawer__header">
               <div>
-                <h2>{t('bfn.registry.title')}</h2>
+                <span>{t(project.network.labelKey)}</span>
+                <h2 id="bfn-module-picker-title">{t('bfn.registry.addTitle')}</h2>
               </div>
+              <button
+                className="bfn-drawer__close"
+                type="button"
+                aria-label={t('bfn.drawers.closeModulePicker')}
+                onClick={() => setModulePickerOpen(false)}
+              >
+                ×
+              </button>
             </header>
+            <p className="bfn-module-picker__lead">{t('bfn.registry.addHint')}</p>
             <div className="bfn-module-catalog">
               {bfnModuleCatalog.map((entry) => {
                 const previewModule = createCatalogModule(entry.id, 'catalog-preview');
@@ -1771,67 +1988,10 @@ export function BfnPlatformPage() {
                 );
               })}
             </div>
-          </section>
-          <aside className="bfn-evidence-ledger">
-            <header className="bfn-section-heading">
-              <div>
-                <h2>{t('bfn.registry.ledgerTitle')}</h2>
-              </div>
-            </header>
-            <section>
-              <header>
-                <Icon name="flask" size={15} />
-                <strong>{t('bfn.registry.datasets')}</strong>
-                <span>{project.registry.datasets.length}</span>
-              </header>
-              {project.registry.datasets.map((datasetEntry) => (
-                <article key={datasetEntry.id}>
-                  <strong>{t(datasetEntry.labelKey)}</strong>
-                  <small>
-                    {t('bfn.registry.doseResponse')} ·{' '}
-                    {t('bfn.registry.replicates', { count: datasetEntry.replicates })}
-                  </small>
-                  <span>{t(`bfn.evidence.${datasetEntry.evidenceGrade}`)}</span>
-                </article>
-              ))}
-            </section>
-            <section>
-              <header>
-                <Icon name="overview" size={15} />
-                <strong>{t('bfn.registry.contexts')}</strong>
-                <span>{project.registry.contexts.length}</span>
-              </header>
-              {project.registry.contexts.map((context) => (
-                <article key={context.id}>
-                  <strong>{t(context.labelKey)}</strong>
-                  <small>
-                    {context.host} · {context.temperatureCelsius} °C
-                  </small>
-                  <span>{bfnContextValueLabel(context.medium, t)}</span>
-                </article>
-              ))}
-            </section>
-            <section>
-              <header>
-                <Icon name="check" size={15} />
-                <strong>{t('bfn.registry.validityDomains')}</strong>
-                <span>{project.registry.validityDomains.length}</span>
-              </header>
-              {project.registry.validityDomains.slice(0, 4).map((domain) => (
-                <article key={domain.id}>
-                  <strong>{t(domain.labelKey)}</strong>
-                  <small>
-                    {domain.inputRanges
-                      .map(
-                        (range) =>
-                          `${range.minimum}–${range.maximum} ${bfnUnitLabel(range.unit, t)}`,
-                      )
-                      .join(' · ')}
-                  </small>
-                  <span>{t('bfn.registry.applicability')}</span>
-                </article>
-              ))}
-            </section>
+            <footer className="bfn-module-picker__footer">
+              <Icon name="network" size={15} />
+              <span>{t('bfn.registry.staysInNetwork')}</span>
+            </footer>
           </aside>
         </div>
       ) : null}

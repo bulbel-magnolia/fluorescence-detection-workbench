@@ -40,6 +40,9 @@ describe('desktop application shell', () => {
     render(<App />);
     const navigation = screen.getByRole('navigation');
     expect(within(navigation).getAllByRole('button')).toHaveLength(6);
+    expect(within(navigation).getByRole('group', { name: '检测' })).toBeInTheDocument();
+    expect(within(navigation).getByRole('group', { name: '建模' })).toBeInTheDocument();
+    expect(within(navigation).getByRole('group', { name: '系统' })).toBeInTheDocument();
     expect(within(navigation).getByRole('button', { name: '网络设计' })).toBeInTheDocument();
     expect(within(navigation).queryByRole('button', { name: '团队' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '体验演示流程' })).toBeInTheDocument();
@@ -127,17 +130,38 @@ describe('desktop application shell', () => {
     expect(screen.getByRole('heading', { name: '采集荧光信号' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '网络设计' }));
-    expect(screen.getByRole('heading', { name: '生物网络设计' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '生物网络演示项目' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '导入分析' }));
     expect(screen.getByRole('heading', { name: '导入并分析' })).toBeInTheDocument();
   });
 
   it('keeps the modeling boundary concise and task-oriented', () => {
-    useAppStore.setState({ section: 'modeling' });
+    useAppStore.setState({
+      section: 'modeling',
+      detectionState: 'ready',
+      connection: {
+        status: 'connected',
+        generation: 1,
+        device: {
+          id: 'hc08d-modeling',
+          name: 'HC-08D',
+          rssi: -50,
+          batteryLevel: null,
+          firmwareVersion: null,
+          isDemo: false,
+        },
+      },
+    });
     render(<App />);
 
     expect(screen.getByText('演示项目')).toBeInTheDocument();
+    expect(screen.getByText('建模工作台')).toBeInTheDocument();
+    expect(screen.queryByText('HC-08D')).not.toBeInTheDocument();
+    expect(screen.queryByText('未连接设备')).not.toBeInTheDocument();
+    expect(screen.queryByText('连接状态')).not.toBeInTheDocument();
+    expect(screen.queryByText('采集状态')).not.toBeInTheDocument();
+    expect(screen.queryByText('电量')).not.toBeInTheDocument();
     expect(screen.queryByText('模型说明')).not.toBeInTheDocument();
     expect(screen.queryByText(/BFN-IR|规范内核|完整模型优先/)).not.toBeInTheDocument();
   });

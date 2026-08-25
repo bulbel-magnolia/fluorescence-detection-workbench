@@ -14,6 +14,24 @@ export function TopBar() {
   const detectionState = useAppStore((state) => state.detectionState);
   const lastError = useAppStore((state) => state.lastError);
   const pending = useAppStore((state) => state.syncPendingCount);
+
+  if (section === 'modeling') {
+    return (
+      <header className="top-bar top-bar--modeling">
+        <div className="top-bar__modeling-context">
+          <span className="top-bar__icon">
+            <Icon name="network" size={18} />
+          </span>
+          <div>
+            <span>{t('topbar.modelingContext')}</span>
+            <strong>{t('nav.modeling')}</strong>
+          </div>
+        </div>
+        <span className="top-bar__modeling-focus">{t('topbar.modelingFocus')}</span>
+      </header>
+    );
+  }
+
   const connected = connection.status === 'connected';
   const deviceName = connected ? connection.device.name : t('topbar.noDevice');
 
@@ -48,11 +66,7 @@ export function TopBar() {
   const acquisitionActive = detectionState === 'running' || detectionState === 'stopping';
 
   return (
-    <header
-      className={
-        section === 'modeling' && !acquisitionActive ? 'top-bar top-bar--modeling' : 'top-bar'
-      }
-    >
+    <header className="top-bar">
       <div className="top-bar__device">
         <span className="top-bar__icon">
           <Icon name="bluetooth" size={18} />

@@ -19,6 +19,12 @@ export const enUS = {
     team: 'Team',
     settings: 'Settings',
   },
+  navGroups: {
+    overview: 'Overview',
+    detection: 'Detection',
+    modeling: 'Modeling',
+    system: 'System',
+  },
   common: {
     scan: 'Scan devices',
     connect: 'Connect',
@@ -87,6 +93,8 @@ export const enUS = {
     syncPending: '{{count}} pending',
     syncIdle: 'Saved on this computer',
     account: 'Signed out',
+    modelingContext: 'Modeling workbench',
+    modelingFocus: 'Design and analyze the current network in one workspace',
   },
   overview: {
     eyebrow: 'Task overview',

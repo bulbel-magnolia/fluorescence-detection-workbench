@@ -1,7 +1,13 @@
 export const bfnEnUS = {
   subtitle:
     'Build a network from biological functions, set its inputs, inspect its response, and compare designs against a target.',
-  project: { demoName: 'Biological network demo project' },
+  project: {
+    demoName: 'Biological network demo project',
+    current: 'Current project',
+    networkSummary: 'Current network: {{network}}',
+    autoSaved: 'Autosaved',
+    saveFailed: 'Local save failed',
+  },
   network: { demoName: 'AHL response and reporter network' },
   contexts: { demoEcoli: 'E. coli experimental context' },
   domains: {
@@ -128,16 +134,8 @@ export const bfnEnUS = {
   modes: { static: 'Steady-state analysis', dynamic: 'Dynamic analysis' },
   workflow: {
     label: 'Biological network design workflow',
-    network: { title: 'Build network', description: 'Add inputs, functional modules, and outputs' },
-    analysis: {
-      title: 'View response',
-      description: 'Set inputs and view a steady-state or dynamic response',
-    },
+    design: { title: 'Network design', description: 'Build, run, and iterate on this network' },
     inverse: { title: 'Design to target', description: 'Set a target and compare candidates' },
-    evidence: {
-      title: 'Module library',
-      description: 'Find functional modules and review their data sources',
-    },
   },
   actions: {
     export: 'Export model',
@@ -148,6 +146,7 @@ export const bfnEnUS = {
     runStatic: 'Run steady-state analysis',
     computeWorkingDomain: 'Run steady-state analysis',
     runDynamic: 'Run dynamic analysis',
+    rerun: 'Run again',
     removeModule: 'Remove module from network',
     removeEdge: 'Delete connection',
   },
@@ -220,6 +219,21 @@ export const bfnEnUS = {
     title: 'Network structure',
     addFromRegistry: 'Add module',
   },
+  runToolbar: {
+    label: 'Analysis toolbar',
+    currentInput: 'Current input',
+    configureInput: 'Set input',
+    noInput: 'No input added',
+    constantSummary: 'Constant {{value}} {{unit}}',
+    stepSummary: 'Step {{before}} → {{after}} {{unit}}',
+    pulseSummary: 'Pulse {{baseline}} + {{amplitude}} {{unit}}',
+    periodicSummary: 'Periodic {{baseline}} ± {{amplitude}} {{unit}}',
+    customSummary: '{{count}} custom time points · {{unit}}',
+  },
+  drawers: {
+    closeInput: 'Close input settings',
+    closeModulePicker: 'Close add module',
+  },
   connections: {
     builder: 'Connect modules',
     source: 'From',
@@ -290,7 +304,7 @@ export const bfnEnUS = {
     implementations: 'Candidate biological implementations',
     noImplementation: 'This module has no candidate biological implementation.',
     inputDefinition: 'Input definition',
-    configureInput: 'Set input and view response',
+    configureInput: 'Set input',
     monitorText: 'Shows the final reporter output produced by the network.',
     edgeText: '{{signal}} is passed from “{{source}}” to “{{target}}”.',
   },
@@ -332,9 +346,19 @@ export const bfnEnUS = {
     series: 'Time, value (one pair per line)',
   },
   results: {
-    title: 'Simulation results',
+    title: 'Analysis results',
     complete: 'Analysis complete',
     awaiting: 'Waiting to run',
+    current: 'Current result',
+    stale: 'Previous result',
+    notRun: 'Analysis has not been run',
+    lastRun: 'Last run: {{time}}',
+    expand: 'Expand analysis results',
+    collapse: 'Collapse analysis results',
+    collapsedResult: 'Analysis results are collapsed',
+    expandHint: 'Expand to view the response curve, metrics, and run history.',
+    staleTitle: 'The network or input has changed',
+    staleHint: 'This result comes from the previous state and remains available for comparison.',
     empty: 'No simulation result yet',
     emptyHint: 'Set an input and run the analysis to view the network response.',
     staticChart: 'Input-output response',
@@ -423,6 +447,10 @@ export const bfnEnUS = {
   },
   registry: {
     title: 'Module library',
+    addTitle: 'Add module',
+    addHint:
+      'Choose a functional module for the current network. After adding it, connect it on the canvas and configure its parameters.',
+    staysInNetwork: 'Adding a module keeps you in the current network.',
     modelFamily: 'Response type',
     parameterSource: 'Parameter source',
     modelBasis: 'Model basis',

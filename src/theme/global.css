@@ -175,6 +175,26 @@ button:not(:disabled):active {
   padding: 22px 12px;
 }
 
+.nav-rail__group {
+  display: grid;
+  gap: 4px;
+}
+
+.nav-rail__group + .nav-rail__group {
+  margin-top: 8px;
+  padding-top: 9px;
+  border-top: 1px solid rgb(255 255 255 / 7%);
+}
+
+.nav-rail__group-label {
+  padding: 0 13px 4px;
+  color: #6f909e;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
 .nav-rail nav button {
   position: relative;
   display: grid;
@@ -395,6 +415,36 @@ button:not(:disabled):active {
 .top-bar--modeling .top-bar__status-block,
 .top-bar--modeling .top-bar__item--battery {
   display: none;
+}
+
+.top-bar__modeling-context {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 11px;
+}
+
+.top-bar__modeling-context > div {
+  display: grid;
+  gap: 2px;
+}
+
+.top-bar__modeling-context span:not(.top-bar__icon) {
+  color: var(--ink-500);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.top-bar__modeling-context strong {
+  color: var(--ink-900);
+  font-size: 13px;
+}
+
+.top-bar__modeling-focus {
+  color: var(--ink-500);
+  font-size: 11px;
 }
 
 .top-bar__item,
@@ -2611,8 +2661,14 @@ button:not(:disabled):active {
 
   .brand > div,
   .nav-rail nav button > span,
+  .nav-rail__group-label,
   .nav-rail__footer div {
     display: none;
+  }
+
+  .nav-rail__group + .nav-rail__group {
+    margin-top: 5px;
+    padding-top: 6px;
   }
 
   .nav-rail nav button {
@@ -2652,6 +2708,10 @@ button:not(:disabled):active {
   .top-bar__stop {
     padding-inline: 8px;
     font-size: 12px;
+  }
+
+  .top-bar__modeling-focus {
+    display: none;
   }
 
   .page {
