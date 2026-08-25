@@ -1,15 +1,16 @@
 import {
   createScale,
   evaluateLogEligibility,
-  filterPointsInDomain,
   linearNiceTicks,
   logMajorTicks,
   resolveAutoDomain,
+  validateChartCoordinates,
   validateManualDomain,
   visibleYValues,
 } from './chartMath';
 import type {
   BfnChartAxis,
+  BfnChartCoordinateValidation,
   BfnChartDomain,
   BfnChartModel,
   BfnChartScale,
@@ -106,21 +107,35 @@ function annValue(result: BfnSimulationResult, point: BfnSimulationPoint): numbe
   );
 }
 
+interface IndexedSimulationPoint {
+  point: BfnSimulationPoint;
+  index: number;
+}
+
+function indexSimulationPoints(points: readonly BfnSimulationPoint[]): IndexedSimulationPoint[] {
+  return points.map((point, index) => ({ point, index }));
+}
+
+function filterIndexedPoints(
+  points: readonly IndexedSimulationPoint[],
+  domain: BfnChartDomain,
+): IndexedSimulationPoint[] {
+  return points.filter(({ point }) => point.coordinate >= domain[0] && point.coordinate <= domain[1]);
+}
+
 function pointsForSeries(
-  result: BfnSimulationResult,
-  points: readonly BfnSimulationPoint[],
+  points: readonly IndexedSimulationPoint[],
   valueFor: (point: BfnSimulationPoint) => number,
   mapX: (value: number) => number,
   mapY: (value: number) => number,
 ): BfnChartSeriesPoint[] {
   return points
-    .map((point, index) => {
+    .map(({ point, index }) => {
       const value = valueFor(point);
       const x = mapX(point.coordinate);
       const y = mapY(value);
-      const sourceIndex = result.points.indexOf(point);
       return {
-        index: sourceIndex >= 0 ? sourceIndex : index,
+        index,
         coordinate: point.coordinate,
         value,
         x,
@@ -138,20 +153,67 @@ function pointsForSeries(
 
 function linePath(points: readonly BfnChartSeriesPoint[]): string {
   return points
-    .map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`)
+    .map((point, index) => {
+      const previous = points[index - 1];
+      const contiguous = previous !== undefined && point.index === previous.index + 1;
+      return `${index === 0 || !contiguous ? 'M' : 'L'} ${point.x} ${point.y}`;
+    })
     .join(' ');
 }
 
-function bandPath(
-  upper: readonly BfnChartSeriesPoint[],
-  lower: readonly BfnChartSeriesPoint[],
-): string {
-  if (upper.length === 0 || lower.length === 0) return '';
-  return `${linePath(upper)} ${lower
-    .slice()
-    .reverse()
-    .map((point) => `L ${point.x} ${point.y}`)
-    .join(' ')} Z`;
+interface UncertaintySegment {
+  upper: BfnChartSeriesPoint[];
+  lower: BfnChartSeriesPoint[];
+}
+
+function uncertaintySegments(
+  points: readonly IndexedSimulationPoint[],
+  mapX: (value: number) => number,
+  mapY: (value: number) => number,
+): UncertaintySegment[] {
+  const segments: UncertaintySegment[] = [];
+  let upper: BfnChartSeriesPoint[] = [];
+  let lower: BfnChartSeriesPoint[] = [];
+  let previousIndex: number | undefined;
+  const flush = (): void => {
+    if (upper.length > 0) segments.push({ upper, lower });
+    upper = [];
+    lower = [];
+    previousIndex = undefined;
+  };
+  for (const { point, index } of points) {
+    if (previousIndex !== undefined && index !== previousIndex + 1) flush();
+    const x = mapX(point.coordinate);
+    const upperY = mapY(point.upper);
+    const lowerY = mapY(point.lower);
+    if (
+      !Number.isFinite(point.coordinate) ||
+      !Number.isFinite(point.upper) ||
+      !Number.isFinite(point.lower) ||
+      !Number.isFinite(x) ||
+      !Number.isFinite(upperY) ||
+      !Number.isFinite(lowerY)
+    ) {
+      flush();
+      continue;
+    }
+    upper.push({ index, coordinate: point.coordinate, value: point.upper, x, y: upperY });
+    lower.push({ index, coordinate: point.coordinate, value: point.lower, x, y: lowerY });
+    previousIndex = index;
+  }
+  flush();
+  return segments;
+}
+
+function bandPath(segments: readonly UncertaintySegment[]): string {
+  return segments
+    .filter(({ upper, lower }) => upper.length > 0 && lower.length > 0)
+    .map(({ upper, lower }) => `${linePath(upper)} ${lower
+      .slice()
+      .reverse()
+      .map((point) => `L ${point.x} ${point.y}`)
+      .join(' ')} Z`)
+    .join(' ');
 }
 
 function visibilityFromState(state: CreateBfnChartModelInput['viewState']): BfnChartVisibility {
@@ -193,7 +255,7 @@ function chooseDomain(
   }
   const resolution = resolveAutoDomain(values, { scale, normalized, detailed: true });
   if (resolution.valid) return { domain: resolution.domain, validation: { valid: true } };
-  const safeDomain = scale === 'log' ? positiveExtent(values, fallback) : finiteExtent(values, fallback);
+  const safeDomain = finiteExtent(values, fallback);
   return {
     domain: safeDomain,
     validation: { valid: false, reason: resolution.reason },
@@ -204,14 +266,14 @@ function seriesFor(
   kind: 'full' | 'ann' | 'comparison',
   label: string,
   result: BfnSimulationResult,
-  points: readonly BfnSimulationPoint[],
+  points: readonly IndexedSimulationPoint[],
   mapX: (value: number) => number,
   mapY: (value: number) => number,
 ): BfnChartSeries {
   const valueFor = kind === 'ann'
     ? (point: BfnSimulationPoint) => annValue(result, point) ?? Number.NaN
     : (point: BfnSimulationPoint) => point.output;
-  const seriesPoints = pointsForSeries(result, points, valueFor, mapX, mapY);
+  const seriesPoints = pointsForSeries(points, valueFor, mapX, mapY);
   return {
     kind,
     label,
@@ -233,6 +295,13 @@ export function createBfnChartModel({
   const source = sourceForResult(project, result);
   const monitor = monitorForResult(project, result);
   const comparisonResult = comparison?.result;
+  const coordinateValidation: {
+    result: BfnChartCoordinateValidation;
+    comparison?: BfnChartCoordinateValidation;
+  } = {
+    result: validateChartCoordinates(result.points),
+    ...(comparisonResult ? { comparison: validateChartCoordinates(comparisonResult.points) } : {}),
+  };
   const xValues = [
     ...result.points.map((point) => point.coordinate),
     ...(comparisonResult?.points.map((point) => point.coordinate) ?? []),
@@ -249,10 +318,12 @@ export function createBfnChartModel({
   );
   const xDomain = xSelection.domain;
   const visible = visibilityFromState(viewState);
-  const filteredResultPoints = filterPointsInDomain(result.points, xDomain);
-  const filteredComparisonPoints = comparisonResult
-    ? filterPointsInDomain(comparisonResult.points, xDomain)
-    : [];
+  const indexedResultPoints = indexSimulationPoints(result.points);
+  const filteredIndexedResultPoints = filterIndexedPoints(indexedResultPoints, xDomain);
+  const filteredResultPoints = filteredIndexedResultPoints.map(({ point }) => point);
+  const indexedComparisonPoints = comparisonResult ? indexSimulationPoints(comparisonResult.points) : [];
+  const filteredIndexedComparisonPoints = filterIndexedPoints(indexedComparisonPoints, xDomain);
+  const filteredComparisonPoints = filteredIndexedComparisonPoints.map(({ point }) => point);
   const yValues = visibleYValues(
     resultWithPoints(result, filteredResultPoints),
     visible,
@@ -303,20 +374,20 @@ export function createBfnChartModel({
     ...(monitor ? { yEntity: monitor.inputPort.entity, yUnit: monitor.inputPort.unit } : {}),
   };
 
-  const fullPoints = filteredResultPoints;
+  const fullPoints = filteredIndexedResultPoints;
   const fullSeries = viewState.showFullModel
     ? seriesFor('full', fallbackTranslation(translate, 'bfn.results.fullModel', 'Full model'), result, fullPoints, mapX, mapY)
     : undefined;
   const uncertaintySeries = viewState.showUncertainty
     ? (() => {
-        const upper = pointsForSeries(result, fullPoints, (point) => point.upper, mapX, mapY);
-        const lower = pointsForSeries(result, fullPoints, (point) => point.lower, mapX, mapY);
+        const segments = uncertaintySegments(fullPoints, mapX, mapY);
+        const upper = segments.flatMap(({ upper: segmentUpper }) => segmentUpper);
         return {
           kind: 'uncertainty' as const,
           label: fallbackTranslation(translate, 'bfn.results.uncertaintyBand', 'Uncertainty'),
           visible: true,
-          path: bandPath(upper, lower),
-          band: bandPath(upper, lower),
+          path: bandPath(segments),
+          band: bandPath(segments),
           points: upper,
           resultId: result.id,
         };
@@ -326,7 +397,7 @@ export function createBfnChartModel({
     ? seriesFor('ann', fallbackTranslation(translate, 'bfn.results.annOverlay', 'ANN approximation'), result, fullPoints, mapX, mapY)
     : undefined;
   const comparisonSeries = comparison
-    ? seriesFor('comparison', comparison.label, comparison.result, filteredComparisonPoints, mapX, mapY)
+    ? seriesFor('comparison', comparison.label, comparison.result, filteredIndexedComparisonPoints, mapX, mapY)
     : undefined;
 
   const cursorPoint = viewState.cursorIndex === null ? undefined : result.points[viewState.cursorIndex];
@@ -354,6 +425,7 @@ export function createBfnChartModel({
     domains: { x: xDomain, y: yDomain },
     scales: { x: xScale, y: yScale },
     requestedScales: { x: viewState.xScale, y: viewState.yScale },
+    coordinateValidation,
     ticks: {
       x: ticksFor(xDomain, appliedXScale, mapX),
       y: ticksFor(yDomain, appliedYScale, mapY),

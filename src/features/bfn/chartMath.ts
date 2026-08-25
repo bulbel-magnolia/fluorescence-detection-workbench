@@ -2,6 +2,7 @@ import type { BfnSimulationPoint, BfnSimulationResult } from './types';
 import type {
   BfnChartAxis,
   BfnChartComparison,
+  BfnChartCoordinateValidation,
   BfnChartDomain,
   BfnChartDomainObject,
   BfnChartDomainResolution,
@@ -113,20 +114,34 @@ export function createScale(
   };
 }
 
-/** Return the nearest existing point. Ties resolve to the lower index. */
+export function validateChartCoordinates(
+  points: readonly ChartCoordinate[],
+): BfnChartCoordinateValidation {
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const point of points) {
+    if (!Number.isFinite(point.coordinate) || point.coordinate < previous) {
+      return { valid: false, reason: 'coordinates_must_be_finite_and_ascending' };
+    }
+    previous = point.coordinate;
+  }
+  return { valid: true };
+}
+
+/**
+ * Return the nearest existing point. Ties resolve to the lower index.
+ * Callers must pass a finite ascending sequence validated by validateChartCoordinates.
+ */
 export function nearestPointIndex(
   points: readonly ChartCoordinate[],
   coordinate: number,
 ): number {
-  if (!Number.isFinite(coordinate) || points.length === 0 || points.some((point) => !Number.isFinite(point.coordinate))) {
-    return -1;
-  }
+  if (!Number.isFinite(coordinate) || points.length === 0) return -1;
   let low = 0;
   let high = points.length - 1;
   while (low <= high) {
     const middle = Math.floor((low + high) / 2);
     const pointCoordinate = points[middle]?.coordinate;
-    if (pointCoordinate === undefined) break;
+    if (pointCoordinate === undefined || !Number.isFinite(pointCoordinate)) return -1;
     if (pointCoordinate < coordinate) low = middle + 1;
     else if (pointCoordinate > coordinate) high = middle - 1;
     else return middle;

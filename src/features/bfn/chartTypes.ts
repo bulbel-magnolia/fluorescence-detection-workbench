@@ -113,6 +113,10 @@ export type BfnChartValidationResult =
   | { valid: true }
   | { valid: false; reason: BfnChartValidationReason; axis?: BfnChartAxis; value?: number };
 
+export type BfnChartCoordinateValidation =
+  | { valid: true }
+  | { valid: false; reason: 'coordinates_must_be_finite_and_ascending' };
+
 export type BfnChartDomainResolution =
   | { valid: true; domain: BfnChartDomain }
   | { valid: false; reason: BfnChartValidationReason; value?: number };
@@ -143,6 +147,10 @@ export interface BfnChartModel {
   requestedScales: {
     x: BfnChartScale;
     y: BfnChartScale;
+  };
+  coordinateValidation: {
+    result: BfnChartCoordinateValidation;
+    comparison?: BfnChartCoordinateValidation;
   };
   ticks: {
     x: readonly BfnChartTick[];

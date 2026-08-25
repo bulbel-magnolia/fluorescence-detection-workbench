@@ -60,7 +60,7 @@ describe('createBfnChartModel', () => {
     expect(model.series.comparison?.points[0]?.value).toBe(comparison.points[0]?.output);
   });
 
-  it('keeps invalid log models constructible with a positive plotting domain and explicit reasons', () => {
+  it('keeps invalid log models constructible with a finite linear domain and explicit reasons', () => {
     const project = createDemoBfnProject();
     const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
     const yPoints = result.points.slice(0, 2).map((point, index) => ({
@@ -90,8 +90,9 @@ describe('createBfnChartModel', () => {
       geometry,
       translate: (key: string) => key,
     });
-    expect(yModel.domains.y[0]).toBeGreaterThan(0);
+    expect(yModel.domains.y[0]).toBeLessThanOrEqual(-1);
     expect(yModel.domains.y[1]).toBeGreaterThan(yModel.domains.y[0]);
+    expect(yModel.domains.y[1]).toBeGreaterThanOrEqual(1);
     expect(yModel.validation.yLog).toMatchObject({
       valid: false,
       reason: 'non_positive_visible_value',
@@ -110,7 +111,8 @@ describe('createBfnChartModel', () => {
       geometry,
       translate: (key: string) => key,
     });
-    expect(xModel.domains.x[0]).toBeGreaterThan(0);
+    expect(xModel.domains.x[0]).toBeLessThanOrEqual(0);
+    expect(xModel.domains.x[1]).toBeGreaterThanOrEqual(1);
     expect(xModel.validation.xLog).toMatchObject({
       valid: false,
       reason: 'non_positive_visible_value',
@@ -250,6 +252,8 @@ describe('createBfnChartModel', () => {
     });
     const paths = [model.series.full?.path, model.series.uncertainty?.path, model.series.ann?.path];
     expect(paths.every((path) => typeof path === 'string' && !/NaN|Infinity/.test(path))).toBe(true);
+    expect(model.domains.y[0]).toBeLessThanOrEqual(-2);
+    expect(model.domains.y[1]).toBeGreaterThanOrEqual(2);
     expect(model.cursor).toBeDefined();
     expect(Number.isFinite(model.cursor?.x)).toBe(true);
     expect(Number.isFinite(model.cursor?.y)).toBe(true);
@@ -279,5 +283,58 @@ describe('createBfnChartModel', () => {
     expect(model.series.full?.points[0]?.index).toBe(1);
     expect(model.series.uncertainty?.points[0]?.index).toBe(1);
     expect(model.series.ann?.points[0]?.index).toBe(1);
+  });
+
+  it('splits line and paired uncertainty paths across invalid sample gaps', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const gapResult = {
+      ...result,
+      points: result.points.slice(0, 3).map((point, index) => ({
+        ...point,
+        coordinate: index + 1,
+        output: index === 1 ? Number.NaN : index + 1,
+        lower: index === 1 ? Number.NaN : index + 0.5,
+        upper: index === 1 ? 2 : index + 1.5,
+      })),
+    };
+    const model = createBfnChartModel({
+      project,
+      result: gapResult,
+      viewState: { ...defaultBfnChartViewState(gapResult), showAnn: false },
+      geometry,
+      translate: (key: string) => key,
+    });
+    const fullPath = model.series.full?.path ?? '';
+    expect((fullPath.match(/\bM\b/g) ?? []).length).toBe(2);
+    expect((fullPath.match(/\bL\b/g) ?? []).length).toBe(0);
+    const uncertaintyPath = model.series.uncertainty?.path ?? '';
+    expect((uncertaintyPath.match(/\bM\b/g) ?? []).length).toBe(2);
+    expect((uncertaintyPath.match(/\bZ\b/g) ?? []).length).toBe(2);
+    expect(model.series.uncertainty?.points.map((point) => point.index)).toEqual([0, 2]);
+  });
+
+  it('reports unsorted or nonfinite source coordinates at the model boundary', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const invalidCoordinatesResult = {
+      ...result,
+      points: result.points.slice(0, 3).map((point, index) => ({
+        ...point,
+        coordinate: index === 1 ? Number.NaN : index === 0 ? 2 : 1,
+      })),
+    };
+    const model = createBfnChartModel({
+      project,
+      result: invalidCoordinatesResult,
+      viewState: { ...defaultBfnChartViewState(invalidCoordinatesResult), showAnn: false },
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(model.coordinateValidation.result).toEqual({
+      valid: false,
+      reason: 'coordinates_must_be_finite_and_ascending',
+    });
+    expect(model.series.full?.path).not.toMatch(/NaN|Infinity/);
   });
 });

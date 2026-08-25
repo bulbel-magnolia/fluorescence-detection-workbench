@@ -8,6 +8,7 @@ import {
   nearestPointIndex,
   resolveAutoDomain,
   validateManualDomain,
+  validateChartCoordinates,
   visibleYValues,
 } from './chartMath';
 import type { BfnSimulationResult, BfnSimulationPoint } from './types';
@@ -68,6 +69,15 @@ describe('chart math', () => {
   it('rejects nonfinite nearest-point queries and coordinates', () => {
     expect(nearestPointIndex([{ coordinate: 1 }, { coordinate: 4 }], Number.NaN)).toBe(-1);
     expect(nearestPointIndex([{ coordinate: Number.NaN }], 1)).toBe(-1);
+    expect(validateChartCoordinates([{ coordinate: Number.NaN }])).toEqual({
+      valid: false,
+      reason: 'coordinates_must_be_finite_and_ascending',
+    });
+    expect(validateChartCoordinates([{ coordinate: 2 }, { coordinate: 1 }])).toEqual({
+      valid: false,
+      reason: 'coordinates_must_be_finite_and_ascending',
+    });
+    expect(validateChartCoordinates([{ coordinate: 1 }, { coordinate: 4 }])).toEqual({ valid: true });
   }, 250);
 
   it('validates manual domains and positive log domains', () => {
