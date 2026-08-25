@@ -85,6 +85,7 @@ describe('chart math', () => {
     expect(linearTicks.at(-1)).toBeGreaterThanOrEqual(0.93);
 
     expect(logMajorTicks([1, 1000])).toEqual([1, 10, 100, 1000]);
+    expect(logMajorTicks([2, 5])).toEqual([]);
   });
 
   it('filters points by an active domain and keeps normalized linear output in 0-1', () => {
@@ -151,5 +152,33 @@ describe('chart math', () => {
         { result: comparison, label: 'prior run' },
       ),
     ).toEqual({ valid: true });
+  });
+
+  it('rejects visible negative uncertainty and ANN values without transforming them', () => {
+    const negativeUncertainty = resultWithPoints([
+      { coordinate: 1, inputs: { 'source-test': 1 }, moduleOutputs: {}, output: 10, lower: -1, upper: 20, extrapolated: false },
+    ]);
+    expect(visibleYValues(negativeUncertainty, { showFullModel: false, showUncertainty: true, showAnn: false })).toContain(-1);
+    expect(
+      evaluateLogEligibility('y', [1, 2], negativeUncertainty, {
+        showFullModel: false,
+        showUncertainty: true,
+        showAnn: false,
+      }),
+    ).toEqual({ valid: false, reason: 'non_positive_visible_value', axis: 'y', value: -1 });
+
+    const negativeAnn = resultWithPoints([
+      { coordinate: 1, inputs: { 'source-test': -10 }, moduleOutputs: {}, output: 10, lower: 8, upper: 12, extrapolated: false },
+    ]);
+    const annEligibility = evaluateLogEligibility('y', [1, 2], negativeAnn, {
+      showFullModel: false,
+      showUncertainty: false,
+      showAnn: true,
+    });
+    expect(annEligibility.valid).toBe(false);
+    if (!annEligibility.valid) {
+      expect(annEligibility.reason).toBe('non_positive_visible_value');
+      expect(annEligibility.value).toBeCloseTo(-0.8);
+    }
   });
 });

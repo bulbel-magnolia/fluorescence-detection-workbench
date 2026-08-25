@@ -5,12 +5,12 @@ import {
   linearNiceTicks,
   logMajorTicks,
   resolveAutoDomain,
+  validateManualDomain,
   visibleYValues,
 } from './chartMath';
 import type {
   BfnChartAxis,
   BfnChartDomain,
-  BfnChartDomainObject,
   BfnChartModel,
   BfnChartScale,
   BfnChartSeries,
@@ -21,10 +21,6 @@ import type {
   CreateBfnChartModelInput,
 } from './chartTypes';
 import type { BfnSimulationPoint, BfnSimulationResult } from './types';
-
-function asDomainObject(domain: BfnChartDomain): BfnChartDomainObject {
-  return { minimum: domain[0], maximum: domain[1] };
-}
 
 function finiteExtent(values: readonly number[], fallback: BfnChartDomain): BfnChartDomain {
   const finite = values.filter((value) => Number.isFinite(value));
@@ -39,7 +35,26 @@ function finiteExtent(values: readonly number[], fallback: BfnChartDomain): BfnC
 }
 
 function positiveExtent(values: readonly number[], fallback: BfnChartDomain): BfnChartDomain {
-  return finiteExtent(values.filter((value) => value > 0), fallback);
+  const positive = values.filter((value) => Number.isFinite(value) && value > 0);
+  if (positive.length === 0) {
+    const [fallbackMinimum, fallbackMaximum] = fallback;
+    if (
+      Number.isFinite(fallbackMinimum) &&
+      Number.isFinite(fallbackMaximum) &&
+      fallbackMinimum > 0 &&
+      fallbackMinimum < fallbackMaximum
+    ) {
+      return fallback;
+    }
+    return [1, 10];
+  }
+  const minimum = Math.min(...positive);
+  const maximum = Math.max(...positive);
+  if (minimum === maximum) {
+    const factor = 10 ** 0.05;
+    return [minimum / factor, maximum * factor];
+  }
+  return [minimum, maximum];
 }
 
 function sourceForResult(project: CreateBfnChartModelInput['project'], result: BfnSimulationResult) {
@@ -158,24 +173,7 @@ function chooseDomain(
     if (minimum === undefined || maximum === undefined) {
       return { domain: fallback, validation: { valid: false, reason: 'invalid_domain' } };
     }
-    const candidate = asDomainObject([minimum, maximum]);
-    const validation =
-      scale === 'log'
-        ? (() => {
-            if (!Number.isFinite(candidate.minimum) || !Number.isFinite(candidate.maximum)) {
-              return { valid: false, reason: 'domain_values_must_be_finite' } as const;
-            }
-            if (candidate.minimum >= candidate.maximum) {
-              return { valid: false, reason: 'minimum_not_less_than_maximum' } as const;
-            }
-            if (candidate.minimum <= 0 || candidate.maximum <= 0) {
-              return { valid: false, reason: 'log_domain_requires_positive_values' } as const;
-            }
-            return { valid: true } as const;
-          })()
-        : candidate.minimum < candidate.maximum
-          ? ({ valid: true } as const)
-          : ({ valid: false, reason: 'minimum_not_less_than_maximum' } as const);
+    const validation = validateManualDomain([minimum, maximum], scale);
     if (!validation.valid) return { domain: fallback, validation };
     return { domain: [minimum, maximum], validation };
   }

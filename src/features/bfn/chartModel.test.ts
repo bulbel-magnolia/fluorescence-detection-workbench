@@ -59,4 +59,159 @@ describe('createBfnChartModel', () => {
     expect(model.series.comparison?.band).toBeUndefined();
     expect(model.series.comparison?.points[0]?.value).toBe(comparison.points[0]?.output);
   });
+
+  it('keeps invalid log models constructible with a positive plotting domain and explicit reasons', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const yPoints = result.points.slice(0, 2).map((point, index) => ({
+      ...point,
+      output: index === 0 ? 1 : -1,
+      lower: index === 0 ? 1 : -1,
+      upper: index === 0 ? 1 : -1,
+    }));
+    const yResult = { ...result, points: yPoints };
+    const yViewState = {
+      ...defaultBfnChartViewState(yResult),
+      yScale: 'log' as const,
+      showUncertainty: false,
+      showAnn: false,
+    };
+    expect(() => createBfnChartModel({
+      project,
+      result: yResult,
+      viewState: yViewState,
+      geometry,
+      translate: (key: string) => key,
+    })).not.toThrow();
+    const yModel = createBfnChartModel({
+      project,
+      result: yResult,
+      viewState: yViewState,
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(yModel.domains.y[0]).toBeGreaterThan(0);
+    expect(yModel.domains.y[1]).toBeGreaterThan(yModel.domains.y[0]);
+    expect(yModel.validation.yLog).toMatchObject({
+      valid: false,
+      reason: 'non_positive_visible_value',
+      axis: 'y',
+    });
+
+    const xResult = {
+      ...result,
+      points: result.points.slice(0, 2).map((point, index) => ({ ...point, coordinate: index })),
+    };
+    const xViewState = { ...defaultBfnChartViewState(xResult), xScale: 'log' as const };
+    const xModel = createBfnChartModel({
+      project,
+      result: xResult,
+      viewState: xViewState,
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(xModel.domains.x[0]).toBeGreaterThan(0);
+    expect(xModel.validation.xLog).toMatchObject({
+      valid: false,
+      reason: 'non_positive_visible_value',
+      axis: 'x',
+    });
+  });
+
+  it('reports nonfinite and invalid manual domains without applying them', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const nonfiniteModel = createBfnChartModel({
+      project,
+      result,
+      viewState: {
+        ...defaultBfnChartViewState(result),
+        xDomainMode: 'manual',
+        xMinimum: Number.NaN,
+        xMaximum: 1,
+      },
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(nonfiniteModel.validation.xDomain).toEqual({
+      valid: false,
+      reason: 'domain_values_must_be_finite',
+    });
+
+    const infiniteModel = createBfnChartModel({
+      project,
+      result,
+      viewState: {
+        ...defaultBfnChartViewState(result),
+        xDomainMode: 'manual',
+        xMinimum: Number.NEGATIVE_INFINITY,
+        xMaximum: Number.POSITIVE_INFINITY,
+      },
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(infiniteModel.validation.xDomain).toEqual({
+      valid: false,
+      reason: 'domain_values_must_be_finite',
+    });
+
+    const invalidBoundsModel = createBfnChartModel({
+      project,
+      result,
+      viewState: {
+        ...defaultBfnChartViewState(result),
+        yDomainMode: 'manual',
+        yMinimum: 2,
+        yMaximum: 1,
+      },
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(invalidBoundsModel.validation.yDomain).toEqual({
+      valid: false,
+      reason: 'minimum_not_less_than_maximum',
+    });
+  });
+
+  it('falls back to unresolved IDs or translated input/output labels', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
+    const unresolvedProject = {
+      ...project,
+      network: {
+        ...project.network,
+        inputSources: [],
+        outputMonitors: [],
+      },
+    };
+    const unresolvedResult = {
+      ...result,
+      primaryInputSourceId: 'historical-input-source',
+      outputMonitorId: 'historical-output-monitor',
+    };
+    const unresolvedModel = createBfnChartModel({
+      project: unresolvedProject,
+      result: unresolvedResult,
+      viewState: defaultBfnChartViewState(unresolvedResult),
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(unresolvedModel.labels.x).toBe('historical-input-source');
+    expect(unresolvedModel.labels.y).toBe('historical-output-monitor');
+
+    const missingIdResult = {
+      ...unresolvedResult,
+      primaryInputSourceId: '',
+      outputMonitorId: '',
+    };
+    const missingIdModel = createBfnChartModel({
+      project: unresolvedProject,
+      result: missingIdResult,
+      viewState: defaultBfnChartViewState(missingIdResult),
+      geometry,
+      translate: (key: string) => key,
+    });
+    expect(missingIdModel.labels.x).toBe('Input');
+    expect(missingIdModel.labels.y).toBe('Output');
+  });
 });

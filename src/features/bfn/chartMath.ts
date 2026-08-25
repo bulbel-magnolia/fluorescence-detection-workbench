@@ -202,10 +202,7 @@ export function logMajorTicks(domain: BfnChartDomain): readonly number[] {
   const ticks: number[] = [];
   for (let exponent = start; exponent <= end; exponent += 1) ticks.push(10 ** exponent);
   if (ticks.length === 0) {
-    ticks.push(minimum, maximum);
-  } else {
-    if (ticks[0]! > minimum) ticks.unshift(minimum);
-    if (ticks.at(-1)! < maximum) ticks.push(maximum);
+    return [];
   }
   return ticks;
 }
