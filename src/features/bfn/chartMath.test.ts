@@ -66,6 +66,21 @@ describe('chart math', () => {
     expect(nearestPointIndex(points, 4)).toBe(1);
   });
 
+  it('returns the lowest original index for duplicate coordinates and ties', () => {
+    const duplicatePoints = [
+      { coordinate: 0 },
+      { coordinate: 4 },
+      { coordinate: 4 },
+      { coordinate: 4 },
+      { coordinate: 8 },
+      { coordinate: 8 },
+      { coordinate: 12 },
+    ];
+    expect(validateChartCoordinates(duplicatePoints)).toEqual({ valid: true });
+    expect(nearestPointIndex(duplicatePoints, 4)).toBe(1);
+    expect(nearestPointIndex(duplicatePoints, 6)).toBe(1);
+  });
+
   it('rejects nonfinite nearest-point queries and coordinates', () => {
     expect(nearestPointIndex([{ coordinate: 1 }, { coordinate: 4 }], Number.NaN)).toBe(-1);
     expect(nearestPointIndex([{ coordinate: Number.NaN }], 1)).toBe(-1);

@@ -128,29 +128,41 @@ export function validateChartCoordinates(
 }
 
 /**
- * Return the nearest existing point. Ties resolve to the lower index.
- * Callers must pass a finite ascending sequence validated by validateChartCoordinates.
+ * Return the nearest existing point. Exact duplicates and distance ties resolve
+ * to the lowest original index. Callers must pass a finite ascending sequence
+ * validated by validateChartCoordinates.
  */
 export function nearestPointIndex(
   points: readonly ChartCoordinate[],
   coordinate: number,
 ): number {
   if (!Number.isFinite(coordinate) || points.length === 0) return -1;
-  let low = 0;
-  let high = points.length - 1;
-  while (low <= high) {
-    const middle = Math.floor((low + high) / 2);
-    const pointCoordinate = points[middle]?.coordinate;
-    if (pointCoordinate === undefined || !Number.isFinite(pointCoordinate)) return -1;
-    if (pointCoordinate < coordinate) low = middle + 1;
-    else if (pointCoordinate > coordinate) high = middle - 1;
-    else return middle;
-  }
-  if (low <= 0) return 0;
-  if (low >= points.length) return points.length - 1;
-  const left = points[low - 1]?.coordinate ?? Number.POSITIVE_INFINITY;
-  const right = points[low]?.coordinate ?? Number.POSITIVE_INFINITY;
-  return coordinate - left <= right - coordinate ? low - 1 : low;
+  const lowerBound = (target: number): number => {
+    let low = 0;
+    let high = points.length;
+    while (low < high) {
+      const middle = Math.floor((low + high) / 2);
+      const pointCoordinate = points[middle]?.coordinate;
+      if (pointCoordinate === undefined || !Number.isFinite(pointCoordinate)) return -1;
+      if (pointCoordinate < target) low = middle + 1;
+      else high = middle;
+    }
+    return low;
+  };
+  const insertion = lowerBound(coordinate);
+  if (insertion < 0) return -1;
+  if (insertion < points.length && points[insertion]?.coordinate === coordinate) return insertion;
+  if (insertion <= 0) return 0;
+  if (insertion >= points.length) return points.length - 1;
+  const leftIndex = insertion - 1;
+  const leftCoordinate = points[leftIndex]?.coordinate;
+  const rightCoordinate = points[insertion]?.coordinate;
+  if (leftCoordinate === undefined || rightCoordinate === undefined) return -1;
+  const leftDistance = coordinate - leftCoordinate;
+  const rightDistance = rightCoordinate - coordinate;
+  if (leftDistance < rightDistance) return lowerBound(leftCoordinate);
+  if (rightDistance < leftDistance) return insertion;
+  return lowerBound(leftCoordinate);
 }
 
 export function validateManualDomain(

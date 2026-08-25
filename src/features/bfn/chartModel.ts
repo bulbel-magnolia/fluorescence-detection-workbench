@@ -379,15 +379,16 @@ export function createBfnChartModel({
     ? seriesFor('full', fallbackTranslation(translate, 'bfn.results.fullModel', 'Full model'), result, fullPoints, mapX, mapY)
     : undefined;
   const uncertaintySeries = viewState.showUncertainty
-    ? (() => {
+      ? (() => {
         const segments = uncertaintySegments(fullPoints, mapX, mapY);
         const upper = segments.flatMap(({ upper: segmentUpper }) => segmentUpper);
+        const path = bandPath(segments);
         return {
           kind: 'uncertainty' as const,
           label: fallbackTranslation(translate, 'bfn.results.uncertaintyBand', 'Uncertainty'),
           visible: true,
-          path: bandPath(segments),
-          band: bandPath(segments),
+          path,
+          band: path,
           points: upper,
           resultId: result.id,
         };
