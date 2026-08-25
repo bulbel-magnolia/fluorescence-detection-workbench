@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { HardwareTechnicalDetails } from '../components/HardwareTechnicalDetails';
 import { Icon } from '../components/Icon';
+import { MetadataLabel } from '../components/MetadataLabel';
 import { PageHeader } from '../components/PageHeader';
 import { SignalChart } from '../components/SignalChart';
 import { StatusPill } from '../components/StatusPill';
@@ -86,10 +87,9 @@ export function DetectionPage() {
         title={t('detection.title')}
         subtitle={t(isHardware ? 'detection.hc08dSubtitle' : 'detection.subtitle')}
         actions={
-          <StatusPill
+          <MetadataLabel
             label={t(isHardware ? 'settings.hc08dDevice' : 'common.demoMode')}
-            tone={isHardware ? 'success' : 'warning'}
-            icon={isHardware ? 'bluetooth' : 'warning'}
+            tone={isHardware ? 'accent' : 'warning'}
           />
         }
       />
@@ -118,6 +118,7 @@ export function DetectionPage() {
         ]}
       />
 
+      <div className="detection-surface desktop-surface">
       {state.lastError ? (
         <div className="error-banner" role="alert">
           <Icon name="warning" />
@@ -466,6 +467,7 @@ export function DetectionPage() {
             </div>
           ) : null}
         </aside>
+      </div>
       </div>
     </div>
   );

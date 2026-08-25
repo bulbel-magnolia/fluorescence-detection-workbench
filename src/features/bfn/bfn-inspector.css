@@ -257,13 +257,19 @@
   align-items: center;
   min-height: 28px;
   padding: 0 7px;
-  color: var(--ui-success);
-  background: var(--ui-success-subtle);
-  border-left: 2px solid var(--ui-success);
+  color: var(--ui-text-secondary);
+  background: var(--ui-accent-subtle);
+  border-left: 2px solid var(--ui-accent);
   font-size: 11px;
 }
 
-.bfn-evidence-banner[data-grade='engineering_estimate'] {
+.bfn-evidence-banner[data-evidence-tone='validated'] {
+  color: var(--ui-success);
+  background: var(--ui-success-subtle);
+  border-left-color: var(--ui-success);
+}
+
+.bfn-evidence-banner[data-evidence-tone='warning'] {
   color: var(--ui-warning);
   background: var(--ui-warning-subtle);
   border-left-color: var(--ui-warning);
@@ -271,6 +277,21 @@
 
 .bfn-evidence-banner strong {
   font-size: 11px;
+}
+
+.bfn-implementation small[data-evidence-tone],
+.bfn-evidence-label {
+  color: var(--ui-accent);
+}
+
+.bfn-implementation small[data-evidence-tone='validated'],
+.bfn-evidence-label[data-evidence-tone='validated'] {
+  color: var(--ui-success);
+}
+
+.bfn-implementation small[data-evidence-tone='warning'],
+.bfn-evidence-label[data-evidence-tone='warning'] {
+  color: var(--ui-warning);
 }
 
 .bfn-inspector-details {

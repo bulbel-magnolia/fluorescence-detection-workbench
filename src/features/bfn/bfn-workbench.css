@@ -5,50 +5,64 @@
   max-width: none;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
   padding: 8px 10px;
   overflow: hidden;
   color: var(--ui-text-primary);
   background: var(--ui-bg-app);
 }
 
-.bfn-project-toolbar {
-  display: grid;
-  min-height: 48px;
-  flex: 0 0 auto;
-  grid-template-columns: minmax(220px, auto) auto minmax(240px, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 7px 5px 11px;
+.bfn-workbench-surface {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
   background: var(--ui-bg-pane);
   border: var(--ui-divider);
   border-radius: var(--ui-radius-xs);
 }
 
-.bfn-project-toolbar__identity {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 9px;
+.bfn-top-surface {
+  flex: 0 0 auto;
+  background: var(--ui-bg-pane);
 }
 
-.bfn-project-toolbar__identity > span {
+.bfn-project-toolbar {
+  display: grid;
+  min-height: 48px;
+  flex: 0 0 auto;
+  grid-template-columns: minmax(220px, 1fr) auto auto auto;
+  grid-template-areas: 'identity tabs status actions';
+  align-items: center;
+  gap: 10px;
+  padding: 5px 7px 5px 11px;
+  background: var(--ui-bg-pane);
+  border: 0;
+  border-radius: 0;
+}
+
+.bfn-project-toolbar__identity {
+  grid-area: identity;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, auto) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 7px;
+}
+
+.bfn-project-toolbar__separator {
   flex: 0 0 auto;
   color: var(--ui-text-muted);
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-}
-
-.bfn-project-toolbar__identity > div {
-  min-width: 0;
+  font-size: 12px;
 }
 
 .bfn-project-toolbar__identity h1 {
   margin: 0;
   overflow: hidden;
   color: var(--ui-text-primary);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 650;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -56,12 +70,10 @@
 }
 
 .bfn-project-toolbar__identity strong {
-  display: block;
-  margin-top: 1px;
   overflow: hidden;
   color: var(--ui-text-secondary);
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 550;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -74,11 +86,16 @@
   gap: 4px;
 }
 
-.bfn-project-toolbar__status .status-pill {
-  border-color: transparent;
+.bfn-project-toolbar__status {
+  grid-area: status;
+}
+
+.bfn-project-toolbar__actions {
+  grid-area: actions;
 }
 
 .bfn-workspace-tabs {
+  grid-area: tabs;
   display: inline-flex;
   align-items: center;
   justify-self: center;
@@ -169,8 +186,9 @@
   gap: 7px;
   padding: 4px 6px;
   background: var(--ui-bg-pane);
-  border: var(--ui-divider);
-  border-radius: var(--ui-radius-xs);
+  border: 0;
+  border-top: var(--ui-divider);
+  border-radius: 0;
 }
 
 .bfn-editor-toolbar {
@@ -293,8 +311,9 @@
   grid-template-columns: 184px minmax(0, 1fr) 292px;
   overflow: hidden;
   background: var(--ui-bg-pane);
-  border: var(--ui-divider);
-  border-radius: var(--ui-radius-xs);
+  border: 0;
+  border-top: var(--ui-divider);
+  border-radius: 0;
 }
 
 .bfn-network-index,
@@ -741,8 +760,9 @@
   grid-template-columns: 310px minmax(0, 1fr);
   overflow: hidden;
   background: var(--ui-bg-pane);
-  border: var(--ui-divider);
-  border-radius: var(--ui-radius-xs);
+  border: 0;
+  border-top: var(--ui-divider);
+  border-radius: 0;
 }
 
 .bfn-inverse-brief,
@@ -807,6 +827,7 @@
 @media (max-width: 1320px) {
   .bfn-project-toolbar {
     grid-template-columns: minmax(200px, 1fr) auto auto;
+    grid-template-areas: 'identity tabs actions';
   }
 
   .bfn-project-toolbar__status {
@@ -827,12 +848,9 @@
     padding-inline: 7px;
   }
 
-  .bfn-project-toolbar__identity > span {
-    display: none;
-  }
-
   .bfn-project-toolbar {
     grid-template-columns: minmax(180px, 1fr) auto auto;
+    grid-template-areas: 'identity tabs actions';
     gap: 6px;
   }
 

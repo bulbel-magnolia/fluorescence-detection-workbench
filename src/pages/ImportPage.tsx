@@ -95,7 +95,7 @@ export function ImportPage() {
           },
         ]}
       />
-      <div className="import-layout">
+      <div className="import-layout import-surface desktop-surface">
         <div className="import-main">
           <input
             ref={inputRef}

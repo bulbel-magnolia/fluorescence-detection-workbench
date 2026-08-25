@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { Icon } from '../../components/Icon';
-import { StatusPill } from '../../components/StatusPill';
+import { InlineStatus } from '../../components/InlineStatus';
+import { MetadataLabel } from '../../components/MetadataLabel';
 
 export type BfnPrimaryWorkspace = 'design' | 'inverse';
 export type BfnSaveStatus = 'saving' | 'saved' | 'error';
@@ -40,17 +41,25 @@ export function BfnProjectToolbar({
   return (
     <header className="bfn-project-toolbar">
       <div className="bfn-project-toolbar__identity">
-        <span>{t('bfn.project.current')}</span>
-        <div>
-          <h1>{projectName}</h1>
-          <strong>{networkName}</strong>
-        </div>
+        <h1 title={projectName}>{projectName}</h1>
+        <span className="bfn-project-toolbar__separator" aria-hidden="true">
+          /
+        </span>
+        <strong title={networkName}>{networkName}</strong>
       </div>
       <div className="bfn-project-toolbar__status">
-        <StatusPill label={t('bfn.status.demoProject')} tone="warning" />
-        <StatusPill
+        <MetadataLabel
+          label={t('bfn.status.demoLabel')}
+          accessibleLabel={t('bfn.status.demoProject')}
+          tone="warning"
+        />
+        <span className="visually-hidden" aria-hidden="true">
+          {t('bfn.status.demoProject')}
+        </span>
+        <InlineStatus
           label={saveLabel}
-          tone={saveStatus === 'error' ? 'danger' : saveStatus === 'saving' ? 'info' : 'success'}
+          tone={saveStatus === 'error' ? 'danger' : saveStatus === 'saving' ? 'accent' : 'success'}
+          announce
         />
       </div>
       <nav className="bfn-workspace-tabs" role="tablist" aria-label={t('bfn.workflow.label')}>

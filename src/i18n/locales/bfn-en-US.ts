@@ -129,6 +129,7 @@ export const bfnEnUS = {
     proposed_unbuilt_design: 'Candidate design',
   },
   status: {
+    demoLabel: 'DEMO',
     demoProject: 'Demo project',
     demoUnvalidated: 'Demo data',
   },

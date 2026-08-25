@@ -91,6 +91,16 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 - 1440×900 与 1280×720 均完成真实浏览器交互检查。1280×720 下页面 `clientHeight` 与 `scrollHeight` 均为 720 px，结果 Dock 展开后页面高度不变；画布和属性栏分别管理内部滚动；
 - `docs/ui-audit/workbench-polish/` 保存 10 张截图，覆盖默认工作台、属性首层/展开层、结果 Dock、选中/兼容/过期状态、按目标设计、导航、1280×720 和深色模式。
 
+### 2026-08-25 Batch 3.6 Desktop Surface Consolidation 验收
+
+- `src/pages/ModelingPage.batch36.test.tsx` 覆盖连续两行顶部表面、DEMO 元数据、自动保存运行状态、普通证据色、工作区与结果 Dock 共用外边界，以及当前结果的轻量状态表达；
+- `src/pages/DesktopSurfaceConsolidation.test.tsx` 覆盖概览、采集、导入、记录和设置页的 `desktop-surface` 结构，并复核原快捷操作、扫描、采集、文件选择、搜索和主题切换仍可用；
+- `src/features/bfn/presentation.test.ts` 覆盖普通证据、外部验证、独立假设和未构建设计的展示层映射，不修改 `BfnEvidenceGrade` 领域类型；
+- `src/features/bfn/bfn-platform.styles.test.ts` 覆盖单一工作台边界、内部 Toolbar/Workspace/Dock Divider、工程网格、选择/兼容/信号色分工和共享页面连续表面；
+- `docs/ui-audit/surface-consolidation/` 保存 10 张 1440×900 截图。1280×720 实机测量中，文档宽度与视口宽度均为 1280 px，顶部表面为 48 px 项目行与 40 px 运行行，Run 按钮完整可见；网络工作区和采集页控制面板保持可用，页面级水平溢出为 0。
+
+最终验证结果：TypeScript 与 ESLint 通过；Vitest 共 67 个测试文件、370 项测试全部通过；Vite 生产构建完成 203 个模块转换。构建保留既有的单一大 chunk 提示，不影响产物生成。
+
 当前自动化覆盖：
 
 - 检测状态合法转换与断线状态保护；

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../components/Icon';
+import { MetadataLabel } from '../components/MetadataLabel';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { TelemetryStrip } from '../components/TelemetryStrip';
@@ -75,6 +76,7 @@ export function OverviewPage() {
         ]}
       />
 
+      <div className="overview-surface desktop-surface">
       <section className="overview-hero">
         <div className="overview-hero__signal" aria-hidden="true">
           <svg viewBox="0 0 680 180" preserveAspectRatio="none">
@@ -116,7 +118,7 @@ export function OverviewPage() {
             </strong>
             <p>{t('overview.queueDescription')}</p>
           </div>
-          <StatusPill label={t('common.local')} tone="info" />
+          <MetadataLabel label={t('common.local')} tone="accent" />
         </article>
 
         <article className="panel overview-recent">
@@ -163,9 +165,11 @@ export function OverviewPage() {
             <div>
               <h2>{t('overview.systemTitle')}</h2>
             </div>
-            <StatusPill
-              label={t(transportMode === 'hc08d' ? 'settings.hc08dDevice' : 'settings.demoDevice')}
-              tone={transportMode === 'hc08d' ? 'success' : 'warning'}
+            <MetadataLabel
+              label={t(
+                transportMode === 'hc08d' ? 'settings.hc08dDevice' : 'settings.demoDevice',
+              )}
+              tone={transportMode === 'hc08d' ? 'accent' : 'warning'}
             />
           </div>
           <dl className="version-list">
@@ -186,6 +190,7 @@ export function OverviewPage() {
           </dl>
         </article>
       </section>
+      </div>
     </div>
   );
 }

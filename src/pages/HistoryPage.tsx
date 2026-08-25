@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation } from 'react-i18next';
 import { HistorySignalChart } from '../components/HistorySignalChart';
 import { Icon } from '../components/Icon';
+import { MetadataLabel } from '../components/MetadataLabel';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { TechnicalDetails } from '../components/TechnicalDetails';
@@ -137,7 +138,7 @@ export function HistoryPage() {
         ]}
       />
 
-      <div className="history-workspace">
+      <div className="history-workspace history-surface desktop-surface">
         <aside className="panel history-browser">
           <div className="history-toolbar">
             <label>
@@ -149,7 +150,7 @@ export function HistoryPage() {
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
-            <StatusPill label={t('history.count', { count: filtered.length })} tone="neutral" />
+            <MetadataLabel label={t('history.count', { count: filtered.length })} />
           </div>
 
           <div className="history-record-list" role="listbox" aria-label={t('history.title')}>
@@ -216,7 +217,7 @@ export function HistoryPage() {
                     label={t(resultTranslationKeys[selected.resultStatus])}
                     tone={statusTone(selected.resultStatus)}
                   />
-                  <StatusPill
+                  <MetadataLabel
                     label={
                       selected.isDemo ? t('common.demo') : t(originTranslationKeys[selected.origin])
                     }

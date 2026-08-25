@@ -1,11 +1,22 @@
 import type { TFunction } from 'i18next';
 import type {
   BfnContext,
+  BfnEvidenceGrade,
   BfnFunctionalModule,
   BfnModelVariant,
   BfnParameterEstimate,
   BfnPort,
 } from './types';
+
+export type BfnEvidenceTone = 'evidence' | 'validated' | 'warning';
+
+export function bfnEvidenceTone(grade: BfnEvidenceGrade): BfnEvidenceTone {
+  if (grade === 'externally_validated') return 'validated';
+  if (grade === 'independent_assumption' || grade === 'proposed_unbuilt_design') {
+    return 'warning';
+  }
+  return 'evidence';
+}
 
 export interface BfnParameterPresentation {
   id: string;

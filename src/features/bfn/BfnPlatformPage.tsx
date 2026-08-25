@@ -5,6 +5,7 @@ import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { EmptyState } from '../../components/EmptyState';
 import { Icon } from '../../components/Icon';
+import { InlineStatus } from '../../components/InlineStatus';
 import { StatusPill } from '../../components/StatusPill';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
@@ -50,6 +51,7 @@ import {
   bfnContextValueLabel,
   bfnDesignVariableLabel,
   bfnEntityLabel,
+  bfnEvidenceTone,
   bfnModuleFlowLabel,
   bfnParameterPresentations,
   bfnPortMetaLabel,
@@ -891,6 +893,8 @@ export function BfnPlatformPage() {
 
   return (
     <div className="page page--bfn" data-workspace={view}>
+      <div className="bfn-workbench-surface">
+      <div className="bfn-top-surface">
       <BfnProjectToolbar
         projectName={t(project.labelKey)}
         networkName={t(project.network.labelKey)}
@@ -953,6 +957,7 @@ export function BfnPlatformPage() {
           </Button>
         </section>
       ) : null}
+      </div>
       {notice ? (
         <div className="bfn-notice" role="status">
           {notice}
@@ -1236,6 +1241,9 @@ export function BfnPlatformPage() {
                       data-grade={
                         selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade
                       }
+                      data-evidence-tone={bfnEvidenceTone(
+                        selectedModuleModel?.evidenceGrade ?? selectedModule.evidenceGrade,
+                      )}
                     >
                       <strong>
                         {t(
@@ -1357,7 +1365,11 @@ export function BfnPlatformPage() {
                             <span>
                               {implementation.promoter} · {implementation.rbs}
                             </span>
-                            <small>{t(`bfn.evidence.${implementation.evidenceGrade}`)}</small>
+                            <small
+                              data-evidence-tone={bfnEvidenceTone(implementation.evidenceGrade)}
+                            >
+                              {t(`bfn.evidence.${implementation.evidenceGrade}`)}
+                            </small>
                           </div>
                         ))
                       ) : (
@@ -1802,7 +1814,7 @@ export function BfnPlatformPage() {
               </span>
             </div>
             <div className="bfn-result-panel__actions">
-              <StatusPill
+              <InlineStatus
                 label={
                   !result
                     ? t('bfn.results.awaiting')
@@ -1810,7 +1822,7 @@ export function BfnPlatformPage() {
                       ? t('bfn.results.stale')
                       : t('bfn.results.current')
                 }
-                tone={!result ? 'neutral' : resultFreshness === 'stale' ? 'warning' : 'success'}
+                tone={!result ? 'neutral' : resultFreshness === 'stale' ? 'warning' : 'accent'}
               />
               <button
                 className="bfn-result-panel__toggle"
@@ -2052,7 +2064,10 @@ export function BfnPlatformPage() {
                       </small>
                     </div>
                     <div className="bfn-candidate__identity">
-                      <span className="bfn-evidence-chip">
+                      <span
+                        className="bfn-evidence-chip"
+                        data-evidence-tone={bfnEvidenceTone(candidate.evidenceGrade)}
+                      >
                         {t(`bfn.evidence.${candidate.evidenceGrade}`)}
                       </span>
                       <h3>{t(candidate.labelKey)}</h3>
@@ -2125,6 +2140,7 @@ export function BfnPlatformPage() {
           </main>
         </div>
       ) : null}
+      </div>
 
       {view === 'design' && modulePickerOpen ? (
         <div className="bfn-drawer-layer">
@@ -2177,9 +2193,16 @@ export function BfnPlatformPage() {
                       <div>
                         <dt>{t('bfn.registry.modelBasis')}</dt>
                         <dd>
-                          {previewModel
-                            ? t(`bfn.evidence.${previewModel.evidenceGrade}`)
-                            : t(entry.evidenceKey)}
+                          <span
+                            className="bfn-evidence-label"
+                            data-evidence-tone={
+                              previewModel ? bfnEvidenceTone(previewModel.evidenceGrade) : 'warning'
+                            }
+                          >
+                            {previewModel
+                              ? t(`bfn.evidence.${previewModel.evidenceGrade}`)
+                              : t(entry.evidenceKey)}
+                          </span>
                         </dd>
                       </div>
                       <div>

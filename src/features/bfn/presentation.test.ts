@@ -3,6 +3,7 @@ import i18n from '../../i18n';
 import { createCatalogModule, createDemoBfnProject } from './fixtures';
 import {
   bfnContextSectionTitle,
+  bfnEvidenceTone,
   bfnModuleFlowLabel,
   bfnParameterPresentations,
   bfnPortMetaLabel,
@@ -101,5 +102,14 @@ describe('BFN object presentation', () => {
   it('labels demo contexts as example experimental conditions', () => {
     const context = createDemoBfnProject().registry.contexts[0]!;
     expect(bfnContextSectionTitle(context, i18n.getFixedT('zh-CN'))).toBe('示例实验条件');
+  });
+
+  it('separates evidence classification, validation, and assumption tones', () => {
+    expect(bfnEvidenceTone('data_driven_prediction')).toBe('evidence');
+    expect(bfnEvidenceTone('mechanistic_model_only')).toBe('evidence');
+    expect(bfnEvidenceTone('fitted_from_published_data')).toBe('evidence');
+    expect(bfnEvidenceTone('externally_validated')).toBe('validated');
+    expect(bfnEvidenceTone('independent_assumption')).toBe('warning');
+    expect(bfnEvidenceTone('proposed_unbuilt_design')).toBe('warning');
   });
 });

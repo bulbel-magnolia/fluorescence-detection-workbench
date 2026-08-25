@@ -4,8 +4,9 @@
   flex: 0 0 auto;
   overflow: hidden;
   background: var(--ui-bg-pane);
-  border: var(--ui-divider);
-  border-radius: var(--ui-radius-xs);
+  border: 0;
+  border-top: var(--ui-divider);
+  border-radius: 0;
   box-shadow: none;
 }
 
@@ -54,11 +55,6 @@
   display: flex;
   align-items: center;
   gap: 6px;
-}
-
-.bfn-result-panel__actions .status-pill {
-  background: transparent;
-  border-color: transparent;
 }
 
 .bfn-result-panel__toggle {
@@ -476,8 +472,16 @@
 }
 
 .bfn-evidence-chip {
-  color: var(--ui-success);
+  color: var(--ui-accent);
   font-size: 11px;
+}
+
+.bfn-evidence-chip[data-evidence-tone='validated'] {
+  color: var(--ui-success);
+}
+
+.bfn-evidence-chip[data-evidence-tone='warning'] {
+  color: var(--ui-warning);
 }
 
 .bfn-candidate__identity h3 {

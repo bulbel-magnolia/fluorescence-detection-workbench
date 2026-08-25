@@ -123,6 +123,7 @@ export const bfnZhCN = {
     proposed_unbuilt_design: '候选设计',
   },
   status: {
+    demoLabel: 'DEMO',
     demoProject: '演示项目',
     demoUnvalidated: '演示数据',
   },

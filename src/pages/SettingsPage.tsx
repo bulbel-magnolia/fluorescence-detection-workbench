@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { Icon } from '../components/Icon';
+import { MetadataLabel } from '../components/MetadataLabel';
 import { PageHeader } from '../components/PageHeader';
 import { StatusPill } from '../components/StatusPill';
 import { TelemetryStrip } from '../components/TelemetryStrip';
@@ -37,7 +38,7 @@ export function SettingsPage() {
           { label: t('settings.applicationVersion'), value: '0.1.1' },
         ]}
       />
-      <div className="settings-grid">
+      <div className="settings-grid settings-surface desktop-surface">
         <section className="panel settings-card">
           <div className="settings-card__icon">
             <Icon name="overview" />
@@ -110,11 +111,11 @@ export function SettingsPage() {
               <div>
                 <h2>{t('settings.simulation')}</h2>
               </div>
-              <StatusPill
+              <MetadataLabel
                 label={t(
                   transportMode === 'hc08d' ? 'settings.hc08dDevice' : 'settings.demoDevice',
                 )}
-                tone={transportMode === 'hc08d' ? 'success' : 'warning'}
+                tone={transportMode === 'hc08d' ? 'accent' : 'warning'}
               />
             </div>
             <div

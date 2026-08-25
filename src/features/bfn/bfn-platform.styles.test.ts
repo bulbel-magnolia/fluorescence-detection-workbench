@@ -53,6 +53,21 @@ describe('scientific desktop visual semantics', () => {
     );
   });
 
+  it('uses one outer workbench boundary with internal toolbar and dock dividers', () => {
+    expect(workbenchCss).toMatch(
+      /\.bfn-workbench-surface\s*\{[\s\S]*?border:\s*var\(--ui-divider\);[\s\S]*?border-radius:\s*var\(--ui-radius-xs\);/,
+    );
+    expect(workbenchCss).toMatch(
+      /\.bfn-project-toolbar\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-radius:\s*0;/,
+    );
+    expect(workbenchCss).toMatch(
+      /\.bfn-run-toolbar\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-top:\s*var\(--ui-divider\);[\s\S]*?border-radius:\s*0;/,
+    );
+    expect(resultsCss).toMatch(
+      /\.bfn-result-panel\s*\{[\s\S]*?border:\s*0;[\s\S]*?border-top:\s*var\(--ui-divider\);[\s\S]*?border-radius:\s*0;/,
+    );
+  });
+
   it('separates selection, connection compatibility, status, and scientific signal colors', () => {
     const selectedNode = canvasCss.match(
       /\.bfn-canvas-node\[data-selected='true'\]\s*\{([^}]*)\}/,
@@ -82,12 +97,13 @@ describe('scientific desktop visual semantics', () => {
       /\.bfn-canvas-node\s*\{[\s\S]*border-radius:\s*var\(--ui-radius-sm\);/,
     );
     expect(inspectorCss).toContain('.bfn-property-grid');
-    expect(workbenchCss).toMatch(
-      /\.bfn-network-workspace\s*\{[\s\S]*border-radius:\s*var\(--ui-radius-xs\);/,
-    );
+    expect(workbenchCss).toMatch(/\.bfn-network-workspace\s*\{[\s\S]*?border-radius:\s*0;/);
   });
 
   it('extends the same flat desktop language to shared application pages', () => {
+    expect(desktopCss).toMatch(
+      /\.desktop-surface\s*\{[\s\S]*?background:\s*var\(--ui-bg-pane\);[\s\S]*?border:\s*var\(--ui-divider\);/,
+    );
     expect(desktopCss).toMatch(
       /:root\[data-theme='light'\] \.page-viewport,[\s\S]*background-image:\s*none;/,
     );
