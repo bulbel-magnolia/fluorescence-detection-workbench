@@ -7,7 +7,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { BfnChartControls } from './BfnChartControls';
 import { createBfnChartModel } from './chartModel';
 import { defaultBfnChartViewState, type BfnChartGeometry, type BfnChartViewState } from './chartTypes';
-import { BfnResponseChart } from './BfnResponseChart';
+import { BfnResponseChart, bfnChartResultIdentity } from './BfnResponseChart';
 import type { BfnProject, BfnSimulationResult } from './types';
 import { bfnUnitLabel } from './presentation';
 
@@ -75,13 +75,16 @@ export function BfnResultWorkspace({
   onSelectRun,
 }: BfnResultWorkspaceProps) {
   const { t, i18n } = useTranslation();
-  const [viewState, setViewState] = useState<BfnChartViewState | null>(() =>
-    result ? defaultBfnChartViewState(result) : null,
+  const resultIdentity = bfnChartResultIdentity(result);
+  const defaultViewState = useMemo<BfnChartViewState | null>(
+    () => result ? defaultBfnChartViewState(result) : null,
+    [resultIdentity],
   );
+  const [viewState, setViewState] = useState<BfnChartViewState | null>(() => defaultViewState);
 
   useEffect(() => {
-    setViewState(result ? defaultBfnChartViewState(result) : null);
-  }, [result?.id]);
+    setViewState(defaultViewState);
+  }, [defaultViewState]);
 
   const model = useMemo(() => {
     if (!result || !viewState) return null;
@@ -95,7 +98,7 @@ export function BfnResultWorkspace({
   }, [project, result, t, viewState]);
 
   const resetView = (): void => {
-    if (result) setViewState(defaultBfnChartViewState(result));
+    setViewState(defaultViewState);
   };
 
   return (

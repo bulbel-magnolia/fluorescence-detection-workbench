@@ -22,6 +22,31 @@ const height = 300;
 const padding = { left: 62, right: 24, top: 24, bottom: 48 } as const;
 const geometry = { width, height, padding };
 
+/**
+ * Identity for chart-local state. A run id can be reused by imported or
+ * refreshed results, so point content is included to prevent stale cursors
+ * and axis state from leaking into a replacement result.
+ */
+export function bfnChartResultIdentity(result: BfnSimulationResult | null): string {
+  if (!result) return 'empty';
+  return JSON.stringify({
+    id: result.id,
+    completedAt: result.completedAt,
+    mode: result.mode,
+    points: result.points.map((point) => ({
+      coordinate: point.coordinate,
+      timeHours: point.timeHours,
+      output: point.output,
+      lower: point.lower,
+      upper: point.upper,
+      extrapolated: point.extrapolated,
+      inputs: point.inputs,
+      moduleOutputs: point.moduleOutputs,
+    })),
+    ann: result.annApproximation?.id ?? null,
+  });
+}
+
 export function BfnResponseChart({
   project: projectProp,
   result,
@@ -32,19 +57,26 @@ export function BfnResponseChart({
 }: BfnResponseChartProps) {
   const { t } = useTranslation();
   const project = projectProp ?? createDemoBfnProject();
+  const resultIdentity = bfnChartResultIdentity(result);
+  const defaultViewState = useMemo<BfnChartViewState>(() => result ? defaultBfnChartViewState(result) : {
+    xScale: 'linear', yScale: 'linear', xDomainMode: 'auto', yDomainMode: 'auto',
+    showFullModel: true, showUncertainty: true, showAnn: false, cursorIndex: null,
+  }, [resultIdentity]);
   const [internalViewState, setInternalViewState] = useState<BfnChartViewState>(() =>
-    result ? defaultBfnChartViewState(result) : {
-      xScale: 'linear', yScale: 'linear', xDomainMode: 'auto', yDomainMode: 'auto',
-      showFullModel: true, showUncertainty: true, showAnn: false, cursorIndex: null,
-    },
+    defaultViewState,
   );
   const pointerRef = useRef<SVGSVGElement>(null);
-  const activeViewState = viewState ?? internalViewState;
+  const previousResultIdentityRef = useRef(resultIdentity);
+  const resultIdentityChanged = previousResultIdentityRef.current !== resultIdentity;
+  if (resultIdentityChanged) previousResultIdentityRef.current = resultIdentity;
+  const activeViewState = resultIdentityChanged
+    ? { ...(viewState ?? internalViewState), cursorIndex: null }
+    : viewState ?? internalViewState;
 
   useEffect(() => {
-    if (viewState || !result) return;
-    setInternalViewState(defaultBfnChartViewState(result));
-  }, [result?.id, viewState]);
+    if (viewState || resultIdentity === 'empty') return;
+    setInternalViewState(defaultViewState);
+  }, [defaultViewState, resultIdentity, viewState]);
 
   const model = useMemo(() => {
     if (!result) return null;

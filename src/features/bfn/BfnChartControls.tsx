@@ -30,6 +30,10 @@ function reasonText(reason: string | undefined, value: number | undefined, t: TF
     return t('bfn.results.chart.logValue', { value: value ?? '—' });
   }
   if (reason === 'no_visible_values') return t('bfn.results.chart.noVisibleValues');
+  if (reason === 'log_domain_requires_positive_values') return t('bfn.results.chart.logPositive');
+  if (reason === 'minimum_not_less_than_maximum' || reason === 'domain_values_must_be_finite') {
+    return t('bfn.results.chart.invalidDomain');
+  }
   return t('bfn.results.chart.logPositive');
 }
 
@@ -48,6 +52,7 @@ export function BfnChartControls({
     yMax: inputValue(viewState.yMaximum),
   });
   const [errors, setErrors] = useState<Record<'x' | 'y', string | undefined>>({ x: undefined, y: undefined });
+  const [seriesError, setSeriesError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     setDraft({
@@ -67,19 +72,34 @@ export function BfnChartControls({
   const setSeries = (kind: 'showFullModel' | 'showUncertainty' | 'showAnn'): void => {
     const next = !viewState[kind];
     if (kind === 'showFullModel' && !next) {
-      setErrors((current) => ({ ...current, y: t('bfn.results.chart.lastSeriesExplanation') }));
+      setSeriesError(t('bfn.results.chart.lastSeriesExplanation'));
       return;
     }
     if (kind === 'showAnn' && !next && !viewState.showFullModel) {
-      setErrors((current) => ({ ...current, y: t('bfn.results.chart.lastSeriesExplanation') }));
+      setSeriesError(t('bfn.results.chart.lastSeriesExplanation'));
       return;
     }
     onViewStateChange({ ...viewState, [kind]: next });
-    setErrors((current) => ({ ...current, y: undefined }));
+    setSeriesError(undefined);
   };
 
   const setScale = (axis: BfnChartAxis, scale: BfnChartScale): void => {
     if (scale === 'log') {
+      const mode = axis === 'x' ? viewState.xDomainMode : viewState.yDomainMode;
+      if (mode === 'manual') {
+        const minimumRaw = axis === 'x' ? draft.xMin : draft.yMin;
+        const maximumRaw = axis === 'x' ? draft.xMax : draft.yMax;
+        const minimum = minimumRaw.trim() === '' ? Number.NaN : Number(minimumRaw);
+        const maximum = maximumRaw.trim() === '' ? Number.NaN : Number(maximumRaw);
+        const manualValidation = validateManualDomain([minimum, maximum], 'log');
+        if (!manualValidation.valid) {
+          setErrors((current) => ({
+            ...current,
+            [axis]: reasonText(manualValidation.reason, undefined, t),
+          }));
+          return;
+        }
+      }
       const eligibility = evaluateLogEligibility(
         axis,
         model.domains.x,
@@ -128,6 +148,7 @@ export function BfnChartControls({
       [axis === 'x' ? 'xDomainMode' : 'yDomainMode']: mode,
       ...(axis === 'x' ? { xMinimum: minimum, xMaximum: maximum } : { yMinimum: minimum, yMaximum: maximum }),
     });
+    setErrors((current) => ({ ...current, [axis]: undefined }));
   };
 
   const updateDraft = (axis: BfnChartAxis, side: 'min' | 'max', raw: string): void => {
@@ -197,6 +218,7 @@ export function BfnChartControls({
               </label>
             </div>
           ) : null}
+          {errors[axis] ? <p className="bfn-chart-axis__error" role="status">{errors[axis]}</p> : null}
         </div>
       </details>
     );
@@ -226,7 +248,7 @@ export function BfnChartControls({
       <button type="button" className="bfn-chart-controls__reset" onClick={onReset}>
         {t('bfn.results.chart.resetView')}
       </button>
-      {errors.y ? <p className="bfn-chart-controls__error" role="status">{errors.y}</p> : null}
+      {seriesError ? <p className="bfn-chart-controls__error" role="status">{seriesError}</p> : null}
     </div>
   );
 }
