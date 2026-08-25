@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Button } from '../../components/Button';
@@ -81,10 +81,36 @@ export function BfnResultWorkspace({
     [resultIdentity],
   );
   const [viewState, setViewState] = useState<BfnChartViewState | null>(() => defaultViewState);
+  const previousResultIdentityRef = useRef(resultIdentity);
+  const previousAnnAvailableRef = useRef(Boolean(result?.annApproximation));
+  const resultViewSnapshot = useMemo(
+    () => ({
+      defaultViewState,
+      annAvailable: Boolean(result?.annApproximation),
+    }),
+    [resultIdentity, defaultViewState, result],
+  );
 
   useEffect(() => {
-    setViewState(defaultViewState);
-  }, [defaultViewState]);
+    if (previousResultIdentityRef.current === resultIdentity) return;
+    setViewState((current) => {
+      if (!resultViewSnapshot.defaultViewState) return null;
+      if (!current) return resultViewSnapshot.defaultViewState;
+      const showAnn = !resultViewSnapshot.annAvailable
+        ? false
+        : previousAnnAvailableRef.current === false
+          ? true
+          : current.showAnn;
+      return {
+        ...current,
+        showFullModel: true,
+        showAnn,
+        cursorIndex: null,
+      };
+    });
+    previousResultIdentityRef.current = resultIdentity;
+    previousAnnAvailableRef.current = resultViewSnapshot.annAvailable;
+  }, [resultIdentity, resultViewSnapshot]);
 
   const model = useMemo(() => {
     if (!result || !viewState) return null;

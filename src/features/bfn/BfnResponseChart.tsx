@@ -22,6 +22,56 @@ const height = 300;
 const padding = { left: 62, right: 24, top: 24, bottom: 48 } as const;
 const geometry = { width, height, padding };
 
+interface SvgLocalPoint {
+  x: number;
+  y: number;
+}
+
+function clientToSvgPoint(
+  svg: SVGSVGElement,
+  clientX: number,
+  clientY: number,
+): SvgLocalPoint | null {
+  let screenMatrix: DOMMatrix | null = null;
+  try {
+    screenMatrix = svg.getScreenCTM?.() ?? null;
+  } catch {
+    screenMatrix = null;
+  }
+  if (screenMatrix) {
+    try {
+      const inverse = screenMatrix.inverse();
+      if (typeof DOMPoint !== 'undefined') {
+        const point = new DOMPoint(clientX, clientY).matrixTransform(inverse);
+        if (Number.isFinite(point.x) && Number.isFinite(point.y)) return { x: point.x, y: point.y };
+      }
+      // DOMPoint is absent in some test DOMs. A 2D SVG matrix still provides
+      // the same conversion without assuming that the element is unscaled.
+      const determinant = inverse.a * inverse.d - inverse.b * inverse.c;
+      if (Number.isFinite(determinant) && determinant !== 0) {
+        const x = inverse.a * clientX + inverse.c * clientY + inverse.e;
+        const y = inverse.b * clientX + inverse.d * clientY + inverse.f;
+        if (Number.isFinite(x) && Number.isFinite(y)) return { x, y };
+      }
+    } catch {
+      // Fall through to the preserveAspectRatio fallback used by JSDOM.
+    }
+  }
+
+  const rect = svg.getBoundingClientRect();
+  const renderedWidth = Number.isFinite(rect.width) && rect.width > 0 ? rect.width : width;
+  const renderedHeight = Number.isFinite(rect.height) && rect.height > 0 ? rect.height : height;
+  const scale = Math.min(renderedWidth / width, renderedHeight / height);
+  if (!Number.isFinite(scale) || scale <= 0) return null;
+  // SVG defaults to preserveAspectRatio="xMidYMid meet" for a viewBox.
+  const offsetX = (renderedWidth - width * scale) / 2;
+  const offsetY = (renderedHeight - height * scale) / 2;
+  return {
+    x: (clientX - rect.left - offsetX) / scale,
+    y: (clientY - rect.top - offsetY) / scale,
+  };
+}
+
 /**
  * Identity for chart-local state. A run id can be reused by imported or
  * refreshed results, so point content is included to prevent stale cursors
@@ -100,21 +150,23 @@ export function BfnResponseChart({
   const pointerCoordinate = (event: React.PointerEvent<SVGSVGElement>): number | null => {
     const svg = pointerRef.current;
     if (!svg || !model) return null;
-    const rect = svg.getBoundingClientRect();
-    const renderedWidth = rect.width || width;
-    const renderedHeight = rect.height || height;
-    const localX = ((event.clientX - rect.left) / renderedWidth) * width;
-    const localY = ((event.clientY - rect.top) / renderedHeight) * height;
+    const localPoint = clientToSvgPoint(svg, event.clientX, event.clientY);
+    if (!localPoint) return null;
+    const { x: localX, y: localY } = localPoint;
+    if (localX < 0 || localX > width || localY < 0 || localY > height) return null;
     if (localX < padding.left || localX > width - padding.right || localY < padding.top || localY > height - padding.bottom) return null;
     return model.scales.x.invert(localX);
   };
 
   const handlePointerMove = (event: React.PointerEvent<SVGSVGElement>): void => {
-    if (!result) return;
+    if (!result || !model) return;
     const coordinate = pointerCoordinate(event);
     if (coordinate === null) return;
-    const index = nearestPointIndex(result.points, coordinate);
-    if (index >= 0) updateView(index);
+    const visiblePoints = result.points
+      .map((point, index) => ({ point, index }))
+      .filter(({ point }) => point.coordinate >= model.domains.x[0] && point.coordinate <= model.domains.x[1]);
+    const nearestIndex = nearestPointIndex(visiblePoints.map(({ point }) => point), coordinate);
+    if (nearestIndex >= 0) updateView(visiblePoints[nearestIndex]?.index ?? null);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<SVGSVGElement>): void => {

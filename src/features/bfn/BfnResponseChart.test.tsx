@@ -64,6 +64,64 @@ describe('BfnResponseChart exact reading', () => {
     expect(onCursorIndexChange).toHaveBeenCalledTimes(1);
   });
 
+  it('maps pointer coordinates through SVG letterboxing at a non-viewBox aspect ratio', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const viewState = defaultBfnChartViewState(result);
+    const model = createBfnChartModel({ project, result, viewState, geometry, translate: (key) => i18n.t(key) });
+    const lowerIndex = Math.min(10, result.points.length - 2);
+    const upperIndex = lowerIndex + 1;
+    const lower = result.points[lowerIndex];
+    const upper = result.points[upperIndex];
+    if (!lower || !upper) throw new Error('Expected two adjacent points');
+    const betweenCoordinate = lower.coordinate + (upper.coordinate - lower.coordinate) * 0.35;
+    const onCursorIndexChange = vi.fn();
+    render(<BfnResponseChart project={project} result={result} onCursorIndexChange={onCursorIndexChange} />);
+    const svg = screen.getByRole('img', { name: 'Input-output response' });
+    const rect = { left: 100, top: 40, width: 1440, height: 480, right: 1540, bottom: 520 };
+    Object.defineProperty(svg, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => rect,
+    });
+
+    // The SVG viewBox uses the browser default preserveAspectRatio="xMidYMid meet".
+    // At 1440×480 the 760×300 plot is letterboxed horizontally, so a direct
+    // width/height proportion maps this event to the wrong point.
+    const scale = Math.min(rect.width / geometry.width, rect.height / geometry.height);
+    const offsetX = (rect.width - geometry.width * scale) / 2;
+    const offsetY = (rect.height - geometry.height * scale) / 2;
+    const clientX = rect.left + offsetX + model.scales.x.map(betweenCoordinate) * scale;
+    const clientY = rect.top + offsetY + (geometry.padding.top + 48) * scale;
+    fireEvent.pointerMove(svg, { clientX, clientY });
+
+    expect(onCursorIndexChange).toHaveBeenCalledWith(lowerIndex);
+    expect(screen.getByRole('note')).toHaveAttribute('data-index', String(lowerIndex));
+  });
+
+  it('selects the original result index among points visible in a manual X domain', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const viewState = {
+      ...defaultBfnChartViewState(result),
+      xDomainMode: 'manual' as const,
+      xMinimum: 9.8,
+      xMaximum: 15,
+    };
+    const model = createBfnChartModel({ project, result, viewState, geometry, translate: (key) => i18n.t(key) });
+    const firstVisibleIndex = result.points.findIndex((point) => point.coordinate >= 9.8);
+    if (firstVisibleIndex < 0) throw new Error('Expected a point inside the manual X domain');
+    const onCursorIndexChange = vi.fn();
+    render(<BfnResponseChart project={project} result={result} viewState={viewState} onCursorIndexChange={onCursorIndexChange} />);
+    const svg = screen.getByRole('img', { name: 'Input-output response' });
+    Object.defineProperty(svg, 'getBoundingClientRect', {
+      configurable: true,
+      value: () => ({ left: 0, top: 0, width: 760, height: 300, right: 760, bottom: 300 }),
+    });
+    fireEvent.pointerMove(svg, { clientX: model.scales.x.map(9.8), clientY: 150 });
+
+    expect(onCursorIndexChange).toHaveBeenCalledWith(firstVisibleIndex);
+  });
+
   it('supports point navigation keys and Escape without changing editor shortcuts', () => {
     const project = createDemoBfnProject();
     const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');

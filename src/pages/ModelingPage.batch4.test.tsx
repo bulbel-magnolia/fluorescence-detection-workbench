@@ -208,6 +208,156 @@ describe('Batch 4 precise chart reading controls', () => {
     expect(onViewStateChange).not.toHaveBeenCalled();
   });
 
+  it('clears axis and last-series feedback before delegating Reset view', async () => {
+    const user = userEvent.setup();
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const invalid = {
+      ...base,
+      id: 'bfn-run-feedback-invalid',
+      points: base.points.slice(0, 2).map((point, index) => ({
+        ...point,
+        coordinate: index,
+        output: index + 1,
+        lower: index + 0.5,
+        upper: index + 1.5,
+      })),
+    };
+    const viewState = defaultBfnChartViewState(invalid);
+    const model = createBfnChartModel({ project, result: invalid, viewState, geometry, translate: (key) => key });
+    const onViewStateChange = vi.fn();
+    const onReset = vi.fn();
+    render(<BfnChartControls result={invalid} model={model} viewState={viewState} onViewStateChange={onViewStateChange} onReset={onReset} />);
+    const controls = document.querySelector('.bfn-chart-controls') as HTMLElement;
+    const xAxis = within(controls).getByText('X axis').closest('details');
+    if (!xAxis) throw new Error('X axis controls were not rendered');
+    await user.click(within(xAxis).getByText('X axis'));
+    await user.click(within(xAxis).getByRole('button', { name: 'Log10' }));
+    expect(within(xAxis).getByRole('status')).toHaveTextContent('non-positive value');
+    await user.click(within(controls).getByRole('button', { name: 'Network response' }));
+    expect(within(controls).getByText('Keep at least one actual Y series visible.')).toBeInTheDocument();
+
+    await user.click(within(controls).getByRole('button', { name: 'Reset view' }));
+    expect(onReset).toHaveBeenCalledTimes(1);
+    expect(within(controls).queryAllByRole('status')).toHaveLength(0);
+  });
+
+  it('clears local validation feedback when the selected result changes', async () => {
+    const user = userEvent.setup();
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const invalid = {
+      ...base,
+      id: 'bfn-run-feedback-invalid-selection',
+      points: base.points.slice(0, 2).map((point, index) => ({
+        ...point,
+        coordinate: index,
+        output: index + 1,
+        lower: index + 0.5,
+        upper: index + 1.5,
+      })),
+    };
+    const valid = { ...base, id: 'bfn-run-feedback-valid-selection' };
+    const invalidView = defaultBfnChartViewState(invalid);
+    const validView = defaultBfnChartViewState(valid);
+    const invalidModel = createBfnChartModel({ project, result: invalid, viewState: invalidView, geometry, translate: (key) => key });
+    const validModel = createBfnChartModel({ project, result: valid, viewState: validView, geometry, translate: (key) => key });
+    const { rerender } = render(<BfnChartControls result={invalid} model={invalidModel} viewState={invalidView} onViewStateChange={vi.fn()} onReset={vi.fn()} />);
+    const controls = document.querySelector('.bfn-chart-controls') as HTMLElement;
+    const xAxis = within(controls).getByText('X axis').closest('details');
+    if (!xAxis) throw new Error('X axis controls were not rendered');
+    await user.click(within(xAxis).getByText('X axis'));
+    await user.click(within(xAxis).getByRole('button', { name: 'Log10' }));
+    expect(within(xAxis).getByRole('status')).toHaveTextContent('non-positive value');
+
+    rerender(<BfnChartControls result={valid} model={validModel} viewState={validView} onViewStateChange={vi.fn()} onReset={vi.fn()} />);
+    await waitFor(() => expect(within(document.querySelector('.bfn-chart-controls') as HTMLElement).queryByRole('status')).not.toBeInTheDocument());
+  });
+
+  it('preserves scientific view controls when selecting another stored run and clears the cursor', async () => {
+    const user = userEvent.setup();
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const first = {
+      ...base,
+      id: 'bfn-run-view-state-first',
+      completedAt: '2026-08-26T00:00:00.000Z',
+    };
+    const second = {
+      ...base,
+      id: 'bfn-run-view-state-second',
+      completedAt: '2026-08-26T01:00:00.000Z',
+      points: base.points.map((point) => ({
+        ...point,
+        output: point.output + 0.1,
+        lower: point.lower + 0.1,
+        upper: point.upper + 0.1,
+      })),
+    };
+    saveBfnRun(first);
+    saveBfnRun(second);
+    render(<ModelingPage />);
+    await waitFor(() => expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).not.toBeNull());
+    await user.click(screen.getByRole('button', { name: 'Expand analysis results' }));
+    const history = document.querySelector('.bfn-run-history');
+    if (!history) throw new Error('Run history was not rendered');
+    const getRunButtons = (): HTMLElement[] => within(history as HTMLElement)
+      .getAllByRole('button')
+      .filter((button) => !button.classList.contains('danger-text-button'));
+    await user.click(getRunButtons()[1]!);
+
+    const panel = document.querySelector('.bfn-result-panel') as HTMLElement;
+    const controls = panel.querySelector('.bfn-chart-controls') as HTMLElement;
+    if (!controls) throw new Error('Chart controls were not rendered');
+    const xAxis = within(panel).getByText('X axis').closest('details');
+    const yAxis = within(panel).getByText('Y axis').closest('details');
+    if (!xAxis || !yAxis) throw new Error('Axis controls were not rendered');
+    // Native details must be opened before interacting with their controls.
+    await user.click(within(xAxis).getByText('X axis'));
+    await user.click(within(xAxis).getByRole('button', { name: 'Log10' }));
+    await user.click(within(xAxis).getByRole('button', { name: 'Manual' }));
+    const xBounds = within(xAxis).getAllByRole('spinbutton');
+    fireEvent.change(xBounds[0]!, { target: { value: '4' } });
+    fireEvent.change(xBounds[1]!, { target: { value: '18' } });
+    await user.click(within(yAxis).getByText('Y axis'));
+    await user.click(within(yAxis).getByRole('button', { name: 'Log10' }));
+    await user.click(within(yAxis).getByRole('button', { name: 'Manual' }));
+    const yBounds = within(yAxis).getAllByRole('spinbutton');
+    fireEvent.change(yBounds[0]!, { target: { value: '0.1' } });
+    fireEvent.change(yBounds[1]!, { target: { value: '2' } });
+    await user.click(within(controls).getByRole('button', { name: 'Parameter interval' }));
+    await user.click(within(controls).getByRole('button', { name: 'ANN approximation' }));
+
+    const chart = within(panel).getByRole('img', { name: 'Input-output response' });
+    chart.focus();
+    await user.keyboard('{Home}');
+    expect(within(panel).getByRole('note')).toBeInTheDocument();
+    expect(within(xAxis).getByRole('button', { name: 'Log10' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(xAxis).getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(yAxis).getByRole('button', { name: 'Log10' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(yAxis).getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(controls).getByRole('button', { name: 'Parameter interval' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(controls).getByRole('button', { name: 'ANN approximation' })).toHaveAttribute('aria-pressed', 'false');
+
+    await user.click(getRunButtons()[0]!);
+    const nextControls = panel.querySelector('.bfn-chart-controls') as HTMLElement;
+    if (!nextControls) throw new Error('Chart controls were not rendered after selection');
+    const nextXAxis = within(panel).getByText('X axis').closest('details');
+    const nextYAxis = within(panel).getByText('Y axis').closest('details');
+    if (!nextXAxis || !nextYAxis) throw new Error('Axis controls were not rendered after selection');
+    expect(within(nextXAxis).getByRole('button', { name: 'Log10' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(nextXAxis).getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(nextXAxis).getAllByRole('spinbutton')[0]).toHaveValue(4);
+    expect(within(nextXAxis).getAllByRole('spinbutton')[1]).toHaveValue(18);
+    expect(within(nextYAxis).getByRole('button', { name: 'Log10' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(nextYAxis).getByRole('button', { name: 'Manual' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(nextYAxis).getAllByRole('spinbutton')[0]).toHaveValue(0.1);
+    expect(within(nextYAxis).getAllByRole('spinbutton')[1]).toHaveValue(2);
+    expect(within(nextControls).getByRole('button', { name: 'Parameter interval' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(nextControls).getByRole('button', { name: 'ANN approximation' })).toHaveAttribute('aria-pressed', 'false');
+    expect(within(panel).queryByRole('note')).not.toBeInTheDocument();
+  });
+
   it('keeps two result-dock runs selectable and confirms clearing without changing the project', async () => {
     const project = createDemoBfnProject();
     const base = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');

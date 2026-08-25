@@ -9,6 +9,7 @@ import type {
   BfnChartViewState,
 } from './chartTypes';
 import type { BfnProject, BfnSimulationResult } from './types';
+import { bfnChartResultIdentity } from './BfnResponseChart';
 
 interface BfnChartControlsProps {
   project?: BfnProject;
@@ -53,6 +54,7 @@ export function BfnChartControls({
   });
   const [errors, setErrors] = useState<Record<'x' | 'y', string | undefined>>({ x: undefined, y: undefined });
   const [seriesError, setSeriesError] = useState<string | undefined>(undefined);
+  const resultFeedbackIdentity = bfnChartResultIdentity(result);
 
   useEffect(() => {
     setDraft({
@@ -62,6 +64,11 @@ export function BfnChartControls({
       yMax: inputValue(viewState.yMaximum),
     });
   }, [viewState.xMaximum, viewState.xMinimum, viewState.yMaximum, viewState.yMinimum]);
+
+  useEffect(() => {
+    setErrors({ x: undefined, y: undefined });
+    setSeriesError(undefined);
+  }, [resultFeedbackIdentity]);
 
   const visibility = {
     showFullModel: viewState.showFullModel,
@@ -224,6 +231,12 @@ export function BfnChartControls({
     );
   };
 
+  const resetView = (): void => {
+    setErrors({ x: undefined, y: undefined });
+    setSeriesError(undefined);
+    onReset();
+  };
+
   return (
     <div className="bfn-chart-controls" aria-label={t('bfn.results.chart.series')}>
       <div className="bfn-chart-controls__series">
@@ -245,7 +258,7 @@ export function BfnChartControls({
         {axisControls('x')}
         {axisControls('y')}
       </div>
-      <button type="button" className="bfn-chart-controls__reset" onClick={onReset}>
+      <button type="button" className="bfn-chart-controls__reset" onClick={resetView}>
         {t('bfn.results.chart.resetView')}
       </button>
       {seriesError ? <p className="bfn-chart-controls__error" role="status">{seriesError}</p> : null}
