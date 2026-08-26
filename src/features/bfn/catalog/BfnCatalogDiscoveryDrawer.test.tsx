@@ -316,6 +316,25 @@ describe('BFN catalog discovery drawer', () => {
     expect(within(dialog).queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
   });
 
+  it('opens an initial response target directly and returns to the default catalog list', async () => {
+    const user = userEvent.setup();
+    const { response } = runnableFixture();
+    renderDrawer({
+      initialDetailTarget: { kind: 'response', responseId: response.id },
+    });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    expect(within(dialog).getByText(response.id)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: '返回目录' })).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('searchbox', { name: '搜索文献目录' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(within(dialog).getByRole('button', { name: '返回目录' }));
+    expect(within(dialog).getByRole('searchbox', { name: '搜索文献目录' })).toBeInTheDocument();
+    expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
+  });
+
   it('keeps the three built-in demos in a secondary disclosure', async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();

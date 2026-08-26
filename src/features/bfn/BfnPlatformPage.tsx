@@ -8,6 +8,9 @@ import { Icon } from '../../components/Icon';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
 import { BfnCatalogDiscoveryDrawer } from './catalog/BfnCatalogDiscoveryDrawer';
+import { BfnCatalogProvenanceInspector } from './catalog/BfnCatalogProvenanceInspector';
+import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import type { BfnCatalogDetailTarget } from './catalog/catalogDetail';
 import { instantiateBfnCatalogResponse } from './catalog/catalogInstantiation';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
 import { BfnPropertyGrid } from './BfnPropertyGrid';
@@ -320,6 +323,8 @@ export function BfnPlatformPage() {
   const [resultPanelOpen, setResultPanelOpen] = useState(false);
   const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
+  const [catalogInitialDetailTarget, setCatalogInitialDetailTarget] =
+    useState<BfnCatalogDetailTarget | null>(null);
   const [saveStatus, setSaveStatus] = useState<BfnSaveStatus>('saved');
   const [runs, setRuns] = useState(loadBfnRuns);
   const [reverseTarget, setReverseTarget] = useState<BfnReverseTarget>(() =>
@@ -444,6 +449,9 @@ export function BfnPlatformPage() {
         selectedModuleModel.sourceDatasetIds.includes(dataset.id),
       )
     : [];
+  const selectedModelHasCatalogReference = selectedModuleModel
+    ? bfnCatalogReferencePresence(selectedModuleModel).present
+    : false;
   const inspectorSubtitle = selectedModule
     ? bfnModuleFlowLabel(selectedModule, t, nodeLanguage)
     : selectedSource
@@ -687,6 +695,7 @@ export function BfnPlatformPage() {
     selectNode(module.id);
     setView('design');
     setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
     setNotice(t('bfn.notices.moduleAdded'));
   };
 
@@ -715,6 +724,7 @@ export function BfnPlatformPage() {
     selectNode(outcome.addedModuleId);
     setView('design');
     setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
     setNotice(
       t(
         outcome.addedInputSourceId
@@ -722,6 +732,21 @@ export function BfnPlatformPage() {
           : 'bfn.notices.catalogModuleAdded',
       ),
     );
+  };
+
+  const openCatalogDiscovery = (): void => {
+    setCatalogInitialDetailTarget(null);
+    setModulePickerOpen(true);
+  };
+
+  const openCatalogDetail = (target: BfnCatalogDetailTarget): void => {
+    setCatalogInitialDetailTarget(target);
+    setModulePickerOpen(true);
+  };
+
+  const closeCatalogDrawer = (): void => {
+    setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
   };
 
   const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
@@ -844,7 +869,7 @@ export function BfnPlatformPage() {
         }
         if (modulePickerOpen) {
           event.preventDefault();
-          setModulePickerOpen(false);
+          closeCatalogDrawer();
           return;
         }
         if (overlayOpen) return;
@@ -998,7 +1023,7 @@ export function BfnPlatformPage() {
                   <button
                     className="bfn-catalog-shortcut"
                     type="button"
-                    onClick={() => setModulePickerOpen(true)}
+                    onClick={openCatalogDiscovery}
                   >
                     <Icon name="plus" size={15} />
                     {t('bfn.networkIndex.addFromRegistry')}
@@ -1249,6 +1274,14 @@ export function BfnPlatformPage() {
                         </strong>
                       </div>
                     </section>
+                    {selectedModuleModel ? (
+                      <BfnCatalogProvenanceInspector
+                        project={project}
+                        module={selectedModule}
+                        model={selectedModuleModel}
+                        onOpenCatalogDetail={openCatalogDetail}
+                      />
+                    ) : null}
                     <details className="bfn-inspector-details">
                       <summary>{t('bfn.inspector.detailedParameters')}</summary>
                       {selectedParameterPresentations.length > 4 ? (
@@ -1275,44 +1308,46 @@ export function BfnPlatformPage() {
                         </p>
                       )}
                     </details>
-                    <details className="bfn-inspector-details">
-                      <summary>{t('bfn.inspector.experimentAndData')}</summary>
-                      <div className="bfn-inspector-details__content">
-                        <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
-                        {selectedContext ? (
-                          <dl className="bfn-context-grid">
-                            <div>
-                              <dt>{t('bfn.context.host')}</dt>
-                              <dd>
-                                <em>{selectedContext.host}</em>
-                              </dd>
-                            </div>
-                            <div>
-                              <dt>{t('bfn.context.strain')}</dt>
-                              <dd>{bfnContextValueLabel(selectedContext.strain, t)}</dd>
-                            </div>
-                            <div>
-                              <dt>{t('bfn.context.medium')}</dt>
-                              <dd>{bfnContextValueLabel(selectedContext.medium, t)}</dd>
-                            </div>
-                            <div>
-                              <dt>{t('bfn.context.temperature')}</dt>
-                              <dd>{selectedContext.temperatureCelsius} °C</dd>
-                            </div>
-                          </dl>
-                        ) : null}
-                        <strong>{t('bfn.inspector.linkedData')}</strong>
-                        {selectedDatasets.length ? (
-                          <ul className="bfn-linked-datasets">
-                            {selectedDatasets.map((dataset) => (
-                              <li key={dataset.id}>{t(dataset.labelKey)}</li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>{t('bfn.inspector.notLinkedDataset')}</p>
-                        )}
-                      </div>
-                    </details>
+                    {!selectedModelHasCatalogReference ? (
+                      <details className="bfn-inspector-details">
+                        <summary>{t('bfn.inspector.experimentAndData')}</summary>
+                        <div className="bfn-inspector-details__content">
+                          <strong>{bfnContextSectionTitle(selectedContext, t)}</strong>
+                          {selectedContext ? (
+                            <dl className="bfn-context-grid">
+                              <div>
+                                <dt>{t('bfn.context.host')}</dt>
+                                <dd>
+                                  <em>{selectedContext.host}</em>
+                                </dd>
+                              </div>
+                              <div>
+                                <dt>{t('bfn.context.strain')}</dt>
+                                <dd>{bfnContextValueLabel(selectedContext.strain, t)}</dd>
+                              </div>
+                              <div>
+                                <dt>{t('bfn.context.medium')}</dt>
+                                <dd>{bfnContextValueLabel(selectedContext.medium, t)}</dd>
+                              </div>
+                              <div>
+                                <dt>{t('bfn.context.temperature')}</dt>
+                                <dd>{selectedContext.temperatureCelsius} °C</dd>
+                              </div>
+                            </dl>
+                          ) : null}
+                          <strong>{t('bfn.inspector.linkedData')}</strong>
+                          {selectedDatasets.length ? (
+                            <ul className="bfn-linked-datasets">
+                              {selectedDatasets.map((dataset) => (
+                                <li key={dataset.id}>{t(dataset.labelKey)}</li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <p>{t('bfn.inspector.notLinkedDataset')}</p>
+                          )}
+                        </div>
+                      </details>
+                    ) : null}
                     <details className="bfn-inspector-details">
                       <summary>{t('bfn.inspector.mathematicalModel')}</summary>
                       <p className="bfn-domain-range">
@@ -2028,9 +2063,12 @@ export function BfnPlatformPage() {
       {view === 'design' && modulePickerOpen ? (
         <BfnCatalogDiscoveryDrawer
           project={project}
-          onClose={() => setModulePickerOpen(false)}
+          onClose={closeCatalogDrawer}
           onAddBuiltInModule={addCatalogModule}
           onInstantiateCatalogResponse={addCatalogResponse}
+          {...(catalogInitialDetailTarget
+            ? { initialDetailTarget: catalogInitialDetailTarget }
+            : {})}
         />
       ) : null}
       <ConfirmDialog

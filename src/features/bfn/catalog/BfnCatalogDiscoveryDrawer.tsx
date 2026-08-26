@@ -36,6 +36,7 @@ interface BfnCatalogDiscoveryDrawerProps {
   onClose: () => void;
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
   onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
+  initialDetailTarget?: BfnCatalogDetailTarget;
   presentationLoader?: () => ReleaseCatalogPresentation;
   runtimeCandidateBuilder?: BfnCatalogRuntimeCandidateBuilder;
 }
@@ -50,6 +51,7 @@ export function BfnCatalogDiscoveryDrawer({
   onClose,
   onAddBuiltInModule,
   onInstantiateCatalogResponse,
+  initialDetailTarget,
   presentationLoader = loadReleaseCatalogPresentation,
   runtimeCandidateBuilder,
 }: BfnCatalogDiscoveryDrawerProps) {
@@ -65,7 +67,9 @@ export function BfnCatalogDiscoveryDrawer({
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
   const [autoCollapsedGroupId, setAutoCollapsedGroupId] = useState<string | null>(null);
   const [selected, setSelected] = useState<SelectedEntry | null>(null);
-  const [detailTarget, setDetailTarget] = useState<BfnCatalogDetailTarget | null>(null);
+  const [detailTarget, setDetailTarget] = useState<BfnCatalogDetailTarget | null>(
+    () => initialDetailTarget ?? null,
+  );
   const loadResult = useMemo(() => {
     try {
       const presentation = presentationLoader();
@@ -91,7 +95,9 @@ export function BfnCatalogDiscoveryDrawer({
     return buildBfnCatalogDetail(loadResult.presentation, detailTarget, runtimeCandidateBuilder);
   }, [detailTarget, loadResult.presentation, runtimeCandidateBuilder]);
 
-  useEffect(() => searchRef.current?.focus(), []);
+  useEffect(() => {
+    if (!initialDetailTarget) searchRef.current?.focus();
+  }, [initialDetailTarget]);
   useEffect(() => setAutoCollapsedGroupId(null), [singleGroupId]);
 
   const hasActiveFilters =

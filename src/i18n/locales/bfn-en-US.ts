@@ -998,6 +998,43 @@ export const bfnEnUS = {
       auditParameters: 'Source values retained for audit',
     },
   },
+  catalogProvenance: {
+    title: 'Literature source',
+    statuses: {
+      matched: 'Literature source matched',
+      'source-unavailable': 'Literature source cannot currently be checked',
+      'source-mismatch': 'This module does not match its literature source',
+    },
+    descriptions: {
+      matched:
+        'The module agrees with the corresponding response in the bundled literature catalog and can be interpreted with that literature example model.',
+      'source-unavailable':
+        'The project remains viewable, but this literature model cannot currently run as a trusted catalog record.',
+      'source-mismatch':
+        'The model, parameters, or source information differ from the bundled catalog record. The software will not repair the module or run it as a trusted literature model.',
+    },
+    catalog: 'Catalog',
+    catalogValue: 'AHL/HSL literature catalog V{{version}}',
+    component: 'Response component',
+    input: 'Input',
+    context: 'Experimental context',
+    source: 'Source',
+    notRecorded: 'Not recorded',
+    additionalSources: 'Additional sources: {{count}}',
+    viewDetail: 'View literature details',
+    viewCanonicalDetail: 'View the original catalog record',
+    matchBoundary:
+      'Source matching means the module agrees with the bundled literature record; it does not indicate experimental validation by the team.',
+    advanced: {
+      title: 'Advanced source information',
+      catalogVersion: 'Catalog version',
+      responseRecord: 'Response record ID',
+      componentRecord: 'Component record ID',
+      contextRecord: 'Experimental-context record',
+      sourceRecords: 'Source record IDs',
+      outputSemantics: 'Output semantics',
+    },
+  },
   catalogInstantiation: {
     kicker: 'Network addition',
     title: 'Add to current network',

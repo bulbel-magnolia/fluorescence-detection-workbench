@@ -489,3 +489,39 @@ Batch 5.0.1 不新增 Catalog UI，不执行视觉审计，也不生成截图。
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；首次沙箱内构建因 esbuild 子进程权限返回 `spawn EPERM`，在获批的沙箱外环境以同一命令复跑通过；
 - 本轮未修改冻结 Catalog JSON，未新增依赖，未放宽 timeout，未删除、跳过或弱化断言；
 - 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。
+
+## 2026-08-27 Batch 5.2.1 User-facing evidence semantics
+
+自动化使用冻结 AHL/HSL V1.1 release 的真实唯一值覆盖以下展示合同：
+
+- evidence gap、response class、compatibility relation、qualitative outcome、source model、fit interpretation、sequence status、missing sequence element 与 measurement detail key 均经过统一 presentation helper；
+- Sender、observed pair、compatibility 与 calibration model 的主层 DOM 不出现已知 snake_case code；中文主层不直接使用 observed pair 的英文来源句；
+- 未知未来 code 使用稳定的用户级 fallback，原始值只在默认折叠的高级审计层保留；
+- 语义转换保持原 Catalog 含义，不把不可数值运行、参数约束或 reference-only 误写为实验失败、低质量或无证据；
+- compatible source 同时显示真实输出 Signal 与单位，并继续复用 identity-preserving port label，不改变兼容性判断。
+
+定向验证覆盖 presentation helper、Full Detail、Instantiation Panel 与 Discovery/Detail 回归。视觉审计保存 6 张真实 1440×900 PNG，覆盖 Sender evidence、pair、compatibility、model name、compatible source 和深色主题；说明位于 docs/ui-audit/catalog-evidence-semantics/。
+
+## 2026-08-27 Batch 5.3 Catalog provenance inspector
+
+自动化新增覆盖以下来源追溯与隔离合同：
+
+- trusted 与未连接的 Catalog Module 均解析为 matched；displayName 修改不影响来源身份；普通 Module 返回 null；
+- EC50、source IDs、input entity 和 validity domain 篡改解析为 mismatch；未知 release 解析为 unavailable；malformed reference 安全降级，不出现 TypeError；
+- matched Inspector 显示 Catalog、Component、identity-preserving Signal、external host/strain Context、第一条 Source 与来源数量，并固定说明“来源匹配不等于团队实验验证”；
+- mismatch 在 response ID 仍可解析时只链接 canonical record；unavailable 不构造伪 Catalog Detail，也不向用户泄露内部错误枚举；
+- instantiate → save/load 与 export → parse/import 后继续解析到同一 Component、Signal、Context、Sources 和 matched 状态，不保存 Full Detail 或来源快照；
+- Inspector → Detail → Back → Close 后项目 deep equal、computation signature、Undo/Redo 和 Current Result freshness 均不变；Catalog-backed Module 不再以“未关联数据集”代替文献来源，generic Module 保留原 Linked Data 区域。
+
+Resolver、Inspector、Drawer 与完整 Platform 深链接定向回归共 4 个测试文件、31 项测试通过。视觉审计保存 8 张真实 1440×900 PNG，覆盖 matched、Full Detail 深链接、unconnected + matched、mismatch、unavailable、高级 ID、generic regression 和深色主题；说明位于 docs/ui-audit/catalog-provenance/。
+
+1280×720 下 documentScrollWidth 与 bodyScrollWidth 均为 1280 px，页面级水平溢出为 0；来源区和按钮可访问，Full Detail 深链接正常，关闭后 Result Dock 仍保持原布局。浏览器运行日志没有 error。
+
+### Batch 5.2.1 + Batch 5.3 完整门禁
+
+- TypeScript tsc --noEmit 与 ESLint 全项目检查通过；
+- Vitest 共 94 个测试文件、661 项测试全部通过；
+- Vite 7.3.6 生产构建通过，232 个模块完成转换；主 JavaScript chunk 为 1,159.82 kB、gzip 279.34 kB；主 CSS 为 238.02 kB、gzip 41.19 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
+- 冻结 Catalog JSON 保持零差异；未新增依赖，未升级 BFN schema，未放宽 timeout，未删除、跳过或弱化断言；
+- 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。

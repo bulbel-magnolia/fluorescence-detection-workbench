@@ -289,6 +289,31 @@ Runnable Response 的 Add Panel 根据当前项目中 entity、quantity type 与
 
 每次添加使用项目局部、冲突安全的独立 ID，因此同一 Response 可以实例化多次。Catalog provenance 中的 component、response、signal 和 source identity 保持不变。项目节点和信号端口另存中英文 `displayName`，Canvas、Network Index、Inspector 与 Exact Connection 统一显示真实 Component 名和保留立体构型的 Signal 名；显示名不参与计算签名、可信验证或化学身份匹配。Module 与 Source 即使同时创建，也只按 Source-left / Module-right 放置，拓扑仍由用户在画布中明确连接。
 
+## User-facing evidence semantics
+
+Batch 5.2.1 在 Catalog 数据合同与界面之间加入统一的 evidence presentation 层。冻结 release 中会进入 Full Detail 的 evidence gap、response class、compatibility relation、qualitative outcome、source model、fit interpretation、sequence status、缺失序列元素和测量字段均先映射为自然的中英文科研表述；主界面不再直接展示 snake_case、内部枚举或数据库式英文短语。
+
+Observed pair 的主层结论使用意义等价的本地化表达，来源英文原文和内部 code 只保留在默认折叠的高级审计信息中。未来 release 出现未知 code 时，主界面统一回退为“存在尚未完整呈现的证据信息 / Additional evidence information is recorded”，不会把拆分下划线后的机器值冒充用户文案。该展示转换不改变证据等级、可运行资格、参数、来源或科学边界。
+
+Input Resolution 的兼容来源继续复用端口身份展示规则，同时明确显示上游输出真正提供的 Signal 与单位。兼容关系、自动推荐和连接规则没有变化。
+
+## Catalog provenance inspector
+
+Catalog-backed Module 的来源追溯链为：
+
+    catalogReference
+    → verifyBfnCatalogModel()
+    → resolveBfnCatalogProvenance()
+    → Literature source inspector
+
+Resolver 复用既有可信验证，并把结果投影为 matched、source-mismatch 或 source-unavailable。未连接输入和输入范围问题继续由 Validation 与运行门禁负责，不改变静态来源匹配状态。普通 BFN Module 返回 null，保持原有 Inspector 与关联数据区域。
+
+匹配状态从当前 bundled frozen release 重新解析 Catalog 版本、Component、identity-preserving Input Signal、输出语义、host/strain 外部实验条件、第一条来源、来源数量、response ID、context ID 与 source IDs。项目只保存既有 catalogReference 和模型，不保存 Full Detail、Citation、Context 或 Source snapshot，也不为 Catalog external context 创建伪 BfnContext。
+
+“来源记录已匹配”只表示 Module 与内置文献记录一致，不表示团队实验验证。参数、端口、来源、适用域或 reference 被修改时显示来源不一致；未知 release 或当前 bundled source 无法解析时显示来源暂时无法核对。两种状态都不会自动修复、升级、rebind 或使用项目副本中的参数冒充 canonical model，可信运行继续 fail closed。
+
+Inspector 只显示紧凑来源摘要，高级 ID 默认折叠。匹配记录可直接打开对应 Response Full Detail；仍能解析 response ID 的 mismatch 只提供“查看目录中的原始记录”，未知 release 不构造伪详情。打开、返回和关闭 Drawer 只改变界面状态，不写项目、不进入 Undo/Redo、不触发自动保存，也不改变 computation signature 或 Current Result。
+
 ## 代码边界
 
 - `src/features/bfn/types.ts`：BFN-IR 2.0 类型；
