@@ -134,4 +134,22 @@ describe('BFN network canvas direct manipulation', () => {
     });
     expect(first).not.toHaveStyle({ top: second.style.top });
   });
+
+  it('uses localized project display names for node titles, aria labels, and ports', () => {
+    const project = createDemoBfnProject();
+    project.network.inputSources[0]!.displayName = {
+      en: '3OC6-HSL (L)',
+      zh: '3OC6-HSL（L）',
+    };
+    project.network.modules[0]!.displayName = { en: 'RhlR / pRhl', zh: 'RhlR / pRhl' };
+    renderCanvas(project);
+
+    const source = screen.getByRole('button', { name: '3OC6-HSL（L）, 输入' });
+    const module = screen.getByRole('button', { name: 'RhlR / pRhl, 功能模块' });
+    expect(within(source).getByText('3OC6-HSL（L）')).toBeInTheDocument();
+    expect(within(module).getByText('RhlR / pRhl')).toBeInTheDocument();
+    expect(
+      within(module).getByRole('button', { name: /RhlR \/ pRhl，输入端口/u }),
+    ).toBeInTheDocument();
+  });
 });

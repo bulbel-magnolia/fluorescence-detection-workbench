@@ -208,6 +208,13 @@ export const bfnEnUS = {
     connectionRemoved: 'Connection removed.',
     connectionRemovedUndo: 'Connection deleted. Undo is available.',
     moduleAdded: 'Module added to the network. Connect it where needed.',
+    catalogModuleAdded:
+      'The literature response module was added. Connect a compatible upstream signal on the canvas.',
+    catalogModuleAndSourceAdded:
+      'The response module and input source were added. Create the connection on the canvas.',
+    catalogInstantiationFailed:
+      'This literature response cannot be added safely at present. Reopen the catalog and try again.',
+    catalogStateChanged: 'The catalog data or network state changed. Select this response again.',
     moduleRemoved: 'The module and its direct connections were removed.',
     moduleRemovedUndo: 'Module and its connections deleted. Undo is available.',
     undone: 'The previous edit was undone.',
@@ -657,6 +664,208 @@ export const bfnEnUS = {
     builtInHint: '3 generic demos that can be added directly',
     readOnlyBoundary:
       'The literature catalog is read-only and does not change the current network.',
+  },
+  catalogDetail: {
+    detailLabel: 'Full details for {{name}}',
+    viewDetails: 'View full details',
+    back: 'Back to catalog',
+    runnableFooter:
+      'This response can be added after you confirm how it should enter the current network.',
+    viewOnlyFooter:
+      'Full details explain purpose, context, and evidence; this record has no numerical add action.',
+    responseKicker: 'Literature response details',
+    componentKicker: 'Literature component details',
+    sourceSummary: 'Source: {{source}}',
+    statusDescriptions: {
+      'runnable-demo':
+        'This response can use the normalized simulation supported by the current software. A trusted computation rule does not mean that the team has experimentally validated it.',
+      'needs-calibration':
+        'The literature reports a response or parameters, but the record does not yet meet the current software requirements for numerical execution.',
+      'qualitative-only':
+        'This record supports qualitative conclusions about response direction, crosstalk, or compatibility and is not used in numerical simulation.',
+      'reference-only':
+        'This record supports component, condition, and source traceability and is not a current computation model.',
+      unavailable: 'This record cannot safely enter numerical simulation at present.',
+    },
+    runtimeModel: {
+      title: 'Response model used by this software',
+      description:
+        'This literature response has a normalized computation rule supported by the current software.',
+      responseModel: 'Response model',
+      hillResponse: 'Hill response',
+      input: 'Input',
+      output: 'Output',
+      minimum: 'Minimum response',
+      maximum: 'Maximum response',
+      halfResponse: 'Half-response concentration K',
+      hillCoefficient: 'Hill coefficient n',
+      workingRange: 'Trusted input range',
+      biologicalDirection: 'Biological regulation',
+      directions: {
+        activation: 'Activation response',
+        derepression: 'Derepression response',
+      },
+      derepressionExplanation:
+        'The mathematical response increases with input concentration, while the biological regulation is derepression rather than direct activation.',
+      validationBoundary:
+        'Runnable does not mean team-validated. Interpret results with the original experimental context and applicable range.',
+    },
+    sourceParameters: {
+      title: 'Original parameters reported in the literature',
+      description: 'These values retain the response scale and parameters reported by the source.',
+      nonRunnableDescription:
+        'These parameters come from the literature record and do not enter numerical simulation at present.',
+      reportedModel: 'Reported model',
+      fourPl: 'Four-parameter logistic / Hill fit',
+      hillN1: 'Hill response (n fixed at 1)',
+      basal: 'Basal',
+      maximum: 'Maximum',
+      ec50: 'EC50',
+      hillCoefficient: 'Hill coefficient',
+      workingRange: 'Reported working range',
+      approximation: 'Value note',
+      approximate: 'Approximate value',
+      reportedSymbol: 'Reported parameter symbol',
+      normalizationExplanation:
+        'The current simulation uses a within-context normalized form of the literature response. Basal and Maximum normalize the source response; they are not the minimum and maximum outputs of the current model.',
+    },
+    qualitative: {
+      title: 'Qualitative response information from the literature',
+      description:
+        'This record describes qualitative response, crosstalk, or compatibility evidence.',
+      observation: 'Literature observation',
+      evidenceLocation: 'Evidence location',
+      numericBoundary: 'These records do not participate in the current numerical solver.',
+    },
+    numericCapability: 'Current quantitative capability',
+    currentCapability: 'Current capability',
+    senderBoundary:
+      'The current release retains this sender and its literature evidence, but has no independently computable input-to-AHL sender function. It cannot be added as a numerical functional module.',
+    referenceBoundary:
+      'This component supports source, context, and evidence traceability and has no numerical response model that can be added to the network.',
+    context: {
+      title: 'Experimental context',
+      host: 'Host',
+      strain: 'Strain',
+      vector: 'Vector system',
+      promoter: 'Promoter configuration',
+      reporter: 'Reporter system',
+      medium: 'Culture medium',
+      temperature: 'Temperature',
+      induction: 'Induction conditions',
+      exposure: 'Exposure time',
+      platform: 'Measurement platform',
+      unit: 'Measurement unit',
+      normalization: 'Normalization method',
+      background: 'Background subtraction',
+      biologicalReplicates: 'Biological replicates',
+      technicalReplicates: 'Technical replicates',
+      measurementDetails: 'Measurement details',
+    },
+    component: {
+      title: 'Component information',
+      regulator: 'Regulator / synthase',
+      promoter: 'Promoter',
+      reporter: 'Reporter system',
+      vector: 'Vector / backbone',
+      copyNumber: 'Copy-number context',
+      expression: 'Expression configuration',
+      inputDescription: 'Input description',
+      outputDescription: 'Output description',
+      sequenceStatus: 'Sequence status',
+      sequenceSource: 'Sequence source',
+      sequenceVerification: 'Sequence verification boundary',
+      sequenceChecksumRecorded:
+        'The catalog records sequence checksum information; refer to the source for its exact scope.',
+      sequenceReferenceOnly:
+        'A repository or file reference is recorded; the full nucleotide sequence was not embedded and re-verified.',
+      sequenceStatuses: {
+        formal_repository_file_verified: 'Formal repository file verified',
+        repository_available_not_embedded: 'Repository available; sequence not embedded',
+        registry_sequence_available: 'Registry sequence available',
+        registry_construct_available: 'Registry construct record available',
+        supplement_metadata_available: 'Supplementary metadata available',
+        addgene_or_paper_construct_available: 'Addgene or paper construct record available',
+      },
+      sequenceMetadata: 'View sequence-source details',
+      sequenceSourceType: 'Source type',
+      sequenceAccession: 'Sequence accession',
+      sequenceRepository: 'Sequence repository',
+      sequenceLength: 'Sequence length',
+      sequenceRetrieved: 'Retrieval date',
+      sequenceVerificationStatus: 'Verification note',
+      assemblyContext: 'Assembly context',
+      missingSequenceElements: 'Missing sequence elements',
+      constructionStatus: 'Construction status',
+      constructionReady: 'Catalog evidence supports construction preparation',
+      constructionIncomplete:
+        'Construction information is incomplete and direct construction is not confirmed',
+      evidenceGaps: 'Evidence gaps',
+    },
+    sources: {
+      title: 'Literature sources',
+      primary: 'Primary source',
+      publication: 'Journal / repository',
+      open: 'Open source',
+    },
+    pairs: {
+      title: 'Related whole-system observations',
+      boundary:
+        'This is a whole-system observation and cannot be decomposed into an independent sender function or receiver parameter.',
+      observation: 'Observed result',
+      responseClass: 'Response class',
+      condition: 'Experimental condition',
+      source: 'Source',
+      evidenceLocation: 'Evidence location',
+      notes: 'Notes',
+    },
+    compatibility: {
+      title: 'Qualitative compatibility evidence',
+      boundary:
+        'These records describe qualitative compatibility and do not participate in the current numerical solver.',
+      relation: 'Relationship',
+      outcome: 'Qualitative outcome',
+      context: 'Experimental context',
+      source: 'Source',
+      evidenceLocation: 'Evidence location',
+      notes: 'Notes',
+    },
+    advanced: {
+      title: 'Advanced information',
+      catalogVersion: 'Catalog version',
+      componentRecord: 'Component catalog record',
+      responseRecord: 'Response catalog record',
+      contextRecord: 'Experimental-context record',
+      evidenceLocation: 'Evidence location',
+      qualityLevel: 'Evidence quality level',
+      revisionStatus: 'Revision status',
+      lastVerified: 'Last verified',
+      auditParameters: 'Source values retained for audit',
+    },
+  },
+  catalogInstantiation: {
+    kicker: 'Network addition',
+    title: 'Add to current network',
+    inputSources: 'Input sources',
+    missing: 'The current network has no upstream source that provides {{signal}} concentration.',
+    available:
+      'The current network has {{count}} signal source(s) that provide {{signal}} concentration.',
+    availableHint:
+      'These sources describe the current network only. After adding, choose an appropriate source and create the connection on the canvas.',
+    sourceKinds: {
+      input_source: 'Input source',
+      functional_module: 'Upstream module',
+    },
+    addMethod: 'How to add',
+    moduleAndSource: 'Add module and create a matching input source',
+    moduleAndSourceHint:
+      'Create a {{signal}} concentration source and connect it manually on the canvas.',
+    moduleOnly: 'Add response module only',
+    moduleOnlyHint: 'Provide and connect a compatible upstream signal later.',
+    recommended: 'Recommended',
+    connectionBoundary:
+      'Adding never creates a connection and never creates or changes an output monitor.',
+    add: 'Add to network',
   },
   registry: {
     title: 'Module library',

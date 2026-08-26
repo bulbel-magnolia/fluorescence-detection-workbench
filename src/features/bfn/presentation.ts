@@ -3,13 +3,30 @@ import type {
   BfnContext,
   BfnEvidenceGrade,
   BfnFunctionalModule,
+  BfnInputSource,
   BfnModelVariant,
+  BfnOutputMonitor,
   BfnParameterEstimate,
   BfnPort,
 } from './types';
 
 export type BfnEvidenceTone = 'evidence' | 'validated' | 'warning';
 export type BfnLabelTranslate = (key: string) => string;
+
+export type BfnDisplayNode = BfnFunctionalModule | BfnInputSource | BfnOutputMonitor;
+
+export function bfnNodeDisplayName(
+  node: BfnDisplayNode,
+  language: string,
+  t: BfnLabelTranslate,
+): string {
+  const localized = node.displayName;
+  if (localized) {
+    const value = language.toLocaleLowerCase().startsWith('zh') ? localized.zh : localized.en;
+    if (value.trim().length > 0) return value;
+  }
+  return t(node.labelKey);
+}
 
 export function bfnEvidenceTone(grade: BfnEvidenceGrade): BfnEvidenceTone {
   if (grade === 'externally_validated') return 'validated';
@@ -73,7 +90,17 @@ export function bfnUnitLabel(unit: string, t: BfnLabelTranslate): string {
   return unit === 'dimensionless' ? t('bfn.units.relativeValue') : unit;
 }
 
-export function bfnPortPrimaryLabel(port: BfnPort, t: BfnLabelTranslate): string {
+export function bfnPortPrimaryLabel(
+  port: BfnPort,
+  t: BfnLabelTranslate,
+  language?: string,
+): string {
+  if (port.displayName) {
+    const localized = language?.toLocaleLowerCase().startsWith('zh')
+      ? port.displayName.zh
+      : port.displayName.en;
+    if (localized.trim().length > 0) return localized;
+  }
   const entity = bfnEntityLabel(port.entity, t);
   return entityKeys[port.entity] ? entity : entity + ' ' + bfnQuantityLabel(port.quantityType, t);
 }
@@ -87,9 +114,13 @@ export function bfnPortMetaLabel(port: BfnPort, t: BfnLabelTranslate): string {
   return bfnQuantityLabel(port.quantityType, t) + ' · ' + bfnUnitLabel(port.unit, t);
 }
 
-export function bfnModuleFlowLabel(module: BfnFunctionalModule, t: BfnLabelTranslate): string {
-  const inputs = module.inputPorts.map((port) => bfnPortPrimaryLabel(port, t));
-  const outputs = module.outputPorts.map((port) => bfnPortPrimaryLabel(port, t));
+export function bfnModuleFlowLabel(
+  module: BfnFunctionalModule,
+  t: BfnLabelTranslate,
+  language?: string,
+): string {
+  const inputs = module.inputPorts.map((port) => bfnPortPrimaryLabel(port, t, language));
+  const outputs = module.outputPorts.map((port) => bfnPortPrimaryLabel(port, t, language));
   return (inputs.length ? inputs.join(' + ') : '—') + ' → ' + (outputs[0] ?? '—');
 }
 
@@ -97,14 +128,15 @@ export function bfnParameterPresentations(
   module: BfnFunctionalModule,
   model: BfnModelVariant | null,
   t: TFunction,
+  language?: string,
 ): BfnParameterPresentation[] {
   if (!model) return [];
   const response = model.mode === 'static' ? model.response : model.steadyStateResponse;
   const input = module.inputPorts[0]
-    ? bfnPortPrimaryLabel(module.inputPorts[0], t)
+    ? bfnPortPrimaryLabel(module.inputPorts[0], t, language)
     : t('bfn.parameters.inputSignal');
   const output = module.outputPorts[0]
-    ? bfnPortPrimaryLabel(module.outputPorts[0], t)
+    ? bfnPortPrimaryLabel(module.outputPorts[0], t, language)
     : t('bfn.parameters.outputSignal');
   const rows: BfnParameterPresentation[] = [];
 

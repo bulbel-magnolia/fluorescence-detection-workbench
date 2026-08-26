@@ -5,6 +5,7 @@ import {
   bfnContextSectionTitle,
   bfnEvidenceTone,
   bfnModuleFlowLabel,
+  bfnNodeDisplayName,
   bfnParameterPresentations,
   bfnPortMetaLabel,
   bfnPortPrimaryLabel,
@@ -35,6 +36,17 @@ describe('BFN object presentation', () => {
 
   it('turns dimensionless units into a user-facing relative value', () => {
     expect(bfnUnitLabel('dimensionless', i18n.getFixedT('zh-CN'))).toBe('相对值');
+  });
+
+  it('uses one localized project display name with a label-key fallback', () => {
+    const module = createDemoBfnProject().network.modules[0]!;
+    const zh = i18n.getFixedT('zh-CN');
+    const en = i18n.getFixedT('en-US');
+
+    expect(bfnNodeDisplayName(module, 'zh-CN', zh)).toBe(zh(module.labelKey));
+    module.displayName = { en: 'RhlR / pRhl', zh: 'RhlR / pRhl' };
+    expect(bfnNodeDisplayName(module, 'zh-CN', zh)).toBe('RhlR / pRhl');
+    expect(bfnNodeDisplayName(module, 'en-US', en)).toBe('RhlR / pRhl');
   });
 
   it('explains Hill response parameters in biological terms', () => {

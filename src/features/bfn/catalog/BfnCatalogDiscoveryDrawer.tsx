@@ -12,6 +12,13 @@ import { bfnModuleCatalog, createCatalogModule, type BfnCatalogModuleId } from '
 import { resolveEffectiveBfnModel } from '../modelResolution';
 import { bfnEvidenceTone, bfnModuleFlowLabel } from '../presentation';
 import type { BfnProject } from '../types';
+import { BfnCatalogDetailView } from './BfnCatalogDetailView';
+import {
+  buildBfnCatalogDetail,
+  type BfnCatalogDetail,
+  type BfnCatalogDetailTarget,
+  type BfnCatalogRuntimeCandidateBuilder,
+} from './catalogDetail';
 import {
   bfnCatalogSignalDisplayName,
   buildBfnCatalogDiscoveryModel,
@@ -28,21 +35,29 @@ interface BfnCatalogDiscoveryDrawerProps {
   project: BfnProject;
   onClose: () => void;
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
+  onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
   presentationLoader?: () => ReleaseCatalogPresentation;
+  runtimeCandidateBuilder?: BfnCatalogRuntimeCandidateBuilder;
 }
 
 type SelectedEntry =
-  { kind: 'response'; groupId: string; responseId: string } | { kind: 'sender'; groupId: string };
+  | { kind: 'response'; groupId: string; responseId: string }
+  | { kind: 'sender'; groupId: string }
+  | { kind: 'component'; groupId: string };
 
 export function BfnCatalogDiscoveryDrawer({
   project,
   onClose,
   onAddBuiltInModule,
+  onInstantiateCatalogResponse,
   presentationLoader = loadReleaseCatalogPresentation,
+  runtimeCandidateBuilder,
 }: BfnCatalogDiscoveryDrawerProps) {
   const { i18n } = useTranslation();
   const language = releaseLanguage(i18n.resolvedLanguage ?? i18n.language);
   const searchRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const listScrollTopRef = useRef(0);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<BfnCatalogDiscoveryStatusFilter | 'all'>('all');
   const [inputSignalId, setInputSignalId] = useState('all');
@@ -50,11 +65,17 @@ export function BfnCatalogDiscoveryDrawer({
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
   const [autoCollapsedGroupId, setAutoCollapsedGroupId] = useState<string | null>(null);
   const [selected, setSelected] = useState<SelectedEntry | null>(null);
+  const [detailTarget, setDetailTarget] = useState<BfnCatalogDetailTarget | null>(null);
   const loadResult = useMemo(() => {
     try {
-      return { model: buildBfnCatalogDiscoveryModel(presentationLoader()), error: false } as const;
+      const presentation = presentationLoader();
+      return {
+        presentation,
+        model: buildBfnCatalogDiscoveryModel(presentation),
+        error: false,
+      } as const;
     } catch {
-      return { model: null, error: true } as const;
+      return { presentation: null, model: null, error: true } as const;
     }
   }, [presentationLoader]);
   const result = useMemo(
@@ -65,6 +86,10 @@ export function BfnCatalogDiscoveryDrawer({
     [host, inputSignalId, loadResult.model, query, status],
   );
   const singleGroupId = result?.componentCount === 1 ? (result.groups[0]?.id ?? null) : null;
+  const detail = useMemo(() => {
+    if (!detailTarget || !loadResult.presentation) return null;
+    return buildBfnCatalogDetail(loadResult.presentation, detailTarget, runtimeCandidateBuilder);
+  }, [detailTarget, loadResult.presentation, runtimeCandidateBuilder]);
 
   useEffect(() => searchRef.current?.focus(), []);
   useEffect(() => setAutoCollapsedGroupId(null), [singleGroupId]);
@@ -99,14 +124,29 @@ export function BfnCatalogDiscoveryDrawer({
       return next;
     });
   };
+  const openDetail = (target: BfnCatalogDetailTarget): void => {
+    listScrollTopRef.current = bodyRef.current?.scrollTop ?? 0;
+    setDetailTarget(target);
+    window.requestAnimationFrame(() => {
+      if (bodyRef.current) bodyRef.current.scrollTop = 0;
+    });
+  };
+  const backToCatalog = (): void => {
+    setDetailTarget(null);
+    window.requestAnimationFrame(() => {
+      if (bodyRef.current) bodyRef.current.scrollTop = listScrollTopRef.current;
+    });
+  };
 
   return (
     <DiscoveryDrawerSurface
       project={project}
       onClose={onClose}
       onAddBuiltInModule={onAddBuiltInModule}
+      onInstantiateCatalogResponse={onInstantiateCatalogResponse}
       language={language}
       searchRef={searchRef}
+      bodyRef={bodyRef}
       model={loadResult.model}
       result={result}
       query={query}
@@ -115,9 +155,12 @@ export function BfnCatalogDiscoveryDrawer({
       host={host}
       hasActiveFilters={hasActiveFilters}
       selected={selected}
+      detail={detail}
       isExpanded={isExpanded}
       onToggleGroup={toggleGroup}
       onSelect={setSelected}
+      onViewDetails={openDetail}
+      onBackToCatalog={backToCatalog}
       onQueryChange={setQuery}
       onStatusChange={setStatus}
       onInputSignalChange={setInputSignalId}
@@ -131,8 +174,10 @@ interface DiscoveryDrawerSurfaceProps {
   project: BfnProject;
   onClose: () => void;
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
+  onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
   language: ReleaseCatalogLanguage;
   searchRef: RefObject<HTMLInputElement | null>;
+  bodyRef: RefObject<HTMLDivElement | null>;
   model: BfnCatalogDiscoveryModel | null;
   result: BfnCatalogDiscoveryQueryResult | null;
   query: string;
@@ -141,9 +186,12 @@ interface DiscoveryDrawerSurfaceProps {
   host: string;
   hasActiveFilters: boolean;
   selected: SelectedEntry | null;
+  detail: BfnCatalogDetail | null;
   isExpanded: (groupId: string) => boolean;
   onToggleGroup: (group: BfnCatalogDiscoveryGroup) => void;
   onSelect: (entry: SelectedEntry) => void;
+  onViewDetails: (target: BfnCatalogDetailTarget) => void;
+  onBackToCatalog: () => void;
   onQueryChange: (value: string) => void;
   onStatusChange: (value: BfnCatalogDiscoveryStatusFilter | 'all') => void;
   onInputSignalChange: (value: string) => void;
@@ -170,17 +218,42 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
           if (event.key !== 'Escape') return;
           event.preventDefault();
           event.stopPropagation();
-          props.onClose();
+          if (props.detail) props.onBackToCatalog();
+          else props.onClose();
         }}
       >
         <DiscoveryDrawerHeader onClose={props.onClose} />
-        <div className="bfn-catalog-discovery__body">
-          <BuiltInModuleDisclosure project={props.project} onAdd={props.onAddBuiltInModule} />
-          <DiscoveryCatalogBody {...props} />
+        <div
+          ref={props.bodyRef}
+          className="bfn-catalog-discovery__body"
+          data-view={props.detail ? 'detail' : 'catalog'}
+        >
+          {props.detail ? (
+            <BfnCatalogDetailView
+              detail={props.detail}
+              language={props.language}
+              project={props.project}
+              onBack={props.onBackToCatalog}
+              onInstantiate={props.onInstantiateCatalogResponse}
+            />
+          ) : (
+            <>
+              <BuiltInModuleDisclosure project={props.project} onAdd={props.onAddBuiltInModule} />
+              <DiscoveryCatalogBody {...props} />
+            </>
+          )}
         </div>
         <footer className="bfn-catalog-discovery__footer">
-          <Icon name="file" size={14} />
-          <span>{t('bfn.catalogDiscovery.readOnlyBoundary')}</span>
+          <Icon name={props.detail ? 'info' : 'file'} size={14} />
+          <span>
+            {t(
+              props.detail
+                ? props.detail.kind === 'response' && props.detail.canAddToNetwork
+                  ? 'bfn.catalogDetail.runnableFooter'
+                  : 'bfn.catalogDetail.viewOnlyFooter'
+                : 'bfn.catalogDiscovery.readOnlyBoundary',
+            )}
+          </span>
         </footer>
       </aside>
     </div>
@@ -253,6 +326,7 @@ function DiscoveryResults(
           selected={props.selected}
           onToggle={() => props.onToggleGroup(group)}
           onSelect={props.onSelect}
+          onViewDetails={props.onViewDetails}
         />
       ))}
     </div>
@@ -414,6 +488,7 @@ interface DiscoveryGroupProps {
   selected: SelectedEntry | null;
   onToggle: () => void;
   onSelect: (entry: SelectedEntry) => void;
+  onViewDetails: (target: BfnCatalogDetailTarget) => void;
 }
 
 function DiscoveryGroup(props: DiscoveryGroupProps) {
@@ -439,9 +514,7 @@ function DiscoveryGroup(props: DiscoveryGroupProps) {
           {props.group.role === 'sender' ? (
             <SenderEntry {...props} />
           ) : props.group.responses.length === 0 ? (
-            <p className="bfn-catalog-no-response">
-              {t('bfn.catalogDiscovery.noReceiverResponse')}
-            </p>
+            <ComponentReferenceEntry {...props} />
           ) : (
             <ReceiverEntries {...props} />
           )}
@@ -465,7 +538,46 @@ function SenderEntry(props: DiscoveryGroupProps) {
         <span>{t('bfn.catalogDiscovery.noSenderFunction')}</span>
         <small>{hostLine(props.group.hostSpecies, props.group.hostStrain, t)}</small>
       </button>
-      {selected ? <SenderPreview group={props.group} language={props.language} /> : null}
+      {selected ? (
+        <SenderPreview
+          group={props.group}
+          language={props.language}
+          onViewDetails={() =>
+            props.onViewDetails({ kind: 'component', componentId: props.group.id })
+          }
+        />
+      ) : null}
+    </>
+  );
+}
+
+function ComponentReferenceEntry(props: DiscoveryGroupProps) {
+  const { t } = useTranslation();
+  const selected =
+    props.selected?.kind === 'component' && props.selected.groupId === props.group.id;
+  return (
+    <>
+      <button
+        className="bfn-catalog-reference-row"
+        type="button"
+        aria-pressed={selected}
+        onClick={() => props.onSelect({ kind: 'component', groupId: props.group.id })}
+      >
+        <span>
+          <strong>{t('bfn.catalogDiscovery.noReceiverResponse')}</strong>
+          <small>{hostLine(props.group.hostSpecies, props.group.hostStrain, t)}</small>
+        </span>
+        <StatusLabel status={props.group.status} />
+      </button>
+      {selected ? (
+        <ComponentPreview
+          group={props.group}
+          language={props.language}
+          onViewDetails={() =>
+            props.onViewDetails({ kind: 'component', componentId: props.group.id })
+          }
+        />
+      ) : null}
     </>
   );
 }
@@ -511,7 +623,14 @@ function ResponseEntry(props: DiscoveryGroupProps & { response: BfnCatalogDiscov
         <StatusLabel status={props.response.status} />
       </button>
       {selected ? (
-        <ResponsePreview group={props.group} response={props.response} language={props.language} />
+        <ResponsePreview
+          group={props.group}
+          response={props.response}
+          language={props.language}
+          onViewDetails={() =>
+            props.onViewDetails({ kind: 'response', responseId: props.response.id })
+          }
+        />
       ) : null}
     </div>
   );
@@ -521,10 +640,12 @@ function ResponsePreview({
   group,
   response,
   language,
+  onViewDetails,
 }: {
   group: BfnCatalogDiscoveryGroup;
   response: BfnCatalogDiscoveryResponse;
   language: ReleaseCatalogLanguage;
+  onViewDetails: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -564,6 +685,7 @@ function ResponsePreview({
         />
       </dl>
       <AdditionalSources count={response.additionalSourceCount} />
+      <PreviewDetailAction onClick={onViewDetails} />
     </section>
   );
 }
@@ -571,9 +693,11 @@ function ResponsePreview({
 function SenderPreview({
   group,
   language,
+  onViewDetails,
 }: {
   group: BfnCatalogDiscoveryGroup;
   language: ReleaseCatalogLanguage;
+  onViewDetails: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -613,7 +737,50 @@ function SenderPreview({
       </dl>
       <AdditionalSources count={group.additionalSourceCount} />
       <p className="bfn-catalog-preview__boundary">{t('bfn.catalogDiscovery.senderBoundary')}</p>
+      <PreviewDetailAction onClick={onViewDetails} />
     </section>
+  );
+}
+
+function ComponentPreview({
+  group,
+  language,
+  onViewDetails,
+}: {
+  group: BfnCatalogDiscoveryGroup;
+  language: ReleaseCatalogLanguage;
+  onViewDetails: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section className="bfn-catalog-preview" aria-label={t('bfn.catalogDiscovery.previewLabel')}>
+      <dl>
+        <PreviewFact
+          label={t('bfn.catalogDiscovery.component')}
+          value={localizedName(group.names, language)}
+        />
+        <PreviewFact
+          label={t('bfn.catalogDiscovery.status')}
+          value={statusLabel(group.status, t)}
+        />
+        <PreviewFact
+          label={t('bfn.catalogDiscovery.source')}
+          value={sourceLabel(group.source, t)}
+        />
+      </dl>
+      <p className="bfn-catalog-preview__boundary">{t('bfn.catalogDetail.referenceBoundary')}</p>
+      <PreviewDetailAction onClick={onViewDetails} />
+    </section>
+  );
+}
+
+function PreviewDetailAction({ onClick }: { onClick: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button className="bfn-catalog-preview__details" type="button" onClick={onClick}>
+      <span>{t('bfn.catalogDetail.viewDetails')}</span>
+      <Icon name="arrow" size={13} />
+    </button>
   );
 }
 

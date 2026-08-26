@@ -2,6 +2,16 @@ import type { BfnModelVariant, BfnProject } from './types';
 import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
 import { resolveEffectiveBfnModel } from './modelResolution';
 
+function portBasis(port: BfnProject['network']['modules'][number]['inputPorts'][number]) {
+  return {
+    id: port.id,
+    entity: port.entity,
+    quantityType: port.quantityType,
+    unit: port.unit,
+    direction: port.direction,
+  };
+}
+
 function modelBasis(model: BfnModelVariant | null) {
   if (!model) return null;
   const shared = {
@@ -33,8 +43,8 @@ export function createBfnComputationSignature(project: BfnProject): string {
     return {
       kind: module.kind,
       id: module.id,
-      inputPorts: module.inputPorts,
-      outputPorts: module.outputPorts,
+      inputPorts: module.inputPorts.map(portBasis),
+      outputPorts: module.outputPorts.map(portBasis),
       implementationIds: module.implementationIds,
       evidenceGrade: module.evidenceGrade,
       isDemo: module.isDemo,
@@ -59,7 +69,7 @@ export function createBfnComputationSignature(project: BfnProject): string {
       inputSources: project.network.inputSources.map((source) => ({
         kind: source.kind,
         id: source.id,
-        outputPort: source.outputPort,
+        outputPort: portBasis(source.outputPort),
         staticSpecification: source.staticSpecification,
         dynamicSpecification: source.dynamicSpecification,
       })),
@@ -67,7 +77,7 @@ export function createBfnComputationSignature(project: BfnProject): string {
       outputMonitors: project.network.outputMonitors.map((monitor) => ({
         kind: monitor.kind,
         id: monitor.id,
-        inputPort: monitor.inputPort,
+        inputPort: portBasis(monitor.inputPort),
       })),
       edges: project.network.edges,
     },

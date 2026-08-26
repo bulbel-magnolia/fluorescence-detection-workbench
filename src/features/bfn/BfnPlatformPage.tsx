@@ -8,6 +8,7 @@ import { Icon } from '../../components/Icon';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
 import { BfnCatalogDiscoveryDrawer } from './catalog/BfnCatalogDiscoveryDrawer';
+import { instantiateBfnCatalogResponse } from './catalog/catalogInstantiation';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
 import { BfnPropertyGrid } from './BfnPropertyGrid';
 import {
@@ -48,6 +49,7 @@ import {
   bfnEntityLabel,
   bfnEvidenceTone,
   bfnModuleFlowLabel,
+  bfnNodeDisplayName,
   bfnParameterPresentations,
   bfnPortMetaLabel,
   bfnPortPrimaryLabel,
@@ -140,21 +142,18 @@ function formulaForModel(model: BfnModelVariant | null): string {
   return model.mode === 'dynamic' ? `τ·dy/dt = ${base.slice(4)} − y` : base;
 }
 
-function nodeLabel(project: BfnProject, nodeId: string, t: TFunction): string {
-  return (
-    project.network.inputSources.find((node) => node.id === nodeId)?.labelKey ??
-    project.network.modules.find((node) => node.id === nodeId)?.labelKey ??
-    project.network.outputMonitors.find((node) => node.id === nodeId)?.labelKey ??
-    nodeId
-  )
-    .split('|')
-    .map((key) => t(key))
-    .join(' · ');
+function nodeLabel(project: BfnProject, nodeId: string, t: TFunction, language: string): string {
+  const node =
+    project.network.inputSources.find((entry) => entry.id === nodeId) ??
+    project.network.modules.find((entry) => entry.id === nodeId) ??
+    project.network.outputMonitors.find((entry) => entry.id === nodeId);
+  return node ? bfnNodeDisplayName(node, language, t) : nodeId;
 }
 
 function endpointOptions(
   project: BfnProject,
   t: TFunction,
+  language: string,
 ): {
   outputs: EndpointOption[];
   inputs: EndpointOption[];
@@ -163,9 +162,9 @@ function endpointOptions(
     value: endpointValue({ nodeId, portId: port.id }),
     endpoint: { nodeId, portId: port.id },
     label:
-      nodeLabel(project, nodeId, t) +
+      nodeLabel(project, nodeId, t, language) +
       ' · ' +
-      (usePortMeta ? bfnPortMetaLabel(port, t) : bfnPortPrimaryLabel(port, t)),
+      (usePortMeta ? bfnPortMetaLabel(port, t) : bfnPortPrimaryLabel(port, t, language)),
   });
   return {
     outputs: [
@@ -260,11 +259,11 @@ function simulationNoticeKey(project: BfnProject): string {
     : 'bfn.notices.staticCompleted';
 }
 
-function configuredInputSummary(project: BfnProject, t: TFunction): string {
+function configuredInputSummary(project: BfnProject, t: TFunction, language: string): string {
   const source = project.network.inputSources[0];
   if (!source) return t('bfn.runToolbar.noInput');
   const unit = bfnUnitLabel(source.outputPort.unit, t);
-  const sourceLabel = t(source.labelKey);
+  const sourceLabel = bfnNodeDisplayName(source, language, t);
   if (project.network.mode === 'static') {
     const specification = source.staticSpecification;
     const value =
@@ -305,6 +304,7 @@ function configuredInputSummary(project: BfnProject, t: TFunction): string {
 
 export function BfnPlatformPage() {
   const { t, i18n } = useTranslation();
+  const nodeLanguage = i18n.resolvedLanguage ?? i18n.language;
   const [project, setProject] = useState<BfnProject>(
     () => loadBfnProject() ?? createDemoBfnProject(),
   );
@@ -393,7 +393,10 @@ export function BfnPlatformPage() {
   );
   const resultFreshness: ResultFreshness =
     result && resultBasisSignature !== currentComputationSignature ? 'stale' : 'current';
-  const options = useMemo(() => endpointOptions(project, t), [project, t, i18n.language]);
+  const options = useMemo(
+    () => endpointOptions(project, t, nodeLanguage),
+    [project, t, nodeLanguage],
+  );
   const sourceEndpoint = parseEndpoint(sourceEndpointValue);
   const targetEndpoint = parseEndpoint(targetEndpointValue);
   const draftIssues = useMemo(
@@ -434,7 +437,7 @@ export function BfnPlatformPage() {
       )
     : [];
   const selectedParameterPresentations = selectedModule
-    ? bfnParameterPresentations(selectedModule, selectedModuleModel, t)
+    ? bfnParameterPresentations(selectedModule, selectedModuleModel, t, nodeLanguage)
     : [];
   const selectedDatasets = selectedModuleModel
     ? project.registry.datasets.filter((dataset) =>
@@ -442,16 +445,17 @@ export function BfnPlatformPage() {
       )
     : [];
   const inspectorSubtitle = selectedModule
-    ? bfnModuleFlowLabel(selectedModule, t)
+    ? bfnModuleFlowLabel(selectedModule, t, nodeLanguage)
     : selectedSource
       ? bfnPortMetaLabel(selectedSource.outputPort, t)
       : selectedMonitor
         ? bfnPortMetaLabel(selectedMonitor.inputPort, t)
         : selectedEdge
-          ? `${nodeLabel(project, selectedEdge.source.nodeId, t)} → ${nodeLabel(
+          ? `${nodeLabel(project, selectedEdge.source.nodeId, t, nodeLanguage)} → ${nodeLabel(
               project,
               selectedEdge.target.nodeId,
               t,
+              nodeLanguage,
             )}`
           : t(project.network.labelKey);
 
@@ -686,6 +690,40 @@ export function BfnPlatformPage() {
     setNotice(t('bfn.notices.moduleAdded'));
   };
 
+  const addCatalogResponse = (responseId: string, createInputSource: boolean): void => {
+    const outcome = instantiateBfnCatalogResponse(
+      projectRef.current,
+      responseId,
+      createInputSource,
+      canvasViewportRef.current,
+    );
+    if (!outcome.ok) {
+      setErrorNotice(
+        t(
+          outcome.error === 'catalog-state-changed'
+            ? 'bfn.notices.catalogStateChanged'
+            : 'bfn.notices.catalogInstantiationFailed',
+        ),
+      );
+      return;
+    }
+    const changed = performProjectEdit(() => outcome.nextProject);
+    if (!changed) {
+      setErrorNotice(t('bfn.notices.catalogInstantiationFailed'));
+      return;
+    }
+    selectNode(outcome.addedModuleId);
+    setView('design');
+    setModulePickerOpen(false);
+    setNotice(
+      t(
+        outcome.addedInputSourceId
+          ? 'bfn.notices.catalogModuleAndSourceAdded'
+          : 'bfn.notices.catalogModuleAdded',
+      ),
+    );
+  };
+
   const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
     if (!moduleId || !projectRef.current.network.modules.some((module) => module.id === moduleId)) {
       return;
@@ -890,7 +928,7 @@ export function BfnPlatformPage() {
               </div>
               <div className="bfn-run-toolbar__summary">
                 <span>{t('bfn.runToolbar.currentInput')}</span>
-                <strong>{configuredInputSummary(project, t)}</strong>
+                <strong>{configuredInputSummary(project, t, nodeLanguage)}</strong>
               </div>
               <Button
                 variant="secondary"
@@ -939,7 +977,7 @@ export function BfnPlatformPage() {
                       data-selected={selectedNodeId === source.id}
                       onClick={() => selectNode(source.id)}
                     >
-                      <strong>{t(source.labelKey)}</strong>
+                      <strong>{bfnNodeDisplayName(source, nodeLanguage, t)}</strong>
                       <small>{bfnPortMetaLabel(source.outputPort, t)}</small>
                     </button>
                   ))}
@@ -953,8 +991,8 @@ export function BfnPlatformPage() {
                       data-selected={selectedNodeId === module.id}
                       onClick={() => selectNode(module.id)}
                     >
-                      <strong>{t(module.labelKey)}</strong>
-                      <small>{bfnModuleFlowLabel(module, t)}</small>
+                      <strong>{bfnNodeDisplayName(module, nodeLanguage, t)}</strong>
+                      <small>{bfnModuleFlowLabel(module, t, nodeLanguage)}</small>
                     </button>
                   ))}
                   <button
@@ -975,7 +1013,7 @@ export function BfnPlatformPage() {
                       data-selected={selectedNodeId === monitor.id}
                       onClick={() => selectNode(monitor.id)}
                     >
-                      <strong>{t(monitor.labelKey)}</strong>
+                      <strong>{bfnNodeDisplayName(monitor, nodeLanguage, t)}</strong>
                       <small>{bfnPortMetaLabel(monitor.inputPort, t)}</small>
                     </button>
                   ))}
@@ -1109,11 +1147,11 @@ export function BfnPlatformPage() {
                 <div>
                   <h2>
                     {selectedModule
-                      ? t(selectedModule.labelKey)
+                      ? bfnNodeDisplayName(selectedModule, nodeLanguage, t)
                       : selectedSource
-                        ? t(selectedSource.labelKey)
+                        ? bfnNodeDisplayName(selectedSource, nodeLanguage, t)
                         : selectedMonitor
-                          ? t(selectedMonitor.labelKey)
+                          ? bfnNodeDisplayName(selectedMonitor, nodeLanguage, t)
                           : selectedEdge
                             ? t('bfn.inspector.connection')
                             : t('bfn.inspector.project')}
@@ -1139,7 +1177,7 @@ export function BfnPlatformPage() {
                           <span>{t('bfn.nodeKinds.input')}</span>
                           {selectedModule.inputPorts.map((port) => (
                             <article key={port.id}>
-                              <strong>{bfnPortPrimaryLabel(port, t)}</strong>
+                              <strong>{bfnPortPrimaryLabel(port, t, nodeLanguage)}</strong>
                               <small>{bfnUnitLabel(port.unit, t)}</small>
                             </article>
                           ))}
@@ -1151,7 +1189,7 @@ export function BfnPlatformPage() {
                           <span>{t('bfn.nodeKinds.output')}</span>
                           {selectedModule.outputPorts.map((port) => (
                             <article key={port.id}>
-                              <strong>{bfnPortPrimaryLabel(port, t)}</strong>
+                              <strong>{bfnPortPrimaryLabel(port, t, nodeLanguage)}</strong>
                               <small>{bfnUnitLabel(port.unit, t)}</small>
                             </article>
                           ))}
@@ -1360,7 +1398,7 @@ export function BfnPlatformPage() {
                           {
                             id: 'signal',
                             label: t('bfn.inspector.signal'),
-                            value: bfnPortPrimaryLabel(selectedSource.outputPort, t),
+                            value: bfnPortPrimaryLabel(selectedSource.outputPort, t, nodeLanguage),
                           },
                           {
                             id: 'measurement',
@@ -1402,7 +1440,7 @@ export function BfnPlatformPage() {
                           {
                             id: 'signal',
                             label: t('bfn.inspector.signal'),
-                            value: bfnPortPrimaryLabel(selectedMonitor.inputPort, t),
+                            value: bfnPortPrimaryLabel(selectedMonitor.inputPort, t, nodeLanguage),
                           },
                           {
                             id: 'measurement',
@@ -1423,21 +1461,29 @@ export function BfnPlatformPage() {
                     <div className="bfn-edge-signal-flow">
                       <div>
                         <span>{t('bfn.connections.source')}</span>
-                        <strong>{nodeLabel(project, selectedEdge.source.nodeId, t)}</strong>
+                        <strong>
+                          {nodeLabel(project, selectedEdge.source.nodeId, t, nodeLanguage)}
+                        </strong>
                         <small>
                           {selectedEdgeSourcePort
-                            ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                            ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t, nodeLanguage)
                             : '—'}
                         </small>
                       </div>
                       <span aria-hidden="true">↓</span>
                       <div>
                         <span>{t('bfn.connections.target')}</span>
-                        <strong>{nodeLabel(project, selectedEdge.target.nodeId, t)}</strong>
+                        <strong>
+                          {nodeLabel(project, selectedEdge.target.nodeId, t, nodeLanguage)}
+                        </strong>
                         <small>
                           {selectedEdgeTargetPort
                             ? t('bfn.inspector.signalInput', {
-                                signal: bfnPortPrimaryLabel(selectedEdgeTargetPort, t),
+                                signal: bfnPortPrimaryLabel(
+                                  selectedEdgeTargetPort,
+                                  t,
+                                  nodeLanguage,
+                                ),
                               })
                             : '—'}
                         </small>
@@ -1448,10 +1494,10 @@ export function BfnPlatformPage() {
                       <p className="bfn-edge-explanation">
                         {t('bfn.inspector.edgeText', {
                           signal: selectedEdgeSourcePort
-                            ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t)
+                            ? bfnPortPrimaryLabel(selectedEdgeSourcePort, t, nodeLanguage)
                             : t('bfn.parameters.outputSignal'),
-                          source: nodeLabel(project, selectedEdge.source.nodeId, t),
-                          target: nodeLabel(project, selectedEdge.target.nodeId, t),
+                          source: nodeLabel(project, selectedEdge.source.nodeId, t, nodeLanguage),
+                          target: nodeLabel(project, selectedEdge.target.nodeId, t, nodeLanguage),
                         })}
                       </p>
                     </details>
@@ -1509,10 +1555,10 @@ export function BfnPlatformPage() {
                 <section className="bfn-input-card" key={source.id}>
                   <header>
                     <div>
-                      <strong>{t(source.labelKey)}</strong>
+                      <strong>{bfnNodeDisplayName(source, nodeLanguage, t)}</strong>
                     </div>
                     <span>
-                      {bfnPortPrimaryLabel(source.outputPort, t)} ·{' '}
+                      {bfnPortPrimaryLabel(source.outputPort, t, nodeLanguage)} ·{' '}
                       {bfnUnitLabel(source.outputPort.unit, t)}
                     </span>
                   </header>
@@ -1984,6 +2030,7 @@ export function BfnPlatformPage() {
           project={project}
           onClose={() => setModulePickerOpen(false)}
           onAddBuiltInModule={addCatalogModule}
+          onInstantiateCatalogResponse={addCatalogResponse}
         />
       ) : null}
       <ConfirmDialog

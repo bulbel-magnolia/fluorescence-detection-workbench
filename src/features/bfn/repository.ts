@@ -37,6 +37,30 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+function hasValidOptionalDisplayName(value: unknown): boolean {
+  if (!isRecord(value) || !Object.prototype.hasOwnProperty.call(value, 'displayName')) return true;
+  const displayName = value.displayName;
+  return (
+    displayName === undefined ||
+    (isRecord(displayName) && isNonEmptyString(displayName.en) && isNonEmptyString(displayName.zh))
+  );
+}
+
+function hasValidNodeAndPortDisplayNames(value: unknown): boolean {
+  if (!isRecord(value) || !hasValidOptionalDisplayName(value)) return false;
+  if (value.kind === 'input_source') return hasValidOptionalDisplayName(value.outputPort);
+  if (value.kind === 'output_monitor') return hasValidOptionalDisplayName(value.inputPort);
+  if (value.kind === 'functional_module') {
+    return (
+      Array.isArray(value.inputPorts) &&
+      value.inputPorts.every(hasValidOptionalDisplayName) &&
+      Array.isArray(value.outputPorts) &&
+      value.outputPorts.every(hasValidOptionalDisplayName)
+    );
+  }
+  return false;
+}
+
 function isQuantityType(value: unknown): value is BfnQuantityType {
   return typeof value === 'string' && BFN_QUANTITY_TYPES.has(value);
 }
@@ -81,8 +105,11 @@ export function isBfnProject(value: unknown): value is BfnProject {
     typeof value.labelKey === 'string' &&
     (value.network.mode === 'static' || value.network.mode === 'dynamic') &&
     Array.isArray(value.network.inputSources) &&
+    value.network.inputSources.every(hasValidNodeAndPortDisplayNames) &&
     Array.isArray(value.network.modules) &&
+    value.network.modules.every(hasValidNodeAndPortDisplayNames) &&
     Array.isArray(value.network.outputMonitors) &&
+    value.network.outputMonitors.every(hasValidNodeAndPortDisplayNames) &&
     Array.isArray(value.network.edges) &&
     Array.isArray(value.registry.contexts) &&
     Array.isArray(value.registry.validityDomains) &&

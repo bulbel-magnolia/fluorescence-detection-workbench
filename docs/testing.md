@@ -463,3 +463,29 @@ Batch 5.0.1 不新增 Catalog UI，不执行视觉审计，也不生成截图。
 - Vite 7.3.6 生产构建通过，224 个模块完成转换；主 JavaScript chunk 为 1,072.50 kB、gzip 255.62 kB；主 CSS 为 226.18 kB、gzip 39.72 kB；
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
 - 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。
+
+## 2026-08-26 Batch 5.2 Catalog Detail & Network Instantiation
+
+自动化新增覆盖以下详情与实例化合同：
+
+- Full Detail 从已验证的 Catalog presentation 投影生成，返回 Discovery 时保留查询、筛选、展开项、选中项和 Drawer 内滚动位置；trusted runtime 重建或完整性校验失败时安全降级为不可用，不显示添加操作；
+- runtime 归一化参数 `0/1/K/n/working range` 与来源记录的 `Basal/Maximum/EC50` 分区显示；Shong EsaR 同时保持 increasing 数学响应与 derepression 生物机制；缺失实验上下文明确显示“未记录 / Not recorded”；
+- 组件身份、序列状态、序列来源与验证状态、构建设计、证据缺口、全部来源、observed pair 和 compatibility evidence 均由 Catalog 数据投影；Sender 与 reference-only 条目不生成数值模型，也不提供添加操作；
+- 0 个兼容 Input Source 时默认一次添加 Module + Source，已有 1 个及以上兼容 Source 时默认 module-only，并允许用户显式覆盖；项目变化会重新计算推荐，不自动创建 Edge、Monitor 或运行；
+- Catalog-backed input 继续要求用户手工建立 exact connection；实例化后结果标为 stale，单次添加对应一次 Undo/Redo，恢复项目与结果状态且不自动运行；
+- 同一 Response 可重复实例化，node、port 与 domain ID 在全项目范围内避碰；Module + Source 采用 Source-left / Module-right 放置，并在画布、Network Index、Inspector 与 Exact Connection 中使用项目本地化 `displayName`；
+- `displayName` 随项目导入、导出与保存加载保留，旧项目无该字段时兼容读取；展示名称不进入 computation signature，不改变科学计算身份；
+- 手工连接后 trusted Catalog module 可正常运行，运行时仍执行 required-input、working-range、tamper 和 Demo/未验证科学边界。
+
+视觉审计使用真实桌面页面状态，产物与逐图说明位于 `docs/ui-audit/catalog-instantiation/`。共保存 10 张 1440×900 PNG，覆盖 runnable 详情、来源参数与 runtime 参数边界、实验上下文、non-runnable、Sender、0-source 推荐、existing-source 推荐、重复 module、Module + Source 无自动 Edge 和深色主题。所有截图像素尺寸均已复核为 1440×900，浏览器控制台无 warning 或 error。
+
+1280×720 下 document 与 body 的 `clientWidth`、`scrollWidth` 均为 1280 px，页面级水平溢出为 0；Drawer 为 560×720 px。Drawer body 的 `clientHeight` 为 619 px、`scrollHeight` 为 3511 px，顶部返回操作可见，添加操作滚动 90 px 后完整可见；滚动到底部时最后一项与 Drawer body 底边保留约 14 px 间距，不被底部操作区遮挡。
+
+### Batch 5.2 完整门禁
+
+- TypeScript `tsc --noEmit` 与 ESLint 全项目检查通过；
+- Batch 5.2 定向回归共 6 个测试文件、45 项测试通过；完整 Vitest 共 90 个测试文件、627 项测试全部通过；
+- Vite 7.3.6 生产构建通过，229 个模块完成转换；主 JavaScript chunk 为 1,127.11 kB、gzip 269.15 kB；主 CSS 为 235.51 kB、gzip 40.89 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；首次沙箱内构建因 esbuild 子进程权限返回 `spawn EPERM`，在获批的沙箱外环境以同一命令复跑通过；
+- 本轮未修改冻结 Catalog JSON，未新增依赖，未放宽 timeout，未删除、跳过或弱化断言；
+- 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。

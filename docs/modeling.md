@@ -277,7 +277,17 @@ Batch 5.1 在网络设计页的添加模块 Drawer 中接入只读 Catalog Disco
 
 Batch 5.1.1 统一了 Signal 在 Response row、Response preview 与输入 Signal 筛选器中的身份表达。常用缩写继续承担搜索与紧凑识别用途；同一缩写对应多个化学实体时，界面从冻结 Catalog 的审定中英文名称保留足以区分身份的限定信息，例如 `3OC6-HSL（L）` 与 `3OC6-HSL（立体构型未说明）`。该规则只改变展示文本，不修改 Signal ID、canonical name、BFN entity 映射、筛选值或运行时合同；无法从审定名称安全证明限定信息时，回退到 Catalog 本地化显示名。
 
-搜索、筛选、展开、选择、预览、滚动和清除均为 Drawer 局部状态，不写入 BFN Project，不创建历史步骤，不触发项目自动保存，也不改变 computation signature 或结果新鲜度。文献 Response 在 Batch 5.1 没有“添加到网络”操作。原有 3 个通用 Demo 模块保留在独立的“内置示例模块”折叠区，并继续使用原添加流程。Catalog Response 的真正实例化与拓扑选择属于后续批次。
+搜索、筛选、展开、选择、预览、滚动和清除均为 Drawer 局部状态，不写入 BFN Project，不创建历史步骤，不触发项目自动保存，也不改变 computation signature 或结果新鲜度。轻量预览继续保持只读；原有 3 个通用 Demo 模块保留在独立的“内置示例模块”折叠区，并继续使用原添加流程。
+
+## Catalog Full Detail 与网络实例化
+
+Batch 5.2 在同一 Drawer 内加入 Full Detail。Response 详情先从经过验证的 release presentation 投影身份、状态、实验条件、组件信息、全部来源、整体实验观察与定性兼容证据，再为标记为 runnable 的条目重新构建 trusted runtime candidate。重建失败会把当前详情安全降为不可运行。待标定、仅定性、Reference、Sender 和不可用条目都只有证据浏览能力，没有 Add 操作。Sender 详情明确显示“暂无定量发送函数”；observed pair 保持整体系统观察，compatibility relation 保持非数值证据。
+
+详情将当前运行模型与来源参数分成两个区块。运行模型固定表达归一化 0–1 输出、可信 K、n 和 working range；文献区保留 Basal、Maximum、EC50、原始 Hill 系数与参数符号。Shong EsaR 的数学响应保持随浓度增加，生物机制单独显示为去抑制。Context 中的 null 直接显示“未记录”，不会补入宿主、培养基、温度或载体默认值。序列状态、序列来源和核验边界分别呈现，仓库引用或标识符记录不会被描述为完整核苷酸序列已验证。
+
+Runnable Response 的 Add Panel 根据当前项目中 entity、quantity type 与单位量纲兼容的全部来源给出默认选择：没有来源时建议同时创建 Module 与匹配 Input Source；已有一个或多个来源时建议只创建 Module。用户可以覆盖建议。两种方式都不会自动创建 Edge，也不会创建或修改 Output Monitor。Module 与可选 Source、ports、trusted model 和 validity domain 组成一次原子项目编辑；一次 Undo/Redo 会成组移除或恢复相同实例 ID。添加改变 computation signature，使既有 Current Result 进入 stale 状态，不触发自动运行。
+
+每次添加使用项目局部、冲突安全的独立 ID，因此同一 Response 可以实例化多次。Catalog provenance 中的 component、response、signal 和 source identity 保持不变。项目节点和信号端口另存中英文 `displayName`，Canvas、Network Index、Inspector 与 Exact Connection 统一显示真实 Component 名和保留立体构型的 Signal 名；显示名不参与计算签名、可信验证或化学身份匹配。Module 与 Source 即使同时创建，也只按 Source-left / Module-right 放置，拓扑仍由用户在画布中明确连接。
 
 ## 代码边界
 

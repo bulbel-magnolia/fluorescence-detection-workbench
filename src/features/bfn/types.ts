@@ -43,6 +43,7 @@ export type BfnModelFamily =
 
 export interface BfnPort {
   id: string;
+  displayName?: BfnLocalizedDisplayName;
   entity: string;
   quantityType: BfnQuantityType;
   unit: BfnUnit;
@@ -177,10 +178,16 @@ export interface BfnCanvasPosition {
   y: number;
 }
 
+export interface BfnLocalizedDisplayName {
+  en: string;
+  zh: string;
+}
+
 export interface BfnFunctionalModule {
   kind: 'functional_module';
   id: string;
   labelKey: string;
+  displayName?: BfnLocalizedDisplayName;
   descriptionKey: string;
   inputPorts: BfnPort[];
   outputPorts: BfnPort[];
@@ -260,6 +267,7 @@ export interface BfnInputSource {
   kind: 'input_source';
   id: string;
   labelKey: string;
+  displayName?: BfnLocalizedDisplayName;
   outputPort: BfnPort;
   staticSpecification: BfnStaticInputSpecification;
   dynamicSpecification: BfnDynamicInputSpecification;
@@ -270,6 +278,7 @@ export interface BfnOutputMonitor {
   kind: 'output_monitor';
   id: string;
   labelKey: string;
+  displayName?: BfnLocalizedDisplayName;
   inputPort: BfnPort;
   position: BfnCanvasPosition;
 }

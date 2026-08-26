@@ -1,11 +1,12 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../i18n';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
 import { createDemoBfnProject } from '../fixtures';
+import { buildBfnCatalogRuntimeCandidate } from './catalogBfnAdapter';
 import { BfnCatalogDiscoveryDrawer } from './BfnCatalogDiscoveryDrawer';
-import { buildBfnCatalogDiscoveryModel } from './catalogDiscovery';
+import { bfnCatalogSignalDisplayName, buildBfnCatalogDiscoveryModel } from './catalogDiscovery';
 
 describe('BFN catalog discovery drawer', () => {
   beforeEach(async () => {
@@ -183,6 +184,124 @@ describe('BFN catalog discovery drawer', () => {
     expect(within(preview).queryByText('模型')).not.toBeInTheDocument();
   });
 
+  it('opens Full Detail in the same Drawer and restores discovery state and scroll', async () => {
+    const user = userEvent.setup();
+    const { group, response } = runnableFixture();
+    const onClose = vi.fn();
+    renderDrawer({ onClose });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    const search = within(dialog).getByRole('searchbox', { name: '搜索文献目录' });
+    const statusFilter = within(dialog).getByRole('combobox', { name: '状态' });
+    const hostFilter = within(dialog).getByRole('combobox', { name: '宿主' });
+    const body = dialog.querySelector<HTMLElement>('.bfn-catalog-discovery__body');
+    if (!body) throw new Error('Catalog body was not rendered.');
+
+    await user.selectOptions(statusFilter, 'runnable-demo');
+    if (group.hostSpecies) await user.selectOptions(hostFilter, group.hostSpecies);
+    await openResponsePreview(user, dialog, group, response.id);
+    body.scrollTop = 173;
+    await user.click(within(dialog).getByRole('button', { name: '查看完整详情' }));
+
+    expect(dialog).toContainElement(within(dialog).getByLabelText(/完整详情/u));
+    expect(within(dialog).queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('当前软件使用的响应模型')).toBeInTheDocument();
+    expect(within(dialog).getByText('文献中的原始拟合参数')).toBeInTheDocument();
+
+    fireEvent.keyDown(dialog, { key: 'Escape' });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(search).toHaveValue(group.names.en);
+    expect(statusFilter).toHaveValue('runnable-demo');
+    expect(hostFilter).toHaveValue(group.hostSpecies ?? 'all');
+    await waitFor(() => expect(body.scrollTop).toBe(173));
+    expect(within(dialog).getByRole('region', { name: '目录条目预览' })).toBeInTheDocument();
+    expect(dialog.querySelector('.bfn-catalog-group__trigger')).toHaveAttribute(
+      'aria-expanded',
+      'true',
+    );
+  });
+
+  it('defaults to module plus source when no compatible input exists and forwards the choice', async () => {
+    const user = userEvent.setup();
+    const onInstantiate = vi.fn();
+    const { group, response } = runnableFixture();
+    renderDrawer({ onInstantiateCatalogResponse: onInstantiate });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    await openResponseDetail(user, dialog, group, response.id);
+
+    expect(within(dialog).getByText(/当前网络还没有可以提供/u)).toBeInTheDocument();
+    const moduleAndSource = within(dialog).getByRole('radio', {
+      name: /添加模块并创建匹配输入源/u,
+    });
+    expect(moduleAndSource).toBeChecked();
+    await user.click(within(dialog).getByRole('button', { name: '添加到网络' }));
+    expect(onInstantiate).toHaveBeenCalledWith(response.id, true);
+  });
+
+  it('defaults to module only when compatible sources exist but allows creating another', async () => {
+    const user = userEvent.setup();
+    const onInstantiate = vi.fn();
+    const { group, response } = runnableFixture();
+    const candidate = buildBfnCatalogRuntimeCandidate(response.id);
+    const project = createDemoBfnProject();
+    const signalName = bfnCatalogSignalDisplayName(
+      response.inputSignalNames,
+      response.inputSignalAbbreviations,
+      'zh-CN',
+    );
+    project.network.inputSources[0]!.outputPort = {
+      id: 'existing-catalog-signal',
+      entity: candidate.inputEntity,
+      quantityType: 'concentration',
+      unit: 'nM',
+      direction: 'output',
+    };
+    project.network.inputSources[0]!.displayName = {
+      en: bfnCatalogSignalDisplayName(
+        response.inputSignalNames,
+        response.inputSignalAbbreviations,
+        'en-US',
+      ),
+      zh: bfnCatalogSignalDisplayName(
+        response.inputSignalNames,
+        response.inputSignalAbbreviations,
+        'zh-CN',
+      ),
+    };
+    renderDrawer({ project, onInstantiateCatalogResponse: onInstantiate });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    await openResponseDetail(user, dialog, group, response.id);
+
+    expect(within(dialog).getByText(/当前网络已经有 1 个/u)).toBeInTheDocument();
+    expect(within(dialog).getAllByText(signalName).length).toBeGreaterThan(0);
+    const moduleOnly = within(dialog).getByRole('radio', { name: /只添加响应模块/u });
+    const moduleAndSource = within(dialog).getByRole('radio', {
+      name: /添加模块并创建匹配输入源/u,
+    });
+    expect(moduleOnly).toBeChecked();
+    await user.click(moduleAndSource);
+    await user.click(within(dialog).getByRole('button', { name: '添加到网络' }));
+    expect(onInstantiate).toHaveBeenCalledWith(response.id, true);
+  });
+
+  it('fails closed when Detail cannot rebuild a trusted runtime candidate', async () => {
+    const user = userEvent.setup();
+    const { group, response } = runnableFixture();
+    renderDrawer({
+      runtimeCandidateBuilder: () => {
+        throw new Error('fresh trust failed');
+      },
+    });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    await openResponseDetail(user, dialog, group, response.id);
+
+    expect(within(dialog).getByText('当前不可运行')).toBeInTheDocument();
+    expect(within(dialog).queryByText('当前软件使用的响应模型')).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+  });
+
   it('keeps the three built-in demos in a secondary disclosure', async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();
@@ -237,7 +356,41 @@ function renderDrawer(
       project={createDemoBfnProject()}
       onClose={vi.fn()}
       onAddBuiltInModule={vi.fn()}
+      onInstantiateCatalogResponse={vi.fn()}
       {...overrides}
     />,
   );
+}
+
+function runnableFixture() {
+  const model = buildBfnCatalogDiscoveryModel(loadReleaseCatalogPresentation());
+  const group = model.groups.find((entry) => entry.responses.some((response) => response.runnable));
+  const response = group?.responses.find((entry) => entry.runnable);
+  if (!group || !response) throw new Error('Release has no runnable response fixture.');
+  return { group, response };
+}
+
+async function openResponsePreview(
+  user: ReturnType<typeof userEvent.setup>,
+  dialog: HTMLElement,
+  group: ReturnType<typeof runnableFixture>['group'],
+  responseId: string,
+) {
+  const search = within(dialog).getByRole('searchbox', { name: '搜索文献目录' });
+  await user.type(search, group.names.en);
+  const responseIndex = group.responses.findIndex((entry) => entry.id === responseId);
+  const rows = dialog.querySelectorAll<HTMLButtonElement>('.bfn-catalog-response-row');
+  const row = rows.item(responseIndex);
+  if (!row) throw new Error('Selected response row was not rendered.');
+  await user.click(row);
+}
+
+async function openResponseDetail(
+  user: ReturnType<typeof userEvent.setup>,
+  dialog: HTMLElement,
+  group: ReturnType<typeof runnableFixture>['group'],
+  responseId: string,
+) {
+  await openResponsePreview(user, dialog, group, responseId);
+  await user.click(within(dialog).getByRole('button', { name: '查看完整详情' }));
 }

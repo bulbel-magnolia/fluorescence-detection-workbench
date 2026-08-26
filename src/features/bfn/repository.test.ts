@@ -47,6 +47,44 @@ describe('BFN-IR repository', () => {
     expect(parseBfnProject(JSON.stringify(project))).toEqual(project);
   });
 
+  it('round-trips optional localized node names and keeps legacy nodes valid', () => {
+    const project = createDemoBfnProject();
+    project.network.inputSources[0]!.displayName = {
+      en: '3OC6-HSL (L)',
+      zh: '3OC6-HSL（L）',
+    };
+    project.network.inputSources[0]!.outputPort.displayName = {
+      en: '3OC6-HSL (L)',
+      zh: '3OC6-HSL（L）',
+    };
+    project.network.modules[0]!.displayName = { en: 'RhlR / pRhl', zh: 'RhlR / pRhl' };
+
+    const parsed = parseBfnProject(JSON.stringify(project));
+
+    expect(parsed.network.inputSources[0]?.displayName).toEqual(
+      project.network.inputSources[0]?.displayName,
+    );
+    expect(parsed.network.inputSources[0]?.outputPort.displayName).toEqual(
+      project.network.inputSources[0]?.outputPort.displayName,
+    );
+    expect(parsed.network.modules[0]?.displayName).toEqual(project.network.modules[0]?.displayName);
+    delete project.network.inputSources[0]!.displayName;
+    delete project.network.inputSources[0]!.outputPort.displayName;
+    delete project.network.modules[0]!.displayName;
+    expect(parseBfnProject(JSON.stringify(project))).toEqual(project);
+  });
+
+  it.each([
+    ['missing language', { en: 'Only English' }],
+    ['empty language', { en: 'Name', zh: ' ' }],
+    ['wrong shape', 'Name'],
+  ])('rejects a malformed node display name: %s', (_label, displayName) => {
+    const project = createDemoBfnProject();
+    Object.assign(project.network.modules[0]!, { displayName });
+
+    expect(() => parseBfnProject(JSON.stringify(project))).toThrow('BFN_IMPORT_SCHEMA_INVALID');
+  });
+
   it('keeps an unknown Catalog release readable but untrusted for execution', () => {
     const project = projectWithCatalogReference();
     const model = project.network.modules.at(-1)!.modelVariants[0]!;

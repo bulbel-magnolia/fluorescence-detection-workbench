@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { bfnModuleFlowLabel, bfnPortMetaLabel, bfnPortPrimaryLabel } from './presentation';
+import {
+  bfnModuleFlowLabel,
+  bfnNodeDisplayName,
+  bfnPortMetaLabel,
+  bfnPortPrimaryLabel,
+} from './presentation';
 import { BFN_CANVAS_SIZE, BFN_NODE_SIZE, type BfnCanvasViewport } from './nodePlacement';
 import type {
   BfnCanvasPosition,
@@ -180,7 +185,8 @@ export function BfnNetworkCanvas({
   onCreateConnection,
   onViewportChange,
 }: BfnNetworkCanvasProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
   const canvasRef = useRef<HTMLDivElement>(null);
   const nodeDragRef = useRef<NodeDragState | null>(null);
   const connectionDragRef = useRef<ConnectionDragState | null>(null);
@@ -361,7 +367,7 @@ export function BfnNetworkCanvas({
   const portLabel = (nodeLabel: string, port: BfnPort, direction: 'input' | 'output'): string =>
     t(`bfn.canvas.${direction}PortLabel`, {
       node: nodeLabel,
-      port: bfnPortPrimaryLabel(port, t),
+      port: bfnPortPrimaryLabel(port, t, language),
     });
 
   const inputHandle = (
@@ -408,7 +414,7 @@ export function BfnNetworkCanvas({
       >
         <span className="bfn-canvas-port__dot" aria-hidden="true" />
         <span className="bfn-canvas-port__tooltip" role="tooltip">
-          {bfnPortPrimaryLabel(port, t)}
+          {bfnPortPrimaryLabel(port, t, language)}
         </span>
       </button>
     );
@@ -444,7 +450,7 @@ export function BfnNetworkCanvas({
       >
         <span className="bfn-canvas-port__dot" aria-hidden="true" />
         <span className="bfn-canvas-port__tooltip" role="tooltip">
-          {bfnPortPrimaryLabel(port, t)}
+          {bfnPortPrimaryLabel(port, t, language)}
         </span>
       </button>
     );
@@ -555,7 +561,7 @@ export function BfnNetworkCanvas({
           role="button"
           tabIndex={0}
           style={{ left: source.position.x, top: source.position.y }}
-          aria-label={`${t(source.labelKey)}, ${t('bfn.nodeKinds.inputSource')}`}
+          aria-label={`${bfnNodeDisplayName(source, language, t)}, ${t('bfn.nodeKinds.inputSource')}`}
           onPointerDown={(event) => beginNodeDrag(event, source.id, source.position)}
           onClick={() => onSelectNode(source.id)}
           onKeyDown={(event) => {
@@ -563,9 +569,15 @@ export function BfnNetworkCanvas({
           }}
         >
           <span className="bfn-canvas-node__index">{t('bfn.nodeKinds.input')}</span>
-          <strong>{t(source.labelKey)}</strong>
+          <strong>{bfnNodeDisplayName(source, language, t)}</strong>
           <span className="bfn-canvas-node__flow">{bfnPortMetaLabel(source.outputPort, t)}</span>
-          {outputHandle(source.id, t(source.labelKey), source.outputPort, 0, 1)}
+          {outputHandle(
+            source.id,
+            bfnNodeDisplayName(source, language, t),
+            source.outputPort,
+            0,
+            1,
+          )}
         </div>
       ))}
 
@@ -577,7 +589,7 @@ export function BfnNetworkCanvas({
           role="button"
           tabIndex={0}
           style={{ left: module.position.x, top: module.position.y }}
-          aria-label={`${t(module.labelKey)}, ${t('bfn.nodeKinds.functionalModule')}`}
+          aria-label={`${bfnNodeDisplayName(module, language, t)}, ${t('bfn.nodeKinds.functionalModule')}`}
           onPointerDown={(event) => beginNodeDrag(event, module.id, module.position)}
           onClick={() => onSelectNode(module.id)}
           onKeyDown={(event) => {
@@ -585,13 +597,25 @@ export function BfnNetworkCanvas({
           }}
         >
           <span className="bfn-canvas-node__index">{t('bfn.nodeKinds.module')}</span>
-          <strong>{t(module.labelKey)}</strong>
-          <span className="bfn-canvas-node__flow">{bfnModuleFlowLabel(module, t)}</span>
+          <strong>{bfnNodeDisplayName(module, language, t)}</strong>
+          <span className="bfn-canvas-node__flow">{bfnModuleFlowLabel(module, t, language)}</span>
           {module.inputPorts.map((port, index) =>
-            inputHandle(module.id, t(module.labelKey), port, index, module.inputPorts.length),
+            inputHandle(
+              module.id,
+              bfnNodeDisplayName(module, language, t),
+              port,
+              index,
+              module.inputPorts.length,
+            ),
           )}
           {module.outputPorts.map((port, index) =>
-            outputHandle(module.id, t(module.labelKey), port, index, module.outputPorts.length),
+            outputHandle(
+              module.id,
+              bfnNodeDisplayName(module, language, t),
+              port,
+              index,
+              module.outputPorts.length,
+            ),
           )}
         </div>
       ))}
@@ -604,7 +628,7 @@ export function BfnNetworkCanvas({
           role="button"
           tabIndex={0}
           style={{ left: monitor.position.x, top: monitor.position.y }}
-          aria-label={`${t(monitor.labelKey)}, ${t('bfn.nodeKinds.outputMonitor')}`}
+          aria-label={`${bfnNodeDisplayName(monitor, language, t)}, ${t('bfn.nodeKinds.outputMonitor')}`}
           onPointerDown={(event) => beginNodeDrag(event, monitor.id, monitor.position)}
           onClick={() => onSelectNode(monitor.id)}
           onKeyDown={(event) => {
@@ -612,9 +636,15 @@ export function BfnNetworkCanvas({
           }}
         >
           <span className="bfn-canvas-node__index">{t('bfn.nodeKinds.output')}</span>
-          <strong>{t(monitor.labelKey)}</strong>
+          <strong>{bfnNodeDisplayName(monitor, language, t)}</strong>
           <span className="bfn-canvas-node__flow">{bfnPortMetaLabel(monitor.inputPort, t)}</span>
-          {inputHandle(monitor.id, t(monitor.labelKey), monitor.inputPort, 0, 1)}
+          {inputHandle(
+            monitor.id,
+            bfnNodeDisplayName(monitor, language, t),
+            monitor.inputPort,
+            0,
+            1,
+          )}
         </div>
       ))}
 

@@ -16,7 +16,13 @@ describe('BFN computation signature', () => {
     moved.labelKey = 'bfn.project.renamed';
     moved.network.labelKey = 'bfn.network.renamed';
     moved.network.modules[0]!.position = { x: 777, y: 333 };
+    moved.network.modules[0]!.displayName = { en: 'Renamed module', zh: '重命名模块' };
     moved.network.inputSources[0]!.position = { x: 91, y: 42 };
+    moved.network.inputSources[0]!.displayName = { en: 'Renamed source', zh: '重命名来源' };
+    moved.network.inputSources[0]!.outputPort.displayName = {
+      en: 'Renamed signal',
+      zh: '重命名信号',
+    };
 
     expect(createBfnComputationSignature(moved)).toBe(createBfnComputationSignature(project));
   });
