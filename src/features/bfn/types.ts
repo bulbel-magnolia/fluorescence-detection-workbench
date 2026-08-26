@@ -98,6 +98,34 @@ export interface BfnIndependentResponse {
 export type BfnStaticResponse =
   BfnHillResponse | BfnLinearResponse | BfnIdentityResponse | BfnIndependentResponse;
 
+export interface BfnCatalogModelReference {
+  kind: 'catalog_receiver_response';
+  catalogId: string;
+  releaseId: string;
+  releaseVersion: string;
+  responseId: string;
+  componentId: string;
+  inputSignalId: string;
+  outputSignalId: string;
+  parameterContextId: string;
+  sourceIds: string[];
+  sourceModelType: 'four_parameter_logistic' | 'hill_equation_n_fixed_1';
+  biologicalDirection: 'activation' | 'derepression';
+  runtimeImplementation: string;
+  sourceParameters: {
+    basal: number | null;
+    maximum: number | null;
+    ec50: number;
+    ec50Unit: 'M';
+    hillCoefficient: number;
+    workingRange: {
+      min: number;
+      max: number;
+      unit: 'M';
+    };
+  };
+}
+
 interface BfnModelVariantBase {
   id: string;
   version: string;
@@ -110,6 +138,7 @@ interface BfnModelVariantBase {
 
 export interface BfnStaticModel extends BfnModelVariantBase {
   mode: 'static';
+  catalogReference?: BfnCatalogModelReference;
   family: Exclude<BfnModelFamily, 'first_order'>;
   response: BfnStaticResponse;
   uncertaintyMethod:
@@ -402,7 +431,12 @@ export type BfnValidationCode =
   | 'missing_required_input'
   | 'context_mismatch'
   | 'outside_validity_domain'
-  | 'invalid_input_specification';
+  | 'invalid_input_specification'
+  | 'catalog_model_reference_invalid'
+  | 'catalog_release_unavailable'
+  | 'catalog_model_mismatch'
+  | 'catalog_input_out_of_range'
+  | 'catalog_execution_unavailable';
 
 export interface BfnValidationIssue {
   code: BfnValidationCode;

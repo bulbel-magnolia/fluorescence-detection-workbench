@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
+import {
+  buildBfnCatalogRuntimeCandidate,
+  instantiateCatalogResponseInBfnProject,
+} from './catalog/catalogBfnAdapter';
 import { createBfnComputationSignature } from './computationSignature';
 import { createDemoBfnProject } from './fixtures';
+import type { BfnStaticModel } from './types';
 
 describe('BFN computation signature', () => {
   it('excludes layout and project presentation metadata', () => {
@@ -71,5 +77,35 @@ describe('BFN computation signature', () => {
         network: { ...project.network, mode: 'dynamic' },
       }),
     );
+  });
+
+  it('tracks the active Catalog scientific identity and copied source contract', () => {
+    const project = createDemoBfnProject();
+    const candidate = buildBfnCatalogRuntimeCandidate(
+      AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id,
+    );
+    const instantiated = instantiateCatalogResponseInBfnProject(project, candidate, {
+      moduleId: 'module-catalog-signature',
+      modulePosition: { x: 360, y: 220 },
+      createInputSource: false,
+    });
+    if (!instantiated.ok) throw new Error(instantiated.error.code);
+    const baseline = createBfnComputationSignature(instantiated.nextProject);
+    const mutations = [
+      (model: BfnStaticModel) => (model.catalogReference!.releaseVersion = 'changed'),
+      (model: BfnStaticModel) =>
+        (model.catalogReference!.responseId = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[1]!.id),
+      (model: BfnStaticModel) => model.catalogReference!.sourceIds.reverse(),
+      (model: BfnStaticModel) => (model.catalogReference!.runtimeImplementation = 'changed'),
+      (model: BfnStaticModel) => (model.catalogReference!.sourceParameters.ec50 *= 2),
+    ];
+
+    for (const mutate of mutations) {
+      const changed = structuredClone(instantiated.nextProject);
+      const model = changed.network.modules.at(-1)!.modelVariants[0]!;
+      if (model.mode !== 'static') throw new Error('expected static Catalog model');
+      mutate(model);
+      expect(createBfnComputationSignature(changed)).not.toBe(baseline);
+    }
   });
 });

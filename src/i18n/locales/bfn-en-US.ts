@@ -27,6 +27,13 @@ export const bfnEnUS = {
     fast: 'Fast-response design (demo)',
     stable: 'Low-burden stable design (demo)',
   },
+  catalog: {
+    receiverResponseModule: 'Literature catalog response module',
+    receiverResponseDescription:
+      'Calculates a normalized receiver response from the frozen literature catalog.',
+    validityDomain: 'Trusted literature-response working range',
+    inputSource: 'Literature-response input',
+  },
   modules: {
     ahlSensor: {
       name: 'AHL response',
@@ -284,6 +291,16 @@ export const bfnEnUS = {
     outside_validity_domain:
       'The input or time is outside the parameter range, so the result is marked out of range.',
     invalid_input_specification: 'The input is incomplete. Check its values and range.',
+    catalog_model_reference_invalid:
+      'The literature catalog source contract is malformed, so this model cannot run as trusted.',
+    catalog_release_unavailable:
+      'The literature catalog release referenced by this project is unavailable for trusted execution.',
+    catalog_model_mismatch:
+      'The model differs from the frozen literature catalog, so execution was blocked.',
+    catalog_input_out_of_range:
+      'The input is outside the trusted literature-response working range, so execution was blocked.',
+    catalog_execution_unavailable:
+      'This literature catalog response is not admitted for numerical execution in the current release.',
   },
   inspector: {
     project: 'Network details',

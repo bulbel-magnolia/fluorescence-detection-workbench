@@ -378,3 +378,21 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 1440×900 浏览器审计保存 5 张条件截图。旧运行截图未通过开发脚本注入隐藏状态；旧运行安全回退由 repository、resolver、chart model 和页面测试覆盖。实际界面重新导出的 SVG 不含 `normalized_reporter_expression`、`normalized_promoter_activity` 或 `dimensionless`，并包含“报告信号”和“相对值”；PNG 为 2280×900；CSV 表头保留 `input:source-ahl` 与 `module:module-ahl-sensor` 等稳定 ID。审计说明与产物见 `docs/ui-audit/scientific-results-fixes/README.md`。
 
 最终门禁实际通过 TypeScript 与 ESLint；Vitest 共 76 个测试文件、477 项测试全部通过；Vite 生产构建转换 215 个模块。主 JavaScript chunk 为 671.75 kB、gzip 204.19 kB，构建继续报告既有的大于 500 kB 代码拆分提示，产物生成成功。
+
+## 2026-08-26 Batch 5.0 Catalog → BFN scientific contract
+
+本轮自动化覆盖以下数据与执行边界：
+
+- 使用冻结 runtime whitelist 对全部 20 条 receiver response 做表驱动数值等价检查，分别比较零点、工作范围下界、上界以及 EC50 或范围内点；
+- 验证 19 条 4PL 的 BFN `ymin/ymax` 固定为 0/1，来源 basal/maximum 只进入 provenance；验证 Shong EsaR 的数学 family、`K=2.1e-7 M`、`n=1` 与 biological derepression；
+- 验证零点合法且不外推，正值范围外、负数、NaN 和 Infinity 拒绝执行；普通 BFN 域外 warning/extrapolated 回归保持不变；
+- 验证 Input Source 与 Functional Module 输出的 exact entity、exact quantity 和单位量纲兼容解析，排除 Output Monitor，不做 alias/fuzzy match，也不自动选择来源；
+- 验证匹配输入源使用 canonical chemical identity、M、精确工作范围、33 个静态点和范围下界动态常量，且不创建 Edge；
+- 验证 module-only 与 module-plus-source 的单次原子 mutation、全局 node/port/domain ID 冲突、既有节点/Monitor/Edge 保持不变；
+- 对 reference、EC50、Hill、0/1 边界、输入/输出端口、工作范围、context、response、source IDs 和 runtime implementation 执行 tamper 检查；
+- 验证 unknown release 和 malformed reference 项目可读取，验证与运行以 Catalog 业务错误安全终止，不出现 TypeError，也不使用复制参数回退；
+- 验证静态 Catalog model 在 dynamic network 中无记忆执行，不生成 tau；验证非 Demo project 中参与计算的 runtime-demo model 会把结果标为 Demo，实验有效性保持 `not_validated`；
+- 验证 sender outputs 仍为 0、13 条 effective pair 不可拆分、39 条 compatibility relation 不允许数值使用；
+- 验证 computation signature 感知 Catalog reference、来源参数、derived model、ports 和 validity domain；旧项目没有 reference 时继续原有执行路径。
+
+Batch 5.0 没有新增用户可见 Catalog 界面，不执行视觉审计，也不生成截图。

@@ -249,9 +249,29 @@ Batch 4 将分析结果区扩展为可交互、可追溯、可复现的科学图
 
 Batch 4.1 的用户语义、系列显隐、窄 Log 轴、可见域键盘光标和修正后导出审计位于 `docs/ui-audit/scientific-results-fixes/`。
 
+## Catalog-backed BFN scientific contract
+
+AHL/HSL V1.1 文献目录通过独立的 BFN 集成层进入 BFN-IR。运行候选只接受冻结白名单中的 20 条 receiver response：19 条 Kylilis 4PL 和 1 条 Shong EsaR。目录中的 52 条 receiver response 不会整体获得执行权限；sender output 当前为 0，13 条 effective pair 保持不可拆分，39 条 compatibility relation 保持非数值证据。它们不会生成 sender transfer function、边权重、增益、阈值或 Hill 参数。
+
+每个 Catalog-backed model variant 保存版本化 `catalogReference`，包括 catalog、release、response、component、input/output signal、parameter context、source IDs、来源模型、调控方向、runtime implementation 以及来源参数。输入端口的 `entity` 来自冻结原始 release 的 `canonical_name`，量类型为 concentration，规范单位为 M；英文显示名、中文显示名、alias 和 component name 不参与信号身份匹配。输出统一表示为 `normalized_reporter_expression / expression_level / dimensionless`，原始 reporter 与 output signal ID 继续保存在来源合同中。
+
+19 条 4PL 响应映射为标准 `hill_activation`：`ymin=0`、`ymax=1`、`K=EC50 (M)`、`n=Hill coefficient`。Catalog 的 basal 和 maximum 只记录来源上下文中的归一化参数，不作为 BFN 的 ymin 和 ymax。Shong EsaR 同样使用随输入增加的 `hill_activation` 数学表示，`K=2.1e-7 M`、`n=1`；其生物调控方向单独保留为 `derepression`。这些模型不生成参数区间、实验数据集或完整 BiologicalImplementation，证据等级为 `fitted_from_published_data`，并明确标记为 runtime demo。
+
+Catalog working range 按原值和 M 单位写入实例级 `BfnValidityDomain`。`x=0` 是可信 evaluator 定义的特殊合法点，即使正值工作范围下界大于 0，也不标记为外推。正值只能在闭区间 `[min,max]` 内执行；区间外、负数和非有限值会终止可信执行。普通非 Catalog BFN 模型继续保留域外 warning 与 extrapolated 语义。
+
+运行时不会信任项目 JSON 中复制的 Hill 参数。执行链依次检查 reference 结构和 release identity，从 bundled frozen release 重新构建 trusted receiver binding，重建预期 BFN 映射，核对 module、model、ports 和 validity domain，随后调用既有 `evaluateReceiverResponse()`。任何 reference、EC50、Hill、范围、context、source、runtime implementation 或端口语义不一致都会使模型不可可信执行，不会自动修复，也不会退化成 generic Hill model。未知 release 和损坏 reference 的项目仍可读取；运行和验证返回明确的 Catalog 业务错误。
+
+Catalog parameter context 使用确定、带命名空间的 external identity，并同时写入 model 与 validity domain。集成层不把缺失宿主、培养基、温度或载体字段补成默认值，也不创建伪 `BfnContext`。文献 source IDs 只保存在 Catalog provenance 中，不伪装成 `BfnExperimentalDataset`。
+
+输入解析只返回 entity 完全相同、quantity type 完全相同且单位量纲兼容的 Input Source 输出或 Functional Module 输出。结果会列出全部兼容来源并建议“只添加模块”或“模块加输入源”；兼容不代表用户确认拓扑，因此实例化从不自动选择来源或创建 Edge。静态默认输入源使用精确工作范围和 33 个采样点，动态默认值为范围下界；该值只用于初始模拟状态。
+
+Catalog V1.1 没有可信时间常数或状态方程，只创建 `BfnStaticModel`。静态 Catalog 模块进入动态网络时逐时刻执行 `y(t)=F(x(t))`，作为无记忆模块运行，不生成 tau 或人工延迟。运行结果的 Demo 状态由项目或任一实际参与计算的 effective model 传播；`experimentalValidity` 保持 `not_validated`。
+
 ## 代码边界
 
 - `src/features/bfn/types.ts`：BFN-IR 2.0 类型；
+- `src/features/bfn/catalog/`：Catalog 候选、来源合同、输入解析、可信验证与统一执行边界；
+- `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
 - `validation.ts`：端口、连接、DAG、输入和上下文检查；
 - `responseMath.ts`：完整静态响应纯函数；

@@ -1,14 +1,6 @@
-import type { BfnFunctionalModule, BfnModelVariant, BfnProject } from './types';
-import { activeModelForModule } from './validation';
-
-function activeComputationModel(
-  project: BfnProject,
-  module: BfnFunctionalModule,
-): BfnModelVariant | null {
-  const direct = activeModelForModule(module, project.network.mode);
-  if (direct) return direct;
-  return project.network.mode === 'dynamic' ? activeModelForModule(module, 'static') : null;
-}
+import type { BfnModelVariant, BfnProject } from './types';
+import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import { resolveEffectiveBfnModel } from './modelResolution';
 
 function modelBasis(model: BfnModelVariant | null) {
   if (!model) return null;
@@ -19,6 +11,10 @@ function modelBasis(model: BfnModelVariant | null) {
     family: model.family,
     contextId: model.contextId,
     validityDomainId: model.validityDomainId,
+    sourceDatasetIds: model.sourceDatasetIds,
+    evidenceGrade: model.evidenceGrade,
+    isDemo: model.isDemo,
+    catalogReference: bfnCatalogReferencePresence(model).value,
     uncertaintyMethod: model.uncertaintyMethod,
   };
   return model.mode === 'static'
@@ -33,12 +29,15 @@ function modelBasis(model: BfnModelVariant | null) {
 
 export function createBfnComputationSignature(project: BfnProject): string {
   const modules = project.network.modules.map((module) => {
-    const model = activeComputationModel(project, module);
+    const model = resolveEffectiveBfnModel(project, module);
     return {
       kind: module.kind,
       id: module.id,
       inputPorts: module.inputPorts,
       outputPorts: module.outputPorts,
+      implementationIds: module.implementationIds,
+      evidenceGrade: module.evidenceGrade,
+      isDemo: module.isDemo,
       activeModelId: model?.id ?? null,
       model: modelBasis(model),
     };

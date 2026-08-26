@@ -2,26 +2,21 @@ import type {
   BfnFunctionalModule,
   BfnIdealEdge,
   BfnIdealEdgeEndpoint,
-  BfnModelVariant,
   BfnPort,
   BfnProject,
   BfnValidationIssue,
 } from './types';
+import { BfnCatalogContractError, bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import { verifyBfnCatalogModel } from './catalog/catalogBfnVerification';
+import { resolveEffectiveBfnModel } from './modelResolution';
 import { areUnitsCompatible, convertUnit } from './unitSystem';
+
+export { activeModelForModule } from './modelResolution';
 
 export interface BfnResolvedPort {
   nodeId: string;
   nodeKind: 'input_source' | 'functional_module' | 'output_monitor';
   port: BfnPort;
-}
-
-export function activeModelForModule(
-  module: BfnFunctionalModule,
-  mode: BfnProject['network']['mode'],
-): BfnModelVariant | null {
-  const modelId = mode === 'static' ? module.activeModelIds.static : module.activeModelIds.dynamic;
-  if (!modelId) return null;
-  return module.modelVariants.find((model) => model.id === modelId && model.mode === mode) ?? null;
 }
 
 export function resolveBfnPort(
@@ -80,7 +75,7 @@ function hasDirectedCycle(edges: readonly BfnIdealEdge[]): boolean {
 function contextForEndpoint(project: BfnProject, endpoint: BfnIdealEdgeEndpoint): string | null {
   const module = project.network.modules.find((candidate) => candidate.id === endpoint.nodeId);
   if (!module) return null;
-  return activeModelForModule(module, project.network.mode)?.contextId ?? null;
+  return resolveEffectiveBfnModel(project, module)?.contextId ?? null;
 }
 
 export function checkIdealConnection(
@@ -297,7 +292,7 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
       .map((edge) => `${edge.target.nodeId}:${edge.target.portId}`),
   );
   for (const module of project.network.modules) {
-    const model = activeModelForModule(module, project.network.mode);
+    const model = resolveEffectiveBfnModel(project, module);
     if (!model) {
       issues.push({
         code: 'missing_required_input',
@@ -305,6 +300,14 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
         subjectId: module.id,
         details: { mode: project.network.mode },
       });
+    } else if (bfnCatalogReferencePresence(model).present) {
+      try {
+        verifyBfnCatalogModel(project, module, model);
+      } catch (error) {
+        const code =
+          error instanceof BfnCatalogContractError ? error.code : 'catalog_execution_unavailable';
+        issues.push({ code, severity: 'error', subjectId: model.id });
+      }
     }
     for (const port of module.inputPorts) {
       if (!connectedTargetPorts.has(`${module.id}:${port.id}`)) {

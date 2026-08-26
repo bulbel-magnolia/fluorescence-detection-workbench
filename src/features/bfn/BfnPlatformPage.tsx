@@ -28,6 +28,7 @@ import {
   type BfnEditorSnapshot,
 } from './editorHistory';
 import { bfnEditorShortcut, isBfnEditorOverlayOpen } from './editorShortcuts';
+import { resolveEffectiveBfnModel } from './modelResolution';
 import { BFN_CANVAS_SIZE, findBfnModulePlacement, type BfnCanvasViewport } from './nodePlacement';
 import {
   bfnModuleCatalog,
@@ -62,7 +63,6 @@ import { runBfnSimulation } from './simulation';
 import type {
   BfnDynamicInputSpecification,
   BfnCanvasPosition,
-  BfnFunctionalModule,
   BfnIdealEdgeEndpoint,
   BfnModelVariant,
   BfnParameterEstimate,
@@ -75,12 +75,7 @@ import type {
   BfnValidationIssue,
   BfnValidityDomain,
 } from './types';
-import {
-  activeModelForModule,
-  addIdealConnection,
-  checkIdealConnection,
-  validateBfnProject,
-} from './validation';
+import { addIdealConnection, checkIdealConnection, validateBfnProject } from './validation';
 import './bfn-platform.css';
 
 type ResultFreshness = 'current' | 'stale';
@@ -127,16 +122,6 @@ function displayNumber(value: number, digits = 3): string {
   if (!Number.isFinite(value)) return '—';
   if (Math.abs(value) > 0 && Math.abs(value) < 0.001) return value.toExponential(2);
   return value.toFixed(digits);
-}
-
-function activeOrMemorylessModel(
-  project: BfnProject,
-  module: BfnFunctionalModule,
-): BfnModelVariant | null {
-  return (
-    activeModelForModule(module, project.network.mode) ??
-    (project.network.mode === 'dynamic' ? activeModelForModule(module, 'static') : null)
-  );
 }
 
 function formulaForModel(model: BfnModelVariant | null): string {
@@ -436,7 +421,7 @@ export function BfnPlatformPage() {
     ? portForEndpoint(project, selectedEdge.target)
     : null;
   const selectedModuleModel = selectedModule
-    ? activeOrMemorylessModel(project, selectedModule)
+    ? resolveEffectiveBfnModel(project, selectedModule)
     : null;
   const selectedContext = selectedModuleModel
     ? (project.registry.contexts.find((context) => context.id === selectedModuleModel.contextId) ??
@@ -2030,7 +2015,7 @@ export function BfnPlatformPage() {
             <div className="bfn-module-catalog">
               {bfnModuleCatalog.map((entry) => {
                 const previewModule = createCatalogModule(entry.id, 'catalog-preview');
-                const previewModel = activeOrMemorylessModel(project, previewModule);
+                const previewModel = resolveEffectiveBfnModel(project, previewModule);
                 const relatedDatasets = previewModel
                   ? project.registry.datasets.filter((dataset) =>
                       previewModel.sourceDatasetIds.includes(dataset.id),

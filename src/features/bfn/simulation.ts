@@ -1,5 +1,8 @@
 import { buildAnnApproximation } from './annApproximation';
-import { evaluateStaticResponse, type BfnParameterScenario } from './responseMath';
+import { evaluateBfnModuleModel } from './catalog/catalogBfnEvaluation';
+import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import { resolveEffectiveBfnModel } from './modelResolution';
+import type { BfnParameterScenario } from './responseMath';
 import type {
   BfnDynamicInputSpecification,
   BfnDynamicMetrics,
@@ -15,7 +18,6 @@ import type {
 } from './types';
 import { convertUnit } from './unitSystem';
 import {
-  activeModelForModule,
   resolveBfnPort,
   topologicalModuleOrder,
   validateBfnProject,
@@ -32,15 +34,6 @@ const parameterScenarios: BfnParameterScenario[] = [
 
 function createId(prefix: string): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
-}
-
-function activeSimulationModel(
-  project: BfnProject,
-  module: BfnFunctionalModule,
-): BfnModelVariant | null {
-  const direct = activeModelForModule(module, project.network.mode);
-  if (direct) return direct;
-  return project.network.mode === 'dynamic' ? activeModelForModule(module, 'static') : null;
 }
 
 function valuesForStaticSpecification(specification: BfnStaticInputSpecification): number[] {
@@ -82,6 +75,7 @@ function domainExtrapolation(
     if (!port) return false;
     const value = inputs[port.id];
     if (value === undefined) return false;
+    if (bfnCatalogReferencePresence(model).present && value === 0) return false;
     const comparable = convertUnit(value, port.unit, range.unit);
     return comparable < range.minimum || comparable > range.maximum;
   });
@@ -104,7 +98,7 @@ function evaluateStaticNetwork(
     valuesByPort.set(source.outputPort.id, inputValues[source.id] ?? 0);
   }
   for (const module of topologicalModuleOrder(project)) {
-    const model = activeSimulationModel(project, module);
+    const model = resolveEffectiveBfnModel(project, module);
     if (!model) continue;
     const inputs: Record<string, number> = {};
     for (const port of module.inputPorts) {
@@ -118,8 +112,7 @@ function evaluateStaticNetwork(
       inputs[port.id] =
         edge && sourceValue !== undefined ? valueAcrossEdge(sourceValue, project, edge) : 0;
     }
-    const response = model.mode === 'static' ? model.response : model.steadyStateResponse;
-    const output = evaluateStaticResponse(response, inputs, scenario);
+    const output = evaluateBfnModuleModel(project, module, model, inputs, scenario);
     moduleOutputs[module.id] = output;
     for (const port of module.outputPorts) valuesByPort.set(port.id, output);
     if (scenario === 'estimate' && domainExtrapolation(project, module, model, inputs)) {
@@ -245,7 +238,7 @@ function simulateDynamicScenario(
   const stateByModule = new Map<string, number>();
   const modules = dynamicModuleOrder(project);
   for (const module of modules) {
-    const model = activeSimulationModel(project, module);
+    const model = resolveEffectiveBfnModel(project, module);
     if (model?.mode === 'dynamic') {
       stateByModule.set(module.id, model.initialState);
       module.outputPorts.forEach((port) => valuesByPort.set(port.id, model.initialState));
@@ -265,7 +258,7 @@ function simulateDynamicScenario(
     const moduleOutputs: Record<string, number> = {};
     const extrapolatedSubjects: string[] = [];
     for (const module of modules) {
-      const model = activeSimulationModel(project, module);
+      const model = resolveEffectiveBfnModel(project, module);
       if (!model) continue;
       const inputs: Record<string, number> = {};
       for (const port of module.inputPorts) {
@@ -279,8 +272,7 @@ function simulateDynamicScenario(
         inputs[port.id] =
           edge && sourceValue !== undefined ? valueAcrossEdge(sourceValue, project, edge) : 0;
       }
-      const response = model.mode === 'dynamic' ? model.steadyStateResponse : model.response;
-      const target = evaluateStaticResponse(response, inputs, scenario);
+      const target = evaluateBfnModuleModel(project, module, model, inputs, scenario);
       const output =
         model.mode === 'dynamic'
           ? (() => {
@@ -424,7 +416,7 @@ function dynamicSimulation(project: BfnProject): {
 
 function provenance(project: BfnProject): { modelVersions: string[]; contextIds: string[] } {
   const models = project.network.modules
-    .map((module) => activeSimulationModel(project, module))
+    .map((module) => resolveEffectiveBfnModel(project, module))
     .filter((model): model is BfnModelVariant => model !== null);
   return {
     modelVersions: [...new Set(models.map((model) => model.version))],
@@ -492,7 +484,11 @@ export function runBfnSimulation(
     extrapolated: outsideIssues.length > 0,
     uncertaintyMethod: 'parameter_interval_envelope',
     completedAt,
-    isDemo: project.isDemo,
+    isDemo:
+      project.isDemo ||
+      project.network.modules.some(
+        (module) => resolveEffectiveBfnModel(project, module)?.isDemo === true,
+      ),
     experimentalValidity: 'not_validated',
   };
 }
@@ -501,6 +497,6 @@ export function selectedModel(
   project: BfnProject,
   module: BfnFunctionalModule,
 ): BfnStaticModel | BfnDynamicModel | null {
-  const model = activeSimulationModel(project, module);
+  const model = resolveEffectiveBfnModel(project, module);
   return model?.mode === 'static' || model?.mode === 'dynamic' ? model : null;
 }

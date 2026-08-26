@@ -26,6 +26,10 @@ const unitDefinitions: Record<BfnUnit, UnitDefinition> = {
   OD600: { dimension: 'cell_density', toCanonical: 1 },
 };
 
+export function isBfnUnit(value: unknown): value is BfnUnit {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(unitDefinitions, value);
+}
+
 export function unitDimension(unit: BfnUnit): UnitDimension {
   return unitDefinitions[unit].dimension;
 }

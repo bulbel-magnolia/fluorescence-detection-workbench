@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from './fixtures';
 import {
+  buildBfnCatalogRuntimeCandidate,
+  instantiateCatalogResponseInBfnProject,
+} from './catalog/catalogBfnAdapter';
+import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
+import {
   BFN_PROJECT_STORAGE_KEY,
   BFN_RUN_STORAGE_KEY,
   LEGACY_MODELING_PROJECT_KEY,
@@ -12,6 +17,19 @@ import {
   saveBfnProject,
 } from './repository';
 import { runBfnSimulation } from './simulation';
+import { validateBfnProject } from './validation';
+
+function projectWithCatalogReference() {
+  const project = createDemoBfnProject();
+  const candidate = buildBfnCatalogRuntimeCandidate(AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id);
+  const result = instantiateCatalogResponseInBfnProject(project, candidate, {
+    moduleId: 'module-catalog-repository',
+    modulePosition: { x: 360, y: 220 },
+    createInputSource: false,
+  });
+  if (!result.ok) throw new Error(result.error.code);
+  return result.nextProject;
+}
 
 describe('BFN-IR repository', () => {
   beforeEach(() => localStorage.clear());
@@ -21,6 +39,41 @@ describe('BFN-IR repository', () => {
     saveBfnProject(project);
     expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).not.toBeNull();
     expect(loadBfnProject()).toEqual(project);
+  });
+
+  it('round-trips a valid optional Catalog model reference', () => {
+    const project = projectWithCatalogReference();
+
+    expect(parseBfnProject(JSON.stringify(project))).toEqual(project);
+  });
+
+  it('keeps an unknown Catalog release readable but untrusted for execution', () => {
+    const project = projectWithCatalogReference();
+    const model = project.network.modules.at(-1)!.modelVariants[0]!;
+    if (model.mode !== 'static') throw new Error('expected static Catalog model');
+    model.catalogReference!.releaseVersion = 'future-unknown';
+
+    const parsed = parseBfnProject(JSON.stringify(project));
+
+    const parsedModel = parsed.network.modules.at(-1)!.modelVariants[0]!;
+    if (parsedModel.mode !== 'static') throw new Error('expected parsed static Catalog model');
+    expect(parsedModel.catalogReference?.releaseVersion).toBe('future-unknown');
+    expect(validateBfnProject(parsed).map((issue) => issue.code)).toContain(
+      'catalog_release_unavailable',
+    );
+  });
+
+  it('keeps a malformed Catalog reference readable and reports a safe business error', () => {
+    const project = projectWithCatalogReference();
+    const model = project.network.modules.at(-1)!.modelVariants[0]!;
+    Object.assign(model, { catalogReference: { kind: 'catalog_receiver_response' } });
+
+    const parsed = parseBfnProject(JSON.stringify(project));
+
+    expect(() => validateBfnProject(parsed)).not.toThrow();
+    expect(validateBfnProject(parsed).map((issue) => issue.code)).toContain(
+      'catalog_model_reference_invalid',
+    );
   });
 
   it('rejects a legacy weight-based project instead of silently relabeling it', () => {

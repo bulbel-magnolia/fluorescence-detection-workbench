@@ -26,6 +26,12 @@ export const bfnZhCN = {
     fast: '快速响应方案（演示）',
     stable: '低负载稳定方案（演示）',
   },
+  catalog: {
+    receiverResponseModule: '文献目录响应模块',
+    receiverResponseDescription: '按冻结文献目录中的归一化受体响应计算输出。',
+    validityDomain: '文献响应可信工作范围',
+    inputSource: '文献响应输入',
+  },
   modules: {
     ahlSensor: {
       name: 'AHL 响应',
@@ -274,6 +280,11 @@ export const bfnZhCN = {
     context_mismatch: '上下游参数采用不同实验条件：{{source}} 与 {{target}}。',
     outside_validity_domain: '输入或时间超出参数适用范围，结果已标记为范围外。',
     invalid_input_specification: '输入设置不完整，请检查数值和范围。',
+    catalog_model_reference_invalid: '文献目录来源合同损坏，当前模型不能可信执行。',
+    catalog_release_unavailable: '当前项目引用的文献目录版本不可用，模型不能可信执行。',
+    catalog_model_mismatch: '模型内容与冻结文献目录不一致，已阻止执行。',
+    catalog_input_out_of_range: '输入不在文献响应的可信工作范围内，已阻止执行。',
+    catalog_execution_unavailable: '文献目录响应未获得当前版本的数值执行权限。',
   },
   inspector: {
     project: '网络详情',
