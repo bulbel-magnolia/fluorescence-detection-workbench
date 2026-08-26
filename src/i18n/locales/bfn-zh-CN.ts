@@ -283,6 +283,8 @@ export const bfnZhCN = {
     catalog_model_reference_invalid: '文献目录来源合同损坏，当前模型不能可信执行。',
     catalog_release_unavailable: '当前项目引用的文献目录版本不可用，模型不能可信执行。',
     catalog_model_mismatch: '模型内容与冻结文献目录不一致，已阻止执行。',
+    catalog_required_input_unconnected:
+      '文献模型的输入尚未连接。该响应需要明确的上游信号；未连接输入不能解释为零浓度。',
     catalog_input_out_of_range: '输入不在文献响应的可信工作范围内，已阻止执行。',
     catalog_execution_unavailable: '文献目录响应未获得当前版本的数值执行权限。',
   },

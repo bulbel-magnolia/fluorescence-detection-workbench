@@ -31,7 +31,17 @@ export function evaluateBfnModuleModel(
   if (inputPort === undefined) {
     throw new BfnCatalogContractError('catalog_model_mismatch', { subjectId: model.id });
   }
-  const input = inputs[inputPort.id] ?? 0;
+  if (!Object.prototype.hasOwnProperty.call(inputs, inputPort.id)) {
+    throw new BfnCatalogContractError('catalog_required_input_unconnected', {
+      subjectId: inputPort.id,
+    });
+  }
+  const input = inputs[inputPort.id];
+  if (input === undefined) {
+    throw new BfnCatalogContractError('catalog_input_out_of_range', {
+      subjectId: model.id,
+    });
+  }
   try {
     return evaluateReceiverResponse(verified.binding, input, 'M');
   } catch (error) {

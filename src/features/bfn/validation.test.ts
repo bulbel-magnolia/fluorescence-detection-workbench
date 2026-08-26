@@ -75,4 +75,19 @@ describe('BFN-IR ideal connection validation', () => {
       expect.arrayContaining(['self_connection', 'static_cycle']),
     );
   });
+
+  it('keeps an unconnected generic module input as a warning', () => {
+    const project = createDemoBfnProject();
+    const sensor = project.network.modules[0]!;
+    const inputPort = sensor.inputPorts[0]!;
+    project.network.edges = project.network.edges.filter(
+      (edge) => edge.target.portId !== inputPort.id,
+    );
+
+    const issue = validateBfnProject(project).find(
+      (candidate) => candidate.subjectId === inputPort.id,
+    );
+
+    expect(issue).toMatchObject({ code: 'missing_required_input', severity: 'warning' });
+  });
 });

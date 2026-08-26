@@ -273,6 +273,19 @@ function validateInputSpecification(project: BfnProject): BfnValidationIssue[] {
   });
 }
 
+function hasResolvedEnabledIncomingSignal(
+  project: BfnProject,
+  nodeId: string,
+  portId: string,
+): boolean {
+  return project.network.edges.some((edge) => {
+    if (!edge.enabled || edge.target.nodeId !== nodeId || edge.target.portId !== portId) {
+      return false;
+    }
+    return resolveBfnPort(project, edge.source)?.port.direction === 'output';
+  });
+}
+
 export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
   const issues: BfnValidationIssue[] = [...validateInputSpecification(project)];
   for (const edge of project.network.edges) {
@@ -286,13 +299,9 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
     };
     issues.push(...checkIdealConnection(withoutEdge, edge.source, edge.target, edge.id));
   }
-  const connectedTargetPorts = new Set(
-    project.network.edges
-      .filter((edge) => edge.enabled)
-      .map((edge) => `${edge.target.nodeId}:${edge.target.portId}`),
-  );
   for (const module of project.network.modules) {
     const model = resolveEffectiveBfnModel(project, module);
+    const catalogBacked = model !== null && bfnCatalogReferencePresence(model).present;
     if (!model) {
       issues.push({
         code: 'missing_required_input',
@@ -300,7 +309,7 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
         subjectId: module.id,
         details: { mode: project.network.mode },
       });
-    } else if (bfnCatalogReferencePresence(model).present) {
+    } else if (catalogBacked) {
       try {
         verifyBfnCatalogModel(project, module, model);
       } catch (error) {
@@ -310,13 +319,25 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
       }
     }
     for (const port of module.inputPorts) {
-      if (!connectedTargetPorts.has(`${module.id}:${port.id}`)) {
-        issues.push({ code: 'missing_required_input', severity: 'warning', subjectId: port.id });
+      if (!hasResolvedEnabledIncomingSignal(project, module.id, port.id)) {
+        issues.push(
+          catalogBacked
+            ? {
+                code: 'catalog_required_input_unconnected',
+                severity: 'error',
+                subjectId: port.id,
+              }
+            : {
+                code: 'missing_required_input',
+                severity: 'warning',
+                subjectId: port.id,
+              },
+        );
       }
     }
   }
   for (const monitor of project.network.outputMonitors) {
-    if (!connectedTargetPorts.has(`${monitor.id}:${monitor.inputPort.id}`)) {
+    if (!hasResolvedEnabledIncomingSignal(project, monitor.id, monitor.inputPort.id)) {
       issues.push({
         code: 'missing_required_input',
         severity: 'error',

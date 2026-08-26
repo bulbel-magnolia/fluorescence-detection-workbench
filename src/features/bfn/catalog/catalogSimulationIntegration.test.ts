@@ -5,10 +5,10 @@ import {
 } from '../../modeling/receiverResponseEvaluator';
 import { getTrustedAhlHslCatalogRelease } from '../../modeling/catalog/v2/catalogReleaseLoader';
 import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
-import { createDemoBfnProject } from '../fixtures';
+import { createCatalogModule, createDemoBfnProject } from '../fixtures';
 import { runBfnSimulation } from '../simulation';
 import type { BfnProject, BfnStaticModel } from '../types';
-import { validateBfnProject } from '../validation';
+import { addIdealConnection, validateBfnProject } from '../validation';
 import {
   buildBfnCatalogRuntimeCandidate,
   instantiateCatalogResponseInBfnProject,
@@ -17,7 +17,7 @@ import { BfnCatalogContractError } from './catalogBfnTypes';
 
 const RESPONSE_ID = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id;
 
-function connectedCatalogProject(): BfnProject {
+function instantiatedCatalogProject(): BfnProject {
   const project = createDemoBfnProject();
   project.isDemo = false;
   project.network.inputSources = [];
@@ -34,7 +34,6 @@ function connectedCatalogProject(): BfnProject {
   });
   if (!instantiated.ok) throw new Error(instantiated.error.code);
   const next = instantiated.nextProject;
-  const source = next.network.inputSources[0]!;
   const module = next.network.modules[0]!;
   const monitor = next.network.outputMonitors[0]!;
   monitor.inputPort = {
@@ -42,23 +41,26 @@ function connectedCatalogProject(): BfnProject {
     id: monitor.inputPort.id,
     direction: 'input',
   };
-  next.network.edges = [
-    {
-      id: 'edge-source-catalog',
-      source: { nodeId: source.id, portId: source.outputPort.id },
-      target: { nodeId: module.id, portId: module.inputPorts[0]!.id },
-      mapping: 'identity',
-      enabled: true,
-    },
-    {
-      id: 'edge-catalog-monitor',
-      source: { nodeId: module.id, portId: module.outputPorts[0]!.id },
-      target: { nodeId: monitor.id, portId: monitor.inputPort.id },
-      mapping: 'identity',
-      enabled: true,
-    },
-  ];
   return next;
+}
+
+function connectedCatalogProject(): BfnProject {
+  const project = instantiatedCatalogProject();
+  const source = project.network.inputSources[0]!;
+  const module = project.network.modules[0]!;
+  const monitor = project.network.outputMonitors[0]!;
+  const withInput = addIdealConnection(
+    project,
+    { nodeId: source.id, portId: source.outputPort.id },
+    { nodeId: module.id, portId: module.inputPorts[0]!.id },
+    'edge-source-catalog',
+  );
+  return addIdealConnection(
+    withInput,
+    { nodeId: module.id, portId: module.outputPorts[0]!.id },
+    { nodeId: monitor.id, portId: monitor.inputPort.id },
+    'edge-catalog-monitor',
+  );
 }
 
 function catalogStaticModel(project: BfnProject): BfnStaticModel {
@@ -67,7 +69,195 @@ function catalogStaticModel(project: BfnProject): BfnStaticModel {
   return model;
 }
 
+function markCurrentModelsNonDemo(project: BfnProject): void {
+  project.isDemo = false;
+  for (const module of project.network.modules) {
+    module.isDemo = false;
+    for (const model of module.modelVariants) model.isDemo = false;
+  }
+}
+
+function detachedCatalogBranchProject(disabledPathToMonitor = false): BfnProject {
+  const project = createDemoBfnProject();
+  markCurrentModelsNonDemo(project);
+  project.network.inputSources[0]!.staticSpecification = {
+    type: 'fixed_value',
+    value: 10,
+    unit: 'nM',
+  };
+  const instantiated = instantiateCatalogResponseInBfnProject(
+    project,
+    buildBfnCatalogRuntimeCandidate(RESPONSE_ID),
+    {
+      moduleId: 'module-catalog-detached',
+      modulePosition: { x: 360, y: 360 },
+      createInputSource: true,
+      inputSourceId: 'source-catalog-detached',
+      inputSourcePosition: { x: 40, y: 360 },
+    },
+  );
+  if (!instantiated.ok) throw new Error(instantiated.error.code);
+  const next = instantiated.nextProject;
+  const source = next.network.inputSources.find(
+    (candidate) => candidate.id === 'source-catalog-detached',
+  )!;
+  const module = next.network.modules.find(
+    (candidate) => candidate.id === 'module-catalog-detached',
+  )!;
+  source.staticSpecification = { type: 'fixed_value', value: 0, unit: 'M' };
+  const withInput = addIdealConnection(
+    next,
+    { nodeId: source.id, portId: source.outputPort.id },
+    { nodeId: module.id, portId: module.inputPorts[0]!.id },
+    'edge-source-catalog-detached',
+  );
+  if (disabledPathToMonitor) {
+    const monitor = withInput.network.outputMonitors[0]!;
+    withInput.network.edges.push({
+      id: 'edge-catalog-detached-monitor-disabled',
+      source: { nodeId: module.id, portId: module.outputPorts[0]!.id },
+      target: { nodeId: monitor.id, portId: monitor.inputPort.id },
+      mapping: 'identity',
+      enabled: false,
+    });
+  }
+  return withInput;
+}
+
+function mixedCatalogBranchProject(): BfnProject {
+  const project = detachedCatalogBranchProject();
+  const reporter = project.network.modules.find((module) => module.id === 'module-reporter')!;
+  const catalogModule = project.network.modules.find(
+    (module) => module.id === 'module-catalog-detached',
+  )!;
+  const finalModule = createCatalogModule('dual-input-gate', 'mixed');
+  finalModule.isDemo = false;
+  for (const model of finalModule.modelVariants) model.isDemo = false;
+  finalModule.inputPorts = finalModule.inputPorts.map((port) => ({
+    ...port,
+    entity: 'normalized_reporter_expression',
+    quantityType: 'expression_level',
+    unit: 'dimensionless',
+  }));
+  project.network.modules.push(finalModule);
+  project.network.edges = project.network.edges.filter(
+    (edge) => edge.target.nodeId !== project.network.outputMonitors[0]!.id,
+  );
+  const monitor = project.network.outputMonitors[0]!;
+  monitor.inputPort = {
+    ...finalModule.outputPorts[0]!,
+    id: monitor.inputPort.id,
+    direction: 'input',
+  };
+  const withNormalBranch = addIdealConnection(
+    project,
+    { nodeId: reporter.id, portId: reporter.outputPorts[0]!.id },
+    { nodeId: finalModule.id, portId: finalModule.inputPorts[0]!.id },
+    'edge-reporter-final',
+  );
+  const withDemoBranch = addIdealConnection(
+    withNormalBranch,
+    { nodeId: catalogModule.id, portId: catalogModule.outputPorts[0]!.id },
+    { nodeId: finalModule.id, portId: finalModule.inputPorts[1]!.id },
+    'edge-catalog-final',
+  );
+  return addIdealConnection(
+    withDemoBranch,
+    { nodeId: finalModule.id, portId: finalModule.outputPorts[0]!.id },
+    { nodeId: monitor.id, portId: monitor.inputPort.id },
+    'edge-final-monitor',
+  );
+}
+
 describe('Catalog-backed BFN simulation integration', () => {
+  it('blocks a Catalog module and input source until explicit edges define the topology', () => {
+    const project = instantiatedCatalogProject();
+    const module = project.network.modules[0]!;
+    const inputPort = module.inputPorts[0]!;
+    const issues = validateBfnProject(project);
+
+    expect(project.network.inputSources).toHaveLength(1);
+    expect(project.network.edges).toEqual([]);
+    expect(issues).toContainEqual({
+      code: 'catalog_required_input_unconnected',
+      severity: 'error',
+      subjectId: inputPort.id,
+    });
+    expect(
+      issues.some(
+        (issue) => issue.subjectId === inputPort.id && issue.code === 'missing_required_input',
+      ),
+    ).toBe(false);
+    expect(() => runBfnSimulation(project)).toThrow(/catalog_required_input_unconnected/);
+
+    const source = project.network.inputSources[0]!;
+    project.network.edges.push({
+      id: 'edge-source-catalog-disabled',
+      source: { nodeId: source.id, portId: source.outputPort.id },
+      target: { nodeId: module.id, portId: inputPort.id },
+      mapping: 'identity',
+      enabled: false,
+    });
+    expect(
+      validateBfnProject(project).some(
+        (issue) => issue.code === 'catalog_required_input_unconnected',
+      ),
+    ).toBe(true);
+    project.network.edges = [
+      {
+        id: 'edge-source-wrong-catalog-port',
+        source: { nodeId: source.id, portId: source.outputPort.id },
+        target: { nodeId: module.id, portId: 'different-input-port' },
+        mapping: 'identity',
+        enabled: true,
+      },
+    ];
+    expect(
+      validateBfnProject(project).some(
+        (issue) => issue.code === 'catalog_required_input_unconnected',
+      ),
+    ).toBe(true);
+
+    const connected = connectedCatalogProject();
+    expect(
+      validateBfnProject(connected).filter(
+        (issue) => issue.code === 'catalog_required_input_unconnected',
+      ),
+    ).toEqual([]);
+  });
+
+  it('does not count an enabled edge with an unresolved source as a Catalog input', () => {
+    const project = instantiatedCatalogProject();
+    const module = project.network.modules[0]!;
+    const monitor = project.network.outputMonitors[0]!;
+    project.network.edges = [
+      {
+        id: 'edge-missing-source-catalog',
+        source: { nodeId: 'missing-source', portId: 'missing-source-output' },
+        target: { nodeId: module.id, portId: module.inputPorts[0]!.id },
+        mapping: 'identity',
+        enabled: true,
+      },
+      {
+        id: 'edge-catalog-monitor',
+        source: { nodeId: module.id, portId: module.outputPorts[0]!.id },
+        target: { nodeId: monitor.id, portId: monitor.inputPort.id },
+        mapping: 'identity',
+        enabled: true,
+      },
+    ];
+
+    const codes = validateBfnProject(project).map((issue) => issue.code);
+
+    expect(codes).toEqual(
+      expect.arrayContaining([
+        'missing_source_node',
+        'missing_source_port',
+        'catalog_required_input_unconnected',
+      ]),
+    );
+  });
+
   it('treats zero as trusted and non-extrapolated even when the positive range starts above zero', () => {
     const project = connectedCatalogProject();
     project.network.inputSources[0]!.staticSpecification = {
@@ -83,6 +273,12 @@ describe('Catalog-backed BFN simulation integration', () => {
     expect(result.extrapolated).toBe(false);
     expect(result.validationIssues.map((issue) => issue.code)).not.toContain(
       'outside_validity_domain',
+    );
+    expect(result.validationIssues.map((issue) => issue.code)).not.toContain(
+      'catalog_required_input_unconnected',
+    );
+    expect(result.validationIssues.map((issue) => issue.code)).not.toContain(
+      'catalog_input_out_of_range',
     );
   });
 
@@ -166,6 +362,41 @@ describe('Catalog-backed BFN simulation integration', () => {
     expect(project.isDemo).toBe(false);
     expect(result.isDemo).toBe(true);
     expect(result.experimentalValidity).toBe('not_validated');
+  });
+
+  it('does not propagate an input-connected Catalog demo module outside the output subgraph', () => {
+    const project = detachedCatalogBranchProject();
+
+    const result = runBfnSimulation(project);
+
+    expect(validateBfnProject(project).filter((issue) => issue.severity === 'error')).toEqual([]);
+    expect(result.isDemo).toBe(false);
+    expect(result.experimentalValidity).toBe('not_validated');
+  });
+
+  it('does not propagate a Catalog demo module through a disabled path', () => {
+    const project = detachedCatalogBranchProject(true);
+
+    const result = runBfnSimulation(project);
+
+    expect(result.isDemo).toBe(false);
+  });
+
+  it('propagates a reachable Catalog demo branch in a mixed network', () => {
+    const project = mixedCatalogBranchProject();
+
+    const result = runBfnSimulation(project);
+
+    expect(result.isDemo).toBe(true);
+  });
+
+  it('keeps the project demo boundary authoritative when reachable models are non-demo', () => {
+    const project = detachedCatalogBranchProject();
+    project.isDemo = true;
+
+    const result = runBfnSimulation(project);
+
+    expect(result.isDemo).toBe(true);
   });
 
   it('rejects an unavailable release before copied Hill parameters can execute', () => {

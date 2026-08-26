@@ -297,6 +297,8 @@ export const bfnEnUS = {
       'The literature catalog release referenced by this project is unavailable for trusted execution.',
     catalog_model_mismatch:
       'The model differs from the frozen literature catalog, so execution was blocked.',
+    catalog_required_input_unconnected:
+      'Catalog-backed model input is not connected. This response requires an explicit upstream signal; an unconnected input is not treated as zero concentration.',
     catalog_input_out_of_range:
       'The input is outside the trusted literature-response working range, so execution was blocked.',
     catalog_execution_unavailable:

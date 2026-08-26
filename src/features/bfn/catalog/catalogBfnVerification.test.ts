@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
 import { createDemoBfnProject } from '../fixtures';
 import type { BfnFunctionalModule, BfnProject, BfnStaticModel } from '../types';
-import { validateBfnProject } from '../validation';
+import { addIdealConnection, validateBfnProject } from '../validation';
 import {
   buildBfnCatalogRuntimeCandidate,
   instantiateCatalogResponseInBfnProject,
@@ -18,19 +18,45 @@ interface VerificationFixture {
 
 function fixture(): VerificationFixture {
   const project = createDemoBfnProject();
+  project.network.inputSources = [];
   project.network.modules = [];
+  project.network.edges = [];
   project.registry.validityDomains = [];
   const candidate = buildBfnCatalogRuntimeCandidate(AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id);
   const instantiated = instantiateCatalogResponseInBfnProject(project, candidate, {
     moduleId: 'module-catalog-verification',
     modulePosition: { x: 360, y: 220 },
-    createInputSource: false,
+    createInputSource: true,
+    inputSourceId: 'source-catalog-verification',
+    inputSourcePosition: { x: 40, y: 220 },
   });
   if (!instantiated.ok) throw new Error(instantiated.error.code);
-  const module = instantiated.nextProject.network.modules[0];
+  const next = instantiated.nextProject;
+  const source = next.network.inputSources[0];
+  const module = next.network.modules[0];
+  const monitor = next.network.outputMonitors[0];
   const model = module?.modelVariants[0];
-  if (!module || !model || model.mode !== 'static') throw new Error('verification fixture failed');
-  return { project: instantiated.nextProject, module, model };
+  if (!source || !module || !monitor || !model || model.mode !== 'static') {
+    throw new Error('verification fixture failed');
+  }
+  monitor.inputPort = {
+    ...module.outputPorts[0]!,
+    id: monitor.inputPort.id,
+    direction: 'input',
+  };
+  const withInput = addIdealConnection(
+    next,
+    { nodeId: source.id, portId: source.outputPort.id },
+    { nodeId: module.id, portId: module.inputPorts[0]!.id },
+    'edge-source-catalog-verification',
+  );
+  const connected = addIdealConnection(
+    withInput,
+    { nodeId: module.id, portId: module.outputPorts[0]!.id },
+    { nodeId: monitor.id, portId: monitor.inputPort.id },
+    'edge-catalog-verification-monitor',
+  );
+  return { project: connected, module, model };
 }
 
 describe('Catalog-backed BFN runtime verification', () => {

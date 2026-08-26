@@ -2,6 +2,7 @@ import { buildAnnApproximation } from './annApproximation';
 import { evaluateBfnModuleModel } from './catalog/catalogBfnEvaluation';
 import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
 import { resolveEffectiveBfnModel } from './modelResolution';
+import { findBfnOutputReachableModuleIds } from './outputReachability';
 import type { BfnParameterScenario } from './responseMath';
 import type {
   BfnDynamicInputSpecification,
@@ -86,6 +87,31 @@ function domainExtrapolation(
   return outsideInput || outsideTime;
 }
 
+function resolveModuleInputs(
+  project: BfnProject,
+  module: BfnFunctionalModule,
+  model: BfnModelVariant,
+  valuesByPort: ReadonlyMap<string, number>,
+): Record<string, number> {
+  const inputs: Record<string, number> = {};
+  const catalogBacked = bfnCatalogReferencePresence(model).present;
+  for (const port of module.inputPorts) {
+    const edge = project.network.edges.find(
+      (candidate) =>
+        candidate.enabled &&
+        candidate.target.nodeId === module.id &&
+        candidate.target.portId === port.id,
+    );
+    const sourceValue = edge ? valuesByPort.get(edge.source.portId) : undefined;
+    if (edge && sourceValue !== undefined) {
+      inputs[port.id] = valueAcrossEdge(sourceValue, project, edge);
+    } else if (!catalogBacked) {
+      inputs[port.id] = 0;
+    }
+  }
+  return inputs;
+}
+
 function evaluateStaticNetwork(
   project: BfnProject,
   inputValues: Readonly<Record<string, number>>,
@@ -100,18 +126,7 @@ function evaluateStaticNetwork(
   for (const module of topologicalModuleOrder(project)) {
     const model = resolveEffectiveBfnModel(project, module);
     if (!model) continue;
-    const inputs: Record<string, number> = {};
-    for (const port of module.inputPorts) {
-      const edge = project.network.edges.find(
-        (candidate) =>
-          candidate.enabled &&
-          candidate.target.nodeId === module.id &&
-          candidate.target.portId === port.id,
-      );
-      const sourceValue = edge ? valuesByPort.get(edge.source.portId) : undefined;
-      inputs[port.id] =
-        edge && sourceValue !== undefined ? valueAcrossEdge(sourceValue, project, edge) : 0;
-    }
+    const inputs = resolveModuleInputs(project, module, model, valuesByPort);
     const output = evaluateBfnModuleModel(project, module, model, inputs, scenario);
     moduleOutputs[module.id] = output;
     for (const port of module.outputPorts) valuesByPort.set(port.id, output);
@@ -260,18 +275,7 @@ function simulateDynamicScenario(
     for (const module of modules) {
       const model = resolveEffectiveBfnModel(project, module);
       if (!model) continue;
-      const inputs: Record<string, number> = {};
-      for (const port of module.inputPorts) {
-        const edge = project.network.edges.find(
-          (candidate) =>
-            candidate.enabled &&
-            candidate.target.nodeId === module.id &&
-            candidate.target.portId === port.id,
-        );
-        const sourceValue = edge ? valuesByPort.get(edge.source.portId) : undefined;
-        inputs[port.id] =
-          edge && sourceValue !== undefined ? valueAcrossEdge(sourceValue, project, edge) : 0;
-      }
+      const inputs = resolveModuleInputs(project, module, model, valuesByPort);
       const target = evaluateBfnModuleModel(project, module, model, inputs, scenario);
       const output =
         model.mode === 'dynamic'
@@ -451,6 +455,7 @@ export function runBfnSimulation(
   });
   if (!source) throw new Error('BFN_PRIMARY_INPUT_PORT_MISSING');
   const trace = provenance(project);
+  const reachableModuleIds = findBfnOutputReachableModuleIds(project, monitor.id);
   return {
     id: createId('bfn-run'),
     engineVersion: 'BFN-SIM-2.0',
@@ -487,7 +492,9 @@ export function runBfnSimulation(
     isDemo:
       project.isDemo ||
       project.network.modules.some(
-        (module) => resolveEffectiveBfnModel(project, module)?.isDemo === true,
+        (module) =>
+          reachableModuleIds.has(module.id) &&
+          resolveEffectiveBfnModel(project, module)?.isDemo === true,
       ),
     experimentalValidity: 'not_validated',
   };

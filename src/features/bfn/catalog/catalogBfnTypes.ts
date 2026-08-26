@@ -7,6 +7,7 @@ export type BfnCatalogContractErrorCode =
   | 'catalog_model_reference_invalid'
   | 'catalog_release_unavailable'
   | 'catalog_model_mismatch'
+  | 'catalog_required_input_unconnected'
   | 'catalog_input_out_of_range'
   | 'catalog_execution_unavailable';
 

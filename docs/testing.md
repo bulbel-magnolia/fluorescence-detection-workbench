@@ -391,8 +391,29 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 - 验证 module-only 与 module-plus-source 的单次原子 mutation、全局 node/port/domain ID 冲突、既有节点/Monitor/Edge 保持不变；
 - 对 reference、EC50、Hill、0/1 边界、输入/输出端口、工作范围、context、response、source IDs 和 runtime implementation 执行 tamper 检查；
 - 验证 unknown release 和 malformed reference 项目可读取，验证与运行以 Catalog 业务错误安全终止，不出现 TypeError，也不使用复制参数回退；
-- 验证静态 Catalog model 在 dynamic network 中无记忆执行，不生成 tau；验证非 Demo project 中参与计算的 runtime-demo model 会把结果标为 Demo，实验有效性保持 `not_validated`；
+- 验证静态 Catalog model 在 dynamic network 中无记忆执行，不生成 tau；验证非 Demo project 中位于输出可达计算子图的 runtime-demo model 会把结果标为 Demo，实验有效性保持 `not_validated`；
 - 验证 sender outputs 仍为 0、13 条 effective pair 不可拆分、39 条 compatibility relation 不允许数值使用；
 - 验证 computation signature 感知 Catalog reference、来源参数、derived model、ports 和 validity domain；旧项目没有 reference 时继续原有执行路径。
 
 Batch 5.0 没有新增用户可见 Catalog 界面，不执行视觉审计，也不生成截图。
+
+## 2026-08-26 Batch 5.0.1 Catalog runtime integrity fix
+
+本轮自动化覆盖以下完整性边界：
+
+- Catalog-backed required input 没有 enabled incoming Edge 时产生 `catalog_required_input_unconnected` error，实例化 Module 与 Input Source 后仍需显式连线；
+- disabled Edge、指向其他端口的 Edge，以及 source node 或 source port 无法解析的损坏 Edge 均不满足 Catalog 输入连接条件；
+- direct evaluator 对缺失 input key fail closed，显式上游零值继续返回 trusted zero，保持非外推且不触发工作范围错误；
+- generic BFN 未连接 required input 继续产生 `missing_required_input` warning，不升级为平台级 fatal error；
+- Demo provenance 从当前 Output Monitor 沿 enabled Edge 反向遍历，覆盖孤立 Demo module、disabled Demo path、reachable Demo module、混合分支和 `project.isDemo` 优先级；
+- 图遍历通过 visited set 处理循环，忽略损坏端点，不把 Input Source 或 Output Monitor 计为 Functional Module。
+
+Batch 5.0.1 不新增 Catalog UI，不执行视觉审计，也不生成截图。
+
+### 2026-08-26 Batch 5.0 + 5.0.1 最终验收
+
+- TypeScript `tsc --noEmit` 与 ESLint 全项目检查通过；
+- Vitest 共 82 个测试文件、560 项测试全部通过；
+- Vite 7.3.6 生产构建通过，222 个模块完成转换；主 JavaScript chunk 为 1,045.24 kB、gzip 248.91 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
+- 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。

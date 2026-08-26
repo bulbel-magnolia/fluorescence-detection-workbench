@@ -115,6 +115,25 @@ describe('Catalog-backed BFN evaluation', () => {
     expect(new Set(values).size).toBe(1);
   });
 
+  it('rejects a missing input key while preserving explicit zero as a trusted value', () => {
+    const fixture = createCatalogModelFixture(AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id);
+    const inputPortId = fixture.module.inputPorts[0]!.id;
+
+    expect(() =>
+      evaluateBfnModuleModel(fixture.project, fixture.module, fixture.model, {}),
+    ).toThrowError(BfnCatalogContractError);
+    try {
+      evaluateBfnModuleModel(fixture.project, fixture.module, fixture.model, {});
+    } catch (error) {
+      expect(error).toMatchObject({ code: 'catalog_required_input_unconnected' });
+    }
+    expect(
+      evaluateBfnModuleModel(fixture.project, fixture.module, fixture.model, {
+        [inputPortId]: 0,
+      }),
+    ).toBe(0);
+  });
+
   it('implements the trusted zero and closed working-range boundary without extrapolation', () => {
     const fixture = createCatalogModelFixture(AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id);
     const reference = fixture.model.catalogReference!;

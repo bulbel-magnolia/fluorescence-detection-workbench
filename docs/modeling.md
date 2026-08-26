@@ -257,15 +257,15 @@ AHL/HSL V1.1 文献目录通过独立的 BFN 集成层进入 BFN-IR。运行候�
 
 19 条 4PL 响应映射为标准 `hill_activation`：`ymin=0`、`ymax=1`、`K=EC50 (M)`、`n=Hill coefficient`。Catalog 的 basal 和 maximum 只记录来源上下文中的归一化参数，不作为 BFN 的 ymin 和 ymax。Shong EsaR 同样使用随输入增加的 `hill_activation` 数学表示，`K=2.1e-7 M`、`n=1`；其生物调控方向单独保留为 `derepression`。这些模型不生成参数区间、实验数据集或完整 BiologicalImplementation，证据等级为 `fitted_from_published_data`，并明确标记为 runtime demo。
 
-Catalog working range 按原值和 M 单位写入实例级 `BfnValidityDomain`。`x=0` 是可信 evaluator 定义的特殊合法点，即使正值工作范围下界大于 0，也不标记为外推。正值只能在闭区间 `[min,max]` 内执行；区间外、负数和非有限值会终止可信执行。普通非 Catalog BFN 模型继续保留域外 warning 与 extrapolated 语义。
+Catalog working range 按原值和 M 单位写入实例级 `BfnValidityDomain`。未连接输入不等于零浓度：Catalog-backed trusted model 的 required input 必须由 enabled 上游 Edge 提供明确数值，缺少连接、禁用连接或损坏的来源端点都会产生 `catalog_required_input_unconnected` error 并阻止执行。只有上游信号显式产生 `x=0` 时才进入可信 evaluator 的零点规则；该点即使低于正值工作范围下界也合法，输出为 0 且不标记为外推。正值只能在闭区间 `[min,max]` 内执行；区间外、负数和非有限值会终止可信执行。普通非 Catalog BFN 模型继续保留未连接输入 warning、域外 warning 与 extrapolated 语义。
 
 运行时不会信任项目 JSON 中复制的 Hill 参数。执行链依次检查 reference 结构和 release identity，从 bundled frozen release 重新构建 trusted receiver binding，重建预期 BFN 映射，核对 module、model、ports 和 validity domain，随后调用既有 `evaluateReceiverResponse()`。任何 reference、EC50、Hill、范围、context、source、runtime implementation 或端口语义不一致都会使模型不可可信执行，不会自动修复，也不会退化成 generic Hill model。未知 release 和损坏 reference 的项目仍可读取；运行和验证返回明确的 Catalog 业务错误。
 
 Catalog parameter context 使用确定、带命名空间的 external identity，并同时写入 model 与 validity domain。集成层不把缺失宿主、培养基、温度或载体字段补成默认值，也不创建伪 `BfnContext`。文献 source IDs 只保存在 Catalog provenance 中，不伪装成 `BfnExperimentalDataset`。
 
-输入解析只返回 entity 完全相同、quantity type 完全相同且单位量纲兼容的 Input Source 输出或 Functional Module 输出。结果会列出全部兼容来源并建议“只添加模块”或“模块加输入源”；兼容不代表用户确认拓扑，因此实例化从不自动选择来源或创建 Edge。静态默认输入源使用精确工作范围和 33 个采样点，动态默认值为范围下界；该值只用于初始模拟状态。
+输入解析只返回 entity 完全相同、quantity type 完全相同且单位量纲兼容的 Input Source 输出或 Functional Module 输出。结果会列出全部兼容来源并建议“只添加模块”或“模块加输入源”；兼容不代表用户确认拓扑，因此实例化从不自动选择来源或创建 Edge。即使一次实例化同时创建 Module 与 Input Source，项目在用户显式建立 Edge 前仍处于输入未定义状态，不能运行该 Catalog model。静态默认输入源使用精确工作范围和 33 个采样点，动态默认值为范围下界；该值只用于初始模拟状态。
 
-Catalog V1.1 没有可信时间常数或状态方程，只创建 `BfnStaticModel`。静态 Catalog 模块进入动态网络时逐时刻执行 `y(t)=F(x(t))`，作为无记忆模块运行，不生成 tau 或人工延迟。运行结果的 Demo 状态由项目或任一实际参与计算的 effective model 传播；`experimentalValidity` 保持 `not_validated`。
+Catalog V1.1 没有可信时间常数或状态方程，只创建 `BfnStaticModel`。静态 Catalog 模块进入动态网络时逐时刻执行 `y(t)=F(x(t))`，作为无记忆模块运行，不生成 tau 或人工延迟。运行结果的 Demo 状态由项目 Demo boundary，或当前 `outputMonitors[0]` 沿 enabled incoming Edge 反向可达的计算子图中任一 Demo effective model 传播。遍历只接受真实模块输出端口并使用 visited set 防止循环；孤立模块、损坏连接、disabled path 和不通向当前输出的支路不会污染结果。`experimentalValidity` 始终保持 `not_validated`。
 
 ## 代码边界
 
