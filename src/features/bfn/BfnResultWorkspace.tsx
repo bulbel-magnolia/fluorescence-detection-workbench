@@ -7,6 +7,7 @@ import { StatusPill } from '../../components/StatusPill';
 import { BfnChartControls } from './BfnChartControls';
 import { BfnExportMenu } from './BfnExportMenu';
 import { createBfnChartModel } from './chartModel';
+import { countVisibleBfnLineSeries } from './chartMath';
 import {
   defaultBfnChartViewState,
   type BfnChartComparison,
@@ -17,8 +18,8 @@ import {
 import { BfnResponseChart, bfnChartResultIdentity } from './BfnResponseChart';
 import { BfnRunProvenance } from './BfnRunProvenance';
 import { compatibleBfnRuns, formatBfnComparisonTime } from './runComparison';
+import { resolveBfnResultSignals } from './resultSignals';
 import type { BfnProject, BfnSimulationResult } from './types';
-import { bfnUnitLabel } from './presentation';
 
 type ResultFreshness = 'current' | 'stale';
 
@@ -50,11 +51,8 @@ function currentOutput(result: BfnSimulationResult | null): number | null {
   return result?.points.at(-1)?.output ?? null;
 }
 
-function resultInputRange(result: BfnSimulationResult, project: BfnProject, t: TFunction): string {
-  const source = project.network.inputSources.find(
-    (candidate) => candidate.id === result.primaryInputSourceId,
-  );
-  const unit = bfnUnitLabel(source?.outputPort.unit ?? 'dimensionless', t);
+function resultInputRange(result: BfnSimulationResult, t: TFunction): string {
+  const unit = resolveBfnResultSignals(result, t).input.unitLabel;
   if (result.mode === 'dynamic') {
     const first = result.points[0]?.inputs[result.primaryInputSourceId];
     const last = result.points.at(-1)?.inputs[result.primaryInputSourceId];
@@ -95,6 +93,10 @@ export function BfnResultWorkspace({
   onSelectRun,
 }: BfnResultWorkspaceProps) {
   const { t, i18n } = useTranslation();
+  const resultSignals = useMemo(
+    () => (result ? resolveBfnResultSignals(result, t) : null),
+    [result, t],
+  );
   const resultIdentity = bfnChartResultIdentity(result);
   const defaultViewState = useMemo<BfnChartViewState | null>(
     () => (result ? defaultBfnChartViewState(result) : null),
@@ -155,6 +157,22 @@ export function BfnResultWorkspace({
         : undefined,
     [comparisonRun, i18n.language, t],
   );
+  const comparisonAvailable = comparison !== undefined;
+
+  useEffect(() => {
+    setViewState((current) => {
+      if (
+        !current ||
+        countVisibleBfnLineSeries(current, {
+          annAvailable: result?.annApproximation !== null && result?.annApproximation !== undefined,
+          comparisonAvailable,
+        }) > 0
+      ) {
+        return current;
+      }
+      return { ...current, showFullModel: true };
+    });
+  }, [comparisonAvailable, result?.annApproximation]);
 
   useEffect(() => {
     if (!comparisonId || comparisonRun) return;
@@ -292,7 +310,7 @@ export function BfnResultWorkspace({
                             {t('bfn.results.comparison.option', {
                               time: new Date(run.completedAt).toLocaleString(i18n.language),
                               mode: t(`bfn.modes.${run.mode}`),
-                              range: resultInputRange(run, project, t),
+                              range: resultInputRange(run, t),
                             })}
                           </option>
                         ))}
@@ -304,6 +322,11 @@ export function BfnResultWorkspace({
                   {comparisonNotice ? (
                     <p className="bfn-comparison-bar__notice" role="status">
                       {comparisonNotice}
+                    </p>
+                  ) : null}
+                  {comparison && (!result.signalSnapshot || !comparison.result.signalSnapshot) ? (
+                    <p className="bfn-comparison-bar__notice" role="status">
+                      {t('bfn.results.signals.legacySemanticsUnavailable')}
                     </p>
                   ) : null}
                 </div>
@@ -320,12 +343,7 @@ export function BfnResultWorkspace({
                 <article>
                   <span>{t('bfn.results.finalOutput')}</span>
                   <strong>{displayNumber(currentOutput(result) ?? 0)}</strong>
-                  <small>
-                    {bfnUnitLabel(
-                      project.network.outputMonitors[0]?.inputPort.unit ?? 'dimensionless',
-                      t,
-                    )}
-                  </small>
+                  <small>{resultSignals?.output.unitLabel}</small>
                 </article>
                 <article>
                   <span>{t('bfn.results.domainStatus')}</span>
@@ -342,7 +360,7 @@ export function BfnResultWorkspace({
                 </article>
                 <article>
                   <span>{t('bfn.results.parameterRange')}</span>
-                  <strong>{resultInputRange(result, project, t)}</strong>
+                  <strong>{resultInputRange(result, t)}</strong>
                   <small>{t('bfn.results.rangeHint')}</small>
                 </article>
               </div>

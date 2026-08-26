@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import i18n from '../../i18n';
 import { createBfnChartModel } from './chartModel';
 import { defaultBfnChartViewState } from './chartTypes';
 import { createDemoBfnProject } from './fixtures';
@@ -10,6 +11,7 @@ const geometry: BfnChartGeometry = {
   height: 320,
   padding: { left: 64, right: 24, top: 24, bottom: 48 },
 };
+const translate = (key: string): string => i18n.getFixedT('en-US')(key);
 
 describe('createBfnChartModel', () => {
   it('resolves current labels, scales, ticks, paths, and exact cursor geometry', () => {
@@ -21,11 +23,13 @@ describe('createBfnChartModel', () => {
       result,
       viewState,
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
 
     expect(model.labels.x).toContain('3OC6-HSL');
-    expect(model.labels.y).toContain('normalized_reporter_expression');
+    expect(model.labels.y).toBe('Reporter signal (Relative value)');
+    expect(model.labels.y).not.toContain('normalized_reporter_expression');
+    expect(model.labels.y).not.toContain('dimensionless');
     expect(model.domains.x[0]).toBeLessThanOrEqual(
       result.points[0]?.coordinate ?? Number.POSITIVE_INFINITY,
     );
@@ -60,9 +64,9 @@ describe('createBfnChartModel', () => {
       comparison: { result: comparison, label: 'prior run' },
       viewState: defaultBfnChartViewState(result),
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
-    expect(model.labels.x).toContain('hour');
+    expect(model.labels.x).toBe('Time (h)');
     expect(model.series.comparison?.path.startsWith('M ')).toBe(true);
     expect(model.series.comparison?.band).toBeUndefined();
     expect(model.series.comparison?.points[0]?.value).toBe(comparison.points[0]?.output);
@@ -90,7 +94,7 @@ describe('createBfnChartModel', () => {
         result: yResult,
         viewState: yViewState,
         geometry,
-        translate: (key: string) => key,
+        translate,
       }),
     ).not.toThrow();
     const yModel = createBfnChartModel({
@@ -98,7 +102,7 @@ describe('createBfnChartModel', () => {
       result: yResult,
       viewState: yViewState,
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(yModel.domains.y[0]).toBeLessThanOrEqual(-1);
     expect(yModel.domains.y[1]).toBeGreaterThan(yModel.domains.y[0]);
@@ -119,7 +123,7 @@ describe('createBfnChartModel', () => {
       result: xResult,
       viewState: xViewState,
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(xModel.domains.x[0]).toBeLessThanOrEqual(0);
     expect(xModel.domains.x[1]).toBeGreaterThanOrEqual(1);
@@ -143,7 +147,7 @@ describe('createBfnChartModel', () => {
         xMaximum: 1,
       },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(nonfiniteModel.validation.xDomain).toEqual({
       valid: false,
@@ -160,7 +164,7 @@ describe('createBfnChartModel', () => {
         xMaximum: Number.POSITIVE_INFINITY,
       },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(infiniteModel.validation.xDomain).toEqual({
       valid: false,
@@ -177,7 +181,7 @@ describe('createBfnChartModel', () => {
         yMaximum: 1,
       },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(invalidBoundsModel.validation.yDomain).toEqual({
       valid: false,
@@ -185,7 +189,7 @@ describe('createBfnChartModel', () => {
     });
   });
 
-  it('falls back to unresolved IDs or translated input/output labels', () => {
+  it('keeps historical snapshot semantics and uses explicit legacy fallbacks', () => {
     const project = createDemoBfnProject();
     const result = runBfnSimulation(project, '2026-08-25T00:00:00.000Z');
     const unresolvedProject = {
@@ -196,35 +200,31 @@ describe('createBfnChartModel', () => {
         outputMonitors: [],
       },
     };
-    const unresolvedResult = {
+    const snapshotModel = createBfnChartModel({
+      project: unresolvedProject,
+      result,
+      viewState: defaultBfnChartViewState(result),
+      geometry,
+      translate,
+    });
+    expect(snapshotModel.labels.x).toBe('3OC6-HSL Concentration (nM)');
+    expect(snapshotModel.labels.y).toBe('Reporter signal (Relative value)');
+
+    const legacyResult = {
       ...result,
       primaryInputSourceId: 'historical-input-source',
       outputMonitorId: 'historical-output-monitor',
     };
-    const unresolvedModel = createBfnChartModel({
+    delete legacyResult.signalSnapshot;
+    const legacyModel = createBfnChartModel({
       project: unresolvedProject,
-      result: unresolvedResult,
-      viewState: defaultBfnChartViewState(unresolvedResult),
+      result: legacyResult,
+      viewState: defaultBfnChartViewState(legacyResult),
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
-    expect(unresolvedModel.labels.x).toBe('historical-input-source');
-    expect(unresolvedModel.labels.y).toBe('historical-output-monitor');
-
-    const missingIdResult = {
-      ...unresolvedResult,
-      primaryInputSourceId: '',
-      outputMonitorId: '',
-    };
-    const missingIdModel = createBfnChartModel({
-      project: unresolvedProject,
-      result: missingIdResult,
-      viewState: defaultBfnChartViewState(missingIdResult),
-      geometry,
-      translate: (key: string) => key,
-    });
-    expect(missingIdModel.labels.x).toBe('Input');
-    expect(missingIdModel.labels.y).toBe('Output');
+    expect(legacyModel.labels.x).toBe('Unknown input · historical-input-source (Unknown unit)');
+    expect(legacyModel.labels.y).toBe('Unknown output · historical-output-monitor (Unknown unit)');
   });
 
   it('keeps invalid-log paths and cursor geometry finite while exposing requested and applied scales', () => {
@@ -258,7 +258,7 @@ describe('createBfnChartModel', () => {
         cursorIndex: 1,
       },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     const paths = [model.series.full?.path, model.series.uncertainty?.path, model.series.ann?.path];
     expect(paths.every((path) => typeof path === 'string' && !/NaN|Infinity/.test(path))).toBe(
@@ -295,11 +295,58 @@ describe('createBfnChartModel', () => {
         xMaximum: lastCoordinate,
       },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(model.series.full?.points[0]?.index).toBe(1);
     expect(model.series.uncertainty?.points[0]?.index).toBe(1);
     expect(model.series.ann?.points[0]?.index).toBe(1);
+  });
+
+  it('renders narrow engineering log ticks and supports ANN- or comparison-only lines', () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project);
+    const result = {
+      ...base,
+      points: base.points.slice(0, 2).map((point, index) => ({
+        ...point,
+        coordinate: index === 0 ? 2 : 5,
+        inputs: { ...point.inputs, [base.primaryInputSourceId]: index === 0 ? 2 : 5 },
+      })),
+    };
+    const annOnly = createBfnChartModel({
+      project,
+      result,
+      viewState: {
+        ...defaultBfnChartViewState(result),
+        xScale: 'log',
+        xDomainMode: 'manual',
+        xMinimum: 2,
+        xMaximum: 5,
+        showFullModel: false,
+        showAnn: true,
+      },
+      geometry,
+      translate,
+    });
+    expect(annOnly.ticks.x.map((tick) => tick.value)).toEqual([2, 5]);
+    expect(annOnly.series.full).toBeUndefined();
+    expect(annOnly.series.ann?.path).toMatch(/^M /);
+
+    const comparisonOnly = createBfnChartModel({
+      project,
+      result: { ...result, annApproximation: null },
+      comparison: { result: { ...result, id: 'comparison' }, label: 'Comparison' },
+      viewState: {
+        ...defaultBfnChartViewState({ ...result, annApproximation: null }),
+        showFullModel: false,
+        showAnn: false,
+      },
+      geometry,
+      translate,
+    });
+    expect(comparisonOnly.series.full).toBeUndefined();
+    expect(comparisonOnly.series.ann).toBeUndefined();
+    expect(comparisonOnly.series.comparison?.path).toMatch(/^M /);
   });
 
   it('splits line and paired uncertainty paths across invalid sample gaps', () => {
@@ -320,7 +367,7 @@ describe('createBfnChartModel', () => {
       result: gapResult,
       viewState: { ...defaultBfnChartViewState(gapResult), showAnn: false },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     const fullPath = model.series.full?.path ?? '';
     expect((fullPath.match(/\bM\b/g) ?? []).length).toBe(2);
@@ -346,7 +393,7 @@ describe('createBfnChartModel', () => {
       result: invalidCoordinatesResult,
       viewState: { ...defaultBfnChartViewState(invalidCoordinatesResult), showAnn: false },
       geometry,
-      translate: (key: string) => key,
+      translate,
     });
     expect(model.coordinateValidation.result).toEqual({
       valid: false,

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from './fixtures';
 import {
+  assessBfnRunCompatibility,
   compatibleBfnRuns,
   formatBfnComparisonTime,
   nearestBfnComparisonPoint,
@@ -31,6 +32,57 @@ describe('BFN historical-run comparison', () => {
       'run-recent',
       'run-older',
     ]);
+  });
+
+  it('requires exact recorded input and output semantics when both snapshots exist', () => {
+    const current = runBfnSimulation(createDemoBfnProject());
+    const compatible = { ...structuredClone(current), id: 'compatible' };
+    compatible.signalSnapshot!.primaryInput.labelKey = 'renamed.input';
+    compatible.signalSnapshot!.output.labelKey = 'renamed.output';
+    expect(assessBfnRunCompatibility(current, compatible)).toEqual({
+      compatible: true,
+      basis: 'semantic-snapshot',
+    });
+
+    for (const mutate of [
+      (run: typeof compatible) => {
+        run.signalSnapshot!.primaryInput.entity = 'other-input';
+      },
+      (run: typeof compatible) => {
+        run.signalSnapshot!.primaryInput.quantityType = 'activity';
+      },
+      (run: typeof compatible) => {
+        run.signalSnapshot!.primaryInput.unit = 'uM';
+      },
+      (run: typeof compatible) => {
+        run.signalSnapshot!.output.entity = 'other-output';
+      },
+      (run: typeof compatible) => {
+        run.signalSnapshot!.output.quantityType = 'activity';
+      },
+      (run: typeof compatible) => {
+        run.signalSnapshot!.output.unit = 'nM';
+      },
+    ]) {
+      const changed = structuredClone(compatible);
+      mutate(changed);
+      expect(assessBfnRunCompatibility(current, changed)).toEqual({
+        compatible: false,
+        basis: null,
+      });
+    }
+  });
+
+  it('preserves the four-ID legacy comparison contract and reports its basis', () => {
+    const current = runBfnSimulation(createDemoBfnProject());
+    const legacy = { ...structuredClone(current), id: 'legacy' };
+    delete legacy.signalSnapshot;
+
+    expect(assessBfnRunCompatibility(current, legacy)).toEqual({
+      compatible: true,
+      basis: 'legacy-identifiers',
+    });
+    expect(compatibleBfnRuns(current, [legacy])).toEqual([legacy]);
   });
 
   it('selects the nearest real point on the historical run own coordinate grid', () => {

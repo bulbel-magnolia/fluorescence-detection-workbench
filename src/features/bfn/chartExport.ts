@@ -358,13 +358,12 @@ function seriesIsShown(series: BfnChartSeries | undefined): boolean {
 }
 
 export function createBfnFigureCaption({
-  project,
   result,
   model,
   comparison,
   captionText,
 }: CreateBfnFigureCaptionOptions): string {
-  const context = result.isDemo || project.isDemo ? 'demo ' : '';
+  const context = result.isDemo ? 'demo ' : '';
   const axes = `${model.labels.y} versus ${model.labels.x}`;
   const parts = [captionText?.lead ?? `BFN ${context}${result.mode} response (${axes})`];
   if (

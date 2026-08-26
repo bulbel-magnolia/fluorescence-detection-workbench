@@ -1,10 +1,10 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { resolveBfnResultSignals } from './resultSignals';
 import type { BfnChartComparison, BfnChartCursor, BfnChartModel } from './chartTypes';
-import type { BfnProject, BfnSimulationResult } from './types';
+import type { BfnSimulationResult } from './types';
 
 interface BfnChartTooltipProps {
-  project: BfnProject;
   result: BfnSimulationResult;
   comparison?: BfnChartComparison;
   model: BfnChartModel;
@@ -29,17 +29,14 @@ function annValue(result: BfnSimulationResult, index: number): number | null {
   );
 }
 
-export function BfnChartTooltip({
-  project,
-  result,
-  comparison,
-  model,
-  cursor,
-}: BfnChartTooltipProps) {
+export function BfnChartTooltip({ result, comparison, model, cursor }: BfnChartTooltipProps) {
   const { t } = useTranslation();
   const point = cursor?.point;
-  const sources = project.network.inputSources;
-  const primarySource = sources.find((source) => source.id === result.primaryInputSourceId);
+  const signals = useMemo(() => resolveBfnResultSignals(result, t), [result, t]);
+  const comparisonSignals = useMemo(
+    () => (comparison ? resolveBfnResultSignals(comparison.result, t) : null),
+    [comparison, t],
+  );
   const inputRows = useMemo(() => {
     if (!point) return [];
     if (result.mode === 'static') {
@@ -47,30 +44,37 @@ export function BfnChartTooltip({
       return [
         {
           id: result.primaryInputSourceId,
-          label: primarySource?.outputPort.entity ?? result.primaryInputSourceId,
+          label: signals.input.label,
           value,
-          unit: primarySource?.outputPort.unit,
+          unit: signals.input.unitLabel,
         },
       ];
     }
-    return Object.entries(point.inputs).map(([id, value]) => {
-      const source = sources.find((candidate) => candidate.id === id);
-      return {
-        id,
-        label: source?.outputPort.entity ?? id,
-        value,
-        unit: source?.outputPort.unit,
-      };
-    });
-  }, [point, primarySource, result, sources]);
+    return Object.entries(point.inputs).map(([id, value]) =>
+      id === result.primaryInputSourceId
+        ? {
+            id,
+            label: signals.input.label,
+            value,
+            unit: signals.input.unitLabel,
+          }
+        : {
+            id,
+            label: `${t('bfn.results.signals.unknownInput')} · ${id}`,
+            value,
+            unit: t('bfn.results.signals.unknownUnit'),
+          },
+    );
+  }, [point, result.mode, result.primaryInputSourceId, signals.input, t]);
   if (!point || cursor === undefined) return null;
   const approximation = model.series.ann ? annValue(result, cursor.index) : null;
-  const outputUnit = model.labels.yUnit;
+  const outputUnit = signals.output.unitLabel;
   const comparisonCursor = cursor.comparison;
   const comparisonCoordinate = comparisonCursor
     ? result.mode === 'dynamic'
       ? (comparisonCursor.point.timeHours ?? comparisonCursor.coordinate)
-      : (comparisonCursor.point.inputs[result.primaryInputSourceId] ?? comparisonCursor.coordinate)
+      : (comparisonCursor.point.inputs[comparison?.result.primaryInputSourceId ?? ''] ??
+        comparisonCursor.coordinate)
     : null;
   return (
     <aside
@@ -108,7 +112,9 @@ export function BfnChartTooltip({
           </dd>
         </div>
         <div>
-          <dt>{t('bfn.results.chart.cursorOutput')}</dt>
+          <dt>
+            {t('bfn.results.chart.cursorOutput')} · {signals.output.label}
+          </dt>
           <dd>{valueLabel(point.output, outputUnit)}</dd>
         </div>
         <div>
@@ -141,15 +147,21 @@ export function BfnChartTooltip({
               <dd>
                 {valueLabel(
                   comparisonCoordinate,
-                  result.mode === 'dynamic' ? 'h' : model.labels.xUnit,
+                  result.mode === 'dynamic' ? 'h' : comparisonSignals?.input.unitLabel,
                 )}
               </dd>
             </div>
             <div>
-              <dt>{t('bfn.results.chart.cursorOutput')}</dt>
-              <dd>{valueLabel(comparisonCursor.value, outputUnit)}</dd>
+              <dt>
+                {t('bfn.results.chart.cursorOutput')} ·{' '}
+                {comparisonSignals?.output.label ?? t('bfn.results.signals.unknownOutput')}
+              </dt>
+              <dd>{valueLabel(comparisonCursor.value, comparisonSignals?.output.unitLabel)}</dd>
             </div>
           </dl>
+          {comparisonSignals && !comparisonSignals.complete ? (
+            <p>{t('bfn.results.signals.legacySemanticsUnavailable')}</p>
+          ) : null}
         </section>
       ) : null}
       {point.extrapolated ? (

@@ -465,6 +465,7 @@ export interface BfnSimulationResult {
   points: BfnSimulationPoint[];
   primaryInputSourceId: string;
   outputMonitorId: string;
+  signalSnapshot?: BfnRunSignalSnapshot;
   annApproximation: BfnAnnApproximation | null;
   dynamicMetrics: BfnDynamicMetrics | null;
   validationIssues: BfnValidationIssue[];
@@ -475,6 +476,27 @@ export interface BfnSimulationResult {
   completedAt: string;
   isDemo: boolean;
   experimentalValidity: 'not_validated';
+}
+
+export interface BfnRunInputSignalSnapshot {
+  sourceId: string;
+  labelKey: string;
+  entity: string;
+  quantityType: BfnQuantityType;
+  unit: BfnUnit;
+}
+
+export interface BfnRunOutputSignalSnapshot {
+  monitorId: string;
+  labelKey: string;
+  entity: string;
+  quantityType: BfnQuantityType;
+  unit: BfnUnit;
+}
+
+export interface BfnRunSignalSnapshot {
+  primaryInput: BfnRunInputSignalSnapshot;
+  output: BfnRunOutputSignalSnapshot;
 }
 
 export interface BfnReverseTarget {

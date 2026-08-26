@@ -1,8 +1,13 @@
 import { createEvent, fireEvent, render, screen } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import { createBfnChartModel } from './chartModel';
-import { defaultBfnChartViewState, type BfnChartGeometry } from './chartTypes';
+import {
+  defaultBfnChartViewState,
+  type BfnChartGeometry,
+  type BfnChartViewState,
+} from './chartTypes';
 import { createDemoBfnProject } from './fixtures';
 import { runBfnSimulation } from './simulation';
 import { BfnResponseChart } from './BfnResponseChart';
@@ -178,6 +183,69 @@ describe('BfnResponseChart exact reading', () => {
     expect(onCursorIndexChange).toHaveBeenCalledWith(firstVisibleIndex);
   });
 
+  it('keeps keyboard navigation inside the visible manual X domain and clears excluded cursors', () => {
+    const project = createDemoBfnProject();
+    const base = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const result = {
+      ...base,
+      points: base.points.slice(0, 5).map((point, index) => ({
+        ...point,
+        coordinate: index + 1,
+        inputs: { ...point.inputs, [base.primaryInputSourceId]: index + 1 },
+      })),
+    };
+
+    function Harness() {
+      const [viewState, setViewState] = useState<BfnChartViewState>({
+        ...defaultBfnChartViewState(result),
+        xDomainMode: 'manual' as const,
+        xMinimum: 2,
+        xMaximum: 4,
+      });
+      return (
+        <>
+          <button
+            type="button"
+            onClick={() =>
+              setViewState((current) => ({
+                ...current,
+                xMinimum: 4,
+                xMaximum: 5,
+              }))
+            }
+          >
+            Restrict domain
+          </button>
+          <BfnResponseChart
+            project={project}
+            result={result}
+            viewState={viewState}
+            onViewStateChange={setViewState}
+          />
+        </>
+      );
+    }
+
+    render(<Harness />);
+    const svg = screen.getByRole('img', { name: 'Input-output response' });
+    fireEvent.keyDown(svg, { key: 'Home' });
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '1');
+    fireEvent.keyDown(svg, { key: 'ArrowRight' });
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '2');
+    fireEvent.keyDown(svg, { key: 'ArrowRight' });
+    fireEvent.keyDown(svg, { key: 'ArrowRight' });
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '3');
+    fireEvent.keyDown(svg, { key: 'End' });
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '3');
+    fireEvent.keyDown(svg, { key: 'ArrowLeft' });
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '2');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Restrict domain' }));
+    expect(document.querySelector('.bfn-chart__cursor')).not.toBeInTheDocument();
+    fireEvent.keyDown(svg, { key: 'Home' });
+    expect(document.querySelector('.bfn-chart__cursor')).toHaveAttribute('data-index', '3');
+  });
+
   it('supports point navigation keys and Escape without changing editor shortcuts', () => {
     const project = createDemoBfnProject();
     const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
@@ -191,9 +259,12 @@ describe('BfnResponseChart exact reading', () => {
 
     svg.focus();
     fireEvent.keyDown(svg, { key: 'Home' });
-    expect(screen.getByRole('note')).toHaveTextContent(
-      `${result.points[0]?.coordinate?.toFixed(3)} nM`,
-    );
+    const tooltip = screen.getByRole('note');
+    expect(tooltip).toHaveTextContent(`${result.points[0]?.coordinate?.toFixed(3)} nM`);
+    expect(tooltip).toHaveTextContent('Reporter signal');
+    expect(tooltip).toHaveTextContent('Relative value');
+    expect(tooltip).not.toHaveTextContent('normalized_reporter_expression');
+    expect(tooltip).not.toHaveTextContent('dimensionless');
     fireEvent.keyDown(svg, { key: 'ArrowRight' });
     expect(screen.getByRole('note')).toHaveTextContent('Computed point');
     const arrowLeft = createEvent.keyDown(svg, { key: 'ArrowLeft' });
@@ -412,6 +483,41 @@ describe('BfnResponseChart exact reading', () => {
     );
     expect(screen.getByLabelText('Series')).toHaveTextContent('Current run');
     expect(screen.getByLabelText('Series')).toHaveTextContent('Comparison run · 18:00');
+  });
+
+  it('does not borrow current units for a legacy comparison tooltip', () => {
+    const project = createDemoBfnProject();
+    const current = runBfnSimulation(project);
+    const legacy = { ...structuredClone(current), id: 'legacy-comparison' };
+    delete legacy.signalSnapshot;
+    const comparison = { result: legacy, label: 'Legacy comparison' };
+    const viewState = { ...defaultBfnChartViewState(current), cursorIndex: 0 };
+    const model = createBfnChartModel({
+      project,
+      result: current,
+      comparison,
+      viewState,
+      geometry,
+      translate: (key) => i18n.t(key),
+    });
+
+    render(
+      <BfnResponseChart
+        project={project}
+        result={current}
+        comparison={comparison}
+        viewState={viewState}
+        model={model}
+      />,
+    );
+
+    const comparisonTooltip = document.querySelector(
+      '.bfn-chart-tooltip__comparison',
+    ) as HTMLElement;
+    expect(comparisonTooltip).toHaveTextContent('Unknown unit');
+    expect(comparisonTooltip).toHaveTextContent('Signal semantics were not recorded');
+    expect(comparisonTooltip).not.toHaveTextContent('nM');
+    expect(comparisonTooltip).not.toHaveTextContent('Relative value');
   });
 
   it('keeps a multi-input comparison tooltip focusable while pointer moves within the chart wrapper', () => {

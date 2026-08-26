@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import i18n from '../../i18n';
 import { createBfnChartModel } from './chartModel';
 import { defaultBfnChartViewState } from './chartTypes';
 import { createDemoBfnProject } from './fixtures';
@@ -98,6 +99,33 @@ describe('publication figure export', () => {
     expect(svg).toContain('data-series="full"');
     expect(svg).not.toContain('data-series="uncertainty"');
     expect(svg).not.toContain('data-series="ann"');
+  });
+
+  it('keeps localized scientific signal labels in SVG/caption while CSV retains raw IDs', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project);
+    const model = createBfnChartModel({
+      project,
+      result,
+      viewState: defaultBfnChartViewState(result),
+      geometry,
+      translate: (key) => i18n.getFixedT('zh-CN')(key),
+    });
+
+    const svg = serializeBfnFigureSvg({ model, result });
+    const caption = createBfnFigureCaption({ project, result, model });
+    const csv = serializeBfnResultTable({ project, current: result });
+
+    expect(svg).toContain('报告信号');
+    expect(svg).toContain('相对值');
+    expect(svg).not.toContain('normalized_reporter_expression');
+    expect(svg).not.toContain('dimensionless');
+    expect(caption).toContain('报告信号');
+    expect(caption).toContain('相对值');
+    expect(caption).not.toContain('normalized_reporter_expression');
+    expect(caption).not.toContain('dimensionless');
+    expect(csv).toContain('input:source-ahl');
+    expect(csv).toContain('module:module-ahl-sensor');
   });
 
   it('renders an uncertainty band when the shared model provides band geometry without a line path', () => {

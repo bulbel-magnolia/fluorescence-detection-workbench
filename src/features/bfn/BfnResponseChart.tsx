@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { createBfnChartModel } from './chartModel';
-import { nearestPointIndex } from './chartMath';
+import { nearestPointIndex, visibleBfnPointIndices } from './chartMath';
 import type { BfnChartComparison, BfnChartModel, BfnChartViewState } from './chartTypes';
 import { defaultBfnChartViewState } from './chartTypes';
 import { createDemoBfnProject } from './fixtures';
@@ -95,6 +95,7 @@ export function bfnChartResultIdentity(result: BfnSimulationResult | null): stri
       moduleOutputs: point.moduleOutputs,
     })),
     ann: result.annApproximation?.id ?? null,
+    signalSnapshot: result.signalSnapshot ?? null,
   });
 }
 
@@ -157,13 +158,26 @@ export function BfnResponseChart({
     );
   }, [activeViewState, comparison, project, result, suppliedModel, t]);
 
-  const updateView = (cursorIndex: number | null): void => {
-    if (!result || activeViewState.cursorIndex === cursorIndex) return;
-    const next = { ...activeViewState, cursorIndex };
-    if (onCursorIndexChange) onCursorIndexChange(cursorIndex);
-    if (onViewStateChange) onViewStateChange(next);
-    else setInternalViewState(next);
-  };
+  const updateView = useCallback(
+    (cursorIndex: number | null): void => {
+      if (!result || activeViewState.cursorIndex === cursorIndex) return;
+      const next = { ...activeViewState, cursorIndex };
+      if (onCursorIndexChange) onCursorIndexChange(cursorIndex);
+      if (onViewStateChange) onViewStateChange(next);
+      else setInternalViewState(next);
+    },
+    [activeViewState, onCursorIndexChange, onViewStateChange, result],
+  );
+
+  const visibleIndices = useMemo(
+    () => (result && model ? visibleBfnPointIndices(result.points, model.domains.x) : []),
+    [model, result],
+  );
+
+  useEffect(() => {
+    const cursorIndex = activeViewState.cursorIndex;
+    if (cursorIndex !== null && !visibleIndices.includes(cursorIndex)) updateView(null);
+  }, [activeViewState.cursorIndex, updateView, visibleIndices]);
 
   const pointerCoordinate = (event: React.PointerEvent<SVGSVGElement>): number | null => {
     const svg = pointerRef.current;
@@ -186,12 +200,10 @@ export function BfnResponseChart({
     if (!result || !model) return;
     const coordinate = pointerCoordinate(event);
     if (coordinate === null) return;
-    const visiblePoints = result.points
-      .map((point, index) => ({ point, index }))
-      .filter(
-        ({ point }) =>
-          point.coordinate >= model.domains.x[0] && point.coordinate <= model.domains.x[1],
-      );
+    const visiblePoints = visibleIndices.flatMap((index) => {
+      const point = result.points[index];
+      return point ? [{ point, index }] : [];
+    });
     const nearestIndex = nearestPointIndex(
       visiblePoints.map(({ point }) => point),
       coordinate,
@@ -201,20 +213,26 @@ export function BfnResponseChart({
 
   const handleKeyDown = (event: React.KeyboardEvent<SVGSVGElement>): void => {
     if (!result || event.ctrlKey || event.metaKey) return;
-    const lastIndex = result.points.length - 1;
+    if (visibleIndices.length === 0 && event.key !== 'Escape') return;
+    const firstIndex = visibleIndices[0] ?? null;
+    const lastIndex = visibleIndices.at(-1) ?? null;
+    const visiblePosition =
+      activeViewState.cursorIndex === null
+        ? -1
+        : visibleIndices.indexOf(activeViewState.cursorIndex);
     let nextIndex: number | null = activeViewState.cursorIndex;
     if (event.key === 'ArrowLeft') {
       nextIndex =
-        activeViewState.cursorIndex === null
+        visiblePosition < 0
           ? lastIndex
-          : Math.max(0, activeViewState.cursorIndex - 1);
+          : (visibleIndices[Math.max(0, visiblePosition - 1)] ?? firstIndex);
     } else if (event.key === 'ArrowRight') {
       nextIndex =
-        activeViewState.cursorIndex === null
-          ? 0
-          : Math.min(lastIndex, activeViewState.cursorIndex + 1);
+        visiblePosition < 0
+          ? firstIndex
+          : (visibleIndices[Math.min(visibleIndices.length - 1, visiblePosition + 1)] ?? lastIndex);
     } else if (event.key === 'Home') {
-      nextIndex = 0;
+      nextIndex = firstIndex;
     } else if (event.key === 'End') {
       nextIndex = lastIndex;
     } else if (event.key === 'Escape') {
@@ -348,7 +366,6 @@ export function BfnResponseChart({
       </p>
       {cursor ? (
         <BfnChartTooltip
-          project={project}
           result={result}
           {...(comparison ? { comparison } : {})}
           model={model}

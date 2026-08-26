@@ -17,6 +17,45 @@ describe('BFN-IR complete-model simulation', () => {
       status: 'accepted',
       representation: 'ann_affine_approximation',
     });
+    expect(result.signalSnapshot).toEqual({
+      primaryInput: {
+        sourceId: 'source-ahl',
+        labelKey: 'bfn.sources.ahl',
+        entity: '3OC6-HSL',
+        quantityType: 'concentration',
+        unit: 'nM',
+      },
+      output: {
+        monitorId: 'monitor-reporter',
+        labelKey: 'bfn.monitors.reporter',
+        entity: 'normalized_reporter_expression',
+        quantityType: 'expression_level',
+        unit: 'dimensionless',
+      },
+    });
+  });
+
+  it('copies signal semantics into the result instead of retaining project references', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project);
+
+    project.network.inputSources[0]!.labelKey = 'changed.input';
+    project.network.inputSources[0]!.outputPort.entity = 'changed_input';
+    project.network.inputSources[0]!.outputPort.unit = 'uM';
+    project.network.outputMonitors[0]!.labelKey = 'changed.output';
+    project.network.outputMonitors[0]!.inputPort.entity = 'changed_output';
+    project.network.outputMonitors[0]!.inputPort.unit = 'nM';
+
+    expect(result.signalSnapshot?.primaryInput).toMatchObject({
+      labelKey: 'bfn.sources.ahl',
+      entity: '3OC6-HSL',
+      unit: 'nM',
+    });
+    expect(result.signalSnapshot?.output).toMatchObject({
+      labelKey: 'bfn.monitors.reporter',
+      entity: 'normalized_reporter_expression',
+      unit: 'dimensionless',
+    });
   });
 
   it('does not generate ANN weight or bias for a static fixed point', () => {

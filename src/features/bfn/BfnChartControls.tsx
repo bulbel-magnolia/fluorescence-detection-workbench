@@ -1,7 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { evaluateLogEligibility, validateManualDomain } from './chartMath';
+import {
+  countVisibleBfnLineSeries,
+  evaluateLogEligibility,
+  validateManualDomain,
+} from './chartMath';
 import type {
   BfnChartAxis,
   BfnChartComparison,
@@ -84,15 +88,17 @@ export function BfnChartControls({
 
   const setSeries = (kind: 'showFullModel' | 'showUncertainty' | 'showAnn'): void => {
     const next = !viewState[kind];
-    if (kind === 'showFullModel' && !next) {
+    const candidate = { ...viewState, [kind]: next };
+    if (
+      countVisibleBfnLineSeries(candidate, {
+        annAvailable: result.annApproximation !== null,
+        comparisonAvailable: comparison !== undefined,
+      }) === 0
+    ) {
       setSeriesError(t('bfn.results.chart.lastSeriesExplanation'));
       return;
     }
-    if (kind === 'showAnn' && !next && !viewState.showFullModel) {
-      setSeriesError(t('bfn.results.chart.lastSeriesExplanation'));
-      return;
-    }
-    onViewStateChange({ ...viewState, [kind]: next });
+    onViewStateChange(candidate);
     setSeriesError(undefined);
   };
 

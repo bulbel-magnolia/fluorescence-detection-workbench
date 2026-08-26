@@ -9,6 +9,7 @@ import type {
 } from './types';
 
 export type BfnEvidenceTone = 'evidence' | 'validated' | 'warning';
+export type BfnLabelTranslate = (key: string) => string;
 
 export function bfnEvidenceTone(grade: BfnEvidenceGrade): BfnEvidenceTone {
   if (grade === 'externally_validated') return 'validated';
@@ -58,26 +59,26 @@ const designVariableKeys: Record<string, string> = {
   HIGH_DEMO: 'bfn.designVariables.levelHigh',
 };
 
-export function bfnEntityLabel(entity: string, t: TFunction): string {
+export function bfnEntityLabel(entity: string, t: BfnLabelTranslate): string {
   const key = entityKeys[entity];
   return key ? t(key) : entity;
 }
 
-export function bfnQuantityLabel(quantityType: string, t: TFunction): string {
+export function bfnQuantityLabel(quantityType: string, t: BfnLabelTranslate): string {
   const key = quantityKeys[quantityType];
   return key ? t(key) : quantityType;
 }
 
-export function bfnUnitLabel(unit: string, t: TFunction): string {
+export function bfnUnitLabel(unit: string, t: BfnLabelTranslate): string {
   return unit === 'dimensionless' ? t('bfn.units.relativeValue') : unit;
 }
 
-export function bfnPortPrimaryLabel(port: BfnPort, t: TFunction): string {
+export function bfnPortPrimaryLabel(port: BfnPort, t: BfnLabelTranslate): string {
   const entity = bfnEntityLabel(port.entity, t);
   return entityKeys[port.entity] ? entity : entity + ' ' + bfnQuantityLabel(port.quantityType, t);
 }
 
-export function bfnPortMetaLabel(port: BfnPort, t: TFunction): string {
+export function bfnPortMetaLabel(port: BfnPort, t: BfnLabelTranslate): string {
   if (port.unit === 'dimensionless') {
     return port.quantityType === 'expression_level'
       ? t('bfn.units.relativeExpressionLevel')
@@ -86,7 +87,7 @@ export function bfnPortMetaLabel(port: BfnPort, t: TFunction): string {
   return bfnQuantityLabel(port.quantityType, t) + ' · ' + bfnUnitLabel(port.unit, t);
 }
 
-export function bfnModuleFlowLabel(module: BfnFunctionalModule, t: TFunction): string {
+export function bfnModuleFlowLabel(module: BfnFunctionalModule, t: BfnLabelTranslate): string {
   const inputs = module.inputPorts.map((port) => bfnPortPrimaryLabel(port, t));
   const outputs = module.outputPorts.map((port) => bfnPortPrimaryLabel(port, t));
   return (inputs.length ? inputs.join(' + ') : '—') + ' → ' + (outputs[0] ?? '—');

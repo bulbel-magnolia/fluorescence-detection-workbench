@@ -7,6 +7,7 @@ import { ModelingPage } from './ModelingPage';
 import { createBfnChartModel } from '../features/bfn/chartModel';
 import { defaultBfnChartViewState, type BfnChartGeometry } from '../features/bfn/chartTypes';
 import { BfnChartControls } from '../features/bfn/BfnChartControls';
+import { BfnResultWorkspace } from '../features/bfn/BfnResultWorkspace';
 import { createDemoBfnProject } from '../features/bfn/fixtures';
 import {
   BFN_PROJECT_STORAGE_KEY,
@@ -103,7 +104,7 @@ describe('Batch 4 precise chart reading controls', () => {
     expect(screen.getByRole('button', { name: 'Reset view' })).toBeInTheDocument();
   });
 
-  it('prevents hiding every actual Y line and allows uncertainty/ANN toggles', async () => {
+  it('allows Full model to hide behind ANN and blocks hiding the last actual line', async () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
     await user.click(screen.getByRole('button', { name: 'Run steady-state analysis' }));
@@ -111,16 +112,21 @@ describe('Batch 4 precise chart reading controls', () => {
     const uncertainty = screen.getByRole('button', { name: /Parameter interval/ });
     const ann = screen.getByRole('button', { name: /ANN approximation/ });
     await user.click(full);
+    expect(full).toHaveAttribute('aria-pressed', 'false');
+    expect(
+      within(document.querySelector('.bfn-chart-controls') as HTMLElement).queryByText(
+        'Keep at least one actual Y series visible.',
+      ),
+    ).not.toBeInTheDocument();
+    await user.click(uncertainty);
+    expect(uncertainty).toHaveAttribute('aria-pressed', 'false');
+    await user.click(ann);
     expect(
       within(document.querySelector('.bfn-chart-controls') as HTMLElement).getByText(
         'Keep at least one actual Y series visible.',
       ),
     ).toBeInTheDocument();
-    expect(full).toHaveAttribute('aria-pressed', 'true');
-    await user.click(uncertainty);
-    expect(uncertainty).toHaveAttribute('aria-pressed', 'false');
-    await user.click(ann);
-    expect(ann).toHaveAttribute('aria-pressed', 'false');
+    expect(ann).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('shows only available series, applies axis ranges, and delegates reset', () => {
@@ -148,6 +154,11 @@ describe('Batch 4 precise chart reading controls', () => {
     );
     expect(screen.queryByRole('button', { name: 'ANN approximation' })).not.toBeInTheDocument();
     const controls = document.querySelector('.bfn-chart-controls') as HTMLElement;
+    fireEvent.click(within(controls).getByRole('button', { name: 'Network response' }));
+    expect(onViewStateChange).not.toHaveBeenCalled();
+    expect(within(controls).getByRole('status')).toHaveTextContent(
+      'Keep at least one actual Y series visible.',
+    );
     const uncertainty = within(controls).getByRole('button', { name: 'Parameter interval' });
     fireEvent.click(uncertainty);
     expect(onViewStateChange).toHaveBeenCalledWith(
@@ -161,6 +172,28 @@ describe('Batch 4 precise chart reading controls', () => {
     );
     fireEvent.click(within(controls).getByRole('button', { name: 'Reset view' }));
     expect(onReset).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats a rejected ANN as an independently visible line', async () => {
+    const base = runBfnSimulation(createDemoBfnProject());
+    if (!base.annApproximation) throw new Error('Expected demo ANN approximation');
+    const rejected = {
+      ...base,
+      annApproximation: { ...base.annApproximation, status: 'rejected' as const },
+    };
+    const user = userEvent.setup();
+    render(<StatefulChartControls project={createDemoBfnProject()} result={rejected} />);
+
+    await user.click(screen.getByRole('button', { name: 'Network response' }));
+
+    expect(screen.getByRole('button', { name: 'Network response' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    expect(screen.getByRole('button', { name: 'ANN approximation' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('applies valid manual bounds, rejects invalid drafts, and resets the stateful chart view', () => {
@@ -314,6 +347,7 @@ describe('Batch 4 precise chart reading controls', () => {
     const invalid = {
       ...base,
       id: 'bfn-run-feedback-invalid',
+      annApproximation: null,
       points: base.points.slice(0, 2).map((point, index) => ({
         ...point,
         coordinate: index,
@@ -355,6 +389,69 @@ describe('Batch 4 precise chart reading controls', () => {
     await user.click(within(controls).getByRole('button', { name: 'Reset view' }));
     expect(onReset).toHaveBeenCalledTimes(1);
     expect(within(controls).queryAllByRole('status')).toHaveLength(0);
+  });
+
+  it('uses result-owned input and selected-output units, including safe legacy fallbacks', () => {
+    const project = createDemoBfnProject();
+    const result = runBfnSimulation(project, '2026-08-26T00:00:00.000Z');
+    const firstMonitor = project.network.outputMonitors[0];
+    if (!firstMonitor || !result.signalSnapshot) throw new Error('Expected demo result semantics');
+    project.network.outputMonitors.push({
+      ...structuredClone(firstMonitor),
+      id: 'monitor-secondary',
+      labelKey: 'bfn.monitors.secondary',
+      inputPort: {
+        ...structuredClone(firstMonitor.inputPort),
+        id: 'port-monitor-secondary',
+        entity: '3OC6-HSL',
+        quantityType: 'concentration',
+        unit: 'uM',
+      },
+    });
+    project.network.inputSources[0]!.outputPort.unit = 'uM';
+    const historical = {
+      ...result,
+      id: 'run-selected-monitor',
+      outputMonitorId: 'monitor-secondary',
+      signalSnapshot: {
+        ...result.signalSnapshot,
+        output: {
+          monitorId: 'monitor-secondary',
+          labelKey: 'bfn.monitors.secondary',
+          entity: '3OC6-HSL',
+          quantityType: 'concentration' as const,
+          unit: 'nM' as const,
+        },
+      },
+    };
+    const commonProps = {
+      project,
+      runs: [historical],
+      resultFreshness: 'current' as const,
+      resultPanelOpen: true,
+      onTogglePanel: vi.fn(),
+      onRunSimulation: vi.fn(),
+      onRequestClearRuns: vi.fn(),
+      onSelectRun: vi.fn(),
+    };
+    const { rerender } = render(<BfnResultWorkspace {...commonProps} result={historical} />);
+    const facts = document.querySelector('.bfn-result-facts') as HTMLElement;
+    const outputFact = within(facts).getByText('Current output').closest('article');
+    const rangeFact = within(facts).getByText('Parameter range').closest('article');
+    expect(outputFact).toHaveTextContent('nM');
+    expect(outputFact).not.toHaveTextContent('Relative value');
+    expect(outputFact).not.toHaveTextContent('uM');
+    expect(rangeFact).toHaveTextContent('nM');
+    expect(rangeFact).not.toHaveTextContent('uM');
+    expect(screen.getByText('Primary input unit').nextElementSibling).toHaveTextContent('nM');
+    expect(screen.getByText('Output unit').nextElementSibling).toHaveTextContent('nM');
+
+    const legacy: BfnSimulationResult = structuredClone(historical);
+    delete legacy.signalSnapshot;
+    rerender(<BfnResultWorkspace {...commonProps} result={legacy} />);
+    expect(outputFact).toHaveTextContent('Unknown unit');
+    expect(rangeFact).toHaveTextContent('Unknown unit');
+    expect(screen.getByText(/Signal semantics were not recorded/)).toBeInTheDocument();
   });
 
   it('clears local validation feedback when the selected result changes', async () => {
@@ -730,7 +827,7 @@ describe('Batch 4 precise chart reading controls', () => {
       ...base,
       id: 'run-comparison-incompatible',
       completedAt: '2026-08-25T10:00:00.000Z',
-      outputMonitorId: 'monitor-incompatible',
+      networkId: 'network-incompatible',
     };
     const current = { ...base, id: 'run-comparison-current' };
     saveBfnRun(comparison);
@@ -868,6 +965,13 @@ describe('Batch 4 precise chart reading controls', () => {
       comparison.id,
     );
     expect(panel.querySelector('.bfn-chart__comparison')).toBeInTheDocument();
+    const controls = panel.querySelector('.bfn-chart-controls') as HTMLElement;
+    await user.click(within(controls).getByRole('button', { name: 'ANN approximation' }));
+    await user.click(within(controls).getByRole('button', { name: 'Network response' }));
+    expect(within(controls).getByRole('button', { name: 'Network response' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
 
     await user.click(within(history).getByRole('button', { name: 'Clear history' }));
     await user.click(
@@ -875,6 +979,12 @@ describe('Batch 4 precise chart reading controls', () => {
     );
 
     expect(panel.querySelector('.bfn-chart__comparison')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(within(controls).getByRole('button', { name: 'Network response' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      ),
+    );
     expect(
       within(panel).getByText(
         'Comparison cleared because it is no longer compatible or available.',

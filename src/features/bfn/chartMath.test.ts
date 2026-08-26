@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  countVisibleBfnLineSeries,
   createScale,
   evaluateLogEligibility,
   filterPointsInDomain,
@@ -9,6 +10,7 @@ import {
   resolveAutoDomain,
   validateManualDomain,
   validateChartCoordinates,
+  visibleBfnPointIndices,
   visibleYValues,
 } from './chartMath';
 import type { BfnSimulationResult, BfnSimulationPoint } from './types';
@@ -114,7 +116,7 @@ describe('chart math', () => {
     expect(validateManualDomain({ minimum: 1, maximum: 100 }, 'log')).toEqual({ valid: true });
   });
 
-  it('produces useful linear ticks and power-of-ten log ticks', () => {
+  it('produces useful linear ticks and engineering log ticks', () => {
     const linearTicks = linearNiceTicks([0.17, 0.93], 5);
     expect(linearTicks.length).toBeGreaterThanOrEqual(4);
     expect(linearTicks.length).toBeLessThanOrEqual(7);
@@ -122,7 +124,56 @@ describe('chart math', () => {
     expect(linearTicks.at(-1)).toBeGreaterThanOrEqual(0.93);
 
     expect(logMajorTicks([1, 1000])).toEqual([1, 10, 100, 1000]);
-    expect(logMajorTicks([2, 5])).toEqual([]);
+    expect(logMajorTicks([2, 5])).toEqual([2, 5]);
+    expect(logMajorTicks([2, 50])).toEqual([2, 5, 10, 20, 50]);
+    expect(logMajorTicks([0.2, 0.8])).toEqual([0.2, 0.5]);
+    expect(logMajorTicks([0, 10])).toEqual([]);
+    expect(logMajorTicks([-10, -1])).toEqual([]);
+  });
+
+  it('shares one finite inclusive point-visibility contract', () => {
+    expect(
+      visibleBfnPointIndices(
+        [
+          { coordinate: 1 },
+          { coordinate: 2 },
+          { coordinate: Number.NaN },
+          { coordinate: 3 },
+          { coordinate: 4 },
+          { coordinate: Number.POSITIVE_INFINITY },
+          { coordinate: 5 },
+        ],
+        [2, 4],
+      ),
+    ).toEqual([1, 3, 4]);
+    expect(visibleBfnPointIndices([{ coordinate: 2 }], [4, 2])).toEqual([]);
+  });
+
+  it('counts only available visible line series', () => {
+    expect(
+      countVisibleBfnLineSeries(
+        { showFullModel: true, showUncertainty: true, showAnn: false },
+        { annAvailable: true, comparisonAvailable: false },
+      ),
+    ).toBe(1);
+    expect(
+      countVisibleBfnLineSeries(
+        { showFullModel: false, showUncertainty: true, showAnn: true },
+        { annAvailable: true, comparisonAvailable: false },
+      ),
+    ).toBe(1);
+    expect(
+      countVisibleBfnLineSeries(
+        { showFullModel: false, showUncertainty: true, showAnn: true },
+        { annAvailable: false, comparisonAvailable: false },
+      ),
+    ).toBe(0);
+    expect(
+      countVisibleBfnLineSeries(
+        { showFullModel: false, showUncertainty: false, showAnn: false },
+        { annAvailable: false, comparisonAvailable: true },
+      ),
+    ).toBe(1);
   });
 
   it('filters points by an active domain and keeps normalized linear output in 0-1', () => {

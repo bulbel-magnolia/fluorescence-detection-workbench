@@ -6,6 +6,7 @@ import {
   resolveAutoDomain,
   validateChartCoordinates,
   validateManualDomain,
+  visibleBfnPointIndices,
   visibleYValues,
 } from './chartMath';
 import type {
@@ -23,6 +24,7 @@ import type {
 } from './chartTypes';
 import type { BfnSimulationPoint, BfnSimulationResult } from './types';
 import { nearestBfnPointOnValidatedGrid } from './runComparison';
+import { resolveBfnResultSignals } from './resultSignals';
 
 function finiteExtent(values: readonly number[], fallback: BfnChartDomain): BfnChartDomain {
   const finite = values.filter((value) => Number.isFinite(value));
@@ -57,20 +59,6 @@ function positiveExtent(values: readonly number[], fallback: BfnChartDomain): Bf
     return [minimum / factor, maximum * factor];
   }
   return [minimum, maximum];
-}
-
-function sourceForResult(
-  project: CreateBfnChartModelInput['project'],
-  result: BfnSimulationResult,
-) {
-  return project.network.inputSources.find((source) => source.id === result.primaryInputSourceId);
-}
-
-function monitorForResult(
-  project: CreateBfnChartModelInput['project'],
-  result: BfnSimulationResult,
-) {
-  return project.network.outputMonitors.find((monitor) => monitor.id === result.outputMonitorId);
 }
 
 function fallbackTranslation(
@@ -127,9 +115,13 @@ function filterIndexedPoints(
   points: readonly IndexedSimulationPoint[],
   domain: BfnChartDomain,
 ): IndexedSimulationPoint[] {
-  return points.filter(
-    ({ point }) => point.coordinate >= domain[0] && point.coordinate <= domain[1],
-  );
+  return visibleBfnPointIndices(
+    points.map(({ point }) => point),
+    domain,
+  ).flatMap((index) => {
+    const indexed = points[index];
+    return indexed ? [indexed] : [];
+  });
 }
 
 function pointsForSeries(
@@ -308,8 +300,7 @@ export function createBfnChartModel({
   geometry,
   translate,
 }: CreateBfnChartModelInput): BfnChartModel {
-  const source = sourceForResult(project, result);
-  const monitor = monitorForResult(project, result);
+  const signals = resolveBfnResultSignals(result, translate);
   const comparisonResult = comparison?.result;
   const coordinateValidation: {
     result: BfnChartCoordinateValidation;
@@ -392,16 +383,12 @@ export function createBfnChartModel({
     x:
       result.mode === 'dynamic'
         ? fallbackTranslation(translate, 'bfn.results.timeAxis', 'Time (hours)')
-        : source
-          ? `${source.outputPort.entity} (${source.outputPort.unit})`
-          : result.primaryInputSourceId ||
-            fallbackTranslation(translate, 'bfn.results.inputAxis', 'Input'),
-    y: monitor
-      ? `${monitor.inputPort.entity} (${monitor.inputPort.unit})`
-      : result.outputMonitorId ||
-        fallbackTranslation(translate, 'bfn.results.outputAxis', 'Output'),
-    ...(source ? { xEntity: source.outputPort.entity, xUnit: source.outputPort.unit } : {}),
-    ...(monitor ? { yEntity: monitor.inputPort.entity, yUnit: monitor.inputPort.unit } : {}),
+        : signals.input.axisLabel,
+    y: signals.output.axisLabel,
+    xEntity: signals.input.label,
+    xUnit: signals.input.unitLabel,
+    yEntity: signals.output.label,
+    yUnit: signals.output.unitLabel,
   };
 
   const fullPoints = filteredIndexedResultPoints;

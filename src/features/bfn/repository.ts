@@ -1,4 +1,4 @@
-import type { BfnProject, BfnSimulationResult } from './types';
+import type { BfnProject, BfnQuantityType, BfnSimulationResult, BfnUnit } from './types';
 
 export const BFN_PROJECT_STORAGE_KEY = 'fluorescence-desktop.bfn-ir-project.v2';
 export const BFN_RUN_STORAGE_KEY = 'fluorescence-desktop.bfn-ir-runs.v2';
@@ -6,6 +6,67 @@ export const LEGACY_MODELING_PROJECT_KEY = 'fluorescence-desktop.modeling-projec
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const BFN_QUANTITY_TYPES: ReadonlySet<string> = new Set([
+  'concentration',
+  'amount',
+  'production_rate',
+  'expression_level',
+  'activity',
+  'flux',
+  'fraction',
+  'cell_density',
+]);
+
+const BFN_UNITS: ReadonlySet<string> = new Set([
+  'M',
+  'mM',
+  'uM',
+  'nM',
+  'pM',
+  'nM/h',
+  'uM/h',
+  'molecules/cell',
+  'RPU',
+  'dimensionless',
+  'OD600',
+]);
+
+function isNonEmptyString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function isQuantityType(value: unknown): value is BfnQuantityType {
+  return typeof value === 'string' && BFN_QUANTITY_TYPES.has(value);
+}
+
+function isUnit(value: unknown): value is BfnUnit {
+  return typeof value === 'string' && BFN_UNITS.has(value);
+}
+
+function hasValidSignalSnapshot(value: Record<string, unknown>): boolean {
+  if (!Object.prototype.hasOwnProperty.call(value, 'signalSnapshot')) return true;
+  const snapshot = value.signalSnapshot;
+  if (!isRecord(snapshot) || !isRecord(snapshot.primaryInput) || !isRecord(snapshot.output)) {
+    return false;
+  }
+  const input = snapshot.primaryInput;
+  const output = snapshot.output;
+  return (
+    isNonEmptyString(input.sourceId) &&
+    input.sourceId === value.primaryInputSourceId &&
+    isNonEmptyString(input.labelKey) &&
+    isNonEmptyString(input.entity) &&
+    isQuantityType(input.quantityType) &&
+    isUnit(input.unit) &&
+    isNonEmptyString(output.monitorId) &&
+    output.monitorId === value.outputMonitorId &&
+    isNonEmptyString(output.labelKey) &&
+    isNonEmptyString(output.entity) &&
+    isQuantityType(output.quantityType) &&
+    isUnit(output.unit)
+  );
 }
 
 export function isBfnProject(value: unknown): value is BfnProject {
@@ -42,8 +103,11 @@ function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
     typeof value.networkId === 'string' &&
     (value.mode === 'static' || value.mode === 'dynamic') &&
     Array.isArray(value.points) &&
+    isNonEmptyString(value.primaryInputSourceId) &&
+    isNonEmptyString(value.outputMonitorId) &&
     Array.isArray(value.validationIssues) &&
-    typeof value.completedAt === 'string'
+    typeof value.completedAt === 'string' &&
+    hasValidSignalSnapshot(value)
   );
 }
 

@@ -264,7 +264,7 @@ export function BfnExportMenu({
         ...(comparison ? { comparison } : {}),
         captionText: {
           lead: t('bfn.results.exportMenu.caption.lead', {
-            demo: result.isDemo || project.isDemo ? t('bfn.results.exportMenu.caption.demo') : '',
+            demo: result.isDemo ? t('bfn.results.exportMenu.caption.demo') : '',
             mode: t(`bfn.modes.${result.mode}`),
             yAxis: model.labels.y,
             xAxis: model.labels.x,

@@ -30,6 +30,11 @@ export interface BfnScale {
   invert(value: number): number;
 }
 
+export interface BfnLineSeriesAvailability {
+  annAvailable: boolean;
+  comparisonAvailable: boolean;
+}
+
 function domainValues(domain: ChartDomainInput): [number, number] {
   if ('minimum' in domain) return [domain.minimum, domain.maximum];
   return [domain[0] ?? Number.NaN, domain[1] ?? Number.NaN];
@@ -230,14 +235,70 @@ export function logMajorTicks(domain: BfnChartDomain): readonly number[] {
   ) {
     return [];
   }
-  const start = Math.ceil(Math.log10(minimum));
-  const end = Math.floor(Math.log10(maximum));
-  const ticks: number[] = [];
-  for (let exponent = start; exponent <= end; exponent += 1) ticks.push(10 ** exponent);
-  if (ticks.length === 0) {
+  if (minimum === maximum) return [minimum];
+  const firstExponent = Math.floor(Math.log10(minimum)) - 1;
+  const lastExponent = Math.ceil(Math.log10(maximum)) + 1;
+  const tolerance = 1e-12;
+  const candidates: number[] = [];
+  for (let exponent = firstExponent; exponent <= lastExponent; exponent += 1) {
+    for (const multiplier of [1, 2, 5]) {
+      const value = Number((multiplier * 10 ** exponent).toPrecision(14));
+      if (
+        Number.isFinite(value) &&
+        value >= minimum * (1 - tolerance) &&
+        value <= maximum * (1 + tolerance)
+      ) {
+        candidates.push(value);
+      }
+    }
+  }
+  const ticks = [...new Set(candidates)].sort((left, right) => left - right);
+  if (ticks.length === 0) return [minimum, maximum];
+  if (ticks.length <= 7) return ticks;
+  const powers = ticks.filter((value) => {
+    const exponent = Math.log10(value);
+    return Math.abs(exponent - Math.round(exponent)) <= tolerance;
+  });
+  const source = powers.length >= 4 ? powers : ticks;
+  if (source.length <= 7) return source;
+  const sampled = Array.from({ length: 7 }, (_, index) => {
+    const sourceIndex = Math.round((index * (source.length - 1)) / 6);
+    return source[sourceIndex]!;
+  });
+  return [...new Set(sampled)];
+}
+
+/** Return original point indices whose finite coordinates are inside the inclusive X domain. */
+export function visibleBfnPointIndices(
+  points: readonly ChartCoordinate[],
+  domain: BfnChartDomain,
+): number[] {
+  if (!Number.isFinite(domain[0]) || !Number.isFinite(domain[1]) || domain[0] > domain[1]) {
     return [];
   }
-  return ticks;
+  const indices: number[] = [];
+  points.forEach((point, index) => {
+    if (
+      Number.isFinite(point.coordinate) &&
+      point.coordinate >= domain[0] &&
+      point.coordinate <= domain[1]
+    ) {
+      indices.push(index);
+    }
+  });
+  return indices;
+}
+
+/** Count visible line series; the uncertainty envelope is intentionally not a line. */
+export function countVisibleBfnLineSeries(
+  visibility: BfnChartVisibility,
+  availability: BfnLineSeriesAvailability,
+): number {
+  return (
+    (visibilityFlag(visibility, 'full') ? 1 : 0) +
+    (availability.annAvailable && visibilityFlag(visibility, 'ann') ? 1 : 0) +
+    (availability.comparisonAvailable ? 1 : 0)
+  );
 }
 
 export function filterPointsInDomain(

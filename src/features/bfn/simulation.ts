@@ -467,6 +467,22 @@ export function runBfnSimulation(
     points: simulation.points,
     primaryInputSourceId: primarySource.id,
     outputMonitorId: monitor.id,
+    signalSnapshot: {
+      primaryInput: {
+        sourceId: primarySource.id,
+        labelKey: primarySource.labelKey,
+        entity: source.port.entity,
+        quantityType: source.port.quantityType,
+        unit: source.port.unit,
+      },
+      output: {
+        monitorId: monitor.id,
+        labelKey: monitor.labelKey,
+        entity: monitor.inputPort.entity,
+        quantityType: monitor.inputPort.quantityType,
+        unit: monitor.inputPort.unit,
+      },
+    },
     annApproximation,
     dynamicMetrics:
       project.network.mode === 'dynamic' ? dynamicMetrics(project, simulation.points) : null,

@@ -353,7 +353,7 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 - 图表坐标验证、线性与 Log10 刻度、自动/手动范围、重置、系列独立显隐和科学计数法标签；
 - 指针与键盘精确点光标、静态/动态工具提示、多输入工具提示滚动和焦点保持；
 - SVG 向量输出、3× PNG 栅格输出、CSV 原始精度、剪贴板图像/数据/图注及平台能力失败提示；
-- 运行溯源、未知时间与未知值本地化、参数快照和 Demo/未验证边界；
+- 运行溯源、未知时间与未知值本地化、运行时输入/输出信号语义和 Demo/未验证边界；
 - 按 networkId、mode、primaryInputSourceId、outputMonitorId 筛选兼容历史运行，一次叠加一条历史曲线，并在独立采样网格上读取最近真实点；
 - 对比运行失效时自动清除，Log10 与历史非正坐标冲突时回退，不推断历史运行缺失字段。
 
@@ -362,3 +362,19 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 浏览器审计生成 10 张 1440×900 PNG。1280×720 下 document 与 body 的 clientWidth、scrollWidth 均为 1280 px，页面级水平溢出为 0；分析模式、输入设置、运行、X/Y 轴、导出和历史对比控件均在视口内可用。结果面板与工作台底边相差 0.67 px（子像素布局舍入），保持底部 Dock 结构。
 
 实际界面导出核验结果：SVG 包含 3 条 path、12 个 text 元素、白色背景且不含 `<image>`；PNG 为 2280×900；CSV 含 UTF-8 BOM、1 行表头和 33 行原始结果。完整截图说明、尺寸与导出文件见 `docs/ui-audit/scientific-results/README.md`。
+
+## 2026-08-26 Batch 4.1 结果语义与完整性修复
+
+自动化覆盖以下边界：
+
+- 新运行生成输入/输出信号语义快照；旧运行可加载，损坏快照按 repository 边界拒绝；
+- 当前项目修改同 ID 对象的标签或单位后，历史运行仍使用运行时快照；多输出网络按结果实际选择的 monitor 显示单位；
+- 中英文坐标轴、Tooltip、图注、SVG 和溯源字段使用统一结果信号解析器，不泄露内部 entity code；CSV 继续保留机器可读原始 ID；
+- `[2, 5]`、`[2, 50]`、`[0.2, 0.8]` 与 `[1, 1000]` 的 Log10 工程刻度，以及非正值拒绝；
+- Full、ANN、rejected ANN、历史对比和参数区间的主线计数；仅在操作会隐藏最后一条可用主线时阻止；
+- 手动 X 范围内 Home、End、方向键与指针共享可见点集合，范围变化排除当前光标时清除光标；
+- 两条新运行按信号 entity、quantity type 和 unit 严格比较；旧运行保留四项 ID 兼容并标记为 legacy identifiers。
+
+1440×900 浏览器审计保存 5 张条件截图。旧运行截图未通过开发脚本注入隐藏状态；旧运行安全回退由 repository、resolver、chart model 和页面测试覆盖。实际界面重新导出的 SVG 不含 `normalized_reporter_expression`、`normalized_promoter_activity` 或 `dimensionless`，并包含“报告信号”和“相对值”；PNG 为 2280×900；CSV 表头保留 `input:source-ahl` 与 `module:module-ahl-sensor` 等稳定 ID。审计说明与产物见 `docs/ui-audit/scientific-results-fixes/README.md`。
+
+最终门禁实际通过 TypeScript 与 ESLint；Vitest 共 76 个测试文件、477 项测试全部通过；Vite 生产构建转换 215 个模块。主 JavaScript chunk 为 671.75 kB、gzip 204.19 kB，构建继续报告既有的大于 500 kB 代码拆分提示，产物生成成功。

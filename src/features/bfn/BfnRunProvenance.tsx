@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { createBfnProvenanceRows } from './chartExport';
+import { resolveBfnResultSignals } from './resultSignals';
 import type { BfnSimulationResult } from './types';
 
 export interface BfnRunProvenanceProps {
@@ -25,6 +26,7 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
   const provenance = Object.fromEntries(
     createBfnProvenanceRows({ result }).map((row) => [row.key, row.value]),
   );
+  const signals = resolveBfnResultSignals(result, t);
   const hasPrimaryInputRange = result.points.some((point) =>
     Number.isFinite(point.inputs[result.primaryInputSourceId]),
   );
@@ -42,6 +44,10 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
     ['networkId', result.networkId],
     ['primaryInputSourceId', result.primaryInputSourceId],
     ['outputMonitorId', result.outputMonitorId],
+    ['primaryInputSignal', signals.input.label],
+    ['primaryInputUnit', signals.input.unitLabel],
+    ['outputSignal', signals.output.label],
+    ['outputUnit', signals.output.unitLabel],
     [
       'primaryInputRange',
       hasPrimaryInputRange
@@ -87,6 +93,11 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
           </div>
         ))}
       </dl>
+      {!signals.complete ? (
+        <p className="bfn-run-provenance__notice">
+          {t('bfn.results.signals.legacySemanticsUnavailable')}
+        </p>
+      ) : null}
     </details>
   );
 }
