@@ -417,3 +417,27 @@ Batch 5.0.1 不新增 Catalog UI，不执行视觉审计，也不生成截图。
 - Vite 7.3.6 生产构建通过，222 个模块完成转换；主 JavaScript chunk 为 1,045.24 kB、gzip 248.91 kB；
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
 - 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。
+
+## 2026-08-26 Batch 5.1 Catalog Discovery & Search
+
+自动化新增覆盖以下发现与隔离合同：
+
+- Discovery projection 从冻结 AHL/HSL V1.1 presentation 推导 42 个 Component group、52 条 Receiver Response 和 20 条 runnable demo response；默认查询保留没有响应记录的 Component，Sender 不生成 response 或 runnable 状态；
+- usage status 以真实 `response.runnable` 为门禁，覆盖可运行示例、待标定、仅定性证据、参考资料和 runtime-demo 异常时的安全不可用回退；
+- `Rhl`、`C4-HSL`、`3OC6`、`Kylilis`、DOI、大小写、首尾空白和多 token AND 搜索；Component 名称匹配优先于仅来源字段匹配，同分保持 release 顺序；
+- 状态、输入 Signal ID、宿主 species 以及三者组合筛选；Component 分组在 Signal 搜索时只保留匹配 Response row；
+- 默认全部折叠、单一结果自动展开、Receiver/Sender 轻量预览、不可运行 Response 可选择、文献结果不存在 Add to Network 操作；
+- Drawer 名称、搜索与筛选标签、`aria-expanded`、原生 Enter/Space 选择、Escape 关闭和搜索框初始焦点；
+- Catalog 加载失败时显示明确错误且不生成替代数据，内置 3 个 Demo 模块仍可展开并添加；
+- 搜索、筛选、展开、选择、清除和关闭不改变项目 JSON、computation signature、Undo/Redo 历史或 current result freshness；原内置 Demo module add 继续形成真实项目编辑。
+
+视觉审计使用真实桌面页面状态，产物与逐图记录位于 `docs/ui-audit/catalog-discovery/`。审计覆盖 1440×900 默认目录、3OC6 搜索、可运行筛选、Receiver Preview、Sender Preview、深色主题和内置 Demo 折叠区。1280×720 下 document 的 `clientWidth` 与 `scrollWidth` 均为 1280 px，Drawer 为 560×720 px，页面级水平溢出为 0；Drawer body 使用内部滚动，打开与关闭 Drawer 前后工作台 surface、workspace 和 stage 尺寸完全一致。
+
+### Batch 5.1 完整门禁
+
+- TypeScript `tsc --noEmit` 与 ESLint 全项目检查通过；
+- Vitest 共 85 个测试文件、580 项测试全部通过；
+- Vite 7.3.6 生产构建通过，224 个模块完成转换；主 JavaScript chunk 为 1,072.11 kB、gzip 255.46 kB；主 CSS 为 226.18 kB、gzip 39.72 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
+- 完整套件在无 worker 上限时连续两次出现跨文件交互测试超时，所有失败文件分组复跑均通过。使用 4 个 worker 的完整套件连续两次通过，因此在 Vitest 配置中固定 `maxWorkers: 4`，保持既有 timeout、测试数量和断言强度不变；
+- 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。

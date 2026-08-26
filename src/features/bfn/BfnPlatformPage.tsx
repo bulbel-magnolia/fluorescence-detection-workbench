@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/EmptyState';
 import { Icon } from '../../components/Icon';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
+import { BfnCatalogDiscoveryDrawer } from './catalog/BfnCatalogDiscoveryDrawer';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
 import { BfnPropertyGrid } from './BfnPropertyGrid';
 import {
@@ -30,12 +31,7 @@ import {
 import { bfnEditorShortcut, isBfnEditorOverlayOpen } from './editorShortcuts';
 import { resolveEffectiveBfnModel } from './modelResolution';
 import { BFN_CANVAS_SIZE, findBfnModulePlacement, type BfnCanvasViewport } from './nodePlacement';
-import {
-  bfnModuleCatalog,
-  createCatalogModule,
-  createDemoBfnProject,
-  type BfnCatalogModuleId,
-} from './fixtures';
+import { createCatalogModule, createDemoBfnProject, type BfnCatalogModuleId } from './fixtures';
 import {
   BFN_PROJECT_STORAGE_KEY,
   clearBfnRuns,
@@ -1984,95 +1980,11 @@ export function BfnPlatformPage() {
       </div>
 
       {view === 'design' && modulePickerOpen ? (
-        <div className="bfn-drawer-layer">
-          <button
-            className="bfn-drawer-scrim"
-            type="button"
-            aria-label={t('bfn.drawers.closeModulePicker')}
-            onClick={() => setModulePickerOpen(false)}
-          />
-          <aside
-            className="bfn-drawer bfn-module-picker"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="bfn-module-picker-title"
-          >
-            <header className="bfn-drawer__header">
-              <div>
-                <span>{t(project.network.labelKey)}</span>
-                <h2 id="bfn-module-picker-title">{t('bfn.registry.addTitle')}</h2>
-              </div>
-              <button
-                className="bfn-drawer__close"
-                type="button"
-                aria-label={t('bfn.drawers.closeModulePicker')}
-                onClick={() => setModulePickerOpen(false)}
-              >
-                ×
-              </button>
-            </header>
-            <p className="bfn-module-picker__lead">{t('bfn.registry.addHint')}</p>
-            <div className="bfn-module-catalog">
-              {bfnModuleCatalog.map((entry) => {
-                const previewModule = createCatalogModule(entry.id, 'catalog-preview');
-                const previewModel = resolveEffectiveBfnModel(project, previewModule);
-                const relatedDatasets = previewModel
-                  ? project.registry.datasets.filter((dataset) =>
-                      previewModel.sourceDatasetIds.includes(dataset.id),
-                    )
-                  : [];
-                return (
-                  <article className="bfn-module-row" key={entry.id}>
-                    <div className="bfn-module-row__identity">
-                      <h3>{t(entry.labelKey)}</h3>
-                      <p className="bfn-module-catalog__flow">
-                        {bfnModuleFlowLabel(previewModule, t)}
-                      </p>
-                      <p>{t(entry.descriptionKey)}</p>
-                    </div>
-                    <dl>
-                      <div>
-                        <dt>{t('bfn.registry.modelBasis')}</dt>
-                        <dd>
-                          <span
-                            className="bfn-evidence-label"
-                            data-evidence-tone={
-                              previewModel ? bfnEvidenceTone(previewModel.evidenceGrade) : 'warning'
-                            }
-                          >
-                            {previewModel
-                              ? t(`bfn.evidence.${previewModel.evidenceGrade}`)
-                              : t(entry.evidenceKey)}
-                          </span>
-                        </dd>
-                      </div>
-                      <div>
-                        <dt>{t('bfn.registry.linkedData')}</dt>
-                        <dd>
-                          {relatedDatasets.length
-                            ? relatedDatasets.map((dataset) => t(dataset.labelKey)).join(' · ')
-                            : t('bfn.registry.notLinkedDataset')}
-                        </dd>
-                      </div>
-                    </dl>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      leadingIcon={<Icon name="plus" size={14} />}
-                      onClick={() => addCatalogModule(entry.id)}
-                    >
-                      {t('bfn.registry.addToCanvas')}
-                    </Button>
-                  </article>
-                );
-              })}
-            </div>
-            <footer className="bfn-module-picker__footer">
-              <Icon name="network" size={15} />
-              <span>{t('bfn.registry.staysInNetwork')}</span>
-            </footer>
-          </aside>
-        </div>
+        <BfnCatalogDiscoveryDrawer
+          project={project}
+          onClose={() => setModulePickerOpen(false)}
+          onAddBuiltInModule={addCatalogModule}
+        />
       ) : null}
       <ConfirmDialog
         open={pendingDestructiveAction !== null}

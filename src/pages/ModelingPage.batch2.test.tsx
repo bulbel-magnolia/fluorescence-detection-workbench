@@ -45,7 +45,8 @@ describe('biological network design Batch 2 interactions', () => {
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('button', { name: '添加模块' }));
-    const moduleDialog = screen.getByRole('dialog', { name: '添加模块' });
+    const moduleDialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    await user.click(within(moduleDialog).getByText('内置示例模块'));
     await user.click(within(moduleDialog).getAllByRole('button', { name: '添加到网络' })[2]!);
     expect(screen.getByRole('button', { name: '双输入响应, 功能模块' })).toBeInTheDocument();
 
@@ -126,12 +127,12 @@ describe('biological network design Batch 2 interactions', () => {
     render(<ModelingPage />);
     await user.click(screen.getByRole('button', { name: 'AHL 响应, 功能模块' }));
     await user.click(screen.getByRole('button', { name: '添加模块' }));
-    const dialog = screen.getByRole('dialog', { name: '添加模块' });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
 
     fireEvent.keyDown(dialog, { key: 'Delete' });
     expect(screen.getByRole('button', { name: 'AHL 响应, 功能模块' })).toBeInTheDocument();
     fireEvent.keyDown(dialog, { key: 'Escape' });
-    expect(screen.queryByRole('dialog', { name: '添加模块' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'AHL/HSL 文献目录' })).not.toBeInTheDocument();
   });
 
   it('blocks project undo and Delete while the input drawer is open', async () => {
@@ -158,7 +159,8 @@ describe('biological network design Batch 2 interactions', () => {
     render(<ModelingPage />);
     await user.click(screen.getByRole('button', { name: '动态分析' }));
     await user.click(screen.getByRole('button', { name: '添加模块' }));
-    const picker = screen.getByRole('dialog', { name: '添加模块' });
+    const picker = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    await user.click(within(picker).getByText('内置示例模块'));
     await user.click(within(picker).getAllByRole('button', { name: '添加到网络' })[2]!);
     await user.click(screen.getByRole('button', { name: '撤销' }));
     expect(screen.queryByRole('button', { name: '双输入响应, 功能模块' })).not.toBeInTheDocument();

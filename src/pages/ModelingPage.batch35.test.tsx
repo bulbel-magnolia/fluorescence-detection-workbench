@@ -75,12 +75,13 @@ describe('Batch 3.5 scientific desktop structure', () => {
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('button', { name: '添加模块' }));
-    const drawer = screen.getByRole('dialog', { name: '添加模块' });
+    const drawer = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    await user.click(within(drawer).getByText('内置示例模块'));
     expect(drawer.querySelectorAll('.bfn-module-row')).toHaveLength(3);
     expect(within(drawer).getAllByRole('button', { name: '添加到网络' })).toHaveLength(3);
 
     await user.click(within(drawer).getAllByRole('button', { name: '添加到网络' })[2]!);
-    expect(screen.queryByRole('dialog', { name: '添加模块' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'AHL/HSL 文献目录' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled();
     await user.click(screen.getByRole('button', { name: '撤销' }));
     expect(screen.queryByRole('button', { name: '双输入响应, 功能模块' })).not.toBeInTheDocument();

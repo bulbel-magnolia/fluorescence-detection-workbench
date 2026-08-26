@@ -267,10 +267,20 @@ Catalog parameter context 使用确定、带命名空间的 external identity，
 
 Catalog V1.1 没有可信时间常数或状态方程，只创建 `BfnStaticModel`。静态 Catalog 模块进入动态网络时逐时刻执行 `y(t)=F(x(t))`，作为无记忆模块运行，不生成 tau 或人工延迟。运行结果的 Demo 状态由项目 Demo boundary，或当前 `outputMonitors[0]` 沿 enabled incoming Edge 反向可达的计算子图中任一 Demo effective model 传播。遍历只接受真实模块输出端口并使用 visited set 防止循环；孤立模块、损坏连接、disabled path 和不通向当前输出的支路不会污染结果。`experimentalValidity` 始终保持 `not_validated`。
 
+## Catalog Discovery
+
+Batch 5.1 在网络设计页的添加模块 Drawer 中接入只读 Catalog Discovery。当前唯一 Provider 是冻结的 AHL/HSL V1.1 release。展示层先把 `ReleaseCatalogPresentation` 投影成独立的 BFN Discovery model，再由 React 按 Component 分组呈现；Receiver Response 是组内响应记录，Signal、Context 和 Source 只参与筛选、搜索与轻量预览，不成为并列结果类型。
+
+默认目录包含全部 42 个非拒绝 Component 和 52 条 Receiver Response。20 条通过 `response.runnable` 可信门禁的记录标记为“可运行（示例模型）”；其余记录分别表达待标定、仅定性证据、参考资料或当前不可运行。该状态只描述当前软件用途边界，不表示实验验证、构建成功或生物学优劣。13 个 Sender Component 可以搜索和浏览；冻结 release 的 sender output 为 0，因此界面明确显示“暂无定量发送函数”，不从名称、effective pair 或 compatibility relation 推导数值输出。
+
+搜索覆盖双语 Component 名称、别名、调控蛋白或酶、promoter、reporter、Signal 名称与缩写、宿主与菌株，以及来源作者、标题、年份、DOI 和 PMID。搜索采用大小写无关的规范化子串与 token AND 语义；组件名称、组件元数据、Signal、宿主和来源按确定的文本相关性排序，同分保持 release 顺序。结构化筛选仅包含状态、输入 Signal ID 和宿主 species，所有选项从当前投影派生。
+
+搜索、筛选、展开、选择、预览、滚动和清除均为 Drawer 局部状态，不写入 BFN Project，不创建历史步骤，不触发项目自动保存，也不改变 computation signature 或结果新鲜度。文献 Response 在 Batch 5.1 没有“添加到网络”操作。原有 3 个通用 Demo 模块保留在独立的“内置示例模块”折叠区，并继续使用原添加流程。Catalog Response 的真正实例化与拓扑选择属于后续批次。
+
 ## 代码边界
 
 - `src/features/bfn/types.ts`：BFN-IR 2.0 类型；
-- `src/features/bfn/catalog/`：Catalog 候选、来源合同、输入解析、可信验证与统一执行边界；
+- `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
 - `validation.ts`：端口、连接、DAG、输入和上下文检查；

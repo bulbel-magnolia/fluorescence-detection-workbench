@@ -214,8 +214,9 @@ describe('biological network design workspace', () => {
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('button', { name: '添加模块' }));
-    const moduleDialog = screen.getByRole('dialog', { name: '添加模块' });
+    const moduleDialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
     expect(screen.getByRole('application', { name: '生物网络画布' })).toBeInTheDocument();
+    await user.click(within(moduleDialog).getByText('内置示例模块'));
     const ahlCard = within(moduleDialog)
       .getByRole('heading', { name: 'AHL 响应' })
       .closest('article');
@@ -228,7 +229,7 @@ describe('biological network design workspace', () => {
     const addButtons = within(moduleDialog).getAllByRole('button', { name: '添加到网络' });
     await user.click(addButtons[2]!);
 
-    expect(screen.queryByRole('dialog', { name: '添加模块' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'AHL/HSL 文献目录' })).not.toBeInTheDocument();
     expect(screen.getByRole('tab', { name: '网络设计' })).toHaveAttribute('aria-selected', 'true');
     expect(screen.getByRole('button', { name: '双输入响应, 功能模块' })).toBeInTheDocument();
     const inspector = screen.getByRole('heading', { name: '双输入响应' }).closest('aside');
