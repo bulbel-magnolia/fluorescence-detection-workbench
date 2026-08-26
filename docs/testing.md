@@ -441,3 +441,25 @@ Batch 5.0.1 不新增 Catalog UI，不执行视觉审计，也不生成截图。
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
 - 完整套件在无 worker 上限时连续两次出现跨文件交互测试超时，所有失败文件分组复跑均通过。使用 4 个 worker 的完整套件连续两次通过，因此在 Vitest 配置中固定 `maxWorkers: 4`，保持既有 timeout、测试数量和断言强度不变；
 - 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。
+
+## 2026-08-26 Batch 5.1.1 Catalog Signal Identity Presentation Fix
+
+自动化使用冻结 AHL/HSL V1.1 Catalog 的真实条目覆盖以下展示合同：
+
+- 共享 `C4-HSL` 缩写的 L、DL 与立体构型未说明 Signal，以及共享 `3OC6-HSL` 缩写的 L 与立体构型未说明 Signal，在中英文界面均生成可区分的身份标签；
+- Response row、Response preview 与输入 Signal 筛选器共用同一纯展示规则；筛选 option 的 value 继续使用原始 Signal ID，搜索语料、项目数据和运行时身份保持不变；
+- 无缩写或无法从 Catalog 审定名称安全证明限定信息时，展示规则回退到 Catalog 本地化名称；
+- 内置示例模块披露区位于 release、搜索和结果之前，默认保持折叠，原有 3 个添加按钮及回调行为不变；
+- Catalog usage status 的最小字号为 10 px。
+
+定向验证覆盖 2 个测试文件、24 项测试；扩展回归覆盖 Catalog Discovery、Modeling Page Batch 5.1、Batch 2、Batch 3.5 与主页面测试，共 6 个测试文件、52 项测试，均通过。
+
+视觉审计使用真实桌面页面与冻结 Catalog 数据，产物和逐图说明位于 `docs/ui-audit/catalog-signal-identity/`。审计覆盖 1440×900 浅色身份列表、Response preview、输入 Signal 筛选器、内置示例模块位置与深色主题。1280×720 下 document 的 `clientWidth` 与 `scrollWidth` 均为 1280 px，Drawer 为 560×720 px；关闭按钮完整可见，Drawer body 使用内部滚动，页面级水平溢出为 0。真实 `3OC6-HSL（立体构型未说明）` 的筛选、结果与预览在该尺寸下均可访问。
+
+### Batch 5.1.1 完整门禁
+
+- TypeScript `tsc --noEmit` 与 ESLint 全项目检查通过；
+- Vitest 共 85 个测试文件、585 项测试全部通过，未修改 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，224 个模块完成转换；主 JavaScript chunk 为 1,072.50 kB、gzip 255.62 kB；主 CSS 为 226.18 kB、gzip 39.72 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
+- 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。

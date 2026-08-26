@@ -1,4 +1,5 @@
 import type {
+  ReleaseCatalogLanguage,
   ReleaseCatalogLocalizedName,
   ReleaseCatalogPresentation,
   ReleaseCatalogUsageStatus,
@@ -98,6 +99,22 @@ export interface BfnCatalogDiscoveryQueryResult {
   groups: readonly BfnCatalogDiscoveryGroup[];
   componentCount: number;
   responseCount: number;
+}
+
+export function bfnCatalogSignalDisplayName(
+  names: ReleaseCatalogLocalizedName,
+  abbreviations: readonly string[],
+  language: ReleaseCatalogLanguage,
+): string {
+  const localized = language === 'zh-CN' ? names.zh : names.en;
+  const abbreviation = abbreviations[0]?.trim();
+  if (!abbreviation || language === 'en-US') return localized;
+  if (hasQualifiedAbbreviation(localized, abbreviation)) return localized;
+
+  const qualifier = extractIdentityQualifier(names.en, abbreviation);
+  return qualifier === 'L' || qualifier === 'D' || qualifier === 'DL'
+    ? `${abbreviation}（${qualifier}）`
+    : localized;
 }
 
 interface SearchMatch {
@@ -362,6 +379,24 @@ function containsToken(values: readonly string[], token: string): boolean {
 
 function tokenize(query: string): string[] {
   return normalizeText(query).split(' ').filter(Boolean);
+}
+
+function hasQualifiedAbbreviation(value: string, abbreviation: string): boolean {
+  const trimmed = value.trim();
+  return (
+    (trimmed.startsWith(`${abbreviation} (`) && trimmed.endsWith(')')) ||
+    (trimmed.startsWith(`${abbreviation}（`) && trimmed.endsWith('）'))
+  );
+}
+
+function extractIdentityQualifier(displayName: string, abbreviation: string): string | null {
+  const trimmed = displayName.trim();
+  const prefix = `${abbreviation} (`;
+  if (!trimmed.startsWith(prefix) || !trimmed.endsWith(')')) return null;
+  const qualifier = trimmed.slice(prefix.length, -1).trim();
+  return qualifier.length > 0 && !qualifier.includes('(') && !qualifier.includes(')')
+    ? qualifier
+    : null;
 }
 
 function normalizeText(value: string): string {

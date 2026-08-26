@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
 import {
+  bfnCatalogSignalDisplayName,
   bfnCatalogDiscoveryStatus,
   buildBfnCatalogDiscoveryModel,
   queryBfnCatalogDiscovery,
@@ -52,6 +53,58 @@ describe('BFN catalog discovery projection', () => {
     expect(bfnCatalogDiscoveryStatus({ runnable: false, usageStatus: 'reference-only' })).toBe(
       'reference-only',
     );
+  });
+
+  it('keeps real catalog signal identities distinct when abbreviations are shared', () => {
+    const signalIds = [
+      'ahl.c4.l',
+      'ahl.c4.dl',
+      'ahl.c4.stereo-unspecified',
+      'ahl.3oc6.l',
+      'ahl.3oc6.stereo-unspecified',
+    ] as const;
+    const signals = signalIds.map((id) => {
+      const signal = presentation.signals.find((candidate) => candidate.id === id);
+      if (!signal) throw new Error(`Release signal fixture is missing: ${id}`);
+      return signal;
+    });
+    const [c4L, c4Dl, c4Unspecified, oc6L, oc6Unspecified] = signals;
+    if (!c4L || !c4Dl || !c4Unspecified || !oc6L || !oc6Unspecified)
+      throw new Error('Signal identity fixtures are incomplete.');
+
+    expect(c4L.abbreviations[0]).toBe(c4Dl.abbreviations[0]);
+    expect(c4Dl.abbreviations[0]).toBe(c4Unspecified.abbreviations[0]);
+    expect(oc6L.abbreviations[0]).toBe(oc6Unspecified.abbreviations[0]);
+
+    expect(
+      signals.map((signal) =>
+        bfnCatalogSignalDisplayName(signal.names, signal.abbreviations, 'en-US'),
+      ),
+    ).toEqual([
+      'C4-HSL (L)',
+      'C4-HSL (DL)',
+      'C4-HSL (stereo unspecified)',
+      '3OC6-HSL (L)',
+      '3OC6-HSL (stereo unspecified)',
+    ]);
+    expect(
+      signals.map((signal) =>
+        bfnCatalogSignalDisplayName(signal.names, signal.abbreviations, 'zh-CN'),
+      ),
+    ).toEqual([
+      'C4-HSL（L）',
+      'C4-HSL（DL）',
+      'C4-HSL（立体构型未说明）',
+      '3OC6-HSL（L）',
+      '3OC6-HSL（立体构型未说明）',
+    ]);
+  });
+
+  it('falls back to the catalog localized name when shortening is not provably safe', () => {
+    const names = { en: 'Future audited signal', zh: '未来审核信号' };
+    expect(bfnCatalogSignalDisplayName(names, [], 'zh-CN')).toBe(names.zh);
+    expect(bfnCatalogSignalDisplayName(names, ['FAS'], 'zh-CN')).toBe(names.zh);
+    expect(bfnCatalogSignalDisplayName(names, ['FAS'], 'en-US')).toBe(names.en);
   });
 
   it.each(['Rhl', 'C4-HSL', '3OC6', 'Kylilis', '10.1038/s41467-018-05046-2'])(

@@ -275,6 +275,8 @@ Batch 5.1 在网络设计页的添加模块 Drawer 中接入只读 Catalog Disco
 
 搜索覆盖双语 Component 名称、别名、调控蛋白或酶、promoter、reporter、Signal 名称与缩写、宿主与菌株，以及来源作者、标题、年份、DOI 和 PMID。搜索采用大小写无关的规范化子串与 token AND 语义；组件名称、组件元数据、Signal、宿主和来源按确定的文本相关性排序，同分保持 release 顺序。结构化筛选仅包含状态、输入 Signal ID 和宿主 species，所有选项从当前投影派生。
 
+Batch 5.1.1 统一了 Signal 在 Response row、Response preview 与输入 Signal 筛选器中的身份表达。常用缩写继续承担搜索与紧凑识别用途；同一缩写对应多个化学实体时，界面从冻结 Catalog 的审定中英文名称保留足以区分身份的限定信息，例如 `3OC6-HSL（L）` 与 `3OC6-HSL（立体构型未说明）`。该规则只改变展示文本，不修改 Signal ID、canonical name、BFN entity 映射、筛选值或运行时合同；无法从审定名称安全证明限定信息时，回退到 Catalog 本地化显示名。
+
 搜索、筛选、展开、选择、预览、滚动和清除均为 Drawer 局部状态，不写入 BFN Project，不创建历史步骤，不触发项目自动保存，也不改变 computation signature 或结果新鲜度。文献 Response 在 Batch 5.1 没有“添加到网络”操作。原有 3 个通用 Demo 模块保留在独立的“内置示例模块”折叠区，并继续使用原添加流程。Catalog Response 的真正实例化与拓扑选择属于后续批次。
 
 ## 代码边界

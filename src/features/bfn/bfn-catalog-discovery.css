@@ -298,7 +298,7 @@
   background: var(--ui-bg-hover);
   border: 1px solid var(--ui-border-default);
   border-radius: var(--ui-radius-xs);
-  font-size: 9.5px;
+  font-size: 10px;
   line-height: 1.25;
   text-align: center;
 }
@@ -399,7 +399,7 @@
 }
 
 .bfn-built-in-modules {
-  margin-top: 12px;
+  margin: 0 0 4px;
   border-top: 1px solid var(--ui-border-default);
   border-bottom: 1px solid var(--ui-border-default);
 }

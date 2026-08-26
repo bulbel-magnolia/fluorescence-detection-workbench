@@ -99,6 +99,73 @@ describe('BFN catalog discovery drawer', () => {
     expect(dialog.querySelector('.bfn-catalog-groups')).not.toHaveTextContent('添加到网络');
   });
 
+  it.each([
+    {
+      language: 'zh-CN',
+      lLabel: '3OC6-HSL（L）',
+      unspecifiedLabel: '3OC6-HSL（立体构型未说明）',
+    },
+    {
+      language: 'en-US',
+      lLabel: '3OC6-HSL (L)',
+      unspecifiedLabel: '3OC6-HSL (stereo unspecified)',
+    },
+  ])(
+    'keeps shared-abbreviation filter options distinct in $language',
+    async ({ language, lLabel, unspecifiedLabel }) => {
+      await i18n.changeLanguage(language);
+      renderDrawer();
+      const dialog = screen.getByRole('dialog', {
+        name: language === 'zh-CN' ? 'AHL/HSL 文献目录' : 'AHL/HSL Literature Catalog',
+      });
+      const signalFilter = within(dialog).getByRole('combobox', {
+        name: language === 'zh-CN' ? '输入信号' : 'Input signal',
+      });
+      const lOption = within(signalFilter).getByRole('option', { name: lLabel });
+      const unspecifiedOption = within(signalFilter).getByRole('option', {
+        name: unspecifiedLabel,
+      });
+
+      expect(lOption).toHaveValue('ahl.3oc6.l');
+      expect(unspecifiedOption).toHaveValue('ahl.3oc6.stereo-unspecified');
+      expect(lOption.textContent).not.toBe(unspecifiedOption.textContent);
+    },
+  );
+
+  it('preserves stereochemistry in response rows and the selected preview', async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    const signalFilter = within(dialog).getByRole('combobox', { name: '输入信号' });
+
+    await user.selectOptions(signalFilter, 'ahl.3oc6.l');
+    const lGroup = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-group__trigger');
+    expect(lGroup).not.toBeNull();
+    if (!lGroup) throw new Error('3OC6-HSL (L) did not return a component group.');
+    await user.click(lGroup);
+    const lRow = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-response-row');
+    expect(lRow).not.toBeNull();
+    expect(lRow).toHaveTextContent('3OC6-HSL（L） → 归一化报告响应');
+
+    await user.selectOptions(signalFilter, 'ahl.3oc6.stereo-unspecified');
+    const unspecifiedGroup = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-group__trigger');
+    expect(unspecifiedGroup).not.toBeNull();
+    if (!unspecifiedGroup)
+      throw new Error('3OC6-HSL (stereo unspecified) did not return a component group.');
+    if (unspecifiedGroup.getAttribute('aria-expanded') !== 'true')
+      await user.click(unspecifiedGroup);
+    const unspecifiedRow = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-response-row');
+    expect(unspecifiedRow).not.toBeNull();
+    if (!unspecifiedRow) throw new Error('Stereo-unspecified response row was not rendered.');
+    expect(unspecifiedRow).toHaveTextContent('3OC6-HSL（立体构型未说明） → 归一化报告响应');
+    expect(unspecifiedRow.textContent).not.toBe(lRow?.textContent);
+
+    await user.click(unspecifiedRow);
+    expect(within(dialog).getByRole('region', { name: '目录条目预览' })).toHaveTextContent(
+      '3OC6-HSL（立体构型未说明） → 归一化报告响应',
+    );
+  });
+
   it('previews a sender without inventing a response model', async () => {
     const user = userEvent.setup();
     renderDrawer();
@@ -122,7 +189,11 @@ describe('BFN catalog discovery drawer', () => {
     renderDrawer({ onAddBuiltInModule: onAdd });
     const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
 
-    expect(dialog.querySelector('.bfn-built-in-modules')).not.toHaveAttribute('open');
+    const builtIn = dialog.querySelector('.bfn-built-in-modules');
+    const body = dialog.querySelector('.bfn-catalog-discovery__body');
+    expect(builtIn).not.toHaveAttribute('open');
+    expect(body?.firstElementChild).toBe(builtIn);
+    expect(builtIn?.nextElementSibling).toHaveClass('bfn-catalog-release-summary');
     await user.click(within(dialog).getByText('内置示例模块'));
     const addButtons = within(dialog).getAllByRole('button', { name: '添加到网络' });
     expect(addButtons).toHaveLength(3);

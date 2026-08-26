@@ -13,6 +13,7 @@ import { resolveEffectiveBfnModel } from '../modelResolution';
 import { bfnEvidenceTone, bfnModuleFlowLabel } from '../presentation';
 import type { BfnProject } from '../types';
 import {
+  bfnCatalogSignalDisplayName,
   buildBfnCatalogDiscoveryModel,
   queryBfnCatalogDiscovery,
   type BfnCatalogDiscoveryGroup,
@@ -174,8 +175,8 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
       >
         <DiscoveryDrawerHeader onClose={props.onClose} />
         <div className="bfn-catalog-discovery__body">
-          <DiscoveryCatalogBody {...props} />
           <BuiltInModuleDisclosure project={props.project} onAdd={props.onAddBuiltInModule} />
+          <DiscoveryCatalogBody {...props} />
         </div>
         <footer className="bfn-catalog-discovery__footer">
           <Icon name="file" size={14} />
@@ -377,7 +378,7 @@ function InputSignalFilter(
         <option value="all">{t('bfn.catalogDiscovery.all')}</option>
         {props.model.filterOptions.inputSignals.map((signal) => (
           <option key={signal.id} value={signal.id}>
-            {signalFilterLabel(signal, props.language)}
+            {bfnCatalogSignalDisplayName(signal.names, signal.abbreviations, props.language)}
           </option>
         ))}
       </select>
@@ -497,7 +498,11 @@ function ResponseEntry(props: DiscoveryGroupProps & { response: BfnCatalogDiscov
       >
         <span className="bfn-catalog-response-row__identity">
           <strong>
-            {signalShortName(props.response, props.language)}
+            {bfnCatalogSignalDisplayName(
+              props.response.inputSignalNames,
+              props.response.inputSignalAbbreviations,
+              props.language,
+            )}
             <span aria-hidden="true"> → </span>
             {t('bfn.catalogDiscovery.normalizedOutput')}
           </strong>
@@ -531,7 +536,11 @@ function ResponsePreview({
         />
         <PreviewFact
           label={t('bfn.catalogDiscovery.function')}
-          value={`${signalShortName(response, language)} → ${t('bfn.catalogDiscovery.normalizedOutput')}`}
+          value={`${bfnCatalogSignalDisplayName(
+            response.inputSignalNames,
+            response.inputSignalAbbreviations,
+            language,
+          )} → ${t('bfn.catalogDiscovery.normalizedOutput')}`}
         />
         <PreviewFact
           label={t('bfn.catalogDiscovery.status')}
@@ -724,24 +733,6 @@ function localizedName(
   language: ReleaseCatalogLanguage,
 ): string {
   return language === 'zh-CN' ? names.zh : names.en;
-}
-
-function signalShortName(
-  signal: Pick<BfnCatalogDiscoveryResponse, 'inputSignalAbbreviations' | 'inputSignalNames'>,
-  language: ReleaseCatalogLanguage,
-): string {
-  return signal.inputSignalAbbreviations[0] ?? localizedName(signal.inputSignalNames, language);
-}
-
-function signalFilterLabel(
-  signal: { names: { en: string; zh: string }; abbreviations: readonly string[] },
-  language: ReleaseCatalogLanguage,
-): string {
-  const name = localizedName(signal.names, language);
-  const abbreviation = signal.abbreviations[0];
-  return abbreviation && !name.toLocaleLowerCase().includes(abbreviation.toLocaleLowerCase())
-    ? `${name} · ${abbreviation}`
-    : name;
 }
 
 function statusLabel(status: BfnCatalogDiscoveryStatus, t: TFunction): string {
