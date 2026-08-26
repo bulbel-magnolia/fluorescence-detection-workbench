@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/Button';
 import { Icon } from '../../../components/Icon';
-import { bfnNodeDisplayName } from '../presentation';
+import { bfnNodeDisplayName, bfnPortPrimaryLabel } from '../presentation';
 import type { BfnProject } from '../types';
 import type { BfnCatalogResponseDetail } from './catalogDetail';
 import { resolveBfnCatalogCandidateInput } from './catalogInstantiation';
@@ -66,8 +66,7 @@ export function BfnCatalogInstantiationPanel({
                   <li key={`${source.nodeId}:${source.port.id}`}>
                     <strong>{node ? bfnNodeDisplayName(node, language, t) : source.nodeId}</strong>
                     <span>
-                      {t(`bfn.catalogInstantiation.sourceKinds.${source.nodeKind}`)} ·{' '}
-                      {source.port.unit}
+                      {bfnPortPrimaryLabel(source.port, t, language)} · {source.port.unit}
                     </span>
                   </li>
                 );

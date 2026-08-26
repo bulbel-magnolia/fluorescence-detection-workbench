@@ -251,6 +251,14 @@ describe('BFN catalog discovery drawer', () => {
     );
     project.network.inputSources[0]!.outputPort = {
       id: 'existing-catalog-signal',
+      displayName: {
+        en: bfnCatalogSignalDisplayName(
+          response.inputSignalNames,
+          response.inputSignalAbbreviations,
+          'en-US',
+        ),
+        zh: signalName,
+      },
       entity: candidate.inputEntity,
       quantityType: 'concentration',
       unit: 'nM',
@@ -275,6 +283,12 @@ describe('BFN catalog discovery drawer', () => {
 
     expect(within(dialog).getByText(/当前网络已经有 1 个/u)).toBeInTheDocument();
     expect(within(dialog).getAllByText(signalName).length).toBeGreaterThan(0);
+    const compatibleSourceList = dialog.querySelector<HTMLElement>(
+      '.bfn-catalog-instantiation__resolution ul',
+    );
+    if (!compatibleSourceList) throw new Error('Expected the compatible source list.');
+    expect(within(compatibleSourceList).getByText(`${signalName} · nM`)).toBeInTheDocument();
+    expect(within(compatibleSourceList).queryByText('输入源 · nM')).not.toBeInTheDocument();
     const moduleOnly = within(dialog).getByRole('radio', { name: /只添加响应模块/u });
     const moduleAndSource = within(dialog).getByRole('radio', {
       name: /添加模块并创建匹配输入源/u,

@@ -89,7 +89,7 @@ describe('BFN catalog full-detail view', () => {
       (entry) => entry.sequenceReference && entry.sequenceMetadata,
     );
     if (!component) throw new Error('Expected a component with sequence provenance.');
-    renderDetail(
+    const view = renderDetail(
       buildBfnCatalogDetail(presentation, {
         kind: 'component',
         componentId: component.id,
@@ -100,7 +100,10 @@ describe('BFN catalog full-detail view', () => {
     expect(screen.getByText('序列来源')).toBeInTheDocument();
     expect(screen.getByText('序列核验边界')).toBeInTheDocument();
     expect(screen.getByText(component.sequenceReference!)).toBeInTheDocument();
-    expect(screen.queryByText(component.sequenceStatus)).not.toBeInTheDocument();
+    expect(primaryDetailText(view.container)).not.toContain(component.sequenceStatus);
+    expect(view.container.querySelector('.bfn-catalog-detail__advanced')?.textContent).toContain(
+      component.sequenceStatus,
+    );
   });
 
   it('supports the complete runnable Detail and Add decision in English', async () => {
@@ -119,6 +122,84 @@ describe('BFN catalog full-detail view', () => {
     expect(screen.getByText('Original parameters reported in the literature')).toBeInTheDocument();
     expect(screen.getByText('Sequence source')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to network' })).toBeInTheDocument();
+  });
+
+  it('keeps known release codes and source-English pair text out of the primary Chinese UI', () => {
+    const sender = presentation.components.find((entry) =>
+      entry.evidenceGaps.includes('direct_hsl_concentration_unavailable'),
+    );
+    if (!sender) throw new Error('Expected a sender with direct-concentration evidence gap.');
+    const senderView = renderDetail(
+      buildBfnCatalogDetail(presentation, { kind: 'component', componentId: sender.id }),
+    );
+    expect(primaryDetailText(senderView.container)).toContain('缺少发送端 AHL 浓度的直接测量');
+    expect(primaryDetailText(senderView.container)).not.toContain(
+      'direct_hsl_concentration_unavailable',
+    );
+    expect(
+      senderView.container.querySelector('.bfn-catalog-detail__advanced')?.textContent,
+    ).toContain('direct_hsl_concentration_unavailable');
+    senderView.unmount();
+
+    const pairComponent = presentation.components.find((entry) =>
+      entry.observedPairs.some(
+        (pair) => pair.observedEffect === 'above background but below constitutive EGFP control',
+      ),
+    );
+    if (!pairComponent) throw new Error('Expected the whole-system pair observation.');
+    const pairView = renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'component',
+        componentId: pairComponent.id,
+      }),
+    );
+    expect(primaryDetailText(pairView.container)).toContain('高于背景水平，但低于组成型 EGFP 对照');
+    expect(primaryDetailText(pairView.container)).not.toContain(
+      'above background but below constitutive EGFP control',
+    );
+    expect(primaryDetailText(pairView.container)).not.toContain('activation_strong');
+    pairView.unmount();
+
+    const compatibilityComponent = presentation.components.find((entry) =>
+      entry.compatibilityRelations.some((relation) => relation.relationType === 'constraint_hit'),
+    );
+    if (!compatibilityComponent) throw new Error('Expected constraint-hit compatibility evidence.');
+    const compatibilityView = renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'component',
+        componentId: compatibilityComponent.id,
+      }),
+    );
+    expect(primaryDetailText(compatibilityView.container)).toContain('拟合触及参数约束');
+    expect(primaryDetailText(compatibilityView.container)).not.toContain('constraint_hit');
+  });
+
+  it('humanizes every source model and uses a safe fallback while retaining raw audit text', () => {
+    const response = presentation.responseVariants.find(
+      (entry) => entry.response.sourceResponse?.modelType === 'approximate_half_maximum',
+    );
+    if (!response) throw new Error('Expected an approximate half-maximum response.');
+    const modelView = renderDetail(
+      buildBfnCatalogDetail(presentation, { kind: 'response', responseId: response.id }),
+    );
+    expect(primaryDetailText(modelView.container)).toContain('近似半最大响应位置');
+    expect(primaryDetailText(modelView.container)).not.toContain('approximate_half_maximum');
+    modelView.unmount();
+
+    const sender = componentDetail('sender');
+    const unknownDetail: BfnCatalogDetail = {
+      ...sender,
+      component: {
+        ...sender.component,
+        evidenceGaps: ['some_new_internal_code'],
+      },
+    };
+    const fallbackView = renderDetail(unknownDetail);
+    expect(primaryDetailText(fallbackView.container)).toContain('存在尚未完整呈现的证据信息');
+    expect(primaryDetailText(fallbackView.container)).not.toContain('some_new_internal_code');
+    expect(
+      fallbackView.container.querySelector('.bfn-catalog-detail__advanced')?.textContent,
+    ).toContain('some_new_internal_code');
   });
 });
 
@@ -162,4 +243,12 @@ function renderDetail(detail: BfnCatalogDetail, language: 'zh-CN' | 'en-US' = 'z
       onInstantiate={vi.fn()}
     />,
   );
+}
+
+function primaryDetailText(container: HTMLElement): string {
+  return [
+    ...container.querySelectorAll('.bfn-catalog-detail__summary, .bfn-catalog-detail__section'),
+  ]
+    .map((element) => element.textContent ?? '')
+    .join(' ');
 }

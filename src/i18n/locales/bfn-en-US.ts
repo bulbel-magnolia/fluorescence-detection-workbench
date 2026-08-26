@@ -665,6 +665,161 @@ export const bfnEnUS = {
     readOnlyBoundary:
       'The literature catalog is read-only and does not change the current network.',
   },
+  catalogEvidence: {
+    additionalInformation: 'Additional evidence information is recorded',
+    evidenceGaps: {
+      absoluteHslCalibrationUnavailable: 'Absolute AHL concentration calibration is unavailable',
+      completeProductSpectrumUnavailable:
+        'The complete product spectrum has not been characterized',
+      completeSequenceNotEmbedded: 'The complete sequence is not embedded in this release',
+      datasheetNumericValuesNotReingested:
+        'The original datasheet values have not been re-ingested',
+      directHslConcentrationUnavailable: 'Direct AHL concentration was not measured',
+      directIntermediateAhlConcentrationUnavailable:
+        'The intermediate AHL concentration was not measured directly',
+      fullPairSequenceChecksumNotRevalidated:
+        'The complete paired-construct sequence checksum was not revalidated',
+      fullSequenceNotEmbedded: 'The complete nucleotide sequence is not embedded in this release',
+    },
+    responseClasses: {
+      activationPartial: 'Partial activation',
+      activationStrong: 'Strong activation',
+      endToEndEffective: 'An effective end-to-end response was observed',
+      noResponseInLiquidAssay: 'No clear response was observed in the liquid supernatant assay',
+    },
+    observedEffects: {
+      methylbenzoateCognateGfpResponse:
+        'A 3-methylbenzoate-induced sender produced a cognate receiver GFP response in one-strain and/or two-strain configurations',
+      aboveBackgroundBelowControl: 'Above background, but below the constitutive EGFP control',
+      noF2620ActivationAboveBackground:
+        'No F2620_EGFP activation above background was observed in the liquid supernatant assay',
+      fullResponseAtFractions: 'A full response was observed at 25% and 50% supernatant',
+      controlLevelAcrossFractions:
+        'The response reached control level across the tested supernatant fractions',
+    },
+    compatibilityRelations: {
+      activation: 'Activation relationship',
+      ambiguousFit: 'The fit is ambiguous',
+      anomalousParameter: 'The fitted parameter is anomalous',
+      completeOrthogonality: 'No reciprocal crosstalk was observed',
+      constraintHit: 'The fit reached a parameter constraint',
+      constructionFailureInContext: 'Construction was unsuccessful in this experimental context',
+      endToEndQualitativeCommunication: 'Qualitative end-to-end communication was observed',
+      highBasalLeakage: 'Basal output is high or leaky',
+      noResponseOrNonconvergent: 'No clear response was observed or the fit did not converge',
+      promoterCrosstalk: 'Promoter crosstalk was observed',
+      promoterOrthogonalSignalCrosstalk:
+        'The promoters remained orthogonal, but signal crosstalk was observed',
+      signalCrosstalk: 'Signal crosstalk was observed',
+      signalOrthogonality: 'The signals remained orthogonal',
+    },
+    qualitativeOutcomes: {
+      activatedLasRActivatesPlux: 'Activated LasR can activate Plux',
+      activationPartial: 'Partial activation was observed',
+      activationStrong: 'Strong activation was observed',
+      doseDependentCognateActivation: 'Dose-dependent cognate activation was observed',
+      highBasalOutputAtEightHours: 'Basal output was high or leaky at 8 h',
+      lasTraPromoterOrthogonalSignalCrosstalk:
+        'Las and Tra promoters remained orthogonal, with two-way signal crosstalk',
+      luxRpaSignalOrthogonal: 'Lux and Rpa signals remained orthogonal in the tested modules',
+      luxRRespondsToLasSignal: 'LuxR responded to the Las-system signal 3OC12-HSL',
+      noInductionAtTestedConcentrations:
+        'No induction was observed at the tested cognate concentrations',
+      noResponseInLiquidAssay: 'No clear response was observed in the liquid assay',
+      notUsedForNumericalSimulation: 'This record is not used for numerical simulation',
+      rpaTraNoCrosstalk: 'No signal or promoter crosstalk was observed between Rpa and Tra',
+    },
+    sourceModels: {
+      approximateHalfMaximum: 'Approximate half-maximum response position',
+      doseResponse: 'Dose-response record',
+      fourParameterLogistic: 'Four-parameter logistic response',
+      hillActivation: 'Hill activation response',
+      hillEquationNFixedOne: 'Hill response (n fixed at 1)',
+      historicalDatasheet: 'Historical datasheet record',
+    },
+    fitStatuses: {
+      approximateReported: 'The literature reports an approximate value',
+      convergedPositiveResponse: 'The fit converged with a positive response',
+      convergedReported: 'The literature reports a converged fit',
+      curveReportedWithoutReingestedFit:
+        'A response curve is reported, but its fit has not been re-ingested',
+      excludedFromRuntimeFit: 'This record is excluded from runtime fitting',
+      fittedReported: 'The literature reports a fitted result',
+      parameterUnavailable: 'Fitted parameters are unavailable',
+      reportedRangeConflict: 'The literature reports differing numerical ranges',
+      sourceCurveAvailable: 'The source response curve is available',
+    },
+    approximationQualifiers: {
+      approximateKm31: 'Approximate Km; βmax = 31.2 units/min',
+      approximateKm41: 'Approximate Km; βmax = 41.5 units/min',
+      approximateEc50AndFold: 'EC50 is approximately 0.5 nM with an approximately 28-fold response',
+      approximatelyOneNanomolar: 'Approximately 1 × 10⁻⁹ M',
+      threeOxoRange: 'The reported range for 3-oxo HSLs is 1 × 10⁻⁷–1 × 10⁻⁶ M',
+      nanomolarRange: 'The reported range is 1 × 10⁻⁹–1 × 10⁻⁸ M',
+      apparentKd: 'Apparent KD is 210 ± 110 nM',
+      conflictingMainTextRange:
+        'The main text reports approximately 5 × 10⁻⁷ M in one passage and 1 × 10⁻⁷ M in another; the catalog preserves the range',
+    },
+    sequenceSourceTypes: {
+      addgenePlasmidRecords: 'Addgene plasmid records',
+      igemRegistryCompositePart: 'iGEM Registry composite-part record',
+      igemRegistryPartRecord: 'iGEM Registry part record',
+      zenodoGenbankFile: 'Zenodo GenBank file',
+    },
+    sequenceVerificationStatuses: {
+      plasmidAndBackboneVerified:
+        'Plasmid identities and the backbone pair were checked; the full sequence payload was not re-hashed',
+      plasmidAndMutationVerified:
+        'Plasmid identity and mutation mapping were checked; the full plasmid sequence was not re-hashed',
+      registryIdentifierVerified:
+        'The Registry identifier was checked against the article Data Availability statement; the nucleotide payload was not re-hashed',
+      registryCompositionVerified:
+        'Registry identity and component composition were checked; no release-local checksum was calculated',
+      repositoryFileIdentityVerified:
+        'Repository file identity was checked; the sequence was not embedded or re-hashed in this release',
+    },
+    missingSequenceElements: {
+      fullPairSequenceChecksum: 'Complete paired-construct sequence checksum is unavailable',
+      historicalDatasheetNumericTable:
+        'The historical datasheet raw numerical table is unavailable',
+      releaseLocalFullPlasmidChecksum:
+        'A full-plasmid checksum calculated by this release is unavailable',
+      releaseLocalSequenceChecksum: 'A sequence checksum calculated by this release is unavailable',
+    },
+    measurementDetailKeys: {
+      acquisitionVolume: 'Acquisition volume',
+      bl1Voltage: 'BL1 channel voltage',
+      flowRate: 'Flow rate',
+      fscThreshold: 'FSC threshold',
+      fscVoltage: 'FSC voltage',
+      populationGate: 'Population gate',
+      sampleDilution: 'Sample dilution',
+      sscThreshold: 'SSC threshold',
+      sscVoltage: 'SSC voltage',
+      targetEvents: 'Target event count',
+    },
+    rawAudit: {
+      title: 'Raw evidence record',
+      description:
+        'The following machine fields are retained for source audit and are not the primary scientific interpretation.',
+      evidenceGaps: 'Raw evidence-gap codes',
+      responseClasses: 'Raw response classes',
+      observedEffects: 'Raw whole-system observation text',
+      compatibilityRelations: 'Raw compatibility-relation codes',
+      qualitativeOutcomes: 'Raw qualitative outcomes',
+      sourceModels: 'Raw model types',
+      fitStatuses: 'Raw fit statuses',
+      approximationQualifiers: 'Raw approximation notes',
+      sourceNotes: 'Raw response-record notes',
+      pairNotes: 'Raw whole-system observation notes',
+      compatibilityNotes: 'Raw compatibility-evidence notes',
+      sequenceStatuses: 'Raw sequence statuses',
+      sequenceSourceTypes: 'Raw sequence-source types',
+      sequenceVerificationStatuses: 'Raw sequence-verification notes',
+      missingSequenceElements: 'Raw missing-sequence elements',
+      measurementKeys: 'Raw measurement fields',
+    },
+  },
   catalogDetail: {
     detailLabel: 'Full details for {{name}}',
     viewDetails: 'View full details',

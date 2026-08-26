@@ -15,6 +15,7 @@ import type {
 } from './catalogDetail';
 import type { BfnProject } from '../types';
 import { BfnCatalogInstantiationPanel } from './BfnCatalogInstantiationPanel';
+import { bfnCatalogEvidenceText } from './catalogEvidencePresentation';
 
 interface BfnCatalogDetailViewProps {
   detail: BfnCatalogDetail;
@@ -176,7 +177,9 @@ function ResponseDetailSections({
             rows={[
               [
                 t('bfn.catalogDetail.qualitative.observation'),
-                detail.sourceResponse?.notes ?? notRecorded(t),
+                detail.sourceResponse
+                  ? bfnCatalogEvidenceText('fit-status', detail.sourceResponse.fitStatus, t)
+                  : notRecorded(t),
               ],
               [
                 t('bfn.catalogDetail.qualitative.evidenceLocation'),
@@ -201,7 +204,10 @@ function SourceResponseSection({ detail }: { detail: BfnCatalogResponseDetail })
   if (!source) return null;
   const nonRunnable = detail.runtimeModel === null;
   const rows: Array<readonly [string, string]> = [
-    [t('bfn.catalogDetail.sourceParameters.reportedModel'), reportedModel(source.modelType, t)],
+    [
+      t('bfn.catalogDetail.sourceParameters.reportedModel'),
+      bfnCatalogEvidenceText('source-model', source.modelType, t),
+    ],
     [t('bfn.catalogDetail.sourceParameters.basal'), formatNullableNumber(source.basal, t)],
     [t('bfn.catalogDetail.sourceParameters.maximum'), formatNullableNumber(source.maximum, t)],
     [
@@ -226,7 +232,9 @@ function SourceResponseSection({ detail }: { detail: BfnCatalogResponseDetail })
   if (source.approximateValue) {
     rows.push([
       t('bfn.catalogDetail.sourceParameters.approximation'),
-      source.approximationQualifier ?? t('bfn.catalogDetail.sourceParameters.approximate'),
+      source.approximationQualifier
+        ? bfnCatalogEvidenceText('approximation-qualifier', source.approximationQualifier, t)
+        : t('bfn.catalogDetail.sourceParameters.approximate'),
     ]);
   }
   if (source.reportedParameterSymbol) {
@@ -359,9 +367,7 @@ function ComponentSection({ detail }: { detail: BfnCatalogDetail['component'] })
           ],
           [
             t('bfn.catalogDetail.component.sequenceStatus'),
-            t(`bfn.catalogDetail.component.sequenceStatuses.${detail.sequenceStatus}`, {
-              defaultValue: detail.sequenceStatus.replaceAll('_', ' '),
-            }),
+            bfnCatalogEvidenceText('sequence-status', detail.sequenceStatus, t),
           ],
           [
             t('bfn.catalogDetail.component.sequenceSource'),
@@ -378,7 +384,11 @@ function ComponentSection({ detail }: { detail: BfnCatalogDetail['component'] })
           ],
           [
             t('bfn.catalogDetail.component.evidenceGaps'),
-            detail.evidenceGaps.length ? detail.evidenceGaps.join(' · ') : notRecorded(t),
+            detail.evidenceGaps.length
+              ? detail.evidenceGaps
+                  .map((gap) => bfnCatalogEvidenceText('evidence-gap', gap, t))
+                  .join(' · ')
+              : notRecorded(t),
           ],
         ]}
       />
@@ -389,7 +399,13 @@ function ComponentSection({ detail }: { detail: BfnCatalogDetail['component'] })
             rows={[
               [
                 t('bfn.catalogDetail.component.sequenceSourceType'),
-                valueOrMissing(detail.sequenceMetadata.sequence_source_type, t),
+                detail.sequenceMetadata.sequence_source_type
+                  ? bfnCatalogEvidenceText(
+                      'sequence-source-type',
+                      detail.sequenceMetadata.sequence_source_type,
+                      t,
+                    )
+                  : notRecorded(t),
               ],
               [
                 t('bfn.catalogDetail.component.sequenceAccession'),
@@ -411,7 +427,13 @@ function ComponentSection({ detail }: { detail: BfnCatalogDetail['component'] })
               ],
               [
                 t('bfn.catalogDetail.component.sequenceVerificationStatus'),
-                valueOrMissing(detail.sequenceMetadata.sequence_verification_status, t),
+                detail.sequenceMetadata.sequence_verification_status
+                  ? bfnCatalogEvidenceText(
+                      'sequence-verification-status',
+                      detail.sequenceMetadata.sequence_verification_status,
+                      t,
+                    )
+                  : notRecorded(t),
               ],
               [
                 t('bfn.catalogDetail.component.assemblyContext'),
@@ -420,7 +442,11 @@ function ComponentSection({ detail }: { detail: BfnCatalogDetail['component'] })
               [
                 t('bfn.catalogDetail.component.missingSequenceElements'),
                 detail.sequenceMetadata.missing_sequence_elements.length
-                  ? detail.sequenceMetadata.missing_sequence_elements.join(' · ')
+                  ? detail.sequenceMetadata.missing_sequence_elements
+                      .map((element) =>
+                        bfnCatalogEvidenceText('missing-sequence-element', element, t),
+                      )
+                      .join(' · ')
                   : notRecorded(t),
               ],
             ]}
@@ -509,17 +535,19 @@ function ObservedPairsSection({
             </strong>
             <PropertyList
               rows={[
-                [t('bfn.catalogDetail.pairs.observation'), pair.observedEffect],
-                [t('bfn.catalogDetail.pairs.responseClass'), pair.responseClass],
+                [
+                  t('bfn.catalogDetail.pairs.observation'),
+                  bfnCatalogEvidenceText('observed-effect', pair.observedEffect, t),
+                ],
+                [
+                  t('bfn.catalogDetail.pairs.responseClass'),
+                  bfnCatalogEvidenceText('response-class', pair.responseClass, t),
+                ],
                 [t('bfn.catalogDetail.pairs.condition'), valueOrMissing(pair.condition, t)],
                 [t('bfn.catalogDetail.pairs.source'), sourceListSummary(pair.sources, t)],
                 [
                   t('bfn.catalogDetail.pairs.evidenceLocation'),
                   valueOrMissing(pair.evidenceLocation, t),
-                ],
-                [
-                  t('bfn.catalogDetail.pairs.notes'),
-                  pair.notes.length ? pair.notes.join(' · ') : notRecorded(t),
                 ],
               ]}
             />
@@ -552,17 +580,19 @@ function CompatibilitySection({
             </strong>
             <PropertyList
               rows={[
-                [t('bfn.catalogDetail.compatibility.relation'), entry.relationType],
-                [t('bfn.catalogDetail.compatibility.outcome'), entry.qualitativeOutcome],
+                [
+                  t('bfn.catalogDetail.compatibility.relation'),
+                  bfnCatalogEvidenceText('compatibility-relation', entry.relationType, t),
+                ],
+                [
+                  t('bfn.catalogDetail.compatibility.outcome'),
+                  bfnCatalogEvidenceText('qualitative-outcome', entry.qualitativeOutcome, t),
+                ],
                 [t('bfn.catalogDetail.compatibility.context'), contextSummary(entry.context, t)],
                 [t('bfn.catalogDetail.compatibility.source'), sourceListSummary(entry.sources, t)],
                 [
                   t('bfn.catalogDetail.compatibility.evidenceLocation'),
                   valueOrMissing(entry.evidenceLocation, t),
-                ],
-                [
-                  t('bfn.catalogDetail.compatibility.notes'),
-                  entry.notes.length ? entry.notes.join(' · ') : notRecorded(t),
                 ],
               ]}
             />
@@ -575,6 +605,7 @@ function CompatibilitySection({
 
 function AdvancedSection({ detail }: { detail: BfnCatalogDetail }) {
   const { t } = useTranslation();
+  const rawEvidenceRows = buildRawEvidenceRows(detail, t);
   const identityRows: Array<readonly [string, string]> =
     detail.kind === 'response'
       ? [
@@ -645,8 +676,77 @@ function AdvancedSection({ detail }: { detail: BfnCatalogDetail }) {
           </p>
         </details>
       ) : null}
+      {rawEvidenceRows.length ? (
+        <details className="bfn-catalog-detail__nested">
+          <summary>{t('bfn.catalogEvidence.rawAudit.title')}</summary>
+          <p className="bfn-catalog-detail__note">
+            {t('bfn.catalogEvidence.rawAudit.description')}
+          </p>
+          <PropertyList rows={rawEvidenceRows} />
+        </details>
+      ) : null}
     </details>
   );
+}
+
+function buildRawEvidenceRows(
+  detail: BfnCatalogDetail,
+  t: Translate,
+): Array<readonly [string, string]> {
+  const rows: Array<readonly [string, string]> = [];
+  const add = (labelKey: string, values: readonly (string | null | undefined)[]): void => {
+    const retained = [...new Set(values.filter((value): value is string => Boolean(value)))];
+    if (retained.length) rows.push([t(labelKey), retained.join(' · ')]);
+  };
+  add('bfn.catalogEvidence.rawAudit.evidenceGaps', detail.component.evidenceGaps);
+  add('bfn.catalogEvidence.rawAudit.sequenceStatuses', [detail.component.sequenceStatus]);
+  add('bfn.catalogEvidence.rawAudit.sequenceSourceTypes', [
+    detail.component.sequenceMetadata?.sequence_source_type,
+  ]);
+  add('bfn.catalogEvidence.rawAudit.sequenceVerificationStatuses', [
+    detail.component.sequenceMetadata?.sequence_verification_status,
+  ]);
+  add(
+    'bfn.catalogEvidence.rawAudit.missingSequenceElements',
+    detail.component.sequenceMetadata?.missing_sequence_elements ?? [],
+  );
+  if (detail.kind === 'response') {
+    add('bfn.catalogEvidence.rawAudit.sourceModels', [detail.sourceResponse?.modelType]);
+    add('bfn.catalogEvidence.rawAudit.fitStatuses', [detail.sourceResponse?.fitStatus]);
+    add('bfn.catalogEvidence.rawAudit.approximationQualifiers', [
+      detail.sourceResponse?.approximationQualifier,
+    ]);
+    add('bfn.catalogEvidence.rawAudit.sourceNotes', [detail.sourceResponse?.notes]);
+  }
+  add(
+    'bfn.catalogEvidence.rawAudit.responseClasses',
+    detail.observedPairs.map((pair) => pair.responseClass),
+  );
+  add(
+    'bfn.catalogEvidence.rawAudit.observedEffects',
+    detail.observedPairs.map((pair) => pair.observedEffect),
+  );
+  add(
+    'bfn.catalogEvidence.rawAudit.pairNotes',
+    detail.observedPairs.flatMap((pair) => pair.notes),
+  );
+  add(
+    'bfn.catalogEvidence.rawAudit.compatibilityRelations',
+    detail.compatibility.map((entry) => entry.relationType),
+  );
+  add(
+    'bfn.catalogEvidence.rawAudit.qualitativeOutcomes',
+    detail.compatibility.map((entry) => entry.qualitativeOutcome),
+  );
+  add(
+    'bfn.catalogEvidence.rawAudit.compatibilityNotes',
+    detail.compatibility.flatMap((entry) => entry.notes),
+  );
+  add(
+    'bfn.catalogEvidence.rawAudit.measurementKeys',
+    detail.context?.measurementDetails ? Object.keys(detail.context.measurementDetails) : [],
+  );
+  return rows;
 }
 
 function DetailSection({
@@ -779,18 +879,12 @@ function formatRange(minimum: number, maximum: number, unit: string): string {
   return `${formatNumber(minimum)}–${formatNumber(maximum)} ${unit}`.trim();
 }
 
-function reportedModel(value: string, t: Translate): string {
-  if (value === 'four_parameter_logistic') return t('bfn.catalogDetail.sourceParameters.fourPl');
-  if (value === 'hill_equation_n_fixed_1') return t('bfn.catalogDetail.sourceParameters.hillN1');
-  return value.replaceAll('_', ' ');
-}
-
 function objectRows(
   value: Readonly<Record<string, unknown>>,
   t: Translate,
 ): Array<readonly [string, string]> {
   return Object.entries(value).map(([key, entry]) => [
-    key.replaceAll('_', ' '),
+    bfnCatalogEvidenceText('measurement-detail-key', key, t),
     releaseValueOrMissing(entry, t),
   ]);
 }
