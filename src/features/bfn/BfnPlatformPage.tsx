@@ -46,6 +46,10 @@ import {
   saveBfnRun,
 } from './repository';
 import {
+  initialBfnSelection,
+  sanitizeWorkspaceExportName,
+} from './workspace/workspaceProjectFactory';
+import {
   bfnContextSectionTitle,
   bfnContextValueLabel,
   bfnDesignVariableLabel,
@@ -81,6 +85,22 @@ import './bfn-platform.css';
 
 type ResultFreshness = 'current' | 'stale';
 type DestructiveAction = 'reset-project' | 'clear-runs';
+
+export interface BfnPlatformPageProps {
+  project?: BfnProject;
+  projectName?: string;
+  runs?: readonly BfnSimulationResult[];
+  runSignatures?: Readonly<Record<string, string | null>>;
+  runRelations?: Readonly<Record<string, 'current' | 'earlier' | 'legacy'>>;
+  saveStatus?: BfnSaveStatus;
+  projectCenterOpen?: boolean;
+  onProjectChange?: (project: BfnProject) => void;
+  onRunCreated?: (result: BfnSimulationResult, computationSignature: string) => Promise<void>;
+  onClearRuns?: () => Promise<void>;
+  onImportProject?: (file: File) => Promise<void>;
+  onOpenProjectCenter?: () => void;
+  onCatalogOpen?: () => void;
+}
 
 interface EndpointOption {
   value: string;
@@ -305,28 +325,37 @@ function configuredInputSummary(project: BfnProject, t: TFunction, language: str
   return `${sourceLabel}：${value}`;
 }
 
-export function BfnPlatformPage() {
+export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const { t, i18n } = useTranslation();
   const nodeLanguage = i18n.resolvedLanguage ?? i18n.language;
-  const [project, setProject] = useState<BfnProject>(
+  const controlled = props.project !== undefined;
+  const [localProject, setLocalProject] = useState<BfnProject>(
     () => loadBfnProject() ?? createDemoBfnProject(),
   );
+  const project = props.project ?? localProject;
+  const setProject = (next: BfnProject): void => {
+    if (props.onProjectChange) props.onProjectChange(next);
+    else setLocalProject(next);
+  };
   const [view, setView] = useState<BfnPrimaryWorkspace>('design');
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(
-    project.network.modules[0]?.id ?? null,
-  );
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(initialBfnSelection(project));
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [sourceEndpointValue, setSourceEndpointValue] = useState('');
   const [targetEndpointValue, setTargetEndpointValue] = useState('');
-  const [result, setResult] = useState<BfnSimulationResult | null>(null);
-  const [resultBasisSignature, setResultBasisSignature] = useState<string | null>(null);
-  const [resultPanelOpen, setResultPanelOpen] = useState(false);
+  const initialResult = props.runs?.[0] ?? null;
+  const [result, setResult] = useState<BfnSimulationResult | null>(initialResult);
+  const [resultBasisSignature, setResultBasisSignature] = useState<string | null>(() =>
+    initialResult ? (props.runSignatures?.[initialResult.id] ?? null) : null,
+  );
+  const [resultPanelOpen, setResultPanelOpen] = useState(initialResult !== null);
   const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
   const [catalogInitialDetailTarget, setCatalogInitialDetailTarget] =
     useState<BfnCatalogDetailTarget | null>(null);
-  const [saveStatus, setSaveStatus] = useState<BfnSaveStatus>('saved');
-  const [runs, setRuns] = useState(loadBfnRuns);
+  const [localSaveStatus, setLocalSaveStatus] = useState<BfnSaveStatus>('saved');
+  const saveStatus = props.saveStatus ?? localSaveStatus;
+  const [localRuns, setLocalRuns] = useState(loadBfnRuns);
+  const runs = props.runs ?? localRuns;
   const [reverseTarget, setReverseTarget] = useState<BfnReverseTarget>(() =>
     structuredClone(defaultBfnReverseTarget),
   );
@@ -359,7 +388,8 @@ export function BfnPlatformPage() {
   latestProjectRef.current = project;
 
   useEffect(() => {
-    setSaveStatus('saving');
+    if (controlled) return undefined;
+    setLocalSaveStatus('saving');
     autosavePendingRef.current = true;
     if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     autosaveTimerRef.current = window.setTimeout(() => {
@@ -367,19 +397,20 @@ export function BfnPlatformPage() {
       try {
         saveBfnProject(project);
         autosavePendingRef.current = false;
-        setSaveStatus('saved');
+        setLocalSaveStatus('saved');
       } catch {
-        setSaveStatus('error');
+        setLocalSaveStatus('error');
       }
     }, 320);
 
     return () => {
       if (autosaveTimerRef.current !== null) window.clearTimeout(autosaveTimerRef.current);
     };
-  }, [project]);
+  }, [controlled, project]);
 
   useEffect(
     () => () => {
+      if (controlled) return;
       if (!autosavePendingRef.current) return;
       try {
         saveBfnProject(latestProjectRef.current);
@@ -388,7 +419,7 @@ export function BfnPlatformPage() {
         // The visible error state is handled while mounted; unmount must remain side-effect safe.
       }
     },
-    [],
+    [controlled],
   );
 
   const validationIssues = useMemo(() => validateBfnProject(project), [project]);
@@ -596,11 +627,18 @@ export function BfnPlatformPage() {
       commitInputEdit();
       const current = projectRef.current;
       const next = runBfnSimulation(current);
+      const signature = createBfnComputationSignature(current);
       setResult(next);
-      setResultBasisSignature(createBfnComputationSignature(current));
+      setResultBasisSignature(signature);
       setResultPanelOpen(true);
       setInputSettingsOpen(false);
-      setRuns(saveBfnRun(next));
+      if (props.onRunCreated) {
+        void props.onRunCreated(next, signature).catch(() => {
+          setErrorNotice(t('bfn.workspace.notices.runSaveFailed'));
+        });
+      } else {
+        setLocalRuns(saveBfnRun(next));
+      }
       setNotice(t(simulationNoticeKey(current), { count: next.points.length }));
       setErrorNotice(null);
     } catch (error) {
@@ -735,11 +773,13 @@ export function BfnPlatformPage() {
   };
 
   const openCatalogDiscovery = (): void => {
+    props.onCatalogOpen?.();
     setCatalogInitialDetailTarget(null);
     setModulePickerOpen(true);
   };
 
   const openCatalogDetail = (target: BfnCatalogDetailTarget): void => {
+    props.onCatalogOpen?.();
     setCatalogInitialDetailTarget(target);
     setModulePickerOpen(true);
   };
@@ -772,7 +812,7 @@ export function BfnPlatformPage() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `${project.id}.bfn-ir.json`;
+    anchor.download = `${sanitizeWorkspaceExportName(props.projectName ?? project.id)}.bfn-ir.json`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -780,13 +820,17 @@ export function BfnPlatformPage() {
   const importProject = async (file: File | undefined): Promise<void> => {
     if (!file) return;
     try {
+      if (props.onImportProject) {
+        await props.onImportProject(file);
+        return;
+      }
       const imported = parseBfnProject(await file.text());
       projectRef.current = imported;
       setProject(imported);
       setResult(null);
       setResultBasisSignature(null);
       setResultPanelOpen(false);
-      selectNode(imported.network.modules[0]?.id ?? null);
+      selectNode(initialBfnSelection(imported));
       clearEditorHistory();
       setNotice(t('bfn.notices.imported'));
       setErrorNotice(null);
@@ -799,13 +843,19 @@ export function BfnPlatformPage() {
     const next = createDemoBfnProject(new Date().toISOString());
     projectRef.current = next;
     setProject(next);
-    localStorage.setItem(BFN_PROJECT_STORAGE_KEY, JSON.stringify(next));
-    clearBfnRuns();
-    setRuns([]);
+    if (!controlled) {
+      localStorage.setItem(BFN_PROJECT_STORAGE_KEY, JSON.stringify(next));
+      clearBfnRuns();
+      setLocalRuns([]);
+    } else {
+      void props
+        .onClearRuns?.()
+        .catch(() => setErrorNotice(t('bfn.workspace.notices.runSaveFailed')));
+    }
     setResult(null);
     setResultBasisSignature(null);
     setResultPanelOpen(false);
-    selectNode(next.network.modules[0]?.id ?? null);
+    selectNode(initialBfnSelection(next));
     clearEditorHistory();
     setReverseCandidates([]);
     setNotice(t('bfn.notices.reset'));
@@ -819,8 +869,15 @@ export function BfnPlatformPage() {
   };
 
   const commitClearRuns = (): void => {
+    if (props.onClearRuns) {
+      void props
+        .onClearRuns()
+        .then(() => setNotice(t('bfn.notices.runsCleared')))
+        .catch(() => setErrorNotice(t('bfn.workspace.notices.runSaveFailed')));
+      return;
+    }
     clearBfnRuns();
-    setRuns([]);
+    setLocalRuns([]);
     setNotice(t('bfn.notices.runsCleared'));
   };
 
@@ -858,6 +915,7 @@ export function BfnPlatformPage() {
       const overlayOpen =
         inputSettingsOpen ||
         modulePickerOpen ||
+        props.projectCenterOpen === true ||
         pendingDestructiveAction !== null ||
         isBfnEditorOverlayOpen();
       if (event.key === 'Escape') {
@@ -909,11 +967,17 @@ export function BfnPlatformPage() {
       <div className="bfn-workbench-surface">
         <div className="bfn-top-surface">
           <BfnProjectToolbar
-            projectName={t(project.labelKey)}
+            projectName={props.projectName ?? t(project.labelKey)}
             networkName={t(project.network.labelKey)}
+            isDemo={project.isDemo}
             workspace={view}
             saveStatus={saveStatus}
+            projectCenterOpen={props.projectCenterOpen ?? false}
             onWorkspaceChange={setView}
+            onOpenProjectCenter={() => {
+              closeCatalogDrawer();
+              props.onOpenProjectCenter?.();
+            }}
             onImport={() => importRef.current?.click()}
             onExport={exportProject}
             onReset={() => setPendingDestructiveAction('reset-project')}
@@ -924,7 +988,11 @@ export function BfnPlatformPage() {
             type="file"
             accept=".json,application/json"
             aria-label={t('bfn.actions.import')}
-            onChange={(event) => void importProject(event.target.files?.[0])}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = '';
+              void importProject(file);
+            }}
           />
 
           {view === 'design' ? (
@@ -1847,6 +1915,7 @@ export function BfnPlatformPage() {
             project={project}
             result={result}
             runs={runs}
+            runRelations={props.runRelations ?? {}}
             resultFreshness={resultFreshness}
             resultPanelOpen={resultPanelOpen}
             onTogglePanel={() => setResultPanelOpen((open) => !open)}
@@ -1854,7 +1923,7 @@ export function BfnPlatformPage() {
             onRequestClearRuns={() => setPendingDestructiveAction('clear-runs')}
             onSelectRun={(run) => {
               setResult(run);
-              setResultBasisSignature(null);
+              setResultBasisSignature(props.runSignatures?.[run.id] ?? null);
               setResultPanelOpen(true);
             }}
           />

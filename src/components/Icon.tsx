@@ -25,7 +25,8 @@ export type IconName =
   | 'link'
   | 'plus'
   | 'trash'
-  | 'reset';
+  | 'reset'
+  | 'chevron-down';
 
 const paths: Record<IconName, React.ReactNode> = {
   overview: (
@@ -173,6 +174,7 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M5.5 15a8 8 0 1 0 .7-7.8L4 10" />
     </>
   ),
+  'chevron-down': <path d="m7 9 5 5 5-5" />,
 };
 
 interface IconProps extends SVGProps<SVGSVGElement> {

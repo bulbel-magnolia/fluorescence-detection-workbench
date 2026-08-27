@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n';
 import { useAppStore } from '../store/appStore';
-import { ModelingPage } from './ModelingPage';
+import { BfnPlatformPage as ModelingPage } from '../features/bfn/BfnPlatformPage';
 
 describe('Batch 3.6 desktop surface consolidation', () => {
   beforeEach(async () => {

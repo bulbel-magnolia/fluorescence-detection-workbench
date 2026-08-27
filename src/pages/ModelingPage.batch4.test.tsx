@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../i18n';
-import { ModelingPage } from './ModelingPage';
+import { BfnPlatformPage as ModelingPage } from '../features/bfn/BfnPlatformPage';
 import { createBfnChartModel } from '../features/bfn/chartModel';
 import { defaultBfnChartViewState, type BfnChartGeometry } from '../features/bfn/chartTypes';
 import { BfnChartControls } from '../features/bfn/BfnChartControls';

@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n';
 import { BFN_PROJECT_STORAGE_KEY } from '../features/bfn/repository';
-import { ModelingPage } from './ModelingPage';
+import { BfnPlatformPage as ModelingPage } from '../features/bfn/BfnPlatformPage';
 
 describe('biological network design workspace', () => {
   beforeEach(async () => {

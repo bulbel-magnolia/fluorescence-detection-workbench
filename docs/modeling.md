@@ -314,6 +314,14 @@ Resolver 复用既有可信验证，并把结果投影为 matched、source-misma
 
 Inspector 只显示紧凑来源摘要，高级 ID 默认折叠。匹配记录可直接打开对应 Response Full Detail；仍能解析 response ID 的 mismatch 只提供“查看目录中的原始记录”，未知 release 不构造伪详情。打开、返回和关闭 Drawer 只改变界面状态，不写项目、不进入 Undo/Redo、不触发自动保存，也不改变 computation signature 或 Current Result。
 
+## 多项目科研工作区
+
+Batch 6 在 BFN-IR 2.0 外层加入多项目工作区。BFN-IR 的 schema、科学对象、Catalog reference、求解器输入和 computation signature 保持不变；工作区单独管理项目名称、Current Draft、不可变 Version、当前项目和项目级 Run。工作区元数据不会写入科学 schema，也不会改变可信 Catalog 运行合同。
+
+生产入口由工作区控制器加载项目，并把单个 BFN Project 和当前项目的 Run 交给既有编辑器。编辑器继续负责网络直接操作、Undo/Redo、结果新鲜度和科学验证，不直接访问 IndexedDB。项目切换与 Version 恢复通过重新建立编辑器实例清除 Undo/Redo、Selection 和 Overlay 瞬态；切换后加载该项目最新 Run，并根据保存的 computation signature 标记为当前设计、较早设计或旧版运行记录。
+
+Current Draft 使用 320 ms 防抖自动保存。Autosave 防止编辑丢失，不创建 Version；Version 由用户主动保存，是包含 BFN-IR snapshot、项目内 revision、可选科研备注和快照计算签名的不可变设计节点。Run 是 BFN-SIM-2.0 外层的项目级计算记录，也不是 Version。完整关系、存储事务和迁移规则见 [workspace.md](workspace.md)。
+
 ## 代码边界
 
 - `src/features/bfn/types.ts`：BFN-IR 2.0 类型；
@@ -325,8 +333,12 @@ Inspector 只显示紧凑来源摘要，高级 ID 默认折叠。匹配记录可
 - `simulation.ts`：静态与动态求解、不确定性和动态指标；
 - `annApproximation.ts`：工作域仿射拟合与接受/拒绝判定；
 - `reverseDesign.ts`：双参数空间多目标候选评价；
-- `repository.ts`：V2 项目和运行记录持久化；
-- `BfnPlatformPage.tsx`：两个一级工作区、历史、结果新鲜度、自动保存和 Overlay 编排；
+- `repository.ts`：BFN-IR 解析、旧单项目读取与独立编辑器兼容路径；
+- `workspace/workspaceTypes.ts`：BFN 外层的 Project、Draft、Version、Run 与 Repository 合同；
+- `workspace/indexedDbWorkspaceRepository.ts`：生产多项目事务、版本和项目级运行记录；
+- `workspace/workspaceMigration.ts`：旧单项目只读迁移与空白工作区初始化；
+- `workspace/BfnWorkspacePage.tsx`：生产工作区控制器、autosave flush、项目切换与恢复；
+- `BfnPlatformPage.tsx`：两个一级设计工作区、Undo/Redo、结果新鲜度和 Overlay 编排；
 - `BfnProjectToolbar.tsx`：紧凑项目工具栏与一级工作区切换；
 - `computationSignature.ts`：分析结果所依赖的纯计算状态签名；
 - `BfnNetworkCanvas.tsx`：理想连接画布；

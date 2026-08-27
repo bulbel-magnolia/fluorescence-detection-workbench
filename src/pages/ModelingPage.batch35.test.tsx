@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { App } from '../app/App';
 import i18n from '../i18n';
 import { useAppStore } from '../store/appStore';
-import { ModelingPage } from './ModelingPage';
+import { BfnPlatformPage as ModelingPage } from '../features/bfn/BfnPlatformPage';
 
 describe('Batch 3.5 scientific desktop structure', () => {
   beforeEach(async () => {
@@ -13,9 +13,10 @@ describe('Batch 3.5 scientific desktop structure', () => {
     useAppStore.setState({ section: 'modeling' });
   });
 
-  it('keeps modeling in one desktop shell without the legacy web header', () => {
+  it('keeps modeling in one desktop shell without the legacy web header', async () => {
     render(<App />);
 
+    expect(await screen.findByRole('heading', { name: '未命名项目' })).toBeInTheDocument();
     expect(document.querySelector('.top-bar')).not.toBeInTheDocument();
     expect(document.querySelector('.bfn-project-toolbar')).toBeInTheDocument();
     expect(screen.getByRole('group', { name: '检测' })).toBeInTheDocument();

@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it } from 'vitest';
 import i18n from '../i18n';
-import { ModelingPage } from './ModelingPage';
+import { BfnPlatformPage as ModelingPage } from '../features/bfn/BfnPlatformPage';
 
 describe('biological network design Batch 2 interactions', () => {
   beforeEach(async () => {

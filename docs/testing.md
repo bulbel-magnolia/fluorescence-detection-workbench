@@ -525,3 +525,67 @@ Resolver、Inspector、Drawer 与完整 Platform 深链接定向回归共 4 个�
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
 - 冻结 Catalog JSON 保持零差异；未新增依赖，未升级 BFN schema，未放宽 timeout，未删除、跳过或弱化断言；
 - 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。
+
+## 2026-08-27 Batch 6 Multi-project Workspace & Version History
+
+### Workspace Repository 与 IndexedDB
+
+- localStorage fallback 与真实 `fake-indexeddb` 实例共用 Repository contract，覆盖创建、读取、重命名、独立 Draft、激活项目、项目内 revision、不可变 snapshot、Run 上限、项目隔离、清空、级联删除和最后项目保护；
+- IndexedDB 结构测试核对 `settings`、`projects`、`drafts`、`versions`、`runs` 五个 store，以及 Version 的 `projectId`、唯一 `projectIdRevision` 索引和 Run 的 `projectId` 索引；
+- Version 创建在同一事务内写 snapshot 并推进 `nextRevision`；删除项目在同一事务内级联 Draft、Version 与 Run；
+- localStorage 只在 IndexedDB 不存在时使用新键 `fluorescence-desktop.bfn-workspace.v1`，生产路径不再写旧单项目键。
+
+### Legacy Migration
+
+- 旧 BFN-IR Project 精确复制为 Current Draft，旧 Run 的 computation signature 明确写为 `null`；
+- 迁移不创建 Version、不删除旧键，并在同一事务中写 Project、Draft、Run、active project 与一次性 marker；
+- 已存在 Workspace Project 时不会读取旧键覆盖工作区；迁移失败不会留下半成品或 marker；
+- 没有旧项目时创建 0 Input、0 Module、1 Output Monitor 且 `isDemo=false` 的空白项目。
+
+### Project CRUD、Autosave 与切换
+
+- 生产 Modeling 入口先显示 loading gate，成功后直接进入真实空白或迁移项目，不闪现 Demo；
+- UI 回归覆盖新建、切换、内联重命名、复制、删除确认、最后项目保护和项目数据隔离；
+- 复制创建新的 Workspace Project、BFN Project 与 Network ID，同时不复制 Version 或 Run；
+- 320 ms autosave 不创建 Version；项目切换前 flush 当前 Draft，落盘失败会阻止切换；
+- 切换项目重新建立编辑器并清除 Undo/Redo、Selection 与 Overlay 瞬态；
+- 切换后自动加载该项目最新 Run 作为当前显示结果，并恢复其 result basis signature。
+
+### Version 与 Restore
+
+- 名称和备注均为选填，revision 从 1 开始并按项目独立递增；
+- Version snapshot 返回值与再次读取值相互隔离，创建后没有编辑、重命名或删除路径；
+- 保存 Version 不改变 Current Draft、Undo/Redo 或结果新鲜度；
+- Restore 先等待已有 autosave，再用 clone snapshot 替换 Draft、更新时间并清空编辑器历史；
+- Restore 保留全部 Version 与 Run，也不删除目标 Version 之后的 revision；
+- 版本表单的 Escape 先取消表单，再次 Escape 才关闭 Project Center；Project Center 与 Catalog Drawer 保持互斥。
+
+### Run scope、Import / Export 与 Catalog 回归
+
+- 每个项目最多保存最新 20 条 Workspace Run，Clear Runs 只清当前项目；
+- Run 按 computation signature 显示“当前设计”“较早设计”或“旧版运行记录”；
+- Run 持久化失败不丢失已计算结果，并显示明确的历史保存失败提示；
+- 合法 BFN-IR 文件每次都导入为新 Workspace Project，重复文件生成独立名称；非法文件不替换当前项目；
+- 导出 JSON deep-equal 当前 BFN Project，文件名使用清理后的 Workspace Project 名，不包含 Workspace、Version 或 Run 数据；
+- 空白项目通过 Catalog 手动添加、显式连接后保持 matched provenance 与 trusted simulation，Workspace metadata 不进入科学签名。
+
+### Visual audit
+
+真实应用截图与说明位于 `docs/ui-audit/multi-project-workspace/`。已留档 Project Center、0/0/1 空白项目、项目切换、导入入口的独立空白目标和深色 Project Center。重命名、复制、Version 表单、Version 历史、Restore 确认及 Current / Earlier / Legacy Run 均在真实 Repository 状态中交互复核。
+
+1280×720 下 document 和 body 的 client/scroll width 均为 1280 px；1180×700 下均为 1180 px。两个尺寸下 Drawer 均为 680 px 宽，页面级水平溢出为 0，Project List 与 Version History 保持独立内部滚动，底部操作未截断。浏览器应用日志没有 warning 或 error。
+
+Chrome 扩展未启用本地文件 URL 访问，自动化文件选择器无法注入刚导出的 BFN JSON，因此没有把导入完成状态伪造成视觉截图。真实 `File` 导入、重复导入和错误隔离由组件测试执行。
+
+### Batch 6 完整门禁
+
+- TypeScript `tsc --noEmit` 通过；
+- ESLint `eslint . --max-warnings 0` 通过；
+- Workspace UI 定向回归为 1 个测试文件、10 项测试通过；Repository、Migration 与 Factory 定向回归为 3 个测试文件、16 项测试通过；
+- 完整 Vitest 共 98 个测试文件、687 项测试全部通过，未放宽 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，240 个模块完成转换；主 JavaScript chunk 为 1,198.08 kB、gzip 289.19 kB；主 CSS 为 245.71 kB、gzip 42.22 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
+- 新增开发依赖仅为 `fake-indexeddb@6.2.4`，用于在 Vitest 中执行真实 IndexedDB 事务合同；
+- 冻结 Catalog JSON 保持零差异，BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0；
+- 沙箱内 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`，在获批的沙箱外环境使用同一命令完整通过；
+- 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。

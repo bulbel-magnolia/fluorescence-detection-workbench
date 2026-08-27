@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { createBfnComputationSignature } from '../features/bfn/computationSignature';
 import { BFN_PROJECT_STORAGE_KEY, parseBfnProject } from '../features/bfn/repository';
 import i18n from '../i18n';
-import { ModelingPage } from './ModelingPage';
+import { BfnPlatformPage as ModelingPage } from '../features/bfn/BfnPlatformPage';
 
 describe('biological network design Batch 5.1 catalog isolation', () => {
   beforeEach(async () => {

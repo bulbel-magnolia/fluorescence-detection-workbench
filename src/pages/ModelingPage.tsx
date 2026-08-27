@@ -82,14 +82,14 @@ import type {
   TemplateLabels,
 } from '../features/modeling/types';
 import { useAppStore } from '../store/appStore';
-import { BfnPlatformPage } from '../features/bfn/BfnPlatformPage';
+import { BfnWorkspacePage } from '../features/bfn/workspace/BfnWorkspacePage';
 
 const templateIds: ModelTemplateId[] = ['licorice-quality', 'signal-gate', 'feedback-loop'];
 const nodeKinds: ModelNodeKind[] = ['input', 'processing', 'output'];
 const historyLimit = 60;
 
 export function ModelingPage() {
-  return <BfnPlatformPage />;
+  return <BfnWorkspacePage />;
 }
 
 function findOpenNodePosition(nodes: readonly ModelNode[]): { x: number; y: number } {

@@ -132,13 +132,13 @@ describe('desktop application shell', () => {
     expect(screen.getByRole('heading', { name: '采集荧光信号' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '网络设计' }));
-    expect(screen.getByRole('heading', { name: '生物网络演示项目' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '未命名项目' })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '导入分析' }));
     expect(screen.getByRole('heading', { name: '导入并分析' })).toBeInTheDocument();
   });
 
-  it('keeps the modeling boundary concise and task-oriented', () => {
+  it('keeps the modeling boundary concise and task-oriented', async () => {
     useAppStore.setState({
       section: 'modeling',
       detectionState: 'ready',
@@ -157,8 +157,8 @@ describe('desktop application shell', () => {
     });
     render(<App />);
 
-    expect(screen.getByText('演示项目')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '生物网络演示项目' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '未命名项目' })).toBeInTheDocument();
+    expect(screen.queryByText('演示项目')).not.toBeInTheDocument();
     expect(document.querySelector('.top-bar')).not.toBeInTheDocument();
     expect(screen.queryByText('建模工作台')).not.toBeInTheDocument();
     expect(screen.queryByText('HC-08D')).not.toBeInTheDocument();

@@ -10,9 +10,12 @@ export type BfnSaveStatus = 'saving' | 'saved' | 'error';
 interface BfnProjectToolbarProps {
   projectName: string;
   networkName: string;
+  isDemo: boolean;
   workspace: BfnPrimaryWorkspace;
   saveStatus: BfnSaveStatus;
+  projectCenterOpen?: boolean;
   onWorkspaceChange: (workspace: BfnPrimaryWorkspace) => void;
+  onOpenProjectCenter: () => void;
   onImport: () => void;
   onExport: () => void;
   onReset: () => void;
@@ -23,9 +26,12 @@ const workspaces: BfnPrimaryWorkspace[] = ['design', 'inverse'];
 export function BfnProjectToolbar({
   projectName,
   networkName,
+  isDemo,
   workspace,
   saveStatus,
+  projectCenterOpen = false,
   onWorkspaceChange,
+  onOpenProjectCenter,
   onImport,
   onExport,
   onReset,
@@ -41,21 +47,35 @@ export function BfnProjectToolbar({
   return (
     <header className="bfn-project-toolbar">
       <div className="bfn-project-toolbar__identity">
-        <h1 title={projectName}>{projectName}</h1>
+        <h1 title={projectName}>
+          <button
+            type="button"
+            aria-expanded={projectCenterOpen}
+            aria-haspopup="dialog"
+            onClick={onOpenProjectCenter}
+          >
+            {projectName}
+            <Icon name="chevron-down" size={14} />
+          </button>
+        </h1>
         <span className="bfn-project-toolbar__separator" aria-hidden="true">
           /
         </span>
         <strong title={networkName}>{networkName}</strong>
       </div>
       <div className="bfn-project-toolbar__status">
-        <MetadataLabel
-          label={t('bfn.status.demoLabel')}
-          accessibleLabel={t('bfn.status.demoProject')}
-          tone="warning"
-        />
-        <span className="visually-hidden" aria-hidden="true">
-          {t('bfn.status.demoProject')}
-        </span>
+        {isDemo ? (
+          <>
+            <MetadataLabel
+              label={t('bfn.status.demoLabel')}
+              accessibleLabel={t('bfn.status.demoProject')}
+              tone="warning"
+            />
+            <span className="visually-hidden" aria-hidden="true">
+              {t('bfn.status.demoProject')}
+            </span>
+          </>
+        ) : null}
         <InlineStatus
           label={saveLabel}
           tone={saveStatus === 'error' ? 'danger' : saveStatus === 'saving' ? 'accent' : 'success'}

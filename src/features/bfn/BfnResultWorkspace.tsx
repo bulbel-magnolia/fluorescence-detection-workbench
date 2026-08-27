@@ -27,6 +27,7 @@ export interface BfnResultWorkspaceProps {
   project: BfnProject;
   result: BfnSimulationResult | null;
   runs: readonly BfnSimulationResult[];
+  runRelations?: Readonly<Record<string, 'current' | 'earlier' | 'legacy'>>;
   resultFreshness: ResultFreshness;
   resultPanelOpen: boolean;
   onTogglePanel: () => void;
@@ -85,6 +86,7 @@ export function BfnResultWorkspace({
   project,
   result,
   runs,
+  runRelations = {},
   resultFreshness,
   resultPanelOpen,
   onTogglePanel,
@@ -390,6 +392,9 @@ export function BfnResultWorkspace({
                 <button key={run.id} type="button" onClick={() => onSelectRun(run)}>
                   <span>{new Date(run.completedAt).toLocaleString(i18n.language)}</span>
                   <strong>{t(`bfn.modes.${run.mode}`)}</strong>
+                  <small data-relation={runRelations[run.id] ?? 'legacy'}>
+                    {t(`bfn.workspace.runs.${runRelations[run.id] ?? 'legacy'}`)}
+                  </small>
                   <code>{displayNumber(run.points.at(-1)?.output ?? 0)}</code>
                 </button>
               ))
