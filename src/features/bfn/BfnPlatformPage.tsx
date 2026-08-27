@@ -975,6 +975,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
             projectCenterOpen={props.projectCenterOpen ?? false}
             onWorkspaceChange={setView}
             onOpenProjectCenter={() => {
+              closeInputSettings();
               closeCatalogDrawer();
               props.onOpenProjectCenter?.();
             }}

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../../components/Button';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -60,10 +60,22 @@ export function BfnProjectCenter({
   const [versionNote, setVersionNote] = useState('');
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const summary = summarizeBfnProject(draft);
+  const resetTransientState = useCallback((): void => {
+    setRenamingId(null);
+    setRenameValue('');
+    setVersionFormOpen(false);
+    setVersionName('');
+    setVersionNote('');
+    setConfirmation(null);
+  }, []);
 
   useEffect(() => {
     if (open) closeRef.current?.focus();
   }, [open]);
+
+  useEffect(() => {
+    resetTransientState();
+  }, [activeProject.id, open, resetTransientState]);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -289,6 +301,10 @@ export function BfnProjectCenter({
                   <dd>{summary.outputCount}</dd>
                 </div>
                 <div>
+                  <dt>{t('bfn.workspace.summary.connections')}</dt>
+                  <dd>{summary.edgeCount}</dd>
+                </div>
+                <div>
                   <dt>{t('bfn.workspace.summary.mode')}</dt>
                   <dd>{t(`bfn.modes.${summary.mode}`)}</dd>
                 </div>
@@ -375,6 +391,7 @@ export function BfnProjectCenter({
                           inputs: version.summary.inputCount,
                           modules: version.summary.moduleCount,
                           outputs: version.summary.outputCount,
+                          edges: version.summary.edgeCount ?? '—',
                           mode: t(`bfn.modes.${version.summary.mode}`),
                         })}
                       </small>

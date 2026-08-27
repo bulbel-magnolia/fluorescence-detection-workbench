@@ -103,7 +103,15 @@ export function createIndexedDbBfnWorkspaceRepository(
   factory: IDBFactory = indexedDB,
 ): BfnWorkspaceRepository {
   let databasePromise: Promise<IDBDatabase> | null = null;
-  const database = () => (databasePromise ??= openDatabase(factory));
+  const database = (): Promise<IDBDatabase> => {
+    if (!databasePromise) {
+      databasePromise = openDatabase(factory).catch((error: unknown) => {
+        databasePromise = null;
+        throw error;
+      });
+    }
+    return databasePromise;
+  };
 
   return {
     kind: 'indexeddb',

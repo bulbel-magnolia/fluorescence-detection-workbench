@@ -51,6 +51,7 @@ export const bfnZhCN = {
       inputs: '输入',
       modules: '模块',
       outputs: '输出',
+      connections: '连接',
       mode: '模式',
     },
     versions: {
@@ -64,7 +65,8 @@ export const bfnZhCN = {
       notePlaceholder: '记录这次设计的关键变化',
       confirmSave: '保存版本',
       revision: '版本 {{revision}}',
-      summary: '{{inputs}} 个输入 · {{modules}} 个模块 · {{outputs}} 个输出 · {{mode}}',
+      summary:
+        '{{mode}} · {{inputs}} 个输入 · {{modules}} 个模块 · {{edges}} 条连接 · {{outputs}} 个输出',
       restore: '恢复',
       restoreAria: '恢复版本 {{revision}}',
       empty: '还没有保存的版本。需要保留当前设计节点时，可以保存一个版本。自动保存不会创建版本。',
@@ -89,7 +91,8 @@ export const bfnZhCN = {
     notices: {
       migrated: '原有本地 BFN 项目及运行记录已迁移到此工作区。',
       autosaveFailed: '当前草稿保存失败；保存恢复前不会切换项目。',
-      switchBlocked: '当前草稿未能落盘，因此没有切换项目。',
+      switchBlocked: '当前草稿未能保存，因此没有切换项目。',
+      switchFailed: '无法打开该项目，当前项目保持不变。',
       blankCreated: '已创建包含一个输出监视器的空白项目。',
       duplicated: '已复制当前草稿；版本和运行记录未复制。',
       renamed: '项目已重命名。',
@@ -101,7 +104,7 @@ export const bfnZhCN = {
       operationFailed: '未能完成工作区操作。',
     },
     loadError: {
-      title: '无法打开项目工作区',
+      title: '本地建模项目暂时无法打开。',
       description: '没有项目被重置或替换。请检查本地存储访问后重试。',
       retry: '重试',
     },

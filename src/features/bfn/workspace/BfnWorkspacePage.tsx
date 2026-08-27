@@ -19,6 +19,7 @@ import {
   type BfnWorkspaceProjectMetadata,
   type BfnWorkspaceRepository,
   type BfnWorkspaceRunRecord,
+  type BfnWorkspaceVersion,
   type BfnWorkspaceVersionListItem,
 } from './workspaceTypes';
 
@@ -42,6 +43,19 @@ function uniqueProjectName(base: string, projects: readonly BfnWorkspaceProjectM
     const candidate = `${base} ${suffix}`;
     if (!names.has(candidate.toLocaleLowerCase())) return candidate;
   }
+}
+
+function versionListItem(version: BfnWorkspaceVersion): BfnWorkspaceVersionListItem {
+  return {
+    id: version.id,
+    projectId: version.projectId,
+    revision: version.revision,
+    createdAt: version.createdAt,
+    computationSignature: version.computationSignature,
+    summary: structuredClone(version.summary),
+    ...(version.name ? { name: version.name } : {}),
+    ...(version.note ? { note: version.note } : {}),
+  };
 }
 
 export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorkspacePageProps) {
@@ -178,7 +192,6 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     options: { closeCenter?: boolean } = {},
   ): Promise<void> => {
     const openedAt = now();
-    await repository.setActiveProject(projectId, openedAt);
     const [projects, metadata, draft, versions, runs] = await Promise.all([
       repository.listProjects(),
       repository.getProject(projectId),
@@ -187,9 +200,16 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
       repository.listRuns(projectId),
     ]);
     if (!metadata || !draft) throw new Error('BFN_WORKSPACE_PROJECT_INCOMPLETE');
+    await repository.setActiveProject(projectId, openedAt);
+    const activeProject = { ...metadata, lastOpenedAt: openedAt };
+    const nextProjects = (
+      projects.some((project) => project.id === projectId)
+        ? projects.map((project) => (project.id === projectId ? activeProject : project))
+        : [activeProject, ...projects]
+    ).sort((left, right) => right.lastOpenedAt.localeCompare(left.lastOpenedAt));
     applyState({
-      projects,
-      activeProject: { ...metadata, lastOpenedAt: openedAt },
+      projects: nextProjects,
+      activeProject,
       draft,
       versions,
       runs,
@@ -209,10 +229,16 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     setBusy(true);
     try {
       await flushAutosave();
-      await loadProject(projectId);
     } catch {
       setWorkspaceNotice(t('bfn.workspace.notices.switchBlocked'));
       setSaveStatus('error');
+      setBusy(false);
+      return;
+    }
+    try {
+      await loadProject(projectId);
+    } catch {
+      setWorkspaceNotice(t('bfn.workspace.notices.switchFailed'));
     } finally {
       setBusy(false);
     }
@@ -223,7 +249,7 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     draft: BfnProject,
   ): Promise<void> => {
     await flushAutosave();
-    await repository.createProject({ metadata, draft, makeActive: true });
+    await repository.createProject({ metadata, draft, makeActive: false });
     await loadProject(metadata.id);
   };
 
@@ -309,7 +335,7 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     if (!current) return;
     setBusy(true);
     try {
-      await repository.createVersion({
+      const createdVersion = await repository.createVersion({
         projectId: current.activeProject.id,
         snapshot: structuredClone(current.draft),
         computationSignature: createBfnComputationSignature(current.draft),
@@ -317,9 +343,24 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
         ...(name ? { name } : {}),
         ...(note ? { note } : {}),
       });
-      const versions = await repository.listVersions(current.activeProject.id);
       const latest = stateRef.current;
-      if (latest) applyState({ ...latest, versions });
+      if (latest?.activeProject.id === createdVersion.projectId) {
+        const activeProject = {
+          ...latest.activeProject,
+          nextRevision: createdVersion.revision + 1,
+        };
+        applyState({
+          ...latest,
+          activeProject,
+          projects: latest.projects.map((project) =>
+            project.id === activeProject.id ? activeProject : project,
+          ),
+          versions: [
+            versionListItem(createdVersion),
+            ...latest.versions.filter((version) => version.id !== createdVersion.id),
+          ],
+        });
+      }
       setWorkspaceNotice(t('bfn.workspace.notices.versionSaved'));
     } catch {
       setWorkspaceNotice(t('bfn.workspace.notices.operationFailed'));

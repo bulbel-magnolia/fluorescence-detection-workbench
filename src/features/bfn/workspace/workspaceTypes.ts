@@ -20,6 +20,7 @@ export interface BfnWorkspaceVersionSummary {
   inputCount: number;
   moduleCount: number;
   outputCount: number;
+  edgeCount?: number;
   mode: BfnNetworkMode;
 }
 
@@ -111,6 +112,7 @@ export function summarizeBfnProject(project: BfnProject): BfnWorkspaceVersionSum
     inputCount: project.network.inputSources.length,
     moduleCount: project.network.modules.length,
     outputCount: project.network.outputMonitors.length,
+    edgeCount: project.network.edges.length,
     mode: project.network.mode,
   };
 }

@@ -52,6 +52,7 @@ export const bfnEnUS = {
       inputs: 'Inputs',
       modules: 'Modules',
       outputs: 'Outputs',
+      connections: 'Connections',
       mode: 'Mode',
     },
     versions: {
@@ -65,7 +66,8 @@ export const bfnEnUS = {
       notePlaceholder: 'Record the key design change',
       confirmSave: 'Save version',
       revision: 'Version {{revision}}',
-      summary: '{{inputs}} input(s) · {{modules}} module(s) · {{outputs}} output(s) · {{mode}}',
+      summary:
+        '{{mode}} · {{inputs}} input(s) · {{modules}} module(s) · {{edges}} connection(s) · {{outputs}} output(s)',
       restore: 'Restore',
       restoreAria: 'Restore version {{revision}}',
       empty:
@@ -93,7 +95,8 @@ export const bfnEnUS = {
       migrated: 'The previous local BFN project and its runs were migrated into this workspace.',
       autosaveFailed:
         'The Current Draft could not be saved. Project switching is blocked until saving succeeds.',
-      switchBlocked: 'The Current Draft could not be flushed, so the project was not switched.',
+      switchBlocked: 'The Current Draft could not be saved, so the project was not switched.',
+      switchFailed: 'This project could not be opened. The current project is unchanged.',
       blankCreated: 'A blank project was created with one output monitor.',
       duplicated: 'The Current Draft was duplicated without versions or runs.',
       renamed: 'Project renamed.',
@@ -105,7 +108,7 @@ export const bfnEnUS = {
       operationFailed: 'The workspace operation could not be completed.',
     },
     loadError: {
-      title: 'Project workspace could not be opened',
+      title: 'Local modeling projects are temporarily unavailable.',
       description: 'No project was reset or replaced. Retry after checking local storage access.',
       retry: 'Retry',
     },

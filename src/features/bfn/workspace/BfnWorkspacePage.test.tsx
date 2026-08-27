@@ -1,16 +1,47 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../i18n';
 import { createDemoBfnProject } from '../fixtures';
 import { runBfnSimulation } from '../simulation';
 import { BfnWorkspacePage } from './BfnWorkspacePage';
 import { createBfnComputationSignature } from '../computationSignature';
+import { createIndexedDbBfnWorkspaceRepository } from './indexedDbWorkspaceRepository';
 import { createLocalStorageBfnWorkspaceRepository } from './localStorageWorkspaceRepository';
 import { createWorkspaceProjectMetadata } from './workspaceProjectFactory';
 import type { BfnWorkspaceRepository, BfnWorkspaceRunRecord } from './workspaceTypes';
+import { BFN_WORKSPACE_FALLBACK_KEY } from './workspaceTypes';
 
 const now = '2026-08-27T06:00:00.000Z';
+
+function rejectedOpenRequest(message: string): IDBOpenDBRequest {
+  const request = {
+    error: new DOMException(message, 'UnknownError'),
+    onblocked: null,
+    onerror: null,
+    onsuccess: null,
+    onupgradeneeded: null,
+  } as unknown as IDBOpenDBRequest;
+  queueMicrotask(() => {
+    request.onerror?.call(request, new Event('error'));
+  });
+  return request;
+}
+
+function failFirstOpenFactory(): { factory: IDBFactory; attempts: () => number } {
+  const delegate = new IDBFactory();
+  let attempts = 0;
+  const factory = Object.create(delegate) as IDBFactory;
+  Object.defineProperty(factory, 'open', {
+    value: (name: string, version?: number): IDBOpenDBRequest => {
+      attempts += 1;
+      if (attempts === 1) return rejectedOpenRequest('temporary open failure');
+      return version === undefined ? delegate.open(name) : delegate.open(name, version);
+    },
+  });
+  return { factory, attempts: () => attempts };
+}
 
 function jsonFile(value: unknown, name: string): File {
   const raw = JSON.stringify(value);
@@ -19,10 +50,109 @@ function jsonFile(value: unknown, name: string): File {
   return file;
 }
 
+type ProjectTransitionFailure = 'metadata' | 'draft' | 'versions' | 'runs' | 'activation';
+
+async function seedTwoProjects(): Promise<{
+  repository: BfnWorkspaceRepository;
+  projectADraft: ReturnType<typeof createDemoBfnProject>;
+}> {
+  const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+  const projectB = createDemoBfnProject('2026-08-27T05:00:00.000Z');
+  const projectADraft = createDemoBfnProject(now);
+  await repository.createProject({
+    metadata: createWorkspaceProjectMetadata('Project B', {
+      now: '2026-08-27T05:00:00.000Z',
+      workspaceProjectId: 'project-b',
+    }),
+    draft: projectB,
+    makeActive: true,
+  });
+  await repository.createProject({
+    metadata: createWorkspaceProjectMetadata('Project A', {
+      now,
+      workspaceProjectId: 'project-a',
+    }),
+    draft: projectADraft,
+    makeActive: true,
+  });
+  return { repository, projectADraft };
+}
+
+function withTargetTransitionFailure(
+  repository: BfnWorkspaceRepository,
+  failure: ProjectTransitionFailure,
+): BfnWorkspaceRepository {
+  const failForTarget = (projectId: string): void => {
+    if (projectId === 'project-b') throw new Error(`target ${failure} unavailable`);
+  };
+  switch (failure) {
+    case 'metadata':
+      return {
+        ...repository,
+        getProject: async (projectId) => {
+          failForTarget(projectId);
+          return repository.getProject(projectId);
+        },
+      };
+    case 'draft':
+      return {
+        ...repository,
+        getDraft: async (projectId) => {
+          failForTarget(projectId);
+          return repository.getDraft(projectId);
+        },
+      };
+    case 'versions':
+      return {
+        ...repository,
+        listVersions: async (projectId) => {
+          failForTarget(projectId);
+          return repository.listVersions(projectId);
+        },
+      };
+    case 'runs':
+      return {
+        ...repository,
+        listRuns: async (projectId) => {
+          failForTarget(projectId);
+          return repository.listRuns(projectId);
+        },
+      };
+    case 'activation':
+      return {
+        ...repository,
+        setActiveProject: async (projectId, openedAt) => {
+          failForTarget(projectId);
+          return repository.setActiveProject(projectId, openedAt);
+        },
+      };
+  }
+}
+
 describe('multi-project workspace UI', () => {
   beforeEach(async () => {
     localStorage.clear();
     await i18n.changeLanguage('zh-CN');
+  });
+
+  it('retries the same IndexedDB repository after an initial bootstrap open failure', async () => {
+    const user = userEvent.setup();
+    const controlled = failFirstOpenFactory();
+    const repository = createIndexedDbBfnWorkspaceRepository(controlled.factory);
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+
+    const errorSurface = await screen.findByRole('alert');
+    expect(
+      within(errorSurface).getByRole('heading', {
+        name: '本地建模项目暂时无法打开。',
+      }),
+    ).toBeInTheDocument();
+    expect(controlled.attempts()).toBe(1);
+
+    await user.click(within(errorSurface).getByRole('button', { name: '重试' }));
+
+    expect(await screen.findByRole('heading', { name: '未命名项目' })).toBeInTheDocument();
+    expect(controlled.attempts()).toBe(2);
   });
 
   it('opens a real blank project and exposes the accessible overlay Project Center', async () => {
@@ -43,8 +173,9 @@ describe('multi-project workspace UI', () => {
     expect(within(center).getByText('当前草稿')).toBeInTheDocument();
     expect(within(center).getByText('持续自动保存')).toBeInTheDocument();
     const draft = within(center).getByText('当前草稿').closest('article')!;
-    expect(within(draft).getAllByText('0', { selector: 'dd' })).toHaveLength(2);
+    expect(within(draft).getAllByText('0', { selector: 'dd' })).toHaveLength(3);
     expect(within(draft).getByText('1', { selector: 'dd' })).toBeInTheDocument();
+    expect(within(draft).getByText('连接')).toBeInTheDocument();
     expect(within(center).getByText(/自动保存不会创建版本/)).toBeInTheDocument();
   });
 
@@ -98,7 +229,7 @@ describe('multi-project workspace UI', () => {
     await waitFor(async () => expect(await repository.listProjects()).toHaveLength(2));
   });
 
-  it('keeps autosave separate from versions and restores non-destructively with editor history reset', async () => {
+  it('keeps autosave separate from explicitly saved versions', async () => {
     const user = userEvent.setup();
     const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
     const metadata = createWorkspaceProjectMetadata('Demo design', {
@@ -130,17 +261,39 @@ describe('multi-project workspace UI', () => {
     expect((await repository.listVersions(metadata.id)).map((version) => version.revision)).toEqual(
       [1],
     );
+  });
 
-    await user.click(
-      within(screen.getByRole('dialog', { name: '项目中心' })).getByRole('button', {
-        name: '关闭项目中心',
-      }),
-    );
+  it('restores a saved version non-destructively and resets editor history', async () => {
+    const user = userEvent.setup();
+    const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const metadata = createWorkspaceProjectMetadata('Restore design', {
+      now,
+      workspaceProjectId: 'restore-workspace',
+    });
+    const staticDraft = createDemoBfnProject(now);
+    const dynamicSnapshot = structuredClone(staticDraft);
+    dynamicSnapshot.network.mode = 'dynamic';
+    await repository.createProject({ metadata, draft: staticDraft, makeActive: true });
+    await repository.createVersion({
+      projectId: metadata.id,
+      snapshot: dynamicSnapshot,
+      computationSignature: createBfnComputationSignature(dynamicSnapshot),
+      createdAt: now,
+    });
+    await repository.createVersion({
+      projectId: metadata.id,
+      snapshot: staticDraft,
+      computationSignature: createBfnComputationSignature(staticDraft),
+      createdAt: '2026-08-27T06:01:00.000Z',
+    });
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Restore design' });
+
+    await user.click(screen.getByRole('button', { name: '动态分析' }));
     await user.click(screen.getByRole('button', { name: '稳态分析' }));
-    await user.click(screen.getByRole('button', { name: 'Demo design' }));
-    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
-    await user.click(screen.getByRole('button', { name: '保存版本' }));
-    expect(await screen.findByText('版本 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Restore design' }));
+    expect(screen.getByText('版本 2')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: '恢复版本 1' }));
     const confirmation = screen.getByRole('alertdialog', { name: '恢复版本 1？' });
@@ -156,6 +309,87 @@ describe('multi-project workspace UI', () => {
       [2, 1],
     );
     expect((await repository.getDraft(metadata.id))?.network.mode).toBe('dynamic');
+  });
+
+  it('advances the visible revision immediately across unchanged consecutive version saves', async () => {
+    const user = userEvent.setup();
+    const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const metadata = createWorkspaceProjectMetadata('Consecutive versions', {
+      now,
+      workspaceProjectId: 'consecutive-versions',
+    });
+    const originalDraft = createDemoBfnProject(now);
+    const originalSignature = createBfnComputationSignature(originalDraft);
+    await repository.createProject({ metadata, draft: originalDraft, makeActive: true });
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Consecutive versions' });
+
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: '运行稳态分析' }));
+    expect(await screen.findByText('当前设计')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Consecutive versions' }));
+    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
+    expect(screen.getByText('版本 1 · 名称和备注均为选填')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: '名称（可选）' }), 'V1 checkpoint');
+    await user.click(screen.getByRole('button', { name: '保存版本' }));
+    const versionOneItem = (await screen.findByText('V1 checkpoint')).closest('li');
+    if (!versionOneItem) throw new Error('Version 1 history item was not rendered.');
+    expect(
+      within(versionOneItem).getByText(new RegExp(`${originalDraft.network.edges.length} 条连接`)),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
+    expect(screen.getByText('版本 2 · 名称和备注均为选填')).toBeInTheDocument();
+    await user.type(screen.getByRole('textbox', { name: '名称（可选）' }), 'V2 checkpoint');
+    await user.click(screen.getByRole('button', { name: '保存版本' }));
+    expect(await screen.findByText('V2 checkpoint')).toBeInTheDocument();
+
+    const revisionLabels = screen.getAllByText(/^版本 [12]$/).map((element) => element.textContent);
+    expect(revisionLabels).toEqual(['版本 2', '版本 1']);
+    expect((await repository.getProject(metadata.id))?.nextRevision).toBe(3);
+    expect((await repository.listVersions(metadata.id)).map((version) => version.revision)).toEqual(
+      [2, 1],
+    );
+    const persistedDraft = await repository.getDraft(metadata.id);
+    expect(persistedDraft).toEqual(originalDraft);
+    expect(createBfnComputationSignature(persistedDraft!)).toBe(originalSignature);
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+    expect(screen.getByText('当前设计')).toBeInTheDocument();
+  });
+
+  it('keeps a committed version successful without a fragile post-save version read', async () => {
+    const user = userEvent.setup();
+    const base = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const metadata = createWorkspaceProjectMetadata('Version transaction', {
+      now,
+      workspaceProjectId: 'version-transaction',
+    });
+    await base.createProject({
+      metadata,
+      draft: createDemoBfnProject(now),
+      makeActive: true,
+    });
+    let listCalls = 0;
+    const repository: BfnWorkspaceRepository = {
+      ...base,
+      listVersions: async (projectId) => {
+        listCalls += 1;
+        if (listCalls > 1) throw new Error('post-save list unavailable');
+        return base.listVersions(projectId);
+      },
+    };
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Version transaction' });
+
+    await user.click(screen.getByRole('button', { name: 'Version transaction' }));
+    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
+    await user.click(screen.getByRole('button', { name: '保存版本' }));
+
+    expect(await screen.findByText('不可变版本已保存。')).toBeInTheDocument();
+    expect(screen.getByText('版本 1')).toBeInTheDocument();
+    expect((await base.getProject(metadata.id))?.nextRevision).toBe(2);
+    expect(await base.listVersions(metadata.id)).toHaveLength(1);
   });
 
   it('imports each valid BFN-IR file as a new project and leaves the current project on failure', async () => {
@@ -282,6 +516,35 @@ describe('multi-project workspace UI', () => {
     expect(screen.queryByText('0.111')).not.toBeInTheDocument();
   });
 
+  it.each([
+    ['metadata', 'target metadata read'],
+    ['draft', 'target draft read'],
+    ['versions', 'target version read'],
+    ['runs', 'target run read'],
+    ['activation', 'persistent activation'],
+  ] as const)(
+    'keeps Project A active when %s fails during a switch (%s)',
+    async (failure, label) => {
+      void label;
+      const user = userEvent.setup();
+      const seeded = await seedTwoProjects();
+      const repository = withTargetTransitionFailure(seeded.repository, failure);
+      render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+      await screen.findByRole('heading', { name: 'Project A' });
+
+      await user.click(screen.getByRole('button', { name: 'Project A' }));
+      const targetButton = screen.getByRole('button', { name: /Project B.*2026/ });
+      await user.click(targetButton);
+
+      await waitFor(() => expect(targetButton).toBeEnabled());
+      expect(await seeded.repository.getActiveProjectId()).toBe('project-a');
+      expect(screen.getByRole('heading', { name: 'Project A', level: 1 })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: '项目中心' })).toBeInTheDocument();
+      expect(await seeded.repository.getDraft('project-a')).toEqual(seeded.projectADraft);
+      expect(screen.getByText('无法打开该项目，当前项目保持不变。')).toBeInTheDocument();
+    },
+  );
+
   it('blocks a switch when the pending draft cannot be flushed', async () => {
     const user = userEvent.setup();
     const base = createLocalStorageBfnWorkspaceRepository(localStorage);
@@ -301,6 +564,8 @@ describe('multi-project workspace UI', () => {
       draft: createDemoBfnProject(now),
       makeActive: true,
     });
+    const projectADraft = createDemoBfnProject(now);
+    await base.replaceDraft('project-a', projectADraft, now);
     const repository: BfnWorkspaceRepository = {
       ...base,
       saveDraft: vi.fn().mockRejectedValue(new Error('disk unavailable')),
@@ -312,9 +577,11 @@ describe('multi-project workspace UI', () => {
     await user.click(screen.getByRole('button', { name: 'Project A' }));
     await user.click(screen.getByRole('button', { name: /Project B.*2026/ }));
 
-    expect(await screen.findByText('当前草稿未能落盘，因此没有切换项目。')).toBeInTheDocument();
+    expect(await screen.findByText('当前草稿未能保存，因此没有切换项目。')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Project A', level: 1 })).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: '项目中心' })).toBeInTheDocument();
+    expect(await base.getActiveProjectId()).toBe('project-a');
+    expect(await base.getDraft('project-a')).toEqual(projectADraft);
   });
 
   it('handles Project Center Escape in layers, guards the last project, and excludes Catalog', async () => {
@@ -349,6 +616,126 @@ describe('multi-project workspace UI', () => {
     await user.click(screen.getByRole('button', { name: 'Accessible project' }));
     expect(screen.getByRole('dialog', { name: '项目中心' })).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: 'AHL/HSL 文献目录' })).not.toBeInTheDocument();
+  });
+
+  it('commits Input Settings before opening Project Center and keeps the drawers exclusive', async () => {
+    const user = userEvent.setup();
+    const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const metadata = createWorkspaceProjectMetadata('Overlay integrity', {
+      now,
+      workspaceProjectId: 'overlay-integrity',
+    });
+    const project = createDemoBfnProject(now);
+    const originalSpecification = structuredClone(
+      project.network.inputSources[0]!.staticSpecification,
+    );
+    await repository.createProject({ metadata, draft: project, makeActive: true });
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Overlay integrity' });
+
+    await user.click(screen.getByRole('button', { name: '设置输入' }));
+    const inputDialog = screen.getByRole('dialog', { name: '设置输入' });
+    await user.selectOptions(
+      within(inputDialog).getByRole('combobox', { name: '输入方式' }),
+      'fixed_value',
+    );
+    const value = within(inputDialog).getByRole('spinbutton', { name: '输入值' });
+    await user.clear(value);
+    await user.type(value, '17.25');
+
+    await user.click(screen.getByRole('button', { name: 'Overlay integrity' }));
+
+    expect(screen.queryByRole('dialog', { name: '设置输入' })).not.toBeInTheDocument();
+    const center = screen.getByRole('dialog', { name: '项目中心' });
+    await waitFor(async () => {
+      expect(
+        (await repository.getDraft(metadata.id))?.network.inputSources[0]?.staticSpecification,
+      ).toMatchObject({ type: 'fixed_value', value: 17.25 });
+    });
+    await user.click(within(center).getByRole('button', { name: '关闭项目中心' }));
+    expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: '撤销' }));
+    await waitFor(async () => {
+      expect(
+        (await repository.getDraft(metadata.id))?.network.inputSources[0]?.staticSpecification,
+      ).toEqual(originalSpecification);
+    });
+  });
+
+  it('clears an unfinished version form when the active project changes', async () => {
+    const user = userEvent.setup();
+    const seeded = await seedTwoProjects();
+    render(<BfnWorkspacePage repository={seeded.repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
+    await user.type(screen.getByRole('textbox', { name: '名称（可选）' }), 'A checkpoint');
+    await user.type(screen.getByRole('textbox', { name: '备注（可选）' }), 'note A');
+    await user.click(screen.getByRole('button', { name: /Project B.*2026/ }));
+    await screen.findByRole('heading', { name: 'Project B' });
+
+    await user.click(screen.getByRole('button', { name: 'Project B' }));
+    expect(screen.queryByRole('textbox', { name: '名称（可选）' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
+    expect(screen.getByRole('textbox', { name: '名称（可选）' })).toHaveValue('');
+    expect(screen.getByRole('textbox', { name: '备注（可选）' })).toHaveValue('');
+  });
+
+  it('clears inline rename state whenever Project Center closes', async () => {
+    const user = userEvent.setup();
+    const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const metadata = createWorkspaceProjectMetadata('Rename reset', {
+      now,
+      workspaceProjectId: 'rename-reset',
+    });
+    await repository.createProject({
+      metadata,
+      draft: createDemoBfnProject(now),
+      makeActive: true,
+    });
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Rename reset' });
+
+    await user.click(screen.getByRole('button', { name: 'Rename reset' }));
+    let center = screen.getByRole('dialog', { name: '项目中心' });
+    await user.click(within(center).getByRole('button', { name: '重命名 Rename reset' }));
+    expect(within(center).getByRole('textbox', { name: '项目名称' })).toBeInTheDocument();
+    await user.click(within(center).getByRole('button', { name: '关闭项目中心' }));
+
+    await user.click(screen.getByRole('button', { name: 'Rename reset' }));
+    center = screen.getByRole('dialog', { name: '项目中心' });
+    expect(within(center).queryByRole('textbox', { name: '项目名称' })).not.toBeInTheDocument();
+    expect(within(center).getByRole('button', { name: /Rename reset.*2026/ })).toBeInTheDocument();
+  });
+
+  it('renders an old stored version without edgeCount using a safe unknown marker', async () => {
+    const user = userEvent.setup();
+    const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const metadata = createWorkspaceProjectMetadata('Legacy summary', {
+      now,
+      workspaceProjectId: 'legacy-summary',
+    });
+    const project = createDemoBfnProject(now);
+    await repository.createProject({ metadata, draft: project, makeActive: true });
+    await repository.createVersion({
+      projectId: metadata.id,
+      snapshot: project,
+      computationSignature: createBfnComputationSignature(project),
+      createdAt: now,
+    });
+    const stored = JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!) as {
+      versions: Record<string, { summary: { edgeCount?: number } }>;
+    };
+    delete Object.values(stored.versions)[0]!.summary.edgeCount;
+    localStorage.setItem(BFN_WORKSPACE_FALLBACK_KEY, JSON.stringify(stored));
+
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Legacy summary' });
+    await user.click(screen.getByRole('button', { name: 'Legacy summary' }));
+
+    expect(screen.getByText(/— 条连接/)).toBeInTheDocument();
   });
 
   it('exports only the active BFN-IR document with the sanitized workspace name', async () => {

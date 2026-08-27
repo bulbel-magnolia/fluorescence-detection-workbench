@@ -15,6 +15,34 @@ import {
 const firstTime = '2026-08-27T01:00:00.000Z';
 const secondTime = '2026-08-27T02:00:00.000Z';
 
+function rejectedOpenRequest(message: string): IDBOpenDBRequest {
+  const request = {
+    error: new DOMException(message, 'UnknownError'),
+    onblocked: null,
+    onerror: null,
+    onsuccess: null,
+    onupgradeneeded: null,
+  } as unknown as IDBOpenDBRequest;
+  queueMicrotask(() => {
+    request.onerror?.call(request, new Event('error'));
+  });
+  return request;
+}
+
+function controlledOpenFactory(failures: number): { factory: IDBFactory; attempts: () => number } {
+  const delegate = new IDBFactory();
+  let attempts = 0;
+  const factory = Object.create(delegate) as IDBFactory;
+  Object.defineProperty(factory, 'open', {
+    value: (name: string, version?: number): IDBOpenDBRequest => {
+      attempts += 1;
+      if (attempts <= failures) return rejectedOpenRequest(`open failure ${attempts}`);
+      return version === undefined ? delegate.open(name) : delegate.open(name, version);
+    },
+  });
+  return { factory, attempts: () => attempts };
+}
+
 function fixture(id: string, name: string, now = firstTime) {
   return {
     metadata: createWorkspaceProjectMetadata(name, { now, workspaceProjectId: id }),
@@ -103,6 +131,7 @@ function repositoryContract(label: string, createRepository: () => BfnWorkspaceR
       });
 
       expect([versionOne.revision, versionTwo.revision, otherVersion.revision]).toEqual([1, 2, 1]);
+      expect(versionOne.summary.edgeCount).toBe(versionOne.snapshot.network.edges.length);
       expect(
         (await repository.listVersions('project-a')).map((version) => version.revision),
       ).toEqual([2, 1]);
@@ -181,5 +210,24 @@ describe('workspace repository contracts', () => {
     ]);
     expect(Array.from(transaction.objectStore('runs').indexNames)).toEqual(['projectId']);
     database.close();
+  });
+
+  it('reopens IndexedDB after the first open request fails', async () => {
+    const controlled = controlledOpenFactory(1);
+    const repository = createIndexedDbBfnWorkspaceRepository(controlled.factory);
+
+    await expect(repository.listProjects()).rejects.toThrow('open failure 1');
+    await expect(repository.listProjects()).resolves.toEqual([]);
+    expect(controlled.attempts()).toBe(2);
+  });
+
+  it('starts a fresh IndexedDB open request after every rejected retry', async () => {
+    const controlled = controlledOpenFactory(2);
+    const repository = createIndexedDbBfnWorkspaceRepository(controlled.factory);
+
+    await expect(repository.listProjects()).rejects.toThrow('open failure 1');
+    await expect(repository.listProjects()).rejects.toThrow('open failure 2');
+    await expect(repository.listProjects()).resolves.toEqual([]);
+    expect(controlled.attempts()).toBe(3);
   });
 });
