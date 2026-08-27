@@ -158,6 +158,10 @@ NRMSE ≤ 10%
 
 结果以候选集合返回。每个候选包含生物设计变量、预测功能参数、完整响应曲线、分项损失、综合损失、来源证据等级和推荐验证实验。平台不输出未经解释的唯一最优设计。
 
+### Catalog-backed inverse design 查询层
+
+上述双参数空间流程是保留给现有界面的 legacy demonstration candidate search。Batch 8 新增的 Catalog-backed inverse design 是 BFN-IR 2.0 外部的纯查询层：它从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑暂不混接；新合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
+
 ## 模块注册与证据账本
 
 标准注册流程为：

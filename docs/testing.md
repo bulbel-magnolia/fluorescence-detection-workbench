@@ -623,3 +623,31 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 冻结 Catalog JSON 保持零差异，BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
 - `package.json` 与 lockfile 保持零差异；`fake-indexeddb` 仍仅为开发依赖，没有新增或变更运行时依赖；
 - 已发布基线提交的 GitHub combined status 返回 `statuses: []`；本轮结论仅为 local full validation passed，不声明 GitHub CI 已通过。
+
+## 2026-08-27 Batch 8.0 + 8.1 Catalog-backed Inverse Design Scientific Engine
+
+定向自动化覆盖：
+
+- Target 的正浓度、严格浓度顺序、0–1 响应边界、可选 EC50 / Hill 范围、weak-separation warning、exact Signal 和真实 Host / Strain 组合；
+- 每次从冻结 release fresh rebuild whitelist Response，并同时通过 canonical runtime candidate、receiver binding 和 presentation trust；注入谓词只能收窄信任，单 Response 失败与其余候选隔离；
+- searchable Signal、L / stereo-unspecified 身份分离、共同可信范围、Target range coverage 与真实 Context option 计数；
+- closed working-range Eligibility、范围外零 evaluator 调用、Context 缺失 fail-closed，以及候选 Context 篡改后的 canonical trust rejection；
+- Kylilis 4PL、Shong derepression、Low / High、可选 EC50 / Hill deviation 和 61 点 log-spaced 曲线全部复用 evaluateReceiverResponse；
+- matched、near-match、not-applicable、无 aggregate score 的确定性排序，以及单 Candidate evaluation failure isolation；
+- Kylilis 与 Shong 在 inverse engine 和实例化 BFN Module 两条路径中的同浓度数值一致；
+- Target snapshot、重复搜索确定性、Project deep equality 与 computation signature 不变；
+- 旧“网络设计 / 按目标设计”工作区和 legacy reverse design 继续通过回归。
+
+本轮没有新增可见 UI，也不新增截图。
+
+### Batch 8.0 + 8.1 完整门禁
+
+- TypeScript `tsc --noEmit` 通过；
+- ESLint `eslint . --max-warnings 0` 通过；
+- Inverse Design 定向回归为 5 个测试文件、81 项测试全部通过；
+- 完整 Vitest 共 103 个测试文件、793 项测试全部通过；未提高 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，240 个模块完成转换；主 JavaScript chunk 为 1,200.17 kB、gzip 289.73 kB；主 CSS 为 245.71 kB、gzip 42.22 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增构建 warning；
+- 冻结 Catalog JSON、BFN types、Workspace、`package.json` 与 lockfile 相对基线保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
+- 全量回归中，未修改的 Workspace 长交互测试曾在固定 5 秒边界出现性能抖动；该测试随后单项通过 2/3 次、完整文件 33/33 通过，最终原始 `npm test` 完整通过；未修改生产代码或测试来掩盖抖动；
+- 冻结基线提交的 GitHub combined status 返回 `statuses: []`；本轮结论仅为 local full validation passed，不声明 GitHub CI 已通过。
