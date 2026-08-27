@@ -21,6 +21,14 @@
 
 Batch 6.0.1 复核还确认：Input Settings 的 `17.25 nM` 修改在关闭抽屉时提交；Project Center 打开后语义树中只有一个对话框；半填版本名称和备注在关闭、重开后均被清空。连续保存的版本号为 V1、V2，当前项目的下一修订号为 V3。
 
+## Final Transition Review
+
+Batch 6.0.2 没有改变 Project Center 的视觉结构，因此没有新增截图。最终复核确认本目录的 10 个既有截图文件全部存在；其中 `05-version-history-1440x900.png` 仍完整显示 Current Draft、V2/V1 摘要与连接数，`06-save-version-1440x900.png` 的名称、备注和保存操作均在抽屉内可见，`07-restore-confirmation-1440x900.png` 的恢复边界说明、取消与破坏性操作层级清楚。
+
+真实应用再次在 1280×720 与 1180×700 下打开含 3 个项目、2 个版本的 Project Center。两档视口的 `document` 与 `body` 均满足 `clientWidth === scrollWidth`；Drawer 分别位于 `x=600` 与 `x=500`，宽度均为 680 px，`clientWidth === scrollWidth === 679`。Project List 与 Version History 均无水平溢出，页面只存在一个 Project Center 对话层。
+
+1180×700 下继续打开版本表单与恢复确认：版本表单宽 378 px，完整落在 Drawer 内；恢复确认框为 480×212 px，完整落在视口内，Project Center 保持在遮罩后。浏览器应用日志没有 warning 或 error。
+
 ## 响应式测量
 
 Project Center 打开、真实三个项目和两个保存版本状态下完成测量。

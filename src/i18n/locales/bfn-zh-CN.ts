@@ -93,6 +93,7 @@ export const bfnZhCN = {
       autosaveFailed: '当前草稿保存失败；保存恢复前不会切换项目。',
       switchBlocked: '当前草稿未能保存，因此没有切换项目。',
       switchFailed: '无法打开该项目，当前项目保持不变。',
+      deleteBlocked: '无法准备下一个项目，因此当前项目没有删除。',
       blankCreated: '已创建包含一个输出监视器的空白项目。',
       duplicated: '已复制当前草稿；版本和运行记录未复制。',
       renamed: '项目已重命名。',

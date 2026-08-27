@@ -31,6 +31,13 @@ interface ReadyWorkspaceState {
   runs: BfnWorkspaceRunRecord[];
 }
 
+interface PreparedWorkspaceProject {
+  metadata: BfnWorkspaceProjectMetadata;
+  draft: BfnProject;
+  versions: BfnWorkspaceVersionListItem[];
+  runs: BfnWorkspaceRunRecord[];
+}
+
 export interface BfnWorkspacePageProps {
   repository?: BfnWorkspaceRepository;
   clock?: () => string;
@@ -43,6 +50,14 @@ function uniqueProjectName(base: string, projects: readonly BfnWorkspaceProjectM
     const candidate = `${base} ${suffix}`;
     if (!names.has(candidate.toLocaleLowerCase())) return candidate;
   }
+}
+
+function sortProjects(
+  projects: readonly BfnWorkspaceProjectMetadata[],
+): BfnWorkspaceProjectMetadata[] {
+  return [...projects].sort((left, right) =>
+    right.lastOpenedAt.localeCompare(left.lastOpenedAt),
+  );
 }
 
 function versionListItem(version: BfnWorkspaceVersion): BfnWorkspaceVersionListItem {
@@ -187,37 +202,52 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     }, 320);
   };
 
-  const loadProject = async (
-    projectId: string,
-    options: { closeCenter?: boolean } = {},
-  ): Promise<void> => {
-    const openedAt = now();
-    const [projects, metadata, draft, versions, runs] = await Promise.all([
-      repository.listProjects(),
+  const prepareExistingProject = async (projectId: string): Promise<PreparedWorkspaceProject> => {
+    const [metadata, draft, versions, runs] = await Promise.all([
       repository.getProject(projectId),
       repository.getDraft(projectId),
       repository.listVersions(projectId),
       repository.listRuns(projectId),
     ]);
     if (!metadata || !draft) throw new Error('BFN_WORKSPACE_PROJECT_INCOMPLETE');
-    await repository.setActiveProject(projectId, openedAt);
-    const activeProject = { ...metadata, lastOpenedAt: openedAt };
-    const nextProjects = (
-      projects.some((project) => project.id === projectId)
-        ? projects.map((project) => (project.id === projectId ? activeProject : project))
-        : [activeProject, ...projects]
-    ).sort((left, right) => right.lastOpenedAt.localeCompare(left.lastOpenedAt));
+    return { metadata, draft, versions, runs };
+  };
+
+  const applyPreparedProject = (
+    prepared: PreparedWorkspaceProject,
+    projects: readonly BfnWorkspaceProjectMetadata[],
+    options: { closeCenter?: boolean } = {},
+  ): void => {
     applyState({
-      projects: nextProjects,
-      activeProject,
-      draft,
-      versions,
-      runs,
+      projects: sortProjects(projects),
+      activeProject: prepared.metadata,
+      draft: prepared.draft,
+      versions: prepared.versions,
+      runs: prepared.runs,
     });
     autosavePendingRef.current = false;
     setSaveStatus('saved');
     setEditorGeneration((value) => value + 1);
     if (options.closeCenter ?? true) setProjectCenterOpen(false);
+  };
+
+  const loadProject = async (
+    projectId: string,
+    options: { closeCenter?: boolean } = {},
+  ): Promise<void> => {
+    const openedAt = now();
+    const [projects, prepared] = await Promise.all([
+      repository.listProjects(),
+      prepareExistingProject(projectId),
+    ]);
+    await repository.setActiveProject(projectId, openedAt);
+    const activeProject = { ...prepared.metadata, lastOpenedAt: openedAt };
+    const nextProjects = (
+      projects.some((project) => project.id === projectId)
+        ? projects.map((project) => (project.id === projectId ? activeProject : project))
+        : [activeProject, ...projects]
+    );
+    applyPreparedProject({ ...prepared, metadata: activeProject }, nextProjects, options);
   };
 
   const switchProject = async (projectId: string): Promise<void> => {
@@ -249,8 +279,13 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     draft: BfnProject,
   ): Promise<void> => {
     await flushAutosave();
-    await repository.createProject({ metadata, draft, makeActive: false });
-    await loadProject(metadata.id);
+    const current = stateRef.current;
+    if (!current) throw new Error('BFN_WORKSPACE_NOT_READY');
+    await repository.createProject({ metadata, draft, makeActive: true });
+    applyPreparedProject(
+      { metadata, draft, versions: [], runs: [] },
+      [metadata, ...current.projects.filter((project) => project.id !== metadata.id)],
+    );
   };
 
   const createBlank = async (): Promise<void> => {
@@ -312,15 +347,41 @@ export function BfnWorkspacePage({ repository: repositoryProp, clock }: BfnWorks
     if (!current) return;
     setBusy(true);
     try {
-      if (projectId === current.activeProject.id) await flushAutosave();
-      await repository.deleteProject(projectId);
-      const activeId = await repository.getActiveProjectId();
-      if (!activeId) throw new Error('BFN_WORKSPACE_ACTIVE_PROJECT_MISSING');
       if (projectId === current.activeProject.id) {
-        await loadProject(activeId, { closeCenter: false });
+        await flushAutosave();
+        const latest = stateRef.current;
+        if (!latest || latest.activeProject.id !== projectId) {
+          throw new Error('BFN_WORKSPACE_ACTIVE_PROJECT_CHANGED');
+        }
+        const remainingProjects = sortProjects(
+          latest.projects.filter((project) => project.id !== projectId),
+        );
+        const replacement = remainingProjects[0];
+        if (!replacement) throw new Error('BFN_WORKSPACE_ACTIVE_PROJECT_MISSING');
+        let preparedReplacement: PreparedWorkspaceProject;
+        try {
+          preparedReplacement = await prepareExistingProject(replacement.id);
+        } catch {
+          setWorkspaceNotice(t('bfn.workspace.notices.deleteBlocked'));
+          return;
+        }
+        await repository.deleteProject(projectId);
+        applyPreparedProject(
+          preparedReplacement,
+          remainingProjects.map((project) =>
+            project.id === preparedReplacement.metadata.id
+              ? preparedReplacement.metadata
+              : project,
+          ),
+          { closeCenter: false },
+        );
       } else {
-        const projects = await repository.listProjects();
-        applyState({ ...current, projects });
+        await repository.deleteProject(projectId);
+        const latest = stateRef.current ?? current;
+        applyState({
+          ...latest,
+          projects: latest.projects.filter((project) => project.id !== projectId),
+        });
       }
       setWorkspaceNotice(t('bfn.workspace.notices.deleted'));
     } catch {

@@ -589,3 +589,37 @@ Chrome 扩展未启用本地文件 URL 访问，自动化文件选择器无法�
 - 冻结 Catalog JSON 保持零差异，BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0；
 - 沙箱内 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`，在获批的沙箱外环境使用同一命令完整通过；
 - 本轮结论为 local full validation passed；本记录仅报告本地完整门禁，不声明 GitHub CI 已通过。
+
+## 2026-08-27 Batch 6.0.1 Workspace State Integrity & UX Fix
+
+本轮回归覆盖 IndexedDB 首次打开失败后的同实例重试（第一次成功与第二次成功路径）、项目切换状态完整性、连续 revision 分配、Overlay 与编辑器瞬态清理，以及 Network Index 的 `edgeCount` 展示。多项目工作区的 10 张既有审计截图均已保留。
+
+Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上述能力随后纳入 Batch 6.0.2 的最终完整门禁，不补写推测性数字。
+
+## 2026-08-27 Batch 6.0.2 Workspace Transition Finalization
+
+自动化新增并复核以下状态转换合同：
+
+- 删除 active project 前完整预取 replacement metadata、Draft、Versions 与 Runs；任一读取失败时保持当前项目和持久化数据不变，并显示明确错误；
+- active project 删除提交后仅应用已预取状态，不再执行可能失败的 Repository 读取；被删项目的 Draft、Versions 与 Runs 继续级联清理，replacement 的版本、运行结果、结果基线和编辑器状态同步恢复；
+- 删除 non-active project 后在内存中更新 Project List，不重新读取 active project 或完整列表；
+- blank、duplicate 与 import 均通过一次原子 Repository 创建并激活，然后直接应用已知状态；创建提交后不依赖二次读取；
+- 创建失败时继续显示并持久化原 active project；duplicate 不复制 Version 或 Run；
+- Catalog-backed duplicate 在切换、保存 Version 与 Restore 后继续解析为 matched provenance，科学身份与来源关系保持不变。
+
+项目切换、版本保存与恢复、Project Center / Catalog 互斥、Undo/Redo 清理、结果新鲜度和 Run 归属继续执行回归。Workspace 页面定向回归为 1 个测试文件、33 项测试；Repository 与 Migration 定向回归为 3 个测试文件、13 项测试；BFN-IR、BFN-SIM、Catalog 与 Factory 科学合同定向回归为 6 个测试文件、53 项测试，全部通过。
+
+### Visual / Responsive review
+
+未新增截图；`docs/ui-audit/multi-project-workspace/` 中 10 张既有 PNG 均存在，并重点复核 05、06、07。1280×720 下 document/body 的 client width 与 scroll width 均为 1280 px，Project Center 为 680 px 宽；1180×700 下对应宽度均为 1180 px，Project Center 仍为 680 px 宽。Project List 与 Version History 无页面级水平溢出；保存 Version 表单约 378 px 宽并完整位于 Drawer 内，Restore 对话框为 480×212 px 并完整位于视口内。实际浏览器日志没有 warning 或 error。
+
+### Batch 6.0.2 完整门禁
+
+- TypeScript `tsc --noEmit` 与 ESLint 全项目检查通过；
+- 完整 Vitest 共 98 个测试文件、712 项测试全部通过，未放宽 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，240 个模块完成转换；主 JavaScript chunk 为 1,200.17 kB、gzip 289.73 kB；主 CSS 为 245.71 kB、gzip 42.22 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功；
+- 沙箱内 Vitest 与 Vite build 启动均因 esbuild 子进程权限返回 `spawn EPERM`；两项均在获批的沙箱外环境使用同一命令复跑通过；
+- 冻结 Catalog JSON 保持零差异，BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
+- `package.json` 与 lockfile 保持零差异；`fake-indexeddb` 仍仅为开发依赖，没有新增或变更运行时依赖；
+- 已发布基线提交的 GitHub combined status 返回 `statuses: []`；本轮结论仅为 local full validation passed，不声明 GitHub CI 已通过。

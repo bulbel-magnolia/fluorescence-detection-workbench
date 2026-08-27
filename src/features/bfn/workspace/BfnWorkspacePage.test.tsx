@@ -7,10 +7,20 @@ import { createDemoBfnProject } from '../fixtures';
 import { runBfnSimulation } from '../simulation';
 import { BfnWorkspacePage } from './BfnWorkspacePage';
 import { createBfnComputationSignature } from '../computationSignature';
+import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
+import {
+  buildBfnCatalogRuntimeCandidate,
+  instantiateCatalogResponseInBfnProject,
+} from '../catalog/catalogBfnAdapter';
+import { addIdealConnection } from '../validation';
 import { createIndexedDbBfnWorkspaceRepository } from './indexedDbWorkspaceRepository';
 import { createLocalStorageBfnWorkspaceRepository } from './localStorageWorkspaceRepository';
 import { createWorkspaceProjectMetadata } from './workspaceProjectFactory';
-import type { BfnWorkspaceRepository, BfnWorkspaceRunRecord } from './workspaceTypes';
+import type {
+  BfnWorkspaceRepository,
+  BfnWorkspaceRunRecord,
+  CreateBfnWorkspaceProjectInput,
+} from './workspaceTypes';
 import { BFN_WORKSPACE_FALLBACK_KEY } from './workspaceTypes';
 
 const now = '2026-08-27T06:00:00.000Z';
@@ -55,16 +65,17 @@ type ProjectTransitionFailure = 'metadata' | 'draft' | 'versions' | 'runs' | 'ac
 async function seedTwoProjects(): Promise<{
   repository: BfnWorkspaceRepository;
   projectADraft: ReturnType<typeof createDemoBfnProject>;
+  projectBDraft: ReturnType<typeof createDemoBfnProject>;
 }> {
   const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
-  const projectB = createDemoBfnProject('2026-08-27T05:00:00.000Z');
+  const projectBDraft = createDemoBfnProject('2026-08-27T05:00:00.000Z');
   const projectADraft = createDemoBfnProject(now);
   await repository.createProject({
     metadata: createWorkspaceProjectMetadata('Project B', {
       now: '2026-08-27T05:00:00.000Z',
       workspaceProjectId: 'project-b',
     }),
-    draft: projectB,
+    draft: projectBDraft,
     makeActive: true,
   });
   await repository.createProject({
@@ -75,7 +86,7 @@ async function seedTwoProjects(): Promise<{
     draft: projectADraft,
     makeActive: true,
   });
-  return { repository, projectADraft };
+  return { repository, projectADraft, projectBDraft };
 }
 
 function withTargetTransitionFailure(
@@ -127,6 +138,100 @@ function withTargetTransitionFailure(
         },
       };
   }
+}
+
+function withPostCreateReadFailure(repository: BfnWorkspaceRepository): {
+  repository: BfnWorkspaceRepository;
+  createInputs: CreateBfnWorkspaceProjectInput[];
+  restoreReads: () => void;
+} {
+  let createCommitted = false;
+  const createInputs: CreateBfnWorkspaceProjectInput[] = [];
+  const rejectPostCreateRead = (): void => {
+    if (createCommitted) throw new Error('post-create read unavailable');
+  };
+  return {
+    createInputs,
+    restoreReads: () => {
+      createCommitted = false;
+    },
+    repository: {
+      ...repository,
+      listProjects: async () => {
+        rejectPostCreateRead();
+        return repository.listProjects();
+      },
+      getProject: async (projectId) => {
+        rejectPostCreateRead();
+        return repository.getProject(projectId);
+      },
+      getDraft: async (projectId) => {
+        rejectPostCreateRead();
+        return repository.getDraft(projectId);
+      },
+      listVersions: async (projectId) => {
+        rejectPostCreateRead();
+        return repository.listVersions(projectId);
+      },
+      listRuns: async (projectId) => {
+        rejectPostCreateRead();
+        return repository.listRuns(projectId);
+      },
+      getActiveProjectId: async () => {
+        rejectPostCreateRead();
+        return repository.getActiveProjectId();
+      },
+      setActiveProject: async (projectId, openedAt) => {
+        rejectPostCreateRead();
+        return repository.setActiveProject(projectId, openedAt);
+      },
+      createProject: async (input) => {
+        await repository.createProject(input);
+        createInputs.push(structuredClone(input));
+        createCommitted = true;
+      },
+    },
+  };
+}
+
+function connectedCatalogProject() {
+  const project = createDemoBfnProject(now);
+  project.isDemo = false;
+  project.network.inputSources = [];
+  project.network.modules = [];
+  project.network.edges = [];
+  project.registry.validityDomains = [];
+  const responseId = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id;
+  const candidate = buildBfnCatalogRuntimeCandidate(responseId);
+  const instantiated = instantiateCatalogResponseInBfnProject(project, candidate, {
+    moduleId: 'module-workspace-catalog',
+    modulePosition: { x: 360, y: 180 },
+    createInputSource: true,
+    inputSourceId: 'source-workspace-catalog',
+    inputSourcePosition: { x: 60, y: 180 },
+  });
+  if (!instantiated.ok) throw new Error(instantiated.error.code);
+  const next = instantiated.nextProject;
+  const source = next.network.inputSources[0]!;
+  const module = next.network.modules[0]!;
+  const monitor = next.network.outputMonitors[0]!;
+  monitor.inputPort = {
+    ...module.outputPorts[0]!,
+    id: monitor.inputPort.id,
+    direction: 'input',
+  };
+  const withInput = addIdealConnection(
+    next,
+    { nodeId: source.id, portId: source.outputPort.id },
+    { nodeId: module.id, portId: module.inputPorts[0]!.id },
+    'edge-workspace-catalog-input',
+  );
+  return addIdealConnection(
+    withInput,
+    { nodeId: module.id, portId: module.outputPorts[0]!.id },
+    { nodeId: monitor.id, portId: monitor.inputPort.id },
+    'edge-workspace-catalog-output',
+  );
 }
 
 describe('multi-project workspace UI', () => {
@@ -227,6 +332,161 @@ describe('multi-project workspace UI', () => {
     const confirmation = screen.getByRole('alertdialog', { name: '删除这个项目？' });
     await user.click(within(confirmation).getByRole('button', { name: '删除项目' }));
     await waitFor(async () => expect(await repository.listProjects()).toHaveLength(2));
+  });
+
+  it('activates a known blank project after one atomic create without post-create reads', async () => {
+    const user = userEvent.setup();
+    const seeded = await seedTwoProjects();
+    const harness = withPostCreateReadFailure(seeded.repository);
+    render(<BfnWorkspacePage repository={harness.repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    await user.click(screen.getByRole('button', { name: '新建空白项目' }));
+
+    expect(
+      await screen.findByRole('heading', { name: '未命名项目', level: 1 }),
+    ).toBeInTheDocument();
+    expect(harness.createInputs).toHaveLength(1);
+    const created = harness.createInputs[0]!;
+    expect(created.makeActive).toBe(true);
+    expect(await seeded.repository.getActiveProjectId()).toBe(created.metadata.id);
+    expect(await seeded.repository.getDraft(created.metadata.id)).toEqual(created.draft);
+    expect(await seeded.repository.listVersions(created.metadata.id)).toEqual([]);
+    expect(await seeded.repository.listRuns(created.metadata.id)).toEqual([]);
+    expect(screen.queryByRole('dialog', { name: '项目中心' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+  });
+
+  it('activates a known Catalog-backed duplicate without copying versions or runs', async () => {
+    const user = userEvent.setup();
+    const base = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const projectA = connectedCatalogProject();
+    const metadataA = createWorkspaceProjectMetadata('Project A', {
+      now,
+      workspaceProjectId: 'project-a',
+    });
+    await base.createProject({ metadata: metadataA, draft: projectA, makeActive: true });
+    await base.createVersion({
+      projectId: metadataA.id,
+      snapshot: projectA,
+      computationSignature: createBfnComputationSignature(projectA),
+      name: 'A checkpoint',
+      createdAt: now,
+    });
+    const resultA = runBfnSimulation(projectA);
+    await base.saveRun({
+      id: `${metadataA.id}:${resultA.id}`,
+      projectId: metadataA.id,
+      result: resultA,
+      computationSignature: createBfnComputationSignature(projectA),
+      createdAt: resultA.completedAt,
+    });
+    const harness = withPostCreateReadFailure(base);
+    render(<BfnWorkspacePage repository={harness.repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+    expect(await screen.findByText('来源记录已匹配')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    await user.click(screen.getByRole('button', { name: '复制当前项目' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Project A 副本', level: 1 }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('来源记录已匹配')).toBeInTheDocument();
+    expect(harness.createInputs).toHaveLength(1);
+    const created = harness.createInputs[0]!;
+    const duplicate = await base.getDraft(created.metadata.id);
+    expect(created.makeActive).toBe(true);
+    expect(await base.getActiveProjectId()).toBe(created.metadata.id);
+    expect(duplicate?.id).not.toBe(projectA.id);
+    expect(duplicate?.network.id).not.toBe(projectA.network.id);
+    expect(duplicate?.network.modules).toEqual(projectA.network.modules);
+    expect(await base.listVersions(metadataA.id)).toHaveLength(1);
+    expect(await base.listRuns(metadataA.id)).toHaveLength(1);
+    expect(await base.listVersions(created.metadata.id)).toEqual([]);
+    expect(await base.listRuns(created.metadata.id)).toEqual([]);
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+
+    harness.restoreReads();
+    await user.click(screen.getByRole('button', { name: 'Project A 副本' }));
+    await user.click(screen.getByRole('button', { name: '保存当前版本' }));
+    await user.type(screen.getByRole('textbox', { name: '名称（可选）' }), 'Catalog checkpoint');
+    await user.click(screen.getByRole('button', { name: '保存版本' }));
+    expect(await screen.findByText('Catalog checkpoint')).toBeInTheDocument();
+
+    const copyCenter = screen.getByRole('dialog', { name: '项目中心' });
+    const originalSelector = within(copyCenter)
+      .getAllByRole('button', { name: /Project A.*2026/ })
+      .find((button) => button.getAttribute('aria-current') !== 'true');
+    if (!originalSelector) throw new Error('Original Project A selector was not rendered.');
+    await user.click(originalSelector);
+    await screen.findByRole('heading', { name: 'Project A', level: 1 });
+    expect(await screen.findByText('来源记录已匹配')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    const originalCenter = screen.getByRole('dialog', { name: '项目中心' });
+    await user.click(within(originalCenter).getByRole('button', { name: /Project A 副本.*2026/ }));
+    await screen.findByRole('heading', { name: 'Project A 副本', level: 1 });
+    expect(await screen.findByText('来源记录已匹配')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '动态分析' }));
+    expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Project A 副本' }));
+    await user.click(screen.getByRole('button', { name: '恢复版本 1' }));
+    const confirmation = screen.getByRole('alertdialog', { name: '恢复版本 1？' });
+    await user.click(within(confirmation).getByRole('button', { name: '恢复此版本' }));
+    expect(await screen.findByText('来源记录已匹配')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+  });
+
+  it('activates a known imported project without post-create reads or changing the source project', async () => {
+    const user = userEvent.setup();
+    const seeded = await seedTwoProjects();
+    const harness = withPostCreateReadFailure(seeded.repository);
+    const imported = createDemoBfnProject('2026-08-20T00:00:00.000Z');
+    render(<BfnWorkspacePage repository={harness.repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+
+    await user.upload(
+      screen.getByLabelText('导入模型'),
+      jsonFile(imported, 'Receiver design.bfn-ir.json'),
+    );
+
+    expect(
+      await screen.findByRole('heading', { name: 'Receiver design', level: 1 }),
+    ).toBeInTheDocument();
+    expect(harness.createInputs).toHaveLength(1);
+    const created = harness.createInputs[0]!;
+    expect(created.makeActive).toBe(true);
+    expect(created.draft.id).toBe(imported.id);
+    expect(created.draft.network.id).toBe(imported.network.id);
+    expect(await seeded.repository.getActiveProjectId()).toBe(created.metadata.id);
+    expect(await seeded.repository.getDraft(created.metadata.id)).toEqual(imported);
+    expect(await seeded.repository.listVersions(created.metadata.id)).toEqual([]);
+    expect(await seeded.repository.listRuns(created.metadata.id)).toEqual([]);
+    expect(await seeded.repository.getDraft('project-a')).toEqual(seeded.projectADraft);
+  });
+
+  it('keeps the current project when the atomic create transaction rejects', async () => {
+    const user = userEvent.setup();
+    const seeded = await seedTwoProjects();
+    const repository: BfnWorkspaceRepository = {
+      ...seeded.repository,
+      createProject: vi.fn().mockRejectedValue(new Error('transaction aborted')),
+    };
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    await user.click(screen.getByRole('button', { name: '新建空白项目' }));
+
+    expect(await screen.findByText('未能完成工作区操作。')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Project A', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '项目中心' })).toBeInTheDocument();
+    expect(await seeded.repository.getActiveProjectId()).toBe('project-a');
+    expect(await seeded.repository.listProjects()).toHaveLength(2);
+    expect(await seeded.repository.getDraft('project-a')).toEqual(seeded.projectADraft);
   });
 
   it('keeps autosave separate from explicitly saved versions', async () => {
@@ -544,6 +804,184 @@ describe('multi-project workspace UI', () => {
       expect(screen.getByText('无法打开该项目，当前项目保持不变。')).toBeInTheDocument();
     },
   );
+
+  it.each(['metadata', 'draft', 'versions', 'runs'] as const)(
+    'keeps the active project intact when replacement %s cannot be prepared for deletion',
+    async (failure) => {
+      const user = userEvent.setup();
+      const seeded = await seedTwoProjects();
+      const failingRepository = withTargetTransitionFailure(seeded.repository, failure);
+      const deleteProject = vi.fn((projectId: string) =>
+        seeded.repository.deleteProject(projectId),
+      );
+      const repository: BfnWorkspaceRepository = { ...failingRepository, deleteProject };
+      render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+      await screen.findByRole('heading', { name: 'Project A' });
+
+      await user.click(screen.getByRole('button', { name: 'Project A' }));
+      const center = screen.getByRole('dialog', { name: '项目中心' });
+      const activeRow = within(center)
+        .getByRole('button', { name: /Project A.*2026/, current: true })
+        .closest('article')!;
+      await user.click(within(activeRow).getByRole('button', { name: '删除 Project A' }));
+      const confirmation = screen.getByRole('alertdialog', { name: '删除这个项目？' });
+      await user.click(within(confirmation).getByRole('button', { name: '删除项目' }));
+
+      expect(
+        await screen.findByText('无法准备下一个项目，因此当前项目没有删除。'),
+      ).toBeInTheDocument();
+      expect(deleteProject).not.toHaveBeenCalled();
+      expect(await seeded.repository.getActiveProjectId()).toBe('project-a');
+      expect(await seeded.repository.getProject('project-a')).not.toBeNull();
+      expect(await seeded.repository.getDraft('project-a')).toEqual(seeded.projectADraft);
+      expect(screen.getByRole('heading', { name: 'Project A', level: 1 })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: '项目中心' })).toBeInTheDocument();
+    },
+  );
+
+  it('applies a prepared replacement after active deletion without any post-delete reads', async () => {
+    const user = userEvent.setup();
+    const seeded = await seedTwoProjects();
+    const base = seeded.repository;
+    const versionA = await base.createVersion({
+      projectId: 'project-a',
+      snapshot: seeded.projectADraft,
+      computationSignature: createBfnComputationSignature(seeded.projectADraft),
+      name: 'A checkpoint',
+      createdAt: now,
+    });
+    await base.createVersion({
+      projectId: 'project-b',
+      snapshot: seeded.projectBDraft,
+      computationSignature: createBfnComputationSignature(seeded.projectBDraft),
+      name: 'B checkpoint',
+      createdAt: '2026-08-27T05:30:00.000Z',
+    });
+    const resultA = runBfnSimulation(seeded.projectADraft);
+    resultA.id = 'delete-result-a';
+    resultA.points[resultA.points.length - 1]!.output = 0.111;
+    const resultB = runBfnSimulation(seeded.projectBDraft);
+    resultB.id = 'delete-result-b';
+    resultB.points[resultB.points.length - 1]!.output = 0.222;
+    await base.saveRun({
+      id: 'project-a:delete-result-a',
+      projectId: 'project-a',
+      result: resultA,
+      computationSignature: createBfnComputationSignature(seeded.projectADraft),
+      createdAt: resultA.completedAt,
+    });
+    await base.saveRun({
+      id: 'project-b:delete-result-b',
+      projectId: 'project-b',
+      result: resultB,
+      computationSignature: createBfnComputationSignature(seeded.projectBDraft),
+      createdAt: resultB.completedAt,
+    });
+    let deleteCommitted = false;
+    const rejectPostDeleteRead = (): void => {
+      if (deleteCommitted) throw new Error('post-delete read unavailable');
+    };
+    const repository: BfnWorkspaceRepository = {
+      ...base,
+      listProjects: async () => {
+        rejectPostDeleteRead();
+        return base.listProjects();
+      },
+      getProject: async (projectId) => {
+        rejectPostDeleteRead();
+        return base.getProject(projectId);
+      },
+      getDraft: async (projectId) => {
+        rejectPostDeleteRead();
+        return base.getDraft(projectId);
+      },
+      listVersions: async (projectId) => {
+        rejectPostDeleteRead();
+        return base.listVersions(projectId);
+      },
+      listRuns: async (projectId) => {
+        rejectPostDeleteRead();
+        return base.listRuns(projectId);
+      },
+      getActiveProjectId: async () => {
+        rejectPostDeleteRead();
+        return base.getActiveProjectId();
+      },
+      deleteProject: async (projectId) => {
+        await base.deleteProject(projectId);
+        deleteCommitted = true;
+      },
+    };
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+    await user.click(screen.getByRole('button', { name: '动态分析' }));
+    expect(screen.getByRole('button', { name: '撤销' })).toBeEnabled();
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    const center = screen.getByRole('dialog', { name: '项目中心' });
+    const activeRow = within(center)
+      .getByRole('button', { name: /Project A.*2026/, current: true })
+      .closest('article')!;
+    await user.click(within(activeRow).getByRole('button', { name: '删除 Project A' }));
+    const confirmation = screen.getByRole('alertdialog', { name: '删除这个项目？' });
+    await user.click(within(confirmation).getByRole('button', { name: '删除项目' }));
+
+    expect(
+      await screen.findByRole('heading', { name: 'Project B', level: 1 }),
+    ).toBeInTheDocument();
+    expect(await screen.findByText('项目已从工作区删除。')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: '项目中心' })).toBeInTheDocument();
+    expect(screen.getByText('B checkpoint')).toBeInTheDocument();
+    expect(screen.getAllByText('0.222').length).toBeGreaterThan(0);
+    expect(screen.queryByText('0.111')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '撤销' })).toBeDisabled();
+    expect(await base.getActiveProjectId()).toBe('project-b');
+    expect(await base.getProject('project-a')).toBeNull();
+    expect(await base.getDraft('project-a')).toBeNull();
+    expect(await base.getVersion(versionA.id)).toBeNull();
+    const persisted = JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!) as {
+      runs: Record<string, unknown>;
+    };
+    expect(persisted.runs['project-a:delete-result-a']).toBeUndefined();
+    expect(await base.listVersions('project-b')).toHaveLength(1);
+    expect(await base.listRuns('project-b')).toHaveLength(1);
+  });
+
+  it('filters a deleted non-active project locally when the project list cannot be reread', async () => {
+    const user = userEvent.setup();
+    const seeded = await seedTwoProjects();
+    const base = seeded.repository;
+    let deleteCommitted = false;
+    const repository: BfnWorkspaceRepository = {
+      ...base,
+      listProjects: async () => {
+        if (deleteCommitted) throw new Error('post-delete project list unavailable');
+        return base.listProjects();
+      },
+      deleteProject: async (projectId) => {
+        await base.deleteProject(projectId);
+        deleteCommitted = true;
+      },
+    };
+    render(<BfnWorkspacePage repository={repository} clock={() => now} />);
+    await screen.findByRole('heading', { name: 'Project A' });
+
+    await user.click(screen.getByRole('button', { name: 'Project A' }));
+    const center = screen.getByRole('dialog', { name: '项目中心' });
+    const projectBRow = within(center)
+      .getByRole('button', { name: /Project B.*2026/ })
+      .closest('article')!;
+    await user.click(within(projectBRow).getByRole('button', { name: '删除 Project B' }));
+    const confirmation = screen.getByRole('alertdialog', { name: '删除这个项目？' });
+    await user.click(within(confirmation).getByRole('button', { name: '删除项目' }));
+
+    expect(await screen.findByText('项目已从工作区删除。')).toBeInTheDocument();
+    expect(within(center).queryByRole('button', { name: /Project B.*2026/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Project A', level: 1 })).toBeInTheDocument();
+    expect(await base.getActiveProjectId()).toBe('project-a');
+    expect(await base.getProject('project-b')).toBeNull();
+    expect(await base.getDraft('project-a')).toEqual(seeded.projectADraft);
+  });
 
   it('blocks a switch when the pending draft cannot be flushed', async () => {
     const user = userEvent.setup();

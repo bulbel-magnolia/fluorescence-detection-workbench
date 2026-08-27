@@ -97,6 +97,8 @@ export const bfnEnUS = {
         'The Current Draft could not be saved. Project switching is blocked until saving succeeds.',
       switchBlocked: 'The Current Draft could not be saved, so the project was not switched.',
       switchFailed: 'This project could not be opened. The current project is unchanged.',
+      deleteBlocked:
+        'The next project could not be prepared, so the current project was not deleted.',
       blankCreated: 'A blank project was created with one output monitor.',
       duplicated: 'The Current Draft was duplicated without versions or runs.',
       renamed: 'Project renamed.',

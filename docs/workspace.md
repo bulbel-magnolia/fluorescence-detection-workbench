@@ -74,6 +74,17 @@ Project Version 是科研设计检查点，不是模型版本、算法版本或 
 
 初始选择依次使用第一个 Module、第一个 Input Source、Output Monitor。
 
+## Workspace Transition Integrity
+
+工作区转换遵循 `PREPARE → COMMIT → APPLY UI`。准备阶段可以失败；持久化提交成功后，控制器必须只使用已准备的内存数据进入下一稳定界面，不再把新的关键读取作为转换成功条件。
+
+- Existing Switch：flush 当前草稿，预读取目标项目的 metadata、draft、versions 与 runs，提交 active project，再应用目标状态。任一预读取或激活失败时，当前项目、持久化 active project 与 Project Center 保持原状。
+- Delete Active：flush 当前草稿，从当前项目列表中按 `lastOpenedAt` 降序选择替代项目，完整预读取替代项目，再原子删除当前项目及其 Draft、Version 与 Run。提交后直接应用已准备的替代状态，不调用 `getActiveProjectId()`、`listProjects()` 或目标项目读取。
+- Delete Non-active：Repository 删除成功后直接过滤内存项目列表。当前项目的 Draft、Version、Run 与编辑器会话保持不变，也不依赖删除后的 `listProjects()`。
+- Create / Duplicate / Import：flush 当前草稿，在内存中准备新 metadata 与 Draft，通过 `createProject({ makeActive: true })` 在一个 Repository 事务中写入项目、草稿与 active project，随后直接应用 `versions=[]`、`runs=[]` 的已知状态。
+
+活动项目删除前若无法完整准备替代项目，删除操作不会提交，当前项目继续可见且可编辑。新项目创建事务失败时，界面继续显示原项目；Repository 的原子创建合同负责避免半项目。成功的删除与创建都会重新建立编辑器实例，清空 Undo / Redo、选择和 Overlay 瞬态。
+
 ## 项目操作
 
 Project Center 提供：
