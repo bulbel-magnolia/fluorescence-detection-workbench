@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
 import { BfnPlatformPage } from './BfnPlatformPage';
@@ -11,6 +11,7 @@ import {
 import { createBfnComputationSignature } from './computationSignature';
 import { createDemoBfnProject } from './fixtures';
 import type { BfnProject, BfnStaticModel } from './types';
+import * as bfnValidation from './validation';
 
 function catalogBackedProject(): BfnProject {
   const project = createDemoBfnProject();
@@ -37,6 +38,36 @@ describe('BFN temporal and compatibility UI integration', () => {
   beforeEach(async () => {
     localStorage.clear();
     await i18n.changeLanguage('zh-CN');
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('shows a blocking temporal error before context info in the five-item validation summary', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(bfnValidation, 'validateBfnProject').mockReturnValue([
+      ...Array.from({ length: 5 }, (_, index) => ({
+        code: 'context_applicability_uncertain' as const,
+        severity: 'info' as const,
+        subjectId: `context-edge-${index + 1}`,
+      })),
+      {
+        code: 'temporal_execution_unsupported',
+        severity: 'error',
+        subjectId: 'unsupported-module',
+      },
+    ]);
+
+    render(<BfnPlatformPage project={createDemoBfnProject()} />);
+    await user.click(screen.getByRole('button', { name: '设置输入' }));
+
+    const summary = screen.getByRole('region', { name: '运行前检查' });
+    const visibleIssues = within(summary).getAllByRole('listitem');
+    expect(visibleIssues).toHaveLength(5);
+    expect(visibleIssues[0]).toHaveAttribute('data-severity', 'error');
+    expect(visibleIssues[0]).toHaveTextContent('当前分析模式下没有可执行模型');
+    expect(within(summary).getAllByText(/模块实验上下文仅部分可核实/u)).toHaveLength(4);
   });
 
   it('shows built-in first-order execution as stateful with unrecorded temporal evidence', () => {

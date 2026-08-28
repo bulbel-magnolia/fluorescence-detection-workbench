@@ -86,6 +86,7 @@ import type {
   BfnValidityDomain,
 } from './types';
 import { addIdealConnection, checkIdealConnection, validateBfnProject } from './validation';
+import { prioritizeBfnValidationIssues } from './validationPresentation';
 import './bfn-platform.css';
 
 type ResultFreshness = 'current' | 'stale';
@@ -409,6 +410,10 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   );
 
   const validationIssues = useMemo(() => validateBfnProject(project), [project]);
+  const visibleValidationIssues = useMemo(
+    () => prioritizeBfnValidationIssues(validationIssues).slice(0, 5),
+    [validationIssues],
+  );
   const currentComputationSignature = useMemo(
     () => createBfnComputationSignature(project),
     [project],
@@ -1927,7 +1932,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
               <ValidationSummary
                 title={t('bfn.validation.title')}
                 readyMessage={t('bfn.validation.ready')}
-                issues={validationIssues.slice(0, 5).map((issue, index) => ({
+                issues={visibleValidationIssues.map((issue, index) => ({
                   id: `${issue.code}-${issue.subjectId}-${index}`,
                   severity: issue.severity,
                   message: validationMessage(t, issue),
