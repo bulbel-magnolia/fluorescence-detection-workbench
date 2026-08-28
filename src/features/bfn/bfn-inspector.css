@@ -103,6 +103,156 @@
   line-height: 1.35;
 }
 
+.bfn-inspector-temporal dl {
+  display: grid;
+  margin: 0;
+}
+
+.bfn-inspector-temporal dl > div {
+  display: grid;
+  min-height: 29px;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.bfn-inspector-temporal dt,
+.bfn-inspector-temporal dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.bfn-inspector-temporal dt {
+  color: var(--ui-text-muted);
+}
+
+.bfn-inspector-temporal dd {
+  color: var(--ui-text-primary);
+  text-align: right;
+}
+
+.bfn-inspector-temporal > p {
+  margin-top: 6px;
+  padding-left: 7px;
+  color: var(--ui-text-muted);
+  border-left: 2px solid var(--ui-accent);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.bfn-connection-assessment {
+  display: grid;
+  border-bottom: var(--ui-divider);
+}
+
+.bfn-connection-assessment > section {
+  padding: 9px 10px;
+  border-left: 2px solid var(--ui-border-strong);
+}
+
+.bfn-connection-assessment > section + section {
+  border-top: var(--ui-divider);
+}
+
+.bfn-connection-assessment section[data-signal-state='compatible'],
+.bfn-connection-assessment section[data-context-state='matched'] {
+  border-left-color: var(--ui-success);
+}
+
+.bfn-connection-assessment section[data-signal-state='incompatible'],
+.bfn-connection-assessment section[data-context-state='mismatched'] {
+  border-left-color: var(--ui-warning);
+}
+
+.bfn-connection-assessment section[data-context-state='uncertain'],
+.bfn-connection-assessment section[data-context-state='unavailable'] {
+  border-left-color: var(--ui-accent);
+}
+
+.bfn-connection-assessment header {
+  margin-bottom: 3px;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.bfn-connection-assessment section > strong {
+  color: var(--ui-text-primary);
+  font-size: 11px;
+}
+
+.bfn-connection-assessment section > p {
+  margin: 3px 0 0;
+  color: var(--ui-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.bfn-connection-assessment details {
+  margin-top: 5px;
+  border-top: var(--ui-divider);
+}
+
+.bfn-connection-assessment summary {
+  min-height: 25px;
+  padding-top: 5px;
+  color: var(--ui-accent);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.bfn-connection-assessment dl {
+  display: grid;
+  margin: 0;
+}
+
+.bfn-connection-assessment dl > div {
+  display: grid;
+  min-height: 28px;
+  grid-template-columns: minmax(58px, 0.75fr) minmax(0, 1.25fr);
+  align-items: center;
+  gap: 6px;
+  border-top: var(--ui-divider);
+}
+
+.bfn-connection-assessment dt,
+.bfn-connection-assessment dd {
+  min-width: 0;
+  margin: 0;
+  font-size: 10px;
+}
+
+.bfn-connection-assessment dt,
+.bfn-connection-assessment dd small {
+  color: var(--ui-text-muted);
+}
+
+.bfn-connection-assessment dd {
+  display: grid;
+  color: var(--ui-text-primary);
+  text-align: right;
+}
+
+.bfn-connection-assessment dd small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bfn-connection-builder .bfn-connection-assessment {
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-xs);
+}
+
+.bfn-connection-builder .bfn-connection-assessment > section {
+  padding: 7px;
+}
+
 .bfn-inspector-semantic dt {
   color: var(--ui-text-muted);
 }

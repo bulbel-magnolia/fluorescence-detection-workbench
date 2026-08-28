@@ -10,12 +10,14 @@ describe('BFN-IR ideal connection validation', () => {
     expect(project.network.edges.some((edge) => 'weight' in edge || 'bias' in edge)).toBe(false);
   });
 
-  it('accepts compatible concentration units and converts across the ideal edge', () => {
+  it('accepts nM-to-M concentration normalization while preserving an identity edge', () => {
     const project = createDemoBfnProject();
     const source = project.network.inputSources[0]!;
-    source.outputPort.unit = 'uM';
-    source.staticSpecification = { type: 'fixed_value', value: 0.01, unit: 'uM' };
+    source.outputPort.unit = 'nM';
+    source.staticSpecification = { type: 'fixed_value', value: 100, unit: 'nM' };
     const edge = project.network.edges[0]!;
+    const target = project.network.modules[0]!.inputPorts[0]!;
+    target.unit = 'M';
 
     const issues = checkIdealConnection(
       { ...project, network: { ...project.network, edges: project.network.edges.slice(1) } },
@@ -25,7 +27,8 @@ describe('BFN-IR ideal connection validation', () => {
     );
 
     expect(issues.filter((issue) => issue.severity === 'error')).toEqual([]);
-    expect(valueAcrossEdge(0.01, project, edge)).toBeCloseTo(10, 8);
+    expect(edge.mapping).toBe('identity');
+    expect(valueAcrossEdge(100, project, edge)).toBeCloseTo(1e-7, 18);
   });
 
   it('rejects a production-rate signal connected directly to a concentration port', () => {
@@ -45,6 +48,8 @@ describe('BFN-IR ideal connection validation', () => {
     expect(issues.map((issue) => issue.code)).toEqual(
       expect.arrayContaining(['quantity_mismatch', 'unit_dimension_mismatch']),
     );
+    expect(issues.filter((issue) => issue.code === 'quantity_mismatch')).toHaveLength(1);
+    expect(issues.filter((issue) => issue.code === 'unit_dimension_mismatch')).toHaveLength(1);
   });
 
   it('rejects a second upstream source for the same input port', () => {
@@ -89,5 +94,44 @@ describe('BFN-IR ideal connection validation', () => {
     );
 
     expect(issue).toMatchObject({ code: 'missing_required_input', severity: 'warning' });
+  });
+
+  it('emits fact-based context applicability issues without the legacy context-ID warning', () => {
+    const project = createDemoBfnProject();
+    const compared = {
+      ...structuredClone(project.registry.contexts[0]!),
+      id: 'context-known-temperature-difference',
+      temperatureCelsius: project.registry.contexts[0]!.temperatureCelsius + 4,
+    };
+    project.registry.contexts.push(compared);
+    const reporter = project.network.modules[1]!;
+    const model = reporter.modelVariants.find(
+      (candidate) => candidate.id === reporter.activeModelIds.static,
+    );
+    if (!model) throw new Error('Expected reporter static model.');
+    model.contextId = compared.id;
+
+    const codes = validateBfnProject(project).map((issue) => issue.code);
+    expect(codes).toContain('context_applicability_mismatch');
+    expect(codes).not.toContain('context_mismatch');
+  });
+
+  it('keeps Catalog trust failure authoritative while context comparison becomes unavailable', () => {
+    const project = createDemoBfnProject();
+    const sensor = project.network.modules[0]!;
+    const model = sensor.modelVariants.find(
+      (candidate) => candidate.id === sensor.activeModelIds.static,
+    );
+    if (!model) throw new Error('Expected sensor static model.');
+    Object.assign(model, { catalogReference: { kind: 'catalog_receiver_response' } });
+
+    const issues = validateBfnProject(project);
+    expect(issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        'catalog_model_reference_invalid',
+        'context_applicability_unavailable',
+      ]),
+    );
+    expect(issues.map((issue) => issue.code)).not.toContain('temporal_execution_unsupported');
   });
 });

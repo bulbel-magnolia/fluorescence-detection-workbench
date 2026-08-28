@@ -1,4 +1,9 @@
 import type { BfnChartComparison, BfnChartModel, BfnChartSeries } from './chartTypes';
+import {
+  bfnContextApplicabilityExportSummary,
+  bfnTemporalEvidenceExportSummary,
+  bfnTemporalExecutionExportSummary,
+} from './runInterpretation';
 import type { BfnProject, BfnSimulationResult } from './types';
 
 export interface SerializeBfnFigureSvgOptions {
@@ -442,6 +447,24 @@ export function createBfnProvenanceRows({
         : 'Not available',
     },
   ];
+  if (result.temporalSnapshot) {
+    rows.push(
+      {
+        key: 'temporal_execution_summary',
+        value: bfnTemporalExecutionExportSummary(result.temporalSnapshot),
+      },
+      {
+        key: 'temporal_evidence_summary',
+        value: bfnTemporalEvidenceExportSummary(result.temporalSnapshot),
+      },
+    );
+  }
+  if (result.contextApplicabilitySnapshot) {
+    rows.push({
+      key: 'context_applicability_summary',
+      value: bfnContextApplicabilityExportSummary(result.contextApplicabilitySnapshot),
+    });
+  }
   return rows;
 }
 

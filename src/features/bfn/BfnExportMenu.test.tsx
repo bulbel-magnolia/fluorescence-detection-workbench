@@ -546,7 +546,9 @@ describe('BFN run provenance', () => {
     expect(screen.getByText(result.completedAt)).toBeInTheDocument();
     expect(screen.getByText(result.engineVersion)).toBeInTheDocument();
     expect(screen.getByText('Steady-state analysis')).toBeInTheDocument();
-    expect(details).not.toHaveTextContent(/\bstatic\b/);
+    expect(details).not.toHaveTextContent(
+      /quasi_static|stateful_dynamic|t0_steady_state|not_recorded/u,
+    );
     expect(screen.getByText(result.networkId)).toBeInTheDocument();
     expect(screen.getByText(result.primaryInputSourceId)).toBeInTheDocument();
     expect(screen.getByText(result.outputMonitorId)).toBeInTheDocument();
@@ -586,7 +588,7 @@ describe('BFN run provenance', () => {
     expect(screen.getByText('参数区间包络')).toBeInTheDocument();
     expect(screen.getByText('未经实验验证')).toBeInTheDocument();
     expect(details).not.toHaveTextContent(
-      /\bstatic\b|Not available|parameter_interval_envelope|not_validated/,
+      /quasi_static|stateful_dynamic|t0_steady_state|not_recorded|Not available|parameter_interval_envelope|not_validated/u,
     );
   });
 });

@@ -831,3 +831,42 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖或 UI 截图；
 - 相对 Batch 9.2 基线 `788ac750f7c94b0b95189591a3004f2e2d7715c2`，Ontology production contract、冻结 AHL/HSL V1.1 JSON、BFN types、Simulation、Validation、Model Resolution、Workspace、Inverse Design、`package.json` 与 lockfile 均为零差异；Catalog SHA-256 仍为 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；
 - BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 版本保持 1；Temporal / Compatibility assessment 不写 Project、Version、Run、localStorage 或 IndexedDB。
+
+## 2026-08-28 Batch 10.1 Temporal Runtime, Compatibility Validation & Scientific UX Integration
+
+### Port Validation 与 Context Integration
+
+- `checkIdealConnection()` 以冻结的 `assessBfnPortCompatibility()` 为端口语义权威，并通过单一 translator 保留既有 direction、entity、quantity 与 unit-dimension validation code；结构性节点、端口、重复边、自连接、已占用输入和静态环路检查保持独立；
+- 回归覆盖 `nM → M` 可连接及精确 `1e-7 M` 数值换算、identity edge、entity mismatch 时不突出 unit normalization，以及 `production_rate → concentration` 的 hard block；没有自动积分、隐藏状态或自动插入过程模块；
+- Context adapter 只比较 enabled 的 Module → Module edge。Built-in 使用 Project registry 中 exact model context；Catalog-backed model 只读取 trusted presentation 的 exact parameter-context ID，且不解析来源自由文本温度；unavailable 不回退到 BFN context 或 display name；
+- 新连接以 `context_applicability_uncertain`、`context_applicability_mismatch` 和 `context_applicability_unavailable` 替代粗粒度 context-ID warning。uncertain / unavailable 为 info，mismatched 为 warning，均不阻断连接或仿真；legacy `context_mismatch` 仍保留在类型中。
+
+### Temporal Runtime 与 Run Provenance
+
+- 运行前只检查 Output Monitor 上游可达模块；`unsupported` 发出 `temporal_execution_unsupported` error，孤立 unsupported 模块不阻断当前输出，Catalog trust failure 继续由原有可信验证错误负责；
+- Dynamic network 正式覆盖纯 quasi-static、纯 stateful dynamic 与 mixed execution；现有 static / dynamic 数值点、上下界、module outputs 与 dynamic metrics 的代表性 fixture 使用 deep equality 保持一致；
+- 成功运行可选保存 output-reachable `temporalSnapshot` 与 Module → Module `contextApplicabilitySnapshot`。快照记录当次 module / model / execution / evidence 和逐边适用性，不进入 Project computation signature；
+- Result、Run Provenance、JSON export 与 provenance rows 只消费运行自身快照。Legacy Run 缺少快照时显示未记录，不从当前 Project 回算；历史比较中的时间执行差异只产生非阻断解释，不改变既有比较资格。
+
+### Inspector、Connection 与 Result UI
+
+- Module Inspector 分离 Functional Classification、Execution Mode 与 Temporal Evidence；Catalog Receiver Dynamic 显示 `quasi_static + t0_steady_state`，内置一阶动态显示 `stateful_dynamic + not_recorded`；
+- Connection Builder 与 Edge Inspector 分离 Signal Compatibility 和 Experimental Context。只有 compatible connection 才显示 unit normalization；速率到浓度明确提示需要显式积累/清除过程；
+- Dynamic Result 显示当次有状态动力学与瞬时稳态近似计数。全 quasi-static 轨迹使用 Time-trajectory descriptors 并明确其不是实验动力学参数；mixed run 显示两类执行共同存在；
+- 中英文用户可见文案均使用 BFN locale key。只读 Inspector / Assessment 不修改 Project 或 computation signature。
+
+### Targeted 与完整门禁
+
+- Batch 10.0 contract regression、Temporal integration、Port / Context integration、Validation、Simulation、Result provenance、Inspector / Connection UX 共 13 个定向测试文件、119 项测试全部通过；
+- 完整 Vitest 共 123 个测试文件、946 项测试全部通过；未增加 timeout，未删除、跳过或弱化断言；
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- Vite 7.3.6 生产构建通过，267 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB；主 CSS 为 266.92 kB、gzip 45.00 kB；主 JavaScript chunk 为 1,295.60 kB、gzip 314.93 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
+- 全仓额外 Prettier 检查命中 309 个既有未格式化文件，因此未执行跨批次格式重排；本批次文件另行定向检查。
+
+### Visual audit 与冻结边界
+
+- `docs/ui-audit/temporal-compatibility/` 已记录真实 Windows 生产路径的 quasi-static Inspector、stateful Inspector、dynamic Result 和深色主题 1440×900 PNG；1440×900、1280×720 与 1180×700 均无页面级水平溢出，Inspector 独立纵向滚动，Result chart 没有被新增语义压缩，应用控制台为 0 warning / 0 error；
+- mixed dynamic 与 context uncertain 的真实导入 fixture 已生成；浏览器扩展当前拒绝本地文件上传，故对应 `03`、`04` 截图仍待扩展启用 file URL access 后补录。真实 UI 无法自然构造跨单位端口，按任务边界未为 `05` 新增 Demo 业务对象；
+- 相对 Batch 10.0 基线 `73f29f39d446b4eb16603f2a8ccd61dc4509790f`，五个冻结 10.0 core files、AHL/HSL V1.1 Catalog JSON、Ontology v1 production files、Inverse Design engine、Workspace architecture、`package.json` 与 lockfile 保持零差异；
+- BFN-IR 保持 2.0，数值引擎保持 BFN-SIM-2.0，Workspace IndexedDB 保持 v1；Run provenance 采用向后兼容的可选字段，没有新增运行时依赖。

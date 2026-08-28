@@ -125,7 +125,7 @@ LED 命令使用单一在途请求：BLE 写入后状态为 `accepted`，收到�
 
 Ontology registry、term 与 assignment 深冻结并执行 manifest、唯一性、父级、环、顺序和覆盖校验。Resolver 只读取 BFN module identity，返回深冻结 semantic profile，不调用求值器、仿真或实例化逻辑。分类不改变端口兼容、运行资格、Catalog trust、证据等级、Add eligibility 或构建状态。
 
-`features/bfn/temporal` 与 `features/bfn/compatibility` 构成 BFN-IR 外的 derived read-only contract layer。Temporal resolver 复用唯一的 effective-model selection，命名 steady-state、quasi-static、stateful dynamic 与 unsupported，并将执行方式与 T0–T3 / not-recorded 时间证据分离。Compatibility assessment 复用既有单位量纲定义，独立评估端口硬边界与 Host、Strain、Medium、Temperature 的实验适用性。该层不写 Project、Run、Workspace 或 schema，不调用 Simulation、Catalog verification、Instantiation 或 Ontology 推断来改变运行资格。
+`features/bfn/temporal` 与 `features/bfn/compatibility` 构成 BFN-IR 外的 derived read-only contract layer。Temporal resolver 复用唯一的 effective-model selection，命名 steady-state、quasi-static、stateful dynamic 与 unsupported，并将执行方式与 T0–T3 / not-recorded 时间证据分离。Compatibility assessment 复用既有单位量纲定义，独立评估端口硬边界与 Host、Strain、Medium、Temperature 的实验适用性。核心 resolver/assessment 不写 Project、Run、Workspace 或 schema，不调用 Simulation、Catalog verification、Instantiation 或 Ontology 推断来改变运行资格。仿真编排层在成功运行后复制输出可达模块与模块边的 assessment，形成可选的 BFN-SIM 2.0 时间和上下文 provenance；历史展示只读快照，不从当前 Project 回算。
 
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
@@ -145,7 +145,7 @@ Tauri 环境使用 `sqlite:fluorescence.db`，迁移位于 `src-tauri/migrations
 
 浏览器开发模式使用 localStorage 回退，使界面和状态测试不依赖原生插件。该回退不用于生产数据库能力评价。
 
-BFN-IR 2.0 项目和运行快照分别使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`。旧建模键保持原样，V2 导入只接受 `schema: BFN-IR` 与 `schemaVersion: 2.0`。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
+BFN-IR 2.0 项目和运行快照分别使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`。运行记录继续声明 `BFN-SIM-2.0`，时间执行和上下文适用性快照为可选字段；没有这些字段的历史运行继续读取。旧建模键保持原样，V2 导入只接受 `schema: BFN-IR` 与 `schemaVersion: 2.0`。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
 
 BFN-ONTOLOGY-1.0 是随应用发布的版本化只读 registry，不写 localStorage、IndexedDB、BFN Project、Version 或 Run。Workspace IndexedDB schema 继续保持 v1。
 

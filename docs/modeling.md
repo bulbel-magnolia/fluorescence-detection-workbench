@@ -352,16 +352,29 @@ Batch 6 在 BFN-IR 2.0 外层加入多项目工作区。BFN-IR 的 schema、科�
 
 Current Draft 使用 320 ms 防抖自动保存。Autosave 防止编辑丢失，不创建 Version；Version 由用户主动保存，是包含 BFN-IR snapshot、项目内 revision、可选科研备注和快照计算签名的不可变设计节点。Run 是 BFN-SIM-2.0 外层的项目级计算记录，也不是 Version。完整关系、存储事务和迁移规则见 [workspace.md](workspace.md)。
 
+## Temporal Runtime 与 Compatibility Integration
+
+网络运行前使用版本化时间与兼容性合同。端口方向、exact entity、exact quantity type 与 unit dimension 决定能否直接连接；同量纲的 `nM → M` 只进行数值表示换算，Ideal Edge 继续为 identity。生成速率不能直接连接浓度端口，累积与清除必须由显式过程模块建模。
+
+模块时间执行分为稳态响应、瞬时稳态近似、有状态动力学和当前不可执行，时间证据单独记录为 T0–T3 或未记录。Dynamic network 可混合瞬时稳态近似与有状态动力学；输出可达模块没有可执行模型时运行被阻止，孤立模块不影响输出运行。
+
+Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实。不同 context ID 本身不构成冲突；reported text 的不同表述为未确认，明确 canonical 数值差异为已知不同。Catalog 来源只读取 trusted presentation 的 exact parameter context，自由文本温度不转换为 Celsius。上下文 uncertain、mismatched 或 unavailable 都不自动修改模型、插入模块或阻止运行。
+
+成功运行在 BFN-SIM 2.0 中可选保存 output-reachable temporal snapshot 和 module-edge context-applicability snapshot。Dynamic Result、Run Provenance、JSON 与 provenance rows 都消费运行自身快照。旧运行缺少快照时显示未记录，不从当前网络推断历史。完整合同见 [时间语义、端口兼容性与实验适用性](temporal-and-compatibility.md)。
+
 ## 代码边界
 
 - `src/features/bfn/types.ts`：BFN-IR 2.0 类型；
 - `src/features/modeling/ontology/v1/`：BFN-ONTOLOGY-1.0 术语、可信 assignment、纯读取 resolver 与 fail-closed validation；
 - `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；
+- `src/features/bfn/temporal/`：时间执行能力解析与输出可达运行快照；
+- `src/features/bfn/compatibility/`：端口合同、逐字段上下文适用性与 Validation adapter；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
 - `validation.ts`：端口、连接、DAG、输入和上下文检查；
 - `responseMath.ts`：完整静态响应纯函数；
 - `simulation.ts`：静态与动态求解、不确定性和动态指标；
+- `runInterpretation.ts`：只从 Run snapshot 派生时间、证据、上下文与对比摘要；
 - `annApproximation.ts`：工作域仿射拟合与接受/拒绝判定；
 - `reverseDesign.ts`：保留的 legacy 双参数空间多目标候选评价；
 - `inverse-design/`：Catalog-backed Target 合同、搜索空间、可信求值、确定性分组与 signal-scoped unavailable 诊断；

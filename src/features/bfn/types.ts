@@ -1,3 +1,13 @@
+import type {
+  BfnApplicabilityState,
+  BfnContextApplicabilityCheck,
+} from './compatibility/compatibilityTypes';
+import type {
+  BfnTemporalEvidenceTier,
+  BfnTemporalExecutionMode,
+  BfnTemporalResolutionBasis,
+} from './temporal/temporalTypes';
+
 export type BfnNetworkMode = 'static' | 'dynamic';
 
 export type BfnQuantityType =
@@ -439,6 +449,10 @@ export type BfnValidationCode =
   | 'static_cycle'
   | 'missing_required_input'
   | 'context_mismatch'
+  | 'context_applicability_uncertain'
+  | 'context_applicability_mismatch'
+  | 'context_applicability_unavailable'
+  | 'temporal_execution_unsupported'
   | 'outside_validity_domain'
   | 'invalid_input_specification'
   | 'catalog_model_reference_invalid'
@@ -510,6 +524,8 @@ export interface BfnSimulationResult {
   primaryInputSourceId: string;
   outputMonitorId: string;
   signalSnapshot?: BfnRunSignalSnapshot;
+  temporalSnapshot?: BfnRunTemporalSnapshot;
+  contextApplicabilitySnapshot?: BfnRunContextApplicabilitySnapshot;
   annApproximation: BfnAnnApproximation | null;
   dynamicMetrics: BfnDynamicMetrics | null;
   validationIssues: BfnValidationIssue[];
@@ -541,6 +557,30 @@ export interface BfnRunOutputSignalSnapshot {
 export interface BfnRunSignalSnapshot {
   primaryInput: BfnRunInputSignalSnapshot;
   output: BfnRunOutputSignalSnapshot;
+}
+
+export interface BfnRunTemporalModuleSnapshot {
+  moduleId: string;
+  selectedModelId: string | null;
+  executionMode: BfnTemporalExecutionMode;
+  evidenceTier: BfnTemporalEvidenceTier;
+  resolutionBasis: BfnTemporalResolutionBasis;
+}
+
+export interface BfnRunTemporalSnapshot {
+  scope: 'output_reachable';
+  modules: BfnRunTemporalModuleSnapshot[];
+}
+
+export interface BfnRunContextApplicabilityEdgeSnapshot {
+  edgeId: string;
+  state: BfnApplicabilityState | 'unavailable';
+  checks?: readonly BfnContextApplicabilityCheck[];
+}
+
+export interface BfnRunContextApplicabilitySnapshot {
+  scope: 'output_reachable_module_edges';
+  edges: BfnRunContextApplicabilityEdgeSnapshot[];
 }
 
 export interface BfnReverseTarget {

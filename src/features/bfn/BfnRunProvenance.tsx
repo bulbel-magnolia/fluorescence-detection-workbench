@@ -1,6 +1,12 @@
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { createBfnProvenanceRows } from './chartExport';
 import { resolveBfnResultSignals } from './resultSignals';
+import {
+  countBfnTemporalEvidence,
+  countBfnTemporalExecution,
+  summarizeBfnContextApplicability,
+} from './runInterpretation';
 import type { BfnSimulationResult } from './types';
 
 export interface BfnRunProvenanceProps {
@@ -20,6 +26,52 @@ const experimentalValidityKeys: Record<
 > = {
   not_validated: 'bfn.results.provenance.notValidated',
 };
+
+function compactSummary(entries: ReadonlyArray<readonly [number, string]>): string {
+  return entries
+    .filter(([count]) => count > 0)
+    .map(([count, label]) => `${label} ${count}`)
+    .join(' · ');
+}
+
+function temporalExecutionSummary(result: BfnSimulationResult, t: TFunction): string {
+  if (!result.temporalSnapshot) return t('bfn.temporal.notRecorded');
+  const counts = countBfnTemporalExecution(result.temporalSnapshot);
+  return (
+    compactSummary([
+      [counts.steadyState, t('bfn.temporal.modes.steady_state')],
+      [counts.quasiStatic, t('bfn.temporal.modes.quasi_static')],
+      [counts.statefulDynamic, t('bfn.temporal.modes.stateful_dynamic')],
+      [counts.unsupported, t('bfn.temporal.modes.unsupported')],
+    ]) || t('bfn.temporal.noReachableModules')
+  );
+}
+
+function temporalEvidenceSummary(result: BfnSimulationResult, t: TFunction): string {
+  if (!result.temporalSnapshot) return t('bfn.temporal.notRecorded');
+  const counts = countBfnTemporalEvidence(result.temporalSnapshot);
+  return (
+    compactSummary([
+      [counts.t0SteadyState, t('bfn.temporal.evidenceTiers.t0_steady_state')],
+      [counts.t1TimeResolved, t('bfn.temporal.evidenceTiers.t1_time_resolved')],
+      [
+        counts.t2PhenomenologicalDynamic,
+        t('bfn.temporal.evidenceTiers.t2_phenomenological_dynamic'),
+      ],
+      [counts.t3MechanisticDynamic, t('bfn.temporal.evidenceTiers.t3_mechanistic_dynamic')],
+      [counts.notRecorded, t('bfn.temporal.evidenceTiers.not_recorded')],
+    ]) || t('bfn.temporal.noReachableModules')
+  );
+}
+
+function contextApplicabilitySummary(result: BfnSimulationResult, t: TFunction): string {
+  if (!result.contextApplicabilitySnapshot) return t('bfn.compatibility.contextNotRecorded');
+  return t(
+    `bfn.compatibility.contextSummaries.${summarizeBfnContextApplicability(
+      result.contextApplicabilitySnapshot,
+    )}`,
+  );
+}
 
 export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
   const { t } = useTranslation();
@@ -72,6 +124,9 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
         ? result.contextIds.join(' · ')
         : t('bfn.results.provenance.notAvailable'),
     ],
+    ['temporalExecutionSummary', temporalExecutionSummary(result, t)],
+    ['temporalEvidenceSummary', temporalEvidenceSummary(result, t)],
+    ['contextApplicabilitySummary', contextApplicabilitySummary(result, t)],
     ['uncertaintyMethod', t(uncertaintyMethodKeys[result.uncertaintyMethod])],
     [
       'extrapolated',
@@ -93,6 +148,31 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
           </div>
         ))}
       </dl>
+      {result.temporalSnapshot ? (
+        <details className="bfn-run-provenance__temporal-modules">
+          <summary>{t('bfn.results.provenance.temporalModuleDetails')}</summary>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('bfn.results.provenance.module')}</th>
+                <th>{t('bfn.results.provenance.model')}</th>
+                <th>{t('bfn.results.provenance.timeHandling')}</th>
+                <th>{t('bfn.results.provenance.temporalEvidence')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.temporalSnapshot.modules.map((module) => (
+                <tr key={module.moduleId}>
+                  <td>{module.moduleId}</td>
+                  <td>{module.selectedModelId ?? t('bfn.results.provenance.notAvailable')}</td>
+                  <td>{t(`bfn.temporal.modes.${module.executionMode}`)}</td>
+                  <td>{t(`bfn.temporal.evidenceTiers.${module.evidenceTier}`)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      ) : null}
       {!signals.complete ? (
         <p className="bfn-run-provenance__notice">
           {t('bfn.results.signals.legacySemanticsUnavailable')}

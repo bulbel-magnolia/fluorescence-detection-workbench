@@ -1,0 +1,152 @@
+import { describe, expect, it } from 'vitest';
+import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
+import { createDemoBfnProject } from '../fixtures';
+import {
+  buildBfnCatalogRuntimeCandidate,
+  instantiateCatalogResponseInBfnProject,
+} from '../catalog/catalogBfnAdapter';
+import { AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST } from '../../modeling/catalog/v2/catalogRuntimeDemoWhitelist';
+import type { BfnProject, BfnStaticModel } from '../types';
+import {
+  assessBfnConnectionContextApplicability,
+  resolveBfnModuleComparableContextFacts,
+} from './contextIntegration';
+
+const RESPONSE_ID = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id;
+
+function activeStaticModel(project: BfnProject, moduleIndex: number): BfnStaticModel {
+  const module = project.network.modules[moduleIndex]!;
+  const model = module.modelVariants.find(
+    (candidate): candidate is BfnStaticModel =>
+      candidate.id === module.activeModelIds.static && candidate.mode === 'static',
+  );
+  if (!model) throw new Error('Expected an active static model.');
+  return model;
+}
+
+function moduleEdge(project: BfnProject) {
+  const edge = project.network.edges.find(
+    (candidate) =>
+      project.network.modules.some((module) => module.id === candidate.source.nodeId) &&
+      project.network.modules.some((module) => module.id === candidate.target.nodeId),
+  );
+  if (!edge) throw new Error('Expected a module-to-module edge.');
+  return edge;
+}
+
+function catalogModuleProject(): BfnProject {
+  const project = createDemoBfnProject();
+  const candidate = buildBfnCatalogRuntimeCandidate(RESPONSE_ID);
+  const result = instantiateCatalogResponseInBfnProject(project, candidate, {
+    moduleId: 'module-context-catalog',
+    modulePosition: { x: 520, y: 300 },
+    createInputSource: false,
+  });
+  if (!result.ok) throw new Error(result.error.code);
+  return result.nextProject;
+}
+
+describe('BFN context integration', () => {
+  it('compares resolved facts instead of treating different context IDs as a mismatch', () => {
+    const project = createDemoBfnProject();
+    const original = project.registry.contexts[0]!;
+    const equivalent = { ...structuredClone(original), id: 'context-equivalent' };
+    project.registry.contexts.push(equivalent);
+    activeStaticModel(project, 1).contextId = equivalent.id;
+    const edge = moduleEdge(project);
+
+    expect(assessBfnConnectionContextApplicability(project, edge.source, edge.target).overall).toBe(
+      'matched',
+    );
+  });
+
+  it('keeps reported-text differences uncertain and recognizes canonical temperature differences', () => {
+    const project = createDemoBfnProject();
+    const original = project.registry.contexts[0]!;
+    const compared = {
+      ...structuredClone(original),
+      id: 'context-compared',
+      host: 'A differently reported host',
+    };
+    project.registry.contexts.push(compared);
+    activeStaticModel(project, 1).contextId = compared.id;
+    const edge = moduleEdge(project);
+
+    expect(assessBfnConnectionContextApplicability(project, edge.source, edge.target).overall).toBe(
+      'uncertain',
+    );
+
+    compared.host = original.host;
+    compared.temperatureCelsius = original.temperatureCelsius + 5;
+    expect(assessBfnConnectionContextApplicability(project, edge.source, edge.target).overall).toBe(
+      'mismatched',
+    );
+  });
+
+  it('uses the exact trusted Catalog parameter context and never parses free-text temperature', () => {
+    const project = catalogModuleProject();
+    const module = project.network.modules.find(
+      (candidate) => candidate.id === 'module-context-catalog',
+    )!;
+    const model = module.modelVariants[0];
+    if (!model || model.mode !== 'static' || !model.catalogReference) {
+      throw new Error('Expected a Catalog-backed static model.');
+    }
+    const presentation = loadReleaseCatalogPresentation();
+    const context = presentation.parameterContexts.find(
+      (candidate) => candidate.id === model.catalogReference?.parameterContextId,
+    );
+    expect(context?.canonical.details?.temperature).toEqual(expect.any(String));
+
+    const resolved = resolveBfnModuleComparableContextFacts(project, module);
+    expect(resolved.state).toBe('available');
+    expect(resolved.facts).toMatchObject({
+      hostSpecies: { value: context?.hostSpecies ?? null, comparisonBasis: 'reported_text' },
+      hostStrain: { value: context?.hostStrain ?? null, comparisonBasis: 'reported_text' },
+      medium: {
+        value: context?.canonical.details?.cultureMedium ?? null,
+        comparisonBasis: 'reported_text',
+      },
+      temperatureCelsius: { value: null, comparisonBasis: 'canonical' },
+    });
+  });
+
+  it('returns unavailable on Catalog load, trust, or exact-ID failure without falling back', () => {
+    const project = catalogModuleProject();
+    const module = project.network.modules.find(
+      (candidate) => candidate.id === 'module-context-catalog',
+    )!;
+    const model = module.modelVariants[0];
+    if (!model || model.mode !== 'static' || !model.catalogReference) {
+      throw new Error('Expected a Catalog-backed static model.');
+    }
+
+    expect(
+      resolveBfnModuleComparableContextFacts(project, module, {
+        loadCatalogPresentation: () => {
+          throw new Error('unavailable');
+        },
+      }).state,
+    ).toBe('unavailable');
+    expect(
+      resolveBfnModuleComparableContextFacts(project, module, {
+        loadCatalogPresentation: () => ({}),
+      }).state,
+    ).toBe('unavailable');
+
+    model.catalogReference.parameterContextId = 'missing-context';
+    expect(resolveBfnModuleComparableContextFacts(project, module).state).toBe('unavailable');
+  });
+
+  it('marks source-to-module and module-to-monitor paths not applicable', () => {
+    const project = createDemoBfnProject();
+    const first = project.network.edges[0]!;
+    const last = project.network.edges.at(-1)!;
+    expect(
+      assessBfnConnectionContextApplicability(project, first.source, first.target).overall,
+    ).toBe('not_applicable');
+    expect(assessBfnConnectionContextApplicability(project, last.source, last.target).overall).toBe(
+      'not_applicable',
+    );
+  });
+});

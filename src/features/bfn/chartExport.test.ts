@@ -284,7 +284,10 @@ describe('export metadata helpers', () => {
       network_id: result.networkId,
       uncertainty_method: 'parameter-interval envelope',
       experimental_validity: result.experimentalValidity,
+      context_applicability_summary: 'Compared module contexts consistent',
     });
+    expect(values.temporal_execution_summary).toContain('Steady-state:');
+    expect(values.temporal_evidence_summary).toContain('Not recorded:');
     expect(values.ann_approximation).toBe('Passed the current approximation-quality threshold');
 
     const hiddenModel = createBfnChartModel({
@@ -333,6 +336,16 @@ describe('export metadata helpers', () => {
     );
     expect(rangeValues.primary_input_range).toBe('2–4');
     expect(rangeValues.time_range_hours).toBe('0–3.5');
+
+    const legacy = structuredClone(result);
+    delete legacy.temporalSnapshot;
+    delete legacy.contextApplicabilitySnapshot;
+    const legacyValues = Object.fromEntries(
+      createBfnProvenanceRows({ result: legacy }).map((row) => [row.key, row.value]),
+    );
+    expect(legacyValues).not.toHaveProperty('temporal_execution_summary');
+    expect(legacyValues).not.toHaveProperty('temporal_evidence_summary');
+    expect(legacyValues).not.toHaveProperty('context_applicability_summary');
   });
   it('applies custom localized caption segments while preserving scientific visibility and status logic', () => {
     const { project, result, comparison, model } = chartFixture();

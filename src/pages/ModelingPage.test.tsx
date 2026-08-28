@@ -205,7 +205,8 @@ describe('biological network design workspace', () => {
       'module-reporter::module-reporter-in',
     );
 
-    expect(await screen.findByText(/信号不一致/)).toBeInTheDocument();
+    expect(await screen.findByText('信号兼容性')).toBeInTheDocument();
+    expect(screen.getByText('不能直接连接')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '建立连接' })).toBeDisabled();
   });
 

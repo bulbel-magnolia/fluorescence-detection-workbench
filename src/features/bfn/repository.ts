@@ -33,6 +33,35 @@ const BFN_UNITS: ReadonlySet<string> = new Set([
   'OD600',
 ]);
 
+const BFN_TEMPORAL_EXECUTION_MODES: ReadonlySet<string> = new Set([
+  'steady_state',
+  'quasi_static',
+  'stateful_dynamic',
+  'unsupported',
+]);
+
+const BFN_TEMPORAL_EVIDENCE_TIERS: ReadonlySet<string> = new Set([
+  't0_steady_state',
+  't1_time_resolved',
+  't2_phenomenological_dynamic',
+  't3_mechanistic_dynamic',
+  'not_recorded',
+]);
+
+const BFN_TEMPORAL_RESOLUTION_BASES: ReadonlySet<string> = new Set([
+  'active-static',
+  'active-dynamic',
+  'dynamic-static-fallback',
+  'no-executable-model',
+]);
+
+const BFN_CONTEXT_APPLICABILITY_STATES: ReadonlySet<string> = new Set([
+  'matched',
+  'uncertain',
+  'mismatched',
+  'unavailable',
+]);
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -93,6 +122,50 @@ function hasValidSignalSnapshot(value: Record<string, unknown>): boolean {
   );
 }
 
+function hasValidTemporalSnapshot(value: Record<string, unknown>): boolean {
+  if (!Object.prototype.hasOwnProperty.call(value, 'temporalSnapshot')) return true;
+  const snapshot = value.temporalSnapshot;
+  if (
+    !isRecord(snapshot) ||
+    snapshot.scope !== 'output_reachable' ||
+    !Array.isArray(snapshot.modules)
+  ) {
+    return false;
+  }
+  return snapshot.modules.every(
+    (module) =>
+      isRecord(module) &&
+      isNonEmptyString(module.moduleId) &&
+      (module.selectedModelId === null || isNonEmptyString(module.selectedModelId)) &&
+      typeof module.executionMode === 'string' &&
+      BFN_TEMPORAL_EXECUTION_MODES.has(module.executionMode) &&
+      typeof module.evidenceTier === 'string' &&
+      BFN_TEMPORAL_EVIDENCE_TIERS.has(module.evidenceTier) &&
+      typeof module.resolutionBasis === 'string' &&
+      BFN_TEMPORAL_RESOLUTION_BASES.has(module.resolutionBasis),
+  );
+}
+
+function hasValidContextApplicabilitySnapshot(value: Record<string, unknown>): boolean {
+  if (!Object.prototype.hasOwnProperty.call(value, 'contextApplicabilitySnapshot')) return true;
+  const snapshot = value.contextApplicabilitySnapshot;
+  if (
+    !isRecord(snapshot) ||
+    snapshot.scope !== 'output_reachable_module_edges' ||
+    !Array.isArray(snapshot.edges)
+  ) {
+    return false;
+  }
+  return snapshot.edges.every(
+    (edge) =>
+      isRecord(edge) &&
+      isNonEmptyString(edge.edgeId) &&
+      typeof edge.state === 'string' &&
+      BFN_CONTEXT_APPLICABILITY_STATES.has(edge.state) &&
+      (!Object.prototype.hasOwnProperty.call(edge, 'checks') || Array.isArray(edge.checks)),
+  );
+}
+
 export function isBfnProject(value: unknown): value is BfnProject {
   if (!isRecord(value) || value.schema !== 'BFN-IR' || value.schemaVersion !== '2.0') {
     return false;
@@ -134,7 +207,9 @@ function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
     isNonEmptyString(value.outputMonitorId) &&
     Array.isArray(value.validationIssues) &&
     typeof value.completedAt === 'string' &&
-    hasValidSignalSnapshot(value)
+    hasValidSignalSnapshot(value) &&
+    hasValidTemporalSnapshot(value) &&
+    hasValidContextApplicabilitySnapshot(value)
   );
 }
 

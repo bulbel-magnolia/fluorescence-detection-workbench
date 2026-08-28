@@ -6,9 +6,11 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Icon } from '../../components/Icon';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
+import { BfnConnectionAssessment } from './BfnConnectionAssessment';
 import { BfnCatalogDiscoveryDrawer } from './catalog/BfnCatalogDiscoveryDrawer';
 import { BfnCatalogProvenanceInspector } from './catalog/BfnCatalogProvenanceInspector';
 import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import { assessBfnConnectionContextApplicability } from './compatibility/contextIntegration';
 import type { BfnCatalogDetailTarget } from './catalog/catalogDetail';
 import { instantiateBfnCatalogResponse } from './catalog/catalogInstantiation';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
@@ -68,6 +70,8 @@ import {
   type BfnSemanticPresentation,
 } from './semantic/semanticPresentation';
 import { runBfnSimulation } from './simulation';
+import { resolveBfnModuleTemporalCapability } from './temporal/temporalCapability';
+import type { BfnTemporalCapability } from './temporal/temporalTypes';
 import type {
   BfnDynamicInputSpecification,
   BfnCanvasPosition,
@@ -424,6 +428,28 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         : [],
     [project, sourceEndpointValue, targetEndpointValue],
   );
+  const draftSourcePort = sourceEndpoint ? portForEndpoint(project, sourceEndpoint) : null;
+  const draftTargetPort = targetEndpoint ? portForEndpoint(project, targetEndpoint) : null;
+  const draftContextAssessment = useMemo(
+    () =>
+      sourceEndpoint && targetEndpoint
+        ? assessBfnConnectionContextApplicability(project, sourceEndpoint, targetEndpoint)
+        : null,
+    [project, sourceEndpointValue, targetEndpointValue],
+  );
+  const draftStructuralIssue = draftIssues.find(
+    (issue) =>
+      ![
+        'source_port_direction',
+        'target_port_direction',
+        'entity_mismatch',
+        'quantity_mismatch',
+        'unit_dimension_mismatch',
+        'context_applicability_uncertain',
+        'context_applicability_mismatch',
+        'context_applicability_unavailable',
+      ].includes(issue.code),
+  );
   const selectedModule =
     project.network.modules.find((module) => module.id === selectedNodeId) ?? null;
   const selectedSource =
@@ -437,8 +463,18 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const selectedEdgeTargetPort = selectedEdge
     ? portForEndpoint(project, selectedEdge.target)
     : null;
+  const selectedEdgeContextAssessment = useMemo(
+    () =>
+      selectedEdge
+        ? assessBfnConnectionContextApplicability(project, selectedEdge.source, selectedEdge.target)
+        : null,
+    [project, selectedEdge],
+  );
   const selectedModuleModel = selectedModule
     ? resolveEffectiveBfnModel(project, selectedModule)
+    : null;
+  const selectedTemporalCapability = selectedModule
+    ? resolveBfnModuleTemporalCapability(project, selectedModule)
     : null;
   const selectedSemantic = useMemo(() => {
     if (!selectedModule) return null;
@@ -1139,14 +1175,20 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                       ))}
                     </select>
                   </label>
-                  {sourceEndpoint && targetEndpoint ? (
+                  {draftSourcePort && draftTargetPort && draftContextAssessment ? (
+                    <BfnConnectionAssessment
+                      sourcePort={draftSourcePort}
+                      targetPort={draftTargetPort}
+                      context={draftContextAssessment}
+                      compact
+                    />
+                  ) : null}
+                  {draftStructuralIssue ? (
                     <div
                       className="bfn-connection-check"
                       data-valid={!draftIssues.some((issue) => issue.severity === 'error')}
                     >
-                      {draftIssues.length
-                        ? validationMessage(t, draftIssues[0]!)
-                        : t('bfn.connections.compatible')}
+                      {validationMessage(t, draftStructuralIssue)}
                     </div>
                   ) : null}
                   <Button
@@ -1246,6 +1288,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                       <p>{t(selectedModule.descriptionKey)}</p>
                     </section>
                     <ModuleSemanticClassification semantic={selectedSemantic} />
+                    <ModuleTemporalClassification capability={selectedTemporalCapability} />
                     <section className="bfn-inspector-block">
                       <header>
                         <strong>{t('bfn.inspector.inputsAndOutputs')}</strong>
@@ -1577,6 +1620,15 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         </small>
                       </div>
                     </div>
+                    {selectedEdgeSourcePort &&
+                    selectedEdgeTargetPort &&
+                    selectedEdgeContextAssessment ? (
+                      <BfnConnectionAssessment
+                        sourcePort={selectedEdgeSourcePort}
+                        targetPort={selectedEdgeTargetPort}
+                        context={selectedEdgeContextAssessment}
+                      />
+                    ) : null}
                     <details className="bfn-inspector-details">
                       <summary>{t('bfn.inspector.advancedInformation')}</summary>
                       <p className="bfn-edge-explanation">
@@ -1972,6 +2024,38 @@ function ModuleSemanticClassification({ semantic }: { semantic: BfnSemanticPrese
           </div>
         </dl>
       )}
+    </section>
+  );
+}
+
+function ModuleTemporalClassification({
+  capability,
+}: {
+  capability: BfnTemporalCapability | null;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section
+      className="bfn-inspector-block bfn-inspector-temporal"
+      aria-labelledby="bfn-inspector-temporal-title"
+      data-execution-mode={capability?.executionMode ?? 'unsupported'}
+    >
+      <header>
+        <strong id="bfn-inspector-temporal-title">{t('bfn.temporal.title')}</strong>
+      </header>
+      <dl>
+        <div>
+          <dt>{t('bfn.temporal.handling')}</dt>
+          <dd>{t(`bfn.temporal.modes.${capability?.executionMode ?? 'unsupported'}`)}</dd>
+        </div>
+        <div>
+          <dt>{t('bfn.temporal.evidence')}</dt>
+          <dd>{t(`bfn.temporal.evidenceTiers.${capability?.evidenceTier ?? 'not_recorded'}`)}</dd>
+        </div>
+      </dl>
+      {capability?.executionMode === 'quasi_static' ? (
+        <p>{t('bfn.temporal.quasiStaticBoundary')}</p>
+      ) : null}
     </section>
   );
 }

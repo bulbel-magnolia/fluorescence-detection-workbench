@@ -8,8 +8,15 @@ import type {
 } from './types';
 import { BfnCatalogContractError, bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
 import { verifyBfnCatalogModel } from './catalog/catalogBfnVerification';
+import { assessBfnConnectionContextApplicability } from './compatibility/contextIntegration';
+import {
+  createBfnContextApplicabilityIssues,
+  createBfnPortCompatibilityIssues,
+} from './compatibility/validationIntegration';
 import { resolveEffectiveBfnModel } from './modelResolution';
-import { areUnitsCompatible, convertUnit } from './unitSystem';
+import { findBfnOutputReachableModuleIds } from './outputReachability';
+import { resolveBfnModuleTemporalCapability } from './temporal/temporalCapability';
+import { convertUnit } from './unitSystem';
 
 export { activeModelForModule } from './modelResolution';
 
@@ -72,12 +79,6 @@ function hasDirectedCycle(edges: readonly BfnIdealEdge[]): boolean {
   return [...adjacency.keys()].some(visit);
 }
 
-function contextForEndpoint(project: BfnProject, endpoint: BfnIdealEdgeEndpoint): string | null {
-  const module = project.network.modules.find((candidate) => candidate.id === endpoint.nodeId);
-  if (!module) return null;
-  return resolveEffectiveBfnModel(project, module)?.contextId ?? null;
-}
-
 export function checkIdealConnection(
   project: BfnProject,
   source: BfnIdealEdgeEndpoint,
@@ -103,36 +104,7 @@ export function checkIdealConnection(
     issues.push({ code: 'missing_target_port', severity: 'error', subjectId: target.portId });
   }
   if (!sourcePort || !targetPort) return issues;
-  if (sourcePort.port.direction !== 'output') {
-    issues.push({ code: 'source_port_direction', severity: 'error', subjectId: source.portId });
-  }
-  if (targetPort.port.direction !== 'input') {
-    issues.push({ code: 'target_port_direction', severity: 'error', subjectId: target.portId });
-  }
-  if (sourcePort.port.entity !== targetPort.port.entity) {
-    issues.push({
-      code: 'entity_mismatch',
-      severity: 'error',
-      subjectId: edgeId,
-      details: { source: sourcePort.port.entity, target: targetPort.port.entity },
-    });
-  }
-  if (sourcePort.port.quantityType !== targetPort.port.quantityType) {
-    issues.push({
-      code: 'quantity_mismatch',
-      severity: 'error',
-      subjectId: edgeId,
-      details: { source: sourcePort.port.quantityType, target: targetPort.port.quantityType },
-    });
-  }
-  if (!areUnitsCompatible(sourcePort.port.unit, targetPort.port.unit)) {
-    issues.push({
-      code: 'unit_dimension_mismatch',
-      severity: 'error',
-      subjectId: edgeId,
-      details: { source: sourcePort.port.unit, target: targetPort.port.unit },
-    });
-  }
+  issues.push(...createBfnPortCompatibilityIssues(sourcePort.port, targetPort.port, edgeId));
   if (
     project.network.edges.some(
       (edge) =>
@@ -158,16 +130,12 @@ export function checkIdealConnection(
   if (project.network.mode === 'static' && hasDirectedCycle([...project.network.edges, draft])) {
     issues.push({ code: 'static_cycle', severity: 'error', subjectId: edgeId });
   }
-  const sourceContext = contextForEndpoint(project, source);
-  const targetContext = contextForEndpoint(project, target);
-  if (sourceContext && targetContext && sourceContext !== targetContext) {
-    issues.push({
-      code: 'context_mismatch',
-      severity: 'warning',
-      subjectId: edgeId,
-      details: { source: sourceContext, target: targetContext },
-    });
-  }
+  issues.push(
+    ...createBfnContextApplicabilityIssues(
+      assessBfnConnectionContextApplicability(project, source, target),
+      edgeId,
+    ),
+  );
   return issues;
 }
 
@@ -334,6 +302,24 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
               },
         );
       }
+    }
+  }
+  const outputReachableModuleIds = new Set<string>();
+  for (const monitor of project.network.outputMonitors) {
+    for (const moduleId of findBfnOutputReachableModuleIds(project, monitor.id)) {
+      outputReachableModuleIds.add(moduleId);
+    }
+  }
+  for (const module of project.network.modules) {
+    if (
+      outputReachableModuleIds.has(module.id) &&
+      resolveBfnModuleTemporalCapability(project, module).executionMode === 'unsupported'
+    ) {
+      issues.push({
+        code: 'temporal_execution_unsupported',
+        severity: 'error',
+        subjectId: module.id,
+      });
     }
   }
   for (const monitor of project.network.outputMonitors) {

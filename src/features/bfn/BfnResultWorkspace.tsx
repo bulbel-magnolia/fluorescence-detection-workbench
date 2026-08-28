@@ -18,6 +18,11 @@ import {
 import { BfnResponseChart, bfnChartResultIdentity } from './BfnResponseChart';
 import { BfnRunProvenance } from './BfnRunProvenance';
 import { compatibleBfnRuns, formatBfnComparisonTime } from './runComparison';
+import {
+  bfnTemporalExecutionSummariesDiffer,
+  countBfnTemporalExecution,
+  interpretBfnDynamicTimeHandling,
+} from './runInterpretation';
 import { resolveBfnResultSignals } from './resultSignals';
 import type { BfnProject, BfnSimulationResult } from './types';
 
@@ -160,6 +165,9 @@ export function BfnResultWorkspace({
     [comparisonRun, i18n.language, t],
   );
   const comparisonAvailable = comparison !== undefined;
+  const temporalComparisonDifference = comparison
+    ? bfnTemporalExecutionSummariesDiffer(result!, comparison.result)
+    : null;
 
   useEffect(() => {
     setViewState((current) => {
@@ -331,6 +339,16 @@ export function BfnResultWorkspace({
                       {t('bfn.results.signals.legacySemanticsUnavailable')}
                     </p>
                   ) : null}
+                  {comparison && temporalComparisonDifference === null ? (
+                    <p className="bfn-comparison-bar__notice" role="status">
+                      {t('bfn.results.comparison.temporalIncomplete')}
+                    </p>
+                  ) : null}
+                  {comparison && temporalComparisonDifference === true ? (
+                    <p className="bfn-comparison-bar__notice" role="status">
+                      {t('bfn.results.comparison.temporalDifferent')}
+                    </p>
+                  ) : null}
                 </div>
                 <BfnResponseChart
                   project={project}
@@ -366,6 +384,7 @@ export function BfnResultWorkspace({
                   <small>{t('bfn.results.rangeHint')}</small>
                 </article>
               </div>
+              {result.mode === 'dynamic' ? <TimeHandlingSummary result={result} /> : null}
               {result.mode === 'static' ? (
                 <AnnResultCard result={result} />
               ) : (
@@ -471,11 +490,14 @@ function DynamicMetricsCard({ result }: { result: BfnSimulationResult }) {
   const { t } = useTranslation();
   const metrics = result.dynamicMetrics;
   if (!metrics) return null;
+  const timeInterpretation = interpretBfnDynamicTimeHandling(result);
+  const quasiStaticOnly = timeInterpretation === 'all_quasi_static';
   return (
     <section className="bfn-dynamic-metrics">
       <header>
-        <h3>{t('bfn.dynamic.title')}</h3>
+        <h3>{t(quasiStaticOnly ? 'bfn.dynamic.trajectoryTitle' : 'bfn.dynamic.title')}</h3>
       </header>
+      {quasiStaticOnly ? <p>{t('bfn.dynamic.quasiStaticBoundary')}</p> : null}
       <dl>
         <div>
           <dt>{t('bfn.dynamic.steady')}</dt>
@@ -504,6 +526,38 @@ function DynamicMetricsCard({ result }: { result: BfnSimulationResult }) {
           </dd>
         </div>
       </dl>
+    </section>
+  );
+}
+
+function TimeHandlingSummary({ result }: { result: BfnSimulationResult }) {
+  const { t } = useTranslation();
+  const interpretation = interpretBfnDynamicTimeHandling(result);
+  const snapshot = result.temporalSnapshot;
+  const counts = snapshot ? countBfnTemporalExecution(snapshot) : null;
+  return (
+    <section className="bfn-time-handling" data-time-interpretation={interpretation}>
+      <header>
+        <h3>{t('bfn.temporal.result.title')}</h3>
+      </header>
+      <strong>{t(`bfn.temporal.result.states.${interpretation}`)}</strong>
+      <p>{t(`bfn.temporal.result.boundaries.${interpretation}`)}</p>
+      {counts ? (
+        <dl>
+          <div>
+            <dt>{t('bfn.temporal.modes.steady_state')}</dt>
+            <dd>{counts.steadyState}</dd>
+          </div>
+          <div>
+            <dt>{t('bfn.temporal.modes.quasi_static')}</dt>
+            <dd>{counts.quasiStatic}</dd>
+          </div>
+          <div>
+            <dt>{t('bfn.temporal.modes.stateful_dynamic')}</dt>
+            <dd>{counts.statefulDynamic}</dd>
+          </div>
+        </dl>
+      ) : null}
     </section>
   );
 }

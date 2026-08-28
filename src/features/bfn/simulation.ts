@@ -1,6 +1,7 @@
 import { buildAnnApproximation } from './annApproximation';
 import { evaluateBfnModuleModel } from './catalog/catalogBfnEvaluation';
 import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import { createBfnRunContextApplicabilitySnapshot } from './compatibility/contextIntegration';
 import { resolveEffectiveBfnModel } from './modelResolution';
 import { findBfnOutputReachableModuleIds } from './outputReachability';
 import type { BfnParameterScenario } from './responseMath';
@@ -18,6 +19,7 @@ import type {
   BfnValidationIssue,
 } from './types';
 import { convertUnit } from './unitSystem';
+import { createBfnRunTemporalSnapshot } from './temporal/temporalRuntime';
 import {
   resolveBfnPort,
   topologicalModuleOrder,
@@ -456,6 +458,11 @@ export function runBfnSimulation(
   if (!source) throw new Error('BFN_PRIMARY_INPUT_PORT_MISSING');
   const trace = provenance(project);
   const reachableModuleIds = findBfnOutputReachableModuleIds(project, monitor.id);
+  const temporalSnapshot = createBfnRunTemporalSnapshot(project, monitor.id);
+  const contextApplicabilitySnapshot = createBfnRunContextApplicabilitySnapshot(
+    project,
+    monitor.id,
+  );
   return {
     id: createId('bfn-run'),
     engineVersion: 'BFN-SIM-2.0',
@@ -480,6 +487,8 @@ export function runBfnSimulation(
         unit: monitor.inputPort.unit,
       },
     },
+    temporalSnapshot,
+    contextApplicabilitySnapshot,
     annApproximation,
     dynamicMetrics:
       project.network.mode === 'dynamic' ? dynamicMetrics(project, simulation.points) : null,

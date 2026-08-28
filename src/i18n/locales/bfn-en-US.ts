@@ -376,6 +376,55 @@ export const bfnEnUS = {
     compatible: 'These endpoints can connect.',
     create: 'Create connection',
   },
+  compatibility: {
+    signalTitle: 'Signal compatibility',
+    contextTitle: 'Experimental context',
+    contextNotRecorded: 'Experimental-context applicability was not recorded for this run',
+    canDirectlyConnect: 'Can directly connect',
+    signalIncompatible: 'Cannot directly connect',
+    unitNormalization:
+      '{{source}} → {{target}}; the runtime automatically converts the numeric representation while the edge mapping remains identity.',
+    rateToConcentration:
+      'The upstream signal is a production rate while the downstream port requires concentration. Add an explicit accumulation or clearance process; this connection does not integrate automatically or insert a hidden module.',
+    signalMismatchBoundary:
+      'Signal entity, measurement type, and unit dimension must align before this connection can be created.',
+    contextStates: {
+      matched: 'Compared conditions are consistent',
+      uncertain: 'Some conditions are unverified',
+      mismatched: 'Known condition differences',
+      not_applicable: 'Not applicable to this connection',
+      unavailable: 'Comparison currently unavailable',
+    },
+    contextBoundaries: {
+      matched: 'Comparable experimental conditions recorded for the two modules are consistent.',
+      uncertain:
+        'Different reported wording or missing fields do not block the connection; retain this boundary when interpreting results.',
+      mismatched:
+        'Known experimental-condition differences do not alter models automatically and do not block connection or execution.',
+      not_applicable:
+        'This connection does not join two functional modules, so experimental context is not compared.',
+      unavailable:
+        'The Catalog presentation or exact context record is currently unavailable. The connection remains available and Catalog trust validation stays independent.',
+    },
+    fieldDetails: 'View field comparisons',
+    fields: {
+      hostSpecies: 'Host',
+      hostStrain: 'Strain',
+      medium: 'Medium',
+      temperatureCelsius: 'Temperature',
+    },
+    checkStates: {
+      matched: 'Matched',
+      uncertain: 'Unverified',
+      mismatched: 'Different',
+    },
+    contextSummaries: {
+      known_differences: 'Known experimental-context differences',
+      partially_unverified: 'Experimental context partially unverified',
+      consistent: 'Compared module contexts are consistent',
+      no_comparable_module_context: 'No comparable module context',
+    },
+  },
   assumptions: {
     independentTitle: 'Input relationship',
     independentUnverified: 'The two inputs are calculated as acting independently.',
@@ -400,6 +449,14 @@ export const bfnEnUS = {
     missing_required_input: 'A module input is not connected. Unused modules receive zero input.',
     context_mismatch:
       'The upstream and downstream parameters use different contexts: {{source}} and {{target}}.',
+    context_applicability_uncertain:
+      'Module experimental context is only partially verifiable; this information does not block connection or execution.',
+    context_applicability_mismatch:
+      'Known experimental-condition differences exist between modules; connection and execution remain available.',
+    context_applicability_unavailable:
+      'Module experimental context cannot currently be compared; connection and execution remain available.',
+    temporal_execution_unsupported:
+      'A module on the output path has no executable model for the current analysis mode.',
     outside_validity_domain:
       'The input or time is outside the parameter range, so the result is marked out of range.',
     invalid_input_specification: 'The input is incomplete. Check its values and range.',
@@ -423,6 +480,50 @@ export const bfnEnUS = {
     biologicalFamily: 'Biological component family',
     mathematicalModel: 'Mathematical model',
     unavailable: 'Semantic classification unavailable',
+  },
+  temporal: {
+    title: 'Time behavior',
+    handling: 'Time handling',
+    evidence: 'Temporal evidence',
+    modes: {
+      steady_state: 'Steady-state response',
+      quasi_static: 'Instantaneous steady-state approximation',
+      stateful_dynamic: 'Stateful dynamics',
+      unsupported: 'Currently not executable',
+    },
+    evidenceTiers: {
+      t0_steady_state: 'T0 steady-state response evidence',
+      t1_time_resolved: 'T1 time-resolved evidence',
+      t2_phenomenological_dynamic: 'T2 phenomenological dynamic evidence',
+      t3_mechanistic_dynamic: 'T3 mechanistic dynamic evidence',
+      not_recorded: 'Temporal evidence not recorded',
+    },
+    quasiStaticBoundary:
+      'A dynamic input applies the steady response at each time point; the module adds no internal delay or state memory.',
+    notRecorded: 'Time handling was not recorded for this run',
+    noReachableModules: 'No functional modules are on the output path',
+    result: {
+      title: 'Time handling summary',
+      states: {
+        not_recorded: 'Time handling not recorded',
+        all_quasi_static: 'All modules use instantaneous steady-state approximation',
+        mixed_quasi_static: 'Some modules use instantaneous steady-state approximation',
+        all_stateful_dynamic: 'All modules use stateful dynamics',
+        recorded_other: 'Time handling recorded',
+      },
+      boundaries: {
+        not_recorded:
+          'This is a legacy run. Its historical time handling is not inferred from the current project.',
+        all_quasi_static:
+          'The curve is an instantaneous steady-state approximation assembled from the steady response at each time point; it does not represent internal module kinetics.',
+        mixed_quasi_static:
+          'The output path combines instantaneous steady-state approximation with stateful dynamic modules.',
+        all_stateful_dynamic:
+          'Every module on the output path retains internal state and advances dynamically.',
+        recorded_other:
+          'This summary comes from the output-reachable module snapshot saved with the run.',
+      },
+    },
   },
   inspector: {
     project: 'Network details',
@@ -589,6 +690,10 @@ export const bfnEnUS = {
       cleared: 'Comparison cleared because it is no longer compatible or available.',
       logFallback:
         '{{axes}} returned to Linear after adding the comparison. {{reason}} Manual bounds were kept.',
+      temporalIncomplete:
+        'At least one run does not record time handling, so the temporal comparison is incomplete.',
+      temporalDifferent:
+        'The runs have different time-handling summaries; their curves remain available side by side.',
     },
     provenance: {
       title: 'Run information',
@@ -607,6 +712,14 @@ export const bfnEnUS = {
       timeRangeHours: 'Time range (h)',
       modelVersions: 'Model versions',
       contextIds: 'Context IDs',
+      temporalExecutionSummary: 'Temporal execution summary',
+      temporalEvidenceSummary: 'Temporal evidence summary',
+      contextApplicabilitySummary: 'Experimental-context applicability',
+      temporalModuleDetails: 'View module time-handling details',
+      module: 'Module',
+      model: 'Model',
+      timeHandling: 'Time handling',
+      temporalEvidence: 'Temporal evidence',
       uncertaintyMethod: 'Uncertainty method',
       extrapolated: 'Extrapolated',
       isDemo: 'Demo data',
@@ -680,6 +793,9 @@ export const bfnEnUS = {
   },
   dynamic: {
     title: 'Dynamic response metrics',
+    trajectoryTitle: 'Time-trajectory descriptors',
+    quasiStaticBoundary:
+      'These descriptors come from a time-varying quasi-static trace; they are not module kinetic parameters.',
     steady: 'Steady value',
     riseTime: 'Rise time',
     peak: 'Peak',

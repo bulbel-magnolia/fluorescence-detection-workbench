@@ -138,12 +138,47 @@ describe('BFN-IR repository', () => {
     expect(loaded[0]?.signalSnapshot).not.toBe(result.signalSnapshot);
   });
 
+  it('round-trips temporal and context applicability snapshots as deep clones', () => {
+    const result = runBfnSimulation(createDemoBfnProject());
+
+    saveBfnRun(result);
+    const loaded = loadBfnRuns();
+
+    expect(loaded[0]?.temporalSnapshot).toEqual(result.temporalSnapshot);
+    expect(loaded[0]?.contextApplicabilitySnapshot).toEqual(result.contextApplicabilitySnapshot);
+    expect(loaded[0]?.temporalSnapshot).not.toBe(result.temporalSnapshot);
+    expect(loaded[0]?.contextApplicabilitySnapshot).not.toBe(result.contextApplicabilitySnapshot);
+  });
+
   it('accepts legacy runs without a signal snapshot', () => {
     const legacy = runBfnSimulation(createDemoBfnProject());
     delete legacy.signalSnapshot;
     localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([legacy]));
 
     expect(loadBfnRuns()).toEqual([legacy]);
+  });
+
+  it('accepts legacy runs without temporal or context applicability snapshots', () => {
+    const legacy = runBfnSimulation(createDemoBfnProject());
+    delete legacy.temporalSnapshot;
+    delete legacy.contextApplicabilitySnapshot;
+    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([legacy]));
+
+    expect(loadBfnRuns()).toEqual([legacy]);
+  });
+
+  it('filters malformed optional temporal snapshots without changing the BFN-SIM version', () => {
+    const malformed = runBfnSimulation(createDemoBfnProject());
+    Object.assign(malformed, {
+      temporalSnapshot: {
+        scope: 'output_reachable',
+        modules: [{ moduleId: 'module-ahl-sensor', executionMode: 'invented' }],
+      },
+    });
+    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([malformed]));
+
+    expect(malformed.engineVersion).toBe('BFN-SIM-2.0');
+    expect(loadBfnRuns()).toEqual([]);
   });
 
   it.each([
