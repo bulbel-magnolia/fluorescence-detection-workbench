@@ -29,7 +29,7 @@ interface BfnInverseTargetPanelProps {
   presentation: ReleaseCatalogPresentation;
   language: ReleaseCatalogLanguage;
   issues: readonly BfnCatalogInverseValidationIssue[];
-  incompleteSubmitted: boolean;
+  searchEnabled: boolean;
   onDraftChange: (draft: BfnCatalogInverseTargetDraft) => void;
   onSignalChange: (signalId: string | null) => void;
   onUnitChange: (unit: BfnCatalogInverseConcentrationUnit) => void;
@@ -50,7 +50,7 @@ export function BfnInverseTargetPanel({
   presentation,
   language,
   issues,
-  incompleteSubmitted,
+  searchEnabled,
   onDraftChange,
   onSignalChange,
   onUnitChange,
@@ -73,17 +73,17 @@ export function BfnInverseTargetPanel({
     [contextOptions],
   );
   const strainOptions = useMemo(
-    () =>
-      draft.hostSpecies === null
-        ? []
-        : [
-            ...new Set(
-              contextOptions
-                .filter((option) => option.hostSpecies === draft.hostSpecies)
-                .map((option) => option.hostStrain)
-                .filter((strain): strain is string => strain !== null),
-            ),
-          ],
+    () => [
+      ...new Set(
+        contextOptions
+          .filter(
+            (option) =>
+              draft.hostSpecies === null || option.hostSpecies === draft.hostSpecies,
+          )
+          .map((option) => option.hostStrain)
+          .filter((strain): strain is string => strain !== null),
+      ),
+    ],
     [contextOptions, draft.hostSpecies],
   );
   const selectedSignal = searchSpace.searchableSignals.find(
@@ -105,9 +105,7 @@ export function BfnInverseTargetPanel({
   return (
     <aside className='bfn-catalog-inverse__target' aria-labelledby='bfn-inverse-target-title'>
       <header className='bfn-catalog-inverse__pane-header'>
-        <p>{t('bfn.inverseDesign.kicker')}</p>
-        <h1 id='bfn-inverse-target-title'>{t('bfn.inverseDesign.title')}</h1>
-        <span>{t('bfn.inverseDesign.description')}</span>
+        <h2 id='bfn-inverse-target-title'>{t('bfn.inverseDesign.target.title')}</h2>
       </header>
 
       <section className='bfn-inverse-form-section'>
@@ -264,9 +262,19 @@ export function BfnInverseTargetPanel({
               <select
                 value={draft.hostSpecies ?? ''}
                 disabled={signalId === null}
-                onChange={(event) =>
-                  update({ hostSpecies: event.target.value || null, hostStrain: null })
-                }
+                onChange={(event) => {
+                  const hostSpecies = event.target.value || null;
+                  const hostStrain =
+                    draft.hostStrain !== null &&
+                    contextOptions.some(
+                      (option) =>
+                        option.hostStrain === draft.hostStrain &&
+                        (hostSpecies === null || option.hostSpecies === hostSpecies),
+                    )
+                      ? draft.hostStrain
+                      : null;
+                  update({ hostSpecies, hostStrain });
+                }}
               >
                 <option value=''>{t('bfn.inverseDesign.target.anyHost')}</option>
                 {hostOptions.map((host) => (
@@ -280,7 +288,7 @@ export function BfnInverseTargetPanel({
               <span>{t('bfn.inverseDesign.target.strain')}</span>
               <select
                 value={draft.hostStrain ?? ''}
-                disabled={draft.hostSpecies === null}
+                disabled={signalId === null}
                 onChange={(event) => update({ hostStrain: event.target.value || null })}
               >
                 <option value=''>{t('bfn.inverseDesign.target.anyStrain')}</option>
@@ -295,11 +303,6 @@ export function BfnInverseTargetPanel({
         </div>
       </details>
 
-      {incompleteSubmitted ? (
-        <p className='bfn-inverse-validation bfn-inverse-validation--error' role='alert'>
-          {t('bfn.inverseDesign.validation.completeRequiredFields')}
-        </p>
-      ) : null}
       {issues.map((issue) => (
         <p
           className={`bfn-inverse-validation bfn-inverse-validation--${issue.severity}`}
@@ -309,7 +312,7 @@ export function BfnInverseTargetPanel({
           {t(`bfn.inverseDesign.validation.${issue.code}`)}
         </p>
       ))}
-      <Button variant='primary' fullWidth onClick={onSearch}>
+      <Button variant='primary' fullWidth disabled={!searchEnabled} onClick={onSearch}>
         {t('bfn.inverseDesign.actions.search')}
       </Button>
     </aside>

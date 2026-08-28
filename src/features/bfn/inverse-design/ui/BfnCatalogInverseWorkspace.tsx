@@ -56,7 +56,6 @@ export function BfnCatalogInverseWorkspace({
   const [selected, setSelected] = useState<BfnCatalogInverseResultSelection | null>(null);
   const [comparisonIds, setComparisonIds] = useState<readonly string[]>([]);
   const [inspectorMode, setInspectorMode] = useState<InspectorMode>('single');
-  const [submitted, setSubmitted] = useState(false);
   const [releaseFailure, setReleaseFailure] = useState(false);
   const language: ReleaseCatalogLanguage = i18n.resolvedLanguage?.startsWith('en')
     ? 'en-US'
@@ -72,8 +71,8 @@ export function BfnCatalogInverseWorkspace({
           }),
     [currentTarget, resources.searchSpace],
   );
-  const visibleIssues =
-    validation?.issues.filter((issue) => issue.severity === 'warning' || submitted) ?? [];
+  const visibleIssues = validation?.issues.slice(0, 2) ?? [];
+  const searchEnabled = currentTarget !== null && validation?.valid === true;
   const stale =
     result !== null && !catalogInverseScientificTargetsEqual(currentTarget, result.target);
   const comparableResults = useMemo(() => {
@@ -100,7 +99,7 @@ export function BfnCatalogInverseWorkspace({
   };
 
   const search = () => {
-    setSubmitted(true);
+    if (!searchEnabled) return;
     setReleaseFailure(false);
     const target = buildCatalogInverseTargetFromDraft(draft);
     if (target === null) return;
@@ -130,7 +129,6 @@ export function BfnCatalogInverseWorkspace({
       setSelected(null);
       setComparisonIds([]);
       setInspectorMode('single');
-      setSubmitted(false);
     } catch {
       setReleaseFailure(true);
     }
@@ -170,7 +168,7 @@ export function BfnCatalogInverseWorkspace({
                 : t('bfn.inverseDesign.stale.description')}
             </span>
           </div>
-          <Button size='sm' variant='secondary' onClick={search}>
+          <Button size='sm' variant='secondary' disabled={!searchEnabled} onClick={search}>
             {releaseFailure
               ? t('bfn.inverseDesign.actions.retry')
               : t('bfn.inverseDesign.actions.research')}
@@ -184,7 +182,7 @@ export function BfnCatalogInverseWorkspace({
           presentation={resources.presentation}
           language={language}
           issues={visibleIssues}
-          incompleteSubmitted={submitted && currentTarget === null}
+          searchEnabled={searchEnabled}
           onDraftChange={setDraft}
           onSignalChange={(signalId) => {
             const unit =
@@ -224,10 +222,7 @@ export function BfnCatalogInverseWorkspace({
         />
         <aside className='bfn-catalog-inverse__inspector' aria-labelledby='bfn-inverse-inspector-title'>
           <header className='bfn-catalog-inverse__pane-header bfn-catalog-inverse__pane-header--row'>
-            <div>
-              <p>{t('bfn.inverseDesign.inspector.kicker')}</p>
-              <h2 id='bfn-inverse-inspector-title'>{t('bfn.inverseDesign.inspector.title')}</h2>
-            </div>
+            <h2 id='bfn-inverse-inspector-title'>{t('bfn.inverseDesign.inspector.title')}</h2>
             {comparisonAvailable ? (
               <div
                 className='bfn-inverse-inspector-tabs'

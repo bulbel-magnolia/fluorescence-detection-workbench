@@ -62,23 +62,26 @@ export function BfnInverseResultList({
   return (
     <section className='bfn-catalog-inverse__results' aria-labelledby='bfn-inverse-results-title'>
       <header className='bfn-catalog-inverse__pane-header bfn-catalog-inverse__pane-header--row'>
-        <div>
-          <p>{t('bfn.inverseDesign.results.kicker')}</p>
-          <h2 id='bfn-inverse-results-title'>{t('bfn.inverseDesign.results.title')}</h2>
-        </div>
-        {result ? (
+        <h2 id='bfn-inverse-results-title'>{t('bfn.inverseDesign.results.title')}</h2>
+        <div className='bfn-inverse-result-meta'>
+          {result ? (
+            <span className='bfn-inverse-result-total'>
+              {t('bfn.inverseDesign.results.searchedCount', {
+                count: result.searchedResponseCount,
+              })}
+            </span>
+          ) : null}
           <span className='bfn-inverse-result-total'>
-            {t('bfn.inverseDesign.results.searchedCount', {
-              count: result.searchedResponseCount,
+            {t('bfn.inverseDesign.results.comparisonCount', {
+              count: comparisonIds.length,
             })}
           </span>
-        ) : null}
+        </div>
       </header>
 
       {result === null ? (
         <section className='bfn-inverse-pane-empty'>
           <strong>{t('bfn.inverseDesign.results.empty')}</strong>
-          <p>{t('bfn.inverseDesign.results.emptyHint')}</p>
         </section>
       ) : (
         <div className='bfn-inverse-result-groups'>
@@ -171,6 +174,7 @@ function ResultGroup({
             return (
               <article
                 className='bfn-inverse-result-row'
+                data-response-id={responseId}
                 data-status={status}
                 data-selected={selectedId === responseId || undefined}
                 key={responseId}
@@ -226,9 +230,13 @@ function resultSummary(
       .join(' · ');
   }
   const failed = selection.result.criteria.filter((criterion) => !criterion.passed);
-  return failed.length === 0
-    ? t('bfn.inverseDesign.results.allCriteriaMet')
-    : failed.map((criterion) => t(catalogInverseCriterionLabelKey(criterion.kind))).join(' · ');
+  if (failed.length === 0) return t('bfn.inverseDesign.results.allCriteriaMet');
+  return t('bfn.inverseDesign.results.unmetCriteria', {
+    count: failed.length,
+    criteria: failed
+      .map((criterion) => t(catalogInverseCriterionLabelKey(criterion.kind)))
+      .join(t('bfn.inverseDesign.results.criteriaSeparator')),
+  });
 }
 
 function safelyResolveResponse(

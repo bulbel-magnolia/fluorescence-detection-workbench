@@ -101,6 +101,17 @@ describe('catalog inverse design target draft', () => {
     });
   });
 
+  it('builds an exact strain-only context filter without requiring a host', () => {
+    const target = buildCatalogInverseTargetFromDraft({
+      ...populatedDraft(),
+      hostSpecies: null,
+      hostStrain: 'TOP10',
+    });
+
+    expect(target?.contextFilter).toEqual({ hostStrain: 'TOP10' });
+    expect(target?.contextFilter).not.toHaveProperty('hostSpecies');
+  });
+
   it('treats incomplete drafts as unsearchable and scientific changes as stale', () => {
     const target = buildCatalogInverseTargetFromDraft(populatedDraft());
     expect(target).not.toBeNull();

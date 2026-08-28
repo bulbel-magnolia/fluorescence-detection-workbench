@@ -111,6 +111,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 10px;
 }
 
@@ -370,7 +371,16 @@
   background: var(--ui-bg-hover);
   border: 1px solid var(--ui-border-subtle);
   border-radius: var(--ui-radius-sm);
-  font-size: 10px;
+  font-size: 10.5px;
+}
+
+.bfn-inverse-result-meta {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
 }
 
 .bfn-inverse-pane-empty {
@@ -506,7 +516,7 @@
   grid-column: 1 / -1;
   overflow: hidden;
   color: var(--ui-text-muted);
-  font-size: 9px;
+  font-size: 10px;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -519,7 +529,7 @@
   background: var(--ui-bg-hover);
   border: 1px solid var(--ui-border-default);
   border-radius: var(--ui-radius-sm);
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 650;
   white-space: nowrap;
 }
@@ -660,7 +670,7 @@
 .bfn-inverse-identity-meta dt,
 .bfn-inverse-model-grid dt {
   color: var(--ui-text-muted);
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .bfn-inverse-identity-meta dd,
@@ -668,7 +678,7 @@
   margin-top: 2px;
   overflow-wrap: anywhere;
   color: var(--ui-text-primary);
-  font-size: 10px;
+  font-size: 10.5px;
   line-height: 1.4;
 }
 
@@ -728,8 +738,8 @@
 .bfn-inverse-chart svg {
   display: block;
   width: 100%;
-  min-height: 170px;
-  max-height: 236px;
+  min-height: 190px;
+  max-height: 260px;
   background: var(--ui-bg-canvas);
   border: 1px solid var(--ui-border-subtle);
 }
@@ -737,7 +747,7 @@
 .bfn-inverse-chart text {
   fill: var(--ui-text-muted);
   font-family: var(--font-numeric);
-  font-size: 9px;
+  font-size: 10.5px;
 }
 
 .bfn-inverse-chart__axis {
@@ -748,6 +758,10 @@
 .bfn-inverse-chart__grid {
   stroke: var(--ui-border-subtle);
   stroke-width: 1;
+}
+
+.bfn-inverse-chart__grid--vertical {
+  opacity: 0.72;
 }
 
 .bfn-inverse-chart__marker {
@@ -766,6 +780,19 @@
   fill: var(--ui-bg-pane);
   stroke: var(--ui-warning);
   stroke-width: 1.5;
+}
+
+.bfn-inverse-chart__constraint-label {
+  fill: var(--ui-warning);
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.bfn-inverse-chart__axis-title {
+  fill: var(--ui-text-secondary);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 650;
 }
 
 .bfn-inverse-chart__curve {
@@ -790,7 +817,7 @@
   gap: 6px 12px;
   padding-top: 6px;
   color: var(--ui-text-secondary);
-  font-size: 9px;
+  font-size: 10.5px;
 }
 
 .bfn-inverse-chart__legend span {
@@ -820,7 +847,7 @@
   width: 100%;
   border-collapse: collapse;
   color: var(--ui-text-secondary);
-  font-size: 9px;
+  font-size: 10.5px;
   table-layout: fixed;
 }
 
@@ -872,7 +899,7 @@
 
 .bfn-inverse-comparison-table thead th strong {
   color: var(--ui-text-primary);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .bfn-inverse-comparison-table thead th span {

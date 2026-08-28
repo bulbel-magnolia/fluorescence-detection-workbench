@@ -42,7 +42,6 @@ export function BfnInverseCandidateInspector({
     return (
       <section className='bfn-inverse-pane-empty bfn-inverse-pane-empty--inspector'>
         <strong>{t('bfn.inverseDesign.inspector.empty')}</strong>
-        <p>{t('bfn.inverseDesign.inspector.emptyHint')}</p>
       </section>
     );
   }

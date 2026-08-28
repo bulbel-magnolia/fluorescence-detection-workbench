@@ -107,14 +107,18 @@ describe('Batch 3.5 scientific desktop structure', () => {
     await user.click(screen.getByRole('tab', { name: '按目标设计' }));
     expect(document.querySelector('.bfn-catalog-inverse__layout')?.children).toHaveLength(3);
     expect(document.querySelectorAll('.bfn-candidate')).toHaveLength(0);
-    expect(screen.getByRole('heading', { name: '按目录检索响应方案' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '设计目标' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '匹配结果' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '响应详情' })).toBeInTheDocument();
 
     await i18n.changeLanguage('en-US');
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'Network design' })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: 'Design to target' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Search catalog' })).toBeInTheDocument();
-      expect(screen.getByRole('heading', { name: 'Search catalog responses by target' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Find matching responses' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Design target' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Matching results' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Response details' })).toBeInTheDocument();
     });
   });
 });

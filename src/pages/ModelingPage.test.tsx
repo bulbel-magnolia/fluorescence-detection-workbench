@@ -263,11 +263,11 @@ describe('biological network design workspace', () => {
     expect(screen.getByRole('combobox', { name: '输入信号' })).toHaveValue('');
     await user.selectOptions(screen.getByRole('combobox', { name: '输入信号' }), 'ahl.3oc6.l');
     await user.click(screen.getByRole('button', { name: '使用此范围' }));
-    await user.click(screen.getByRole('button', { name: '搜索目录' }));
+    await user.click(screen.getByRole('button', { name: '查找匹配响应' }));
 
-    expect(await screen.findByRole('heading', { name: '符合条件' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '接近条件' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: '不适用' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: '满足全部目标' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '接近目标' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '当前不适用' })).toBeInTheDocument();
     expect(screen.queryByText(/推荐方案|其他方案|查看详细评分|综合评分/u)).not.toBeInTheDocument();
   });
 

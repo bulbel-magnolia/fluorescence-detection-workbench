@@ -153,6 +153,16 @@ Candidate Results 只在用户点击搜索后生成。每次显式搜索 fresh r
 
 结果按 matched、near-match 与 not-applicable 三组展示。Matched 不编号、不宣称“最佳”；Near Match 显示未满足的具体 Criterion 与模型值；Not Applicable 显示 working range、Context 或 trusted evaluation 的可读原因，并且没有曲线。Candidate Inspector 的低点、高点和 61 点响应曲线直接来自 `result.evaluation`。用户可以显式勾选最多 3 个可求值候选，在右栏比较归一化曲线和科学参数；系统不自动选择 Top 3。
 
+## Batch 8.2.1 Scientific UX and chart integrity
+
+Target Panel 的 Host 与 Strain 继续构成可选 exact Context filter。选择 Signal 后，即使 Host 保持“任意”，Strain 也会列出该 exact Signal 的全部真实非空菌株并可单独搜索；选定 Host 后，Strain 选项收窄为该 Host 下的真实组合。Host 改变时，仍合法的 Strain 保留，不兼容的 Strain 清空。该联动只约束 UI Draft，不改变 engine validation 或 admission contract。
+
+搜索按钮实时依赖当前 Draft 的完整性和 validator 结果。无效 Draft 立即展示前两项问题并禁用搜索；weak-response-separation warning 保持可见且不阻止搜索。按钮启用后，点击仍会 fresh rebuild Search Space、重新构建 Target 并再次验证，旧结果与 stale 语义保持不变。
+
+可见页面使用单层任务标题：“设计目标 / Design target”“匹配结果 / Matching results”“响应详情 / Response details”。结果区同时显示相关响应总数与“对比 x / 3”，Near Match 行以“未满足 n 项 · 条件”概括差距，Not Applicable 保持无曲线。实验背景不同的手动比较继续显示归一化比较边界提示。
+
+响应图只消费 `candidate.evaluation.curve` 提供的 61 个点，不生成目标曲线或替代模型。横轴为带单位的 log 浓度，宽量程使用 3–5 个可读整十倍刻度；纵轴固定显示 0、0.5、1。低点上限与高点下限各以一段短水平线和端点圆标注，分别锚定 Target 的低、高浓度，并共享于单候选与多候选视图。图内文字、图例、科学表格与结果元数据使用 10–11 px 的桌面可读字号。
+
 ## Apply-to-network boundary
 
 每个结果保留 responseId，供未来从 Catalog Full Detail 进入现有可信实例化流程。本阶段不提供 Apply Candidate、不自动创建 Module、不连线，也不修改当前 Project。
