@@ -88,6 +88,14 @@ Catalog Component 只按可信 canonical role 与精确 Component ID 分类；�
 
 `BfnCatalogModuleSummary.modelFamilyKey` 只表示 Mathematical Model Family presentation，不是 Ontology Functional Family。Function 筛选与分类标签读取独立的 semantic presentation 字段。
 
+## Temporal semantics and compatibility
+
+BFN-IR 外的只读合同层分别描述时间执行、时间证据、端口计算兼容性和实验背景适用性。Static network 的静态模型为 `steady_state`；Dynamic network 优先使用 active dynamic model 并标记为 `stateful_dynamic`，缺少 dynamic model 且存在 static fallback 时标记为 `quasi_static`。Quasi-static 按 `y(t) = F(x(t))` 逐时计算，没有内部状态、延迟或记忆。当前分析模式没有合法模型时才是 `unsupported`。
+
+Temporal Evidence 独立使用 T0、T1、T2、T3 与 `not_recorded`。当前 Catalog-backed static Receiver 为 T0；Built-in first-order Demo 在数学上可以 stateful dynamic 执行，其时间证据保持 not recorded。数学模型族、普通 evidence grade 和 dynamic model 的存在不自动授予 T2/T3。
+
+Port Compatibility 只允许 `output → input`、exact Entity、exact Quantity Type 与 compatible Unit Dimension。`nM → M` 是同一物理量的表示换算；`production_rate → concentration` 是硬冲突，未来需要显式 Signal Pool / Accumulation Module。Scientific Applicability 按 Host、Strain、Medium 与 Celsius Temperature 区分 matched、uncertain 和 mismatched；missing information 产生 uncertain，不按不同 `contextId` 推断生物学冲突。完整合同与延期边界见 [BFN 时间语义、端口兼容性与实验适用性合同](temporal-and-compatibility.md)。
+
 ## 静态完整模型
 
 静态求解器支持：

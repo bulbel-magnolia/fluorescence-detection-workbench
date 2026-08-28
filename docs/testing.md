@@ -801,3 +801,33 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
 - 相对 Batch 9.0 + 9.1 基线 `f0abd41f90360ccc6eb744ab9c4cbab7a0d27ef1`，Ontology Registry 与 assignment、冻结 AHL/HSL V1.1 JSON、BFN types、Simulation、Inverse Design、Workspace、`package.json` 和 lockfile 均为零差异；Catalog SHA-256 仍为 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；
 - BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 版本保持 1；语义展示不写 Project、Version、Run、localStorage 或 IndexedDB。
+
+## 2026-08-28 Batch 10.0 Temporal Semantics, Compatibility & Applicability Contract
+
+### Temporal targeted tests
+
+- `temporalCapability.test.ts` 为 1 个文件、10 项测试，覆盖 static + static 的 steady-state、dynamic + dynamic 的 stateful dynamic、dynamic + static fallback 的 quasi-static，以及两种分析模式下无可执行模型的 unsupported；
+- Catalog-backed static Receiver 在 Dynamic network 中解析为 `quasi_static + t0_steady_state`；Built-in first-order Demo 即使使用 `mechanistic_model_only` evidence grade，仍为 `stateful_dynamic + not_recorded`，不自动推断 T2/T3；
+- selected model ID / mode 与既有 `resolveEffectiveBfnModel()` 一致；resolver 调用前后 Project 与 Module deep equal，computation signature 不变；Static / Dynamic 分析模式不改变 Functional Ontology。
+
+### Compatibility targeted tests
+
+- `portCompatibility.test.ts` 为 1 个文件、11 项测试，覆盖 `output → input`、exact Entity、exact Quantity Type、compatible Unit Dimension、空 Entity 硬拒绝、同单位与跨单位表示；
+- concentration `nM → M` 为 compatible 且 `requiresUnitNormalization = true`；`production_rate nM/h → concentration nM`、不同 Entity、`molecules/cell → nM` 与错误方向均为 incompatible；
+- Signal Production 与 Signal Response 的功能拓扑不覆盖 Quantity Type 硬边界；assessment 不生成分数，不修改 Source / Target Port，重复调用结果确定且深冻结。
+
+### Context applicability tests
+
+- `contextApplicability.test.ts` 为 1 个文件、10 项测试，覆盖 canonical match、missing / empty、canonical conflict、reported-text difference、安全文本归一、Celsius 数值比较、多字段聚合与 mismatch 优先级；
+- 任一侧缺 Medium 或 Strain 时为 uncertain，不产生 mismatch 或 runtime error；两个 reported text 不同为 uncertain；两个 canonical Host 明确冲突为 mismatched；
+- assessment 不生成 score 或 runtime eligibility，不修改 Context Facts，重复调用结果确定且返回对象与逐字段 checks 深冻结。
+
+### Complete gates 与冻结边界
+
+- Batch 10.0 专项回归共 3 个测试文件、31 项测试全部通过；沙箱内首次 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`，相同 npm 命令在获批环境通过；
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 118 个测试文件、912 项测试全部通过，覆盖既有 Static / Dynamic Simulation、20 个 trusted runnable Catalog responses、Workspace、Catalog-backed Inverse Design 与 Ontology 回归；
+- Vite 7.3.6 生产构建通过，259 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB；主 CSS 为 262.76 kB、gzip 44.51 kB；主 JavaScript chunk 为 1,270.52 kB、gzip 308.11 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖或 UI 截图；
+- 相对 Batch 9.2 基线 `788ac750f7c94b0b95189591a3004f2e2d7715c2`，Ontology production contract、冻结 AHL/HSL V1.1 JSON、BFN types、Simulation、Validation、Model Resolution、Workspace、Inverse Design、`package.json` 与 lockfile 均为零差异；Catalog SHA-256 仍为 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；
+- BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 版本保持 1；Temporal / Compatibility assessment 不写 Project、Version、Run、localStorage 或 IndexedDB。
