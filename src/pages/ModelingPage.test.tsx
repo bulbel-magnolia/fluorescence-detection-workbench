@@ -255,17 +255,20 @@ describe('biological network design workspace', () => {
     });
   });
 
-  it('returns several clearly ranked target-design candidates', async () => {
+  it('searches the literature catalog without ranked legacy candidates', async () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('tab', { name: /按目标设计/ }));
-    await user.click(screen.getByRole('button', { name: '生成候选方案' }));
+    expect(screen.getByRole('combobox', { name: '输入信号' })).toHaveValue('');
+    await user.selectOptions(screen.getByRole('combobox', { name: '输入信号' }), 'ahl.3oc6.l');
+    await user.click(screen.getByRole('button', { name: '使用此范围' }));
+    await user.click(screen.getByRole('button', { name: '搜索目录' }));
 
-    expect(screen.getByText('平衡型方案（演示）')).toBeInTheDocument();
-    expect(screen.getByText('推荐方案')).toBeInTheDocument();
-    expect(screen.getAllByText('其他方案')).toHaveLength(2);
-    expect(screen.getAllByText('查看详细评分')).toHaveLength(3);
+    expect(await screen.findByRole('heading', { name: '符合条件' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '接近条件' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: '不适用' })).toBeInTheDocument();
+    expect(screen.queryByText(/推荐方案|其他方案|查看详细评分|综合评分/u)).not.toBeInTheDocument();
   });
 
   it('localizes the task-oriented workflow to English', async () => {

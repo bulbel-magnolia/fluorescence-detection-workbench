@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Button } from '../../components/Button';
 import { ConfirmDialog } from '../../components/ConfirmDialog';
-import { EmptyState } from '../../components/EmptyState';
 import { Icon } from '../../components/Icon';
 import { ValidationSummary } from '../../components/ValidationSummary';
 import { BfnEditorToolbar } from './BfnEditorToolbar';
@@ -20,6 +19,7 @@ import {
   type BfnSaveStatus,
 } from './BfnProjectToolbar';
 import { BfnResultWorkspace } from './BfnResultWorkspace';
+import { BfnCatalogInverseWorkspace } from './inverse-design/ui/BfnCatalogInverseWorkspace';
 import { createBfnComputationSignature } from './computationSignature';
 import {
   areBfnProjectsEquivalent,
@@ -52,7 +52,6 @@ import {
 import {
   bfnContextSectionTitle,
   bfnContextValueLabel,
-  bfnDesignVariableLabel,
   bfnEntityLabel,
   bfnEvidenceTone,
   bfnModuleFlowLabel,
@@ -63,7 +62,6 @@ import {
   bfnQuantityLabel,
   bfnUnitLabel,
 } from './presentation';
-import { defaultBfnReverseTarget, runBfnReverseDesign } from './reverseDesign';
 import { runBfnSimulation } from './simulation';
 import type {
   BfnDynamicInputSpecification,
@@ -73,8 +71,6 @@ import type {
   BfnParameterEstimate,
   BfnPort,
   BfnProject,
-  BfnReverseDesignCandidate,
-  BfnReverseTarget,
   BfnSimulationResult,
   BfnStaticInputSpecification,
   BfnValidationIssue,
@@ -205,21 +201,6 @@ function endpointOptions(
       ),
     ],
   };
-}
-
-function responseSparkline(candidate: BfnReverseDesignCandidate): string {
-  const points = candidate.predictedResponse;
-  if (points.length === 0) return '';
-  const minimumInput = points[0]?.input ?? 0;
-  const maximumInput = points.at(-1)?.input ?? 1;
-  const span = Math.max(Number.EPSILON, maximumInput - minimumInput);
-  return points
-    .map((point, index) => {
-      const x = 4 + ((point.input - minimumInput) / span) * 172;
-      const y = 70 - Math.min(1, Math.max(0, point.output)) * 62;
-      return `${index === 0 ? 'M' : 'L'} ${x} ${y}`;
-    })
-    .join(' ');
 }
 
 function parameterValue(
@@ -356,10 +337,6 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const saveStatus = props.saveStatus ?? localSaveStatus;
   const [localRuns, setLocalRuns] = useState(loadBfnRuns);
   const runs = props.runs ?? localRuns;
-  const [reverseTarget, setReverseTarget] = useState<BfnReverseTarget>(() =>
-    structuredClone(defaultBfnReverseTarget),
-  );
-  const [reverseCandidates, setReverseCandidates] = useState<BfnReverseDesignCandidate[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [errorNotice, setErrorNotice] = useState<string | null>(null);
   const [pendingDestructiveAction, setPendingDestructiveAction] =
@@ -857,15 +834,8 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setResultPanelOpen(false);
     selectNode(initialBfnSelection(next));
     clearEditorHistory();
-    setReverseCandidates([]);
     setNotice(t('bfn.notices.reset'));
     setErrorNotice(null);
-  };
-
-  const runReverse = (): void => {
-    const candidates = runBfnReverseDesign(projectRef.current, reverseTarget);
-    setReverseCandidates(candidates);
-    setNotice(t('bfn.notices.reverseCompleted', { count: candidates.length }));
   };
 
   const commitClearRuns = (): void => {
@@ -1930,204 +1900,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           />
         ) : null}
 
-        {view === 'inverse' ? (
-          <div className="bfn-inverse-workspace">
-            <aside className="bfn-inverse-brief">
-              <header className="bfn-section-heading">
-                <div>
-                  <h2>{t('bfn.reverse.title')}</h2>
-                </div>
-              </header>
-              <p className="bfn-inverse-lead">{t('bfn.reverse.description')}</p>
-              <div className="bfn-target-grid">
-                <NumericTargetField
-                  label={t('bfn.reverse.inputMinimum')}
-                  value={reverseTarget.inputMinimum}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, inputMinimum: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.inputMaximum')}
-                  value={reverseTarget.inputMaximum}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, inputMaximum: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.threshold')}
-                  value={reverseTarget.thresholdTarget}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, thresholdTarget: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.basalMaximum')}
-                  value={reverseTarget.basalMaximum}
-                  step={0.01}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, basalMaximum: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.maximumMinimum')}
-                  value={reverseTarget.maximumMinimum}
-                  step={0.01}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, maximumMinimum: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.responseTime')}
-                  value={reverseTarget.responseTimeMaximumHours}
-                  step={0.1}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, responseTimeMaximumHours: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.burdenMaximum')}
-                  value={reverseTarget.burdenMaximum}
-                  step={0.05}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, burdenMaximum: value }))
-                  }
-                />
-                <NumericTargetField
-                  label={t('bfn.reverse.noiseMaximum')}
-                  value={reverseTarget.noiseMaximum}
-                  step={0.05}
-                  onChange={(value) =>
-                    setReverseTarget((current) => ({ ...current, noiseMaximum: value }))
-                  }
-                />
-              </div>
-              <label className="bfn-priority">
-                <span>
-                  <strong>{t('bfn.reverse.stabilityPriority')}</strong>
-                  <output>{reverseTarget.stabilityPriority.toFixed(2)}</output>
-                </span>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={reverseTarget.stabilityPriority}
-                  onChange={(event) =>
-                    setReverseTarget((current) => ({
-                      ...current,
-                      stabilityPriority: Number(event.target.value),
-                    }))
-                  }
-                />
-              </label>
-              <Button
-                variant="primary"
-                fullWidth
-                leadingIcon={<Icon name="network" size={16} />}
-                onClick={runReverse}
-              >
-                {t('bfn.reverse.search')}
-              </Button>
-            </aside>
-            <main className="bfn-candidate-results">
-              <header className="bfn-section-heading">
-                <div>
-                  <h2>{t('bfn.reverse.candidates')}</h2>
-                </div>
-                <span className="bfn-candidate-count">{reverseCandidates.length}</span>
-              </header>
-              {reverseCandidates.length ? (
-                <div className="bfn-candidate-list">
-                  {reverseCandidates.map((candidate, index) => (
-                    <article className="bfn-candidate" key={candidate.id}>
-                      <div className="bfn-candidate__rank">
-                        <span>{String(index + 1).padStart(2, '0')}</span>
-                        <small>
-                          {index === 0
-                            ? t('bfn.reverse.leadingCandidate')
-                            : t('bfn.reverse.alternativeCandidate')}
-                        </small>
-                      </div>
-                      <div className="bfn-candidate__identity">
-                        <span
-                          className="bfn-evidence-chip"
-                          data-evidence-tone={bfnEvidenceTone(candidate.evidenceGrade)}
-                        >
-                          {t(`bfn.evidence.${candidate.evidenceGrade}`)}
-                        </span>
-                        <h3>{t(candidate.labelKey)}</h3>
-                        <p className="bfn-candidate__parts">
-                          {bfnDesignVariableLabel(candidate.designVariables.promoter, t)} ·{' '}
-                          {bfnDesignVariableLabel(candidate.designVariables.rbs, t)}
-                        </p>
-                        <dl>
-                          <div>
-                            <dt>{t('bfn.reverse.copyNumber')}</dt>
-                            <dd>
-                              {bfnDesignVariableLabel(candidate.designVariables.copyNumber, t)}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>{t('bfn.reverse.degradationTag')}</dt>
-                            <dd>
-                              {bfnDesignVariableLabel(candidate.designVariables.degradationTag, t)}
-                            </dd>
-                          </div>
-                          <div>
-                            <dt>{t('bfn.reverse.receptorLevel')}</dt>
-                            <dd>
-                              {bfnDesignVariableLabel(candidate.designVariables.receptorLevel, t)}
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-                      <svg
-                        className="bfn-candidate__curve"
-                        viewBox="0 0 180 76"
-                        role="img"
-                        aria-label={t('bfn.reverse.predictedResponse')}
-                      >
-                        <line x1="4" x2="176" y1="70" y2="70" />
-                        <path d={responseSparkline(candidate)} />
-                      </svg>
-                      <div className="bfn-candidate__scores">
-                        <ScoreBar
-                          label={t('bfn.reverse.functionMatch')}
-                          value={candidate.scores.functionMatch}
-                        />
-                        <ScoreBar label={t('bfn.reverse.burden')} value={candidate.scores.burden} />
-                        <ScoreBar label={t('bfn.reverse.noise')} value={candidate.scores.noise} />
-                        <ScoreBar
-                          label={t('bfn.reverse.geneticRisk')}
-                          value={candidate.scores.geneticRisk}
-                        />
-                      </div>
-                      <details className="bfn-candidate__details">
-                        <summary>{t('bfn.reverse.detailedScore')}</summary>
-                        <div className="bfn-candidate__total">
-                          <span>{t('bfn.reverse.compositeLoss')}</span>
-                          <strong>{candidate.scores.total.toFixed(3)}</strong>
-                          <small>{t('bfn.reverse.lowerIsBetter')}</small>
-                        </div>
-                      </details>
-                      <footer>
-                        <Icon name="flask" size={15} />
-                        <span>{t(candidate.recommendedValidationKey)}</span>
-                      </footer>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  title={t('bfn.reverse.empty')}
-                  description={t('bfn.reverse.emptyHint')}
-                  visual={<span>{t('bfn.reverse.emptyVisual')}</span>}
-                />
-              )}
-            </main>
-          </div>
-        ) : null}
+        {view === 'inverse' ? <BfnCatalogInverseWorkspace /> : null}
       </div>
 
       {view === 'design' && modulePickerOpen ? (
@@ -2242,42 +2015,5 @@ function DynamicInputFields({ source, updateSource }: DynamicInputFieldsProps) {
         }}
       />
     </label>
-  );
-}
-
-function NumericTargetField({
-  label,
-  value,
-  step = 1,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  step?: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <label className="field">
-      <span>{label}</span>
-      <input
-        type="number"
-        min="0"
-        step={step}
-        value={value}
-        onChange={(event) => onChange(Math.max(0, Number(event.target.value)))}
-      />
-    </label>
-  );
-}
-
-function ScoreBar({ label, value }: { label: string; value: number }) {
-  return (
-    <div>
-      <span>{label}</span>
-      <i>
-        <b style={{ width: `${Math.min(1, Math.max(0, value)) * 100}%` }} />
-      </i>
-      <strong>{value.toFixed(2)}</strong>
-    </div>
   );
 }

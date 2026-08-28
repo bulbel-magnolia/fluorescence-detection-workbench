@@ -4,7 +4,7 @@
 
 Catalog-backed inverse design 是 BFN-IR 外部的纯查询层。给定一个 exact AHL/HSL Signal 和明确的浓度—响应目标，引擎比较冻结文献目录中当前可数值运行的单个 Receiver Response。搜索对象是 Response Model，不是 Component、Sender、Effective Pair 或完整 Network。
 
-本阶段不生成网络拓扑，不实例化候选，也不修改当前 Project。现有基于 BfnCalibrationMap 与 Demo calibration candidate 的旧反向设计继续服务原界面，其结果不属于本合同。
+本阶段不生成网络拓扑，不实例化候选，也不修改当前 Project。现有基于 BfnCalibrationMap 与 Demo calibration candidate 的旧反向设计代码只保留用于历史兼容，不再驱动生产可见的“按目标设计”工作区，其结果不属于本合同。
 
 ## Candidate admission
 
@@ -14,7 +14,7 @@ Catalog-backed inverse design 是 BFN-IR 外部的纯查询层。给定一个 ex
 2. trusted ReceiverResponseBinding；
 3. frozen release presentation 中的 Response、Component、Signal、Parameter Context 与 Source 关系。
 
-只有 release identity、runtime implementation、source model、source parameters、工作范围、数值执行许可和所有关联 ID 同时匹配时，Response 才进入搜索空间。注入式测试适配器只能使候选失效，不能放宽 canonical trust。单个 Response 失败会进入 unavailableResponseIds，其余候选继续构建。
+只有 release identity、runtime implementation、source model、source parameters、工作范围、数值执行许可和所有关联 ID 同时匹配时，Response 才进入搜索空间。注入式测试适配器只能使候选失效，不能放宽 canonical trust。单个 Response 失败会进入 release-wide `unavailableResponses`，记录 `responseId` 与 canonical `inputSignalId`；其余候选继续构建。兼容字段 `unavailableResponseIds` 继续保留完整 release 诊断。
 
 Calibration candidate、compatibility-only、reference-only、Sender、Effective Pair 和项目注册表中的 calibration map 均不参加搜索。
 
@@ -137,7 +137,21 @@ Catalog 的 basal 与 maximum 保留为来源参数，不重新解释为 BFN ymi
 
 runCatalogInverseDesign(searchSpace, target) 不接收 BfnProject。它返回 Target 的不可变快照、release identity、精确搜索计数、三类结果和不可用 Response ID。
 
+Search Result 的 `unavailableResponseIds` 只投影 `target.inputSignalId` 对应的 release-wide unavailable 记录。其他 Signal 的 admission failure 不会泄漏到当前搜索诊断。
+
 搜索不写 Project、Workspace、Version、Run、Undo/Redo 或当前 simulation result，也不改变 computation signature。同一 Search Space 与 Target 的重复运行结果完全一致。
+
+## Visible workspace contract
+
+生产可见的“按目标设计”页面由 Catalog-backed inverse workspace 驱动，使用固定三栏结构：左侧 Target、中间 Results、右侧 Candidate Inspector / Comparison。首次进入时 Signal 与浓度保持空白，响应阈值初始化为 0.20 / 0.80；页面不会按稳定 ID 顺序自动选择或推荐 Signal。
+
+编辑态保存在 UI-only Target Draft。Draft 允许空字符串、显示单位和未完成输入；只有显式搜索时才转换为合法 `BfnCatalogInverseTarget`。显示支持 pM、nM、µM、mM 与 M，Scientific Target 和 Search Result 始终使用 M。切换显示单位只改变等价数值表达，不改变 Target 的科学含义，也不会把已有结果标为 stale。
+
+Signal 选择后，Target Panel 从当前已构建 Search Space 展示共同可信范围、可覆盖当前范围的候选计数，以及该 exact Signal 的 Host / Strain 选项。“使用此范围”只把共同可信范围写入 Draft，不自动执行搜索。切换 Signal 时保留响应阈值、Hill 目标与机制，清空浓度、EC50 和依赖 Signal 的实验条件。
+
+Candidate Results 只在用户点击搜索后生成。每次显式搜索 fresh rebuild release Search Space；搜索后的 Target snapshot 与 Result snapshot 保持不可变。编辑会改变科学 Target 的字段时，旧结果继续可见并标记为 stale；显示单位切换不会产生 stale。新搜索会清空候选详情与手动比较选择。
+
+结果按 matched、near-match 与 not-applicable 三组展示。Matched 不编号、不宣称“最佳”；Near Match 显示未满足的具体 Criterion 与模型值；Not Applicable 显示 working range、Context 或 trusted evaluation 的可读原因，并且没有曲线。Candidate Inspector 的低点、高点和 61 点响应曲线直接来自 `result.evaluation`。用户可以显式勾选最多 3 个可求值候选，在右栏比较归一化曲线和科学参数；系统不自动选择 Top 3。
 
 ## Apply-to-network boundary
 
@@ -156,4 +170,5 @@ runCatalogInverseDesign(searchSpace, target) 不接收 BfnProject。它返回 Ta
 - Medium、温度、reporter、measurement platform、vector 等额外 Context filter；
 - Effective Pair decomposition；
 - Apply-to-network 与自动连线；
-- Batch 8.2 可见 UI。
+- 完整 Candidate Evidence Detail、文献来源深层展示与 Catalog Full Detail deep-link；
+- Apply-to-Network bridge。

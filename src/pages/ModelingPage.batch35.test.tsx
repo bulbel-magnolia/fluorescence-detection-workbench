@@ -100,21 +100,21 @@ describe('Batch 3.5 scientific desktop structure', () => {
     expect(within(dock as HTMLElement).getByText('当前结果')).toBeInTheDocument();
   });
 
-  it('keeps inverse design ranked and localizes the same structure to English', async () => {
+  it('keeps the catalog inverse workspace in three panes and localizes it to English', async () => {
     const user = userEvent.setup();
     render(<ModelingPage />);
 
     await user.click(screen.getByRole('tab', { name: '按目标设计' }));
-    await user.click(screen.getByRole('button', { name: '生成候选方案' }));
-    expect(document.querySelectorAll('.bfn-candidate')).toHaveLength(3);
-    expect(screen.getByText('01')).toBeInTheDocument();
-    expect(screen.getByText('推荐方案')).toBeInTheDocument();
+    expect(document.querySelector('.bfn-catalog-inverse__layout')?.children).toHaveLength(3);
+    expect(document.querySelectorAll('.bfn-candidate')).toHaveLength(0);
+    expect(screen.getByRole('heading', { name: '按目录检索响应方案' })).toBeInTheDocument();
 
     await i18n.changeLanguage('en-US');
     await waitFor(() => {
       expect(screen.getByRole('tab', { name: 'Network design' })).toBeInTheDocument();
       expect(screen.getByRole('tab', { name: 'Design to target' })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Generate candidates' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Search catalog' })).toBeInTheDocument();
+      expect(screen.getByRole('heading', { name: 'Search catalog responses by target' })).toBeInTheDocument();
     });
   });
 });

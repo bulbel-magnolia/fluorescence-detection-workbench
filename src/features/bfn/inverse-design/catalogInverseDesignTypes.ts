@@ -75,11 +75,19 @@ export interface BfnCatalogInverseCandidate {
   readonly binding: ReceiverResponseBinding;
 }
 
+export interface BfnCatalogInverseUnavailableResponse {
+  readonly responseId: string;
+  readonly inputSignalId: string;
+}
+
 export interface BfnCatalogInverseSearchSpace {
   readonly release: BfnCatalogInverseReleaseIdentity;
   readonly candidates: readonly BfnCatalogInverseCandidate[];
   readonly searchableSignals: readonly BfnCatalogInverseSignalOption[];
   readonly contextOptions: readonly BfnCatalogInverseContextOption[];
+  /** Release-wide admission failures with canonical exact-signal identity. */
+  readonly unavailableResponses: readonly BfnCatalogInverseUnavailableResponse[];
+  /** Release-wide response IDs retained for audit compatibility. */
   readonly unavailableResponseIds: readonly string[];
 }
 

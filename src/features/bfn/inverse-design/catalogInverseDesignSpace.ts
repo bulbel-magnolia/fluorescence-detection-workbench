@@ -27,6 +27,7 @@ import type {
   BfnCatalogInverseSearchSpace,
   BfnCatalogInverseSignalOption,
   BfnCatalogInverseSignalProfile,
+  BfnCatalogInverseUnavailableResponse,
   BfnCatalogInverseWorkingRange,
 } from './catalogInverseDesignTypes';
 
@@ -292,12 +293,18 @@ export function buildCatalogInverseSearchSpace(
   }
 
   const candidates: BfnCatalogInverseCandidate[] = [];
+  const unavailableResponses: BfnCatalogInverseUnavailableResponse[] = [];
   const unavailableResponseIds: string[] = [];
+  const responseSignalById = new Map(
+    presentation.responseVariants.map((response) => [response.id, response.inputMolecule.id]),
+  );
   for (const responseId of adapter.responseIds) {
     try {
       candidates.push(admitCandidate(loaded, presentation, responseId, adapter));
     } catch {
       unavailableResponseIds.push(responseId);
+      const inputSignalId = responseSignalById.get(responseId);
+      if (inputSignalId !== undefined) unavailableResponses.push({ responseId, inputSignalId });
     }
   }
 
@@ -311,6 +318,7 @@ export function buildCatalogInverseSearchSpace(
     candidates,
     searchableSignals: buildSignalOptions(candidates),
     contextOptions: buildContextOptions(candidates),
+    unavailableResponses,
     unavailableResponseIds,
   });
 }

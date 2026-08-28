@@ -256,6 +256,25 @@ describe('catalog inverse design search space', () => {
     );
   });
 
+  it('records the canonical exact-signal identity for every isolated admission failure', () => {
+    const failedResponseId = 'resp.kylilis2018.rhl.c4';
+    const adapter: CatalogInverseRuntimeAdapter = {
+      ...defaultCatalogInverseRuntimeAdapter,
+      buildRuntimeCandidate(responseId) {
+        if (responseId === failedResponseId) throw new Error('injected C4 admission failure');
+        return defaultCatalogInverseRuntimeAdapter.buildRuntimeCandidate(responseId);
+      },
+    };
+
+    const space = buildCatalogInverseSearchSpace(adapter);
+
+    expect(space.unavailableResponses).toEqual([
+      { responseId: failedResponseId, inputSignalId: 'ahl.c4.dl' },
+    ]);
+    expect(Object.isFrozen(space.unavailableResponses)).toBe(true);
+    expect(Object.isFrozen(space.unavailableResponses[0])).toBe(true);
+  });
+
   it('isolates a trust predicate rejection without mutating the frozen release', () => {
     const failedResponseId = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST.at(-1)!.id;
     const frozenBefore = structuredClone(loadAhlHslCatalogRelease().release);

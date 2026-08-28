@@ -24,6 +24,7 @@ import {
 const KYLILIS_RESPONSE_ID = 'resp.kylilis2018.rhl.3oc6';
 const SHONG_RESPONSE_ID = 'resp.shong2013.esar-wt-pesar.3oc6';
 const L_3OC6_SIGNAL_ID = 'ahl.3oc6.l';
+const C4_SIGNAL_ID = 'ahl.c4.dl';
 
 function requiredCandidate(responseId: string): BfnCatalogInverseCandidate {
   const candidate = buildCatalogInverseSearchSpace().candidates.find(
@@ -562,5 +563,35 @@ describe('catalog inverse design search orchestration', () => {
       searchSpace.candidates.filter((candidate) => candidate.inputSignalId === L_3OC6_SIGNAL_ID)
         .length,
     );
+  });
+
+  it('scopes release-wide admission diagnostics to the exact searched signal', () => {
+    const failedResponseId = 'resp.kylilis2018.rhl.c4';
+    const runtimeAdapter: CatalogInverseRuntimeAdapter = {
+      ...defaultCatalogInverseRuntimeAdapter,
+      buildRuntimeCandidate(responseId) {
+        if (responseId === failedResponseId) throw new Error('injected C4 admission failure');
+        return defaultCatalogInverseRuntimeAdapter.buildRuntimeCandidate(responseId);
+      },
+    };
+    const searchSpace = buildCatalogInverseSearchSpace(runtimeAdapter);
+    const threeOc6Candidate = searchSpace.candidates.find(
+      (candidate) => candidate.inputSignalId === L_3OC6_SIGNAL_ID,
+    );
+    const c4Candidate = searchSpace.candidates.find(
+      (candidate) => candidate.inputSignalId === C4_SIGNAL_ID,
+    );
+    if (threeOc6Candidate === undefined || c4Candidate === undefined) {
+      throw new Error('expected remaining trusted candidates for both exact signals');
+    }
+
+    const threeOc6Result = runCatalogInverseDesign(
+      searchSpace,
+      targetFor(threeOc6Candidate),
+    );
+    const c4Result = runCatalogInverseDesign(searchSpace, targetFor(c4Candidate));
+
+    expect(threeOc6Result.unavailableResponseIds).not.toContain(failedResponseId);
+    expect(c4Result.unavailableResponseIds).toEqual([failedResponseId]);
   });
 });

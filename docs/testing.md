@@ -651,3 +651,31 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 冻结 Catalog JSON、BFN types、Workspace、`package.json` 与 lockfile 相对基线保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
 - 全量回归中，未修改的 Workspace 长交互测试曾在固定 5 秒边界出现性能抖动；该测试随后单项通过 2/3 次、完整文件 33/33 通过，最终原始 `npm test` 完整通过；未修改生产代码或测试来掩盖抖动；
 - 冻结基线提交的 GitHub combined status 返回 `statuses: []`；本轮结论仅为 local full validation passed，不声明 GitHub CI 已通过。
+
+## 2026-08-28 Batch 8.2 Catalog-backed Target & Results UX
+
+### Engine 与 UI 回归
+
+- signal-scoped unavailable 回归构造 C4-HSL admission failure：3OC6-HSL Search Result 不包含该 Response，C4-HSL Search Result 精确包含该 ID；Search Space 同时冻结保存 canonical `inputSignalId`；
+- Inverse Engine 定向回归为 5 个测试文件、83 项测试全部通过，覆盖 Target validation、Search Space、trusted evaluation、确定性排序和 cross-path integration；
+- Inverse UI 定向回归为 4 个测试文件、22 项测试全部通过，覆盖浓度单位、UI-only Target Draft、Catalog presentation、初始空目标、显式搜索、单位切换不 stale、科学字段编辑 stale、候选详情、最多 3 个手动比较、重新搜索清理 session，以及 release failure 重试；
+- Modeling 页面回归确认生产可见“按目标设计”只挂载 Catalog-backed workspace，不再出现 burden、noise、genetic risk、composite loss、排名或 legacy 推荐候选；“网络设计”流程继续纳入完整回归。
+
+### Visual / responsive audit
+
+- 真实 Application 截图和逐图说明位于 `docs/ui-audit/catalog-inverse-design/`；6 张 1440×900 PNG 覆盖初始空目标、Matched、Near Match + Not Applicable、stale search、候选比较和已在设置页确认的深色主题；
+- 1440×900 下 document/body client/scroll width 均为 1440 px，三栏宽度为 303 / 357 / 505 px；
+- 1280×720 下 document/body client/scroll width 均为 1280 px，三栏宽度为 286 / 330 / 422 px；
+- 1180×700 下 document/body client/scroll width 均为 1180 px，三栏宽度为 261 / 302 / 378 px；
+- 三档页面级水平溢出均为 0；Target、Results、Inspector 保持可用，纵向内容由各 Pane 管理。
+
+### Batch 8.2 完整门禁
+
+- TypeScript `tsc --noEmit` 通过；
+- ESLint `eslint . --max-warnings 0` 通过；
+- 完整 Vitest 共 107 个测试文件、817 项测试全部通过；未提高 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，253 个模块完成转换；主 JavaScript chunk 为 1,246.95 kB、gzip 301.54 kB；主 CSS 为 261.27 kB、gzip 44.30 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
+- 一次沙箱内定向 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；定向 Vitest、完整 Vitest 与 Vite build 均在获批环境使用相同 npm 命令通过；
+- 冻结 AHL/HSL V1.1 JSON、BFN types、Workspace、`package.json` 与 lockfile 相对基线保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
+- 基线提交 `e9c6228343f7598ced668904f1fb518742928676` 的 GitHub combined status 返回 `statuses: []`；本轮结论仅为 local full validation passed，不声明 GitHub CI 已通过。

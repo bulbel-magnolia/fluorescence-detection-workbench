@@ -160,7 +160,7 @@ NRMSE ≤ 10%
 
 ### Catalog-backed inverse design 查询层
 
-上述双参数空间流程是保留给现有界面的 legacy demonstration candidate search。Batch 8 新增的 Catalog-backed inverse design 是 BFN-IR 2.0 外部的纯查询层：它从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑暂不混接；新合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
+上述双参数空间流程作为 legacy demonstration candidate search 代码保留，不再是生产可见的“按目标设计”界面。当前可见工作区使用 Catalog-backed inverse design：它是 BFN-IR 2.0 外部的纯查询层，从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑不混接；可见工作区合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
 
 ## 模块注册与证据账本
 
@@ -200,7 +200,7 @@ fluorescence-desktop.bfn-ir-runs.v2
 默认工作台包含两个一级工作区：
 
 1. **网络设计**：对象索引、端口直接连线、可拖动画布、对象属性、静态/动态运行和底部结果 Dock；
-2. **按目标设计**：目标功能录入、双空间映射和多目标候选排序。
+2. **按目标设计**：Catalog-backed Target & Results workspace，提供目标浓度—响应录入、显式搜索、Matched / Near Match / Not Applicable 分组、响应详情和最多 3 个候选的手动比较。
 
 网络设计页固定在应用剩余视窗中，页面本身不纵向滚动。对象索引、画布、属性栏和展开后的结果区分别管理自己的内容溢出。属性栏默认显示模块作用、P=(E,Q,U) 输入输出、最多四个关键参数和模型依据；完整参数、实验条件与关联数据、包含符号与 95% 区间的数学模型、适用域和生物实现按需展开。输入对象首层显示信号、单位和当前分析模式；连接首层只显示源、信号和目标。
 
@@ -336,7 +336,9 @@ Current Draft 使用 320 ms 防抖自动保存。Autosave 防止编辑丢失，�
 - `responseMath.ts`：完整静态响应纯函数；
 - `simulation.ts`：静态与动态求解、不确定性和动态指标；
 - `annApproximation.ts`：工作域仿射拟合与接受/拒绝判定；
-- `reverseDesign.ts`：双参数空间多目标候选评价；
+- `reverseDesign.ts`：保留的 legacy 双参数空间多目标候选评价；
+- `inverse-design/`：Catalog-backed Target 合同、搜索空间、可信求值、确定性分组与 signal-scoped unavailable 诊断；
+- `inverse-design/ui/`：UI-only Target Draft、浓度显示单位、显式搜索新鲜度、结果核对、曲线和手动比较；
 - `repository.ts`：BFN-IR 解析、旧单项目读取与独立编辑器兼容路径；
 - `workspace/workspaceTypes.ts`：BFN 外层的 Project、Draft、Version、Run 与 Repository 合同；
 - `workspace/indexedDbWorkspaceRepository.ts`：生产多项目事务、版本和项目级运行记录；

@@ -391,7 +391,9 @@ export function runCatalogInverseDesign(
   const matched: BfnCatalogInverseMatchedResult[] = [];
   const nearMatches: BfnCatalogInverseNearMatchResult[] = [];
   const notApplicable: BfnCatalogInverseNotApplicableResult[] = [];
-  const unavailable = [...searchSpace.unavailableResponseIds];
+  const unavailable = searchSpace.unavailableResponses
+    .filter((response) => response.inputSignalId === validation.target.inputSignalId)
+    .map((response) => response.responseId);
 
   for (const candidate of selected) {
     const result = evaluateCatalogInverseCandidate(candidate, validation.target, adapter);
