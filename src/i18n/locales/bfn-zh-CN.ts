@@ -158,7 +158,7 @@ export const bfnZhCN = {
     linear_transfer: '线性响应',
     identity: '直接响应',
     independent_inputs: '双输入独立响应',
-    first_order: '一阶动态响应',
+    first_order: '一阶动态模型',
   },
   entities: {
     normalizedPromoterActivity: '启动子活性',
@@ -392,6 +392,14 @@ export const bfnZhCN = {
       '文献模型的输入尚未连接。该响应需要明确的上游信号；未连接输入不能解释为零浓度。',
     catalog_input_out_of_range: '输入不在文献响应的可信工作范围内，已阻止执行。',
     catalog_execution_unavailable: '文献目录响应未获得当前版本的数值执行权限。',
+  },
+  semantic: {
+    functionFilter: '功能',
+    classificationTitle: '功能分类',
+    functionalFamily: '功能类别',
+    biologicalFamily: '生物元件类别',
+    mathematicalModel: '数学模型',
+    unavailable: '功能分类暂不可用',
   },
   inspector: {
     project: '网络详情',

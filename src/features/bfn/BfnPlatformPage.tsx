@@ -62,6 +62,11 @@ import {
   bfnQuantityLabel,
   bfnUnitLabel,
 } from './presentation';
+import {
+  resolveBfnModuleSemanticPresentation,
+  unavailableBfnSemanticPresentation,
+  type BfnSemanticPresentation,
+} from './semantic/semanticPresentation';
 import { runBfnSimulation } from './simulation';
 import type {
   BfnDynamicInputSpecification,
@@ -435,6 +440,14 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const selectedModuleModel = selectedModule
     ? resolveEffectiveBfnModel(project, selectedModule)
     : null;
+  const selectedSemantic = useMemo(() => {
+    if (!selectedModule) return null;
+    try {
+      return resolveBfnModuleSemanticPresentation(selectedModule, nodeLanguage);
+    } catch {
+      return unavailableBfnSemanticPresentation();
+    }
+  }, [nodeLanguage, selectedModule]);
   const selectedContext = selectedModuleModel
     ? (project.registry.contexts.find((context) => context.id === selectedModuleModel.contextId) ??
       null)
@@ -1232,6 +1245,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                       </header>
                       <p>{t(selectedModule.descriptionKey)}</p>
                     </section>
+                    <ModuleSemanticClassification semantic={selectedSemantic} />
                     <section className="bfn-inspector-block">
                       <header>
                         <strong>{t('bfn.inspector.inputsAndOutputs')}</strong>
@@ -1931,6 +1945,34 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         onCancel={() => setPendingDestructiveAction(null)}
       />
     </div>
+  );
+}
+
+function ModuleSemanticClassification({ semantic }: { semantic: BfnSemanticPresentation | null }) {
+  const { t } = useTranslation();
+  return (
+    <section
+      className={'bfn-inspector-block bfn-inspector-semantic'}
+      aria-labelledby={'bfn-inspector-semantic-title'}
+    >
+      <header>
+        <strong id={'bfn-inspector-semantic-title'}>{t('bfn.semantic.classificationTitle')}</strong>
+      </header>
+      {!semantic || semantic.status === 'unavailable' ? (
+        <p>{t('bfn.semantic.unavailable')}</p>
+      ) : (
+        <dl>
+          <div>
+            <dt>{t('bfn.semantic.functionalFamily')}</dt>
+            <dd>{semantic.functionalFamilies[0]?.label ?? t('bfn.semantic.unavailable')}</dd>
+          </div>
+          <div>
+            <dt>{t('bfn.semantic.biologicalFamily')}</dt>
+            <dd>{semantic.biologicalFamilies[0]?.label ?? t('bfn.semantic.unavailable')}</dd>
+          </div>
+        </dl>
+      )}
+    </section>
   );
 }
 

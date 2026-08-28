@@ -80,11 +80,13 @@ V2 直接保存以下证据等级：
 
 BFN-ONTOLOGY-1.0 在 BFN-IR 外提供独立的运行时生物语义分类。Functional Family 回答模块在网络中做什么；Biological Component Family 描述广义生物实现；`BfnModelFamily` 继续回答数学上如何计算；运行资格和证据能力继续由 Catalog 与既有 BFN 合同决定。Ontology 只描述类别，不授予证据、运行、兼容或构建状态。
 
+用户界面按四层理解一个模块：Module Function 表达网络功能，Biological Component Class 表达广义生物实现，Mathematical Model 表达计算形式，Evidence / Runtime 表达证据和当前软件能力。四层由各自权威来源生成并独立呈现。Batch 9.2 的 presentation adapter 只读取 Ontology resolver 结果，将稳定术语转换为本地化名称和搜索词，不写 Project、Run 或 Workspace。
+
 Reporter 的 Functional Family 为 `functional.expression_transfer`，其 Mathematical Model Family 仍为 `linear_transfer`。AHL Sensor 的 Functional Family 为 `functional.signal_response`，其模型 variant 可以是静态 Hill 或动态 first-order。Dual Input 的 `functional.multi_input_integration` 不改变 `independent_unverified` 交互假设。
 
 Catalog Component 只按可信 canonical role 与精确 Component ID 分类；内置模块只按稳定 label key 的 exact software mapping 分类。名称、别名、翻译、端口、数学模型和 static/dynamic 模式都不参与推断。派生 profile 不写入 BFN-IR、Workspace 或 Run。完整术语、assignment、fallback 和科学边界见 [BFN 生物功能语义本体](ontology.md)。
 
-既有 `BfnCatalogModuleSummary.familyKey` 仍是 model-family presentation，不是 Ontology Functional Family；内部重命名留待后续展示层整理。
+`BfnCatalogModuleSummary.modelFamilyKey` 只表示 Mathematical Model Family presentation，不是 Ontology Functional Family。Function 筛选与分类标签读取独立的 semantic presentation 字段。
 
 ## 静态完整模型
 
@@ -289,11 +291,15 @@ Batch 5.1 在网络设计页的添加模块 Drawer 中接入只读 Catalog Disco
 
 默认目录包含全部 42 个非拒绝 Component 和 52 条 Receiver Response。20 条通过 `response.runnable` 可信门禁的记录标记为“可运行（示例模型）”；其余记录分别表达待标定、仅定性证据、参考资料或当前不可运行。该状态只描述当前软件用途边界，不表示实验验证、构建成功或生物学优劣。13 个 Sender Component 可以搜索和浏览；冻结 release 的 sender output 为 0，因此界面明确显示“暂无定量发送函数”，不从名称、effective pair 或 compatibility relation 推导数值输出。
 
-搜索覆盖双语 Component 名称、别名、调控蛋白或酶、promoter、reporter、Signal 名称与缩写、宿主与菌株，以及来源作者、标题、年份、DOI 和 PMID。搜索采用大小写无关的规范化子串与 token AND 语义；组件名称、组件元数据、Signal、宿主和来源按确定的文本相关性排序，同分保持 release 顺序。结构化筛选仅包含状态、输入 Signal ID 和宿主 species，所有选项从当前投影派生。
+搜索覆盖双语 Component 名称、别名、调控蛋白或酶、promoter、reporter、Signal 名称与缩写、宿主与菌株、来源作者、标题、年份、DOI 和 PMID，并加入 Functional 与 Biological Family 的审定中英文名称。Ontology 稳定 ID 与术语描述不进入搜索。搜索采用大小写无关的规范化子串与 token AND 语义；组件名称、组件元数据、Signal、宿主、来源和语义名称按确定的文本相关性排序，同分保持 release 顺序。
+
+结构化筛选包含 Function、状态、输入 Signal ID 和宿主 species。Function option value 使用稳定 Functional Family ID，选项从当前可信 Component projection 派生；筛选在 Component 层执行，未增加 Biological Family 筛选。Component group summary、Receiver / Sender preview 与 Full Detail 使用相同的本地化语义展示；语义解析不可用时只降级对应分类块，不阻断 Catalog 浏览、证据详情或原有 Add eligibility。
 
 Batch 5.1.1 统一了 Signal 在 Response row、Response preview 与输入 Signal 筛选器中的身份表达。常用缩写继续承担搜索与紧凑识别用途；同一缩写对应多个化学实体时，界面从冻结 Catalog 的审定中英文名称保留足以区分身份的限定信息，例如 `3OC6-HSL（L）` 与 `3OC6-HSL（立体构型未说明）`。该规则只改变展示文本，不修改 Signal ID、canonical name、BFN entity 映射、筛选值或运行时合同；无法从审定名称安全证明限定信息时，回退到 Catalog 本地化显示名。
 
 搜索、筛选、展开、选择、预览、滚动和清除均为 Drawer 局部状态，不写入 BFN Project，不创建历史步骤，不触发项目自动保存，也不改变 computation signature 或结果新鲜度。轻量预览继续保持只读；原有 3 个通用 Demo 模块保留在独立的“内置示例模块”折叠区，并继续使用原添加流程。
+
+内置示例卡片分别显示 Module Function、Mathematical Model 与 Model Basis。Module Inspector 在 Effect 后、Inputs / Outputs 前显示独立 Functional 与 Biological property rows；Catalog-backed Module 使用精确 Component ID，内置模块使用 exact label-key mapping。切换 static / dynamic 只更新 Mathematical Model presentation，Functional Family 和 Biological Component Family 保持不变。
 
 ## Catalog Full Detail 与网络实例化
 

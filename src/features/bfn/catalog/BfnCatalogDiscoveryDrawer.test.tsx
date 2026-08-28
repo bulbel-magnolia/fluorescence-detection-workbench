@@ -3,7 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../i18n';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
+import { BfnOntologyContractError } from '../../modeling/ontology/v1/ontologyTypes';
 import { createDemoBfnProject } from '../fixtures';
+import {
+  DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+  type BfnSemanticPresentationAdapter,
+} from '../semantic/semanticPresentation';
 import { buildBfnCatalogRuntimeCandidate } from './catalogBfnAdapter';
 import { BfnCatalogDiscoveryDrawer } from './BfnCatalogDiscoveryDrawer';
 import { bfnCatalogSignalDisplayName, buildBfnCatalogDiscoveryModel } from './catalogDiscovery';
@@ -25,9 +30,21 @@ describe('BFN catalog discovery drawer', () => {
     expect([...groups].every((group) => group.getAttribute('aria-expanded') === 'false')).toBe(
       true,
     );
+    expect(within(dialog).getByRole('combobox', { name: '功能' })).toBeInTheDocument();
     expect(within(dialog).getByRole('combobox', { name: '状态' })).toBeInTheDocument();
     expect(within(dialog).getByRole('combobox', { name: '输入信号' })).toBeInTheDocument();
     expect(within(dialog).getByRole('combobox', { name: '宿主' })).toBeInTheDocument();
+  });
+
+  it('renders the same four labeled filters in English', async () => {
+    await i18n.changeLanguage('en-US');
+    renderDrawer();
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL Literature Catalog' });
+
+    expect(within(dialog).getByRole('combobox', { name: 'Function' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('combobox', { name: 'Status' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('combobox', { name: 'Input signal' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('combobox', { name: 'Host' })).toBeInTheDocument();
   });
 
   it('auto-expands one matching component and prunes rows for a signal search', async () => {
@@ -58,6 +75,62 @@ describe('BFN catalog discovery drawer', () => {
     ).toBe(true);
   });
 
+  it('filters components by stable functional-family ID and clears the new state with all filters', async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    const functionFilter = within(dialog).getByRole('combobox', { name: '功能' });
+    const statusFilter = within(dialog).getByRole('combobox', { name: '状态' });
+    const search = within(dialog).getByRole('searchbox', { name: '搜索文献目录' });
+
+    expect(within(functionFilter).getByRole('option', { name: '信号响应' })).toHaveValue(
+      'functional.signal_response',
+    );
+    expect(within(functionFilter).getByRole('option', { name: '信号产生' })).toHaveValue(
+      'functional.signal_production',
+    );
+
+    await user.selectOptions(functionFilter, 'functional.signal_response');
+    const receiverGroups = dialog.querySelectorAll<HTMLElement>('.bfn-catalog-group');
+    expect(receiverGroups.length).toBeGreaterThan(0);
+    expect([...receiverGroups].every((group) => group.dataset.role === 'receiver')).toBe(true);
+    expect([...receiverGroups].every((group) => group.textContent?.includes('信号响应'))).toBe(
+      true,
+    );
+
+    await user.selectOptions(functionFilter, 'functional.signal_production');
+    const senderGroups = dialog.querySelectorAll<HTMLElement>('.bfn-catalog-group');
+    expect(senderGroups.length).toBeGreaterThan(0);
+    expect([...senderGroups].every((group) => group.dataset.role === 'sender')).toBe(true);
+    expect([...senderGroups].every((group) => group.textContent?.includes('信号产生'))).toBe(true);
+
+    await user.selectOptions(statusFilter, 'reference-only');
+    await user.type(search, 'CinI');
+    await user.click(within(dialog).getByRole('button', { name: '清除筛选' }));
+    expect(functionFilter).toHaveValue('all');
+    expect(statusFilter).toHaveValue('all');
+    expect(search).toHaveValue('');
+    expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
+  });
+
+  it('finds receiver and sender groups through localized semantic family names', async () => {
+    const user = userEvent.setup();
+    renderDrawer();
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    const search = within(dialog).getByRole('searchbox', { name: '搜索文献目录' });
+
+    await user.type(search, '信号响应');
+    const receivers = dialog.querySelectorAll<HTMLElement>('.bfn-catalog-group');
+    expect(receivers.length).toBeGreaterThan(0);
+    expect([...receivers].every((group) => group.dataset.role === 'receiver')).toBe(true);
+
+    await user.clear(search);
+    await user.type(search, 'AHL 合成系统');
+    const senders = dialog.querySelectorAll<HTMLElement>('.bfn-catalog-group');
+    expect(senders.length).toBeGreaterThan(0);
+    expect([...senders].every((group) => group.dataset.role === 'sender')).toBe(true);
+  });
+
   it('previews runnable and non-runnable responses without a literature add action', async () => {
     const user = userEvent.setup();
     const model = buildBfnCatalogDiscoveryModel(loadReleaseCatalogPresentation());
@@ -83,6 +156,8 @@ describe('BFN catalog discovery drawer', () => {
     await user.keyboard('{Enter}');
     const runnablePreview = within(dialog).getByRole('region', { name: '目录条目预览' });
     expect(runnablePreview).toHaveTextContent('可运行（示例模型）');
+    expect(runnablePreview).toHaveTextContent('功能类别信号响应');
+    expect(runnablePreview).toHaveTextContent('生物元件类别AHL 接收/调控系统');
     expect(runnablePreview).toHaveTextContent('Hill 响应');
     expect(runnablePreview).toHaveTextContent('归一化报告响应');
 
@@ -96,6 +171,8 @@ describe('BFN catalog discovery drawer', () => {
     nonRunnableRow.focus();
     await user.keyboard(' ');
     const nonRunnablePreview = within(dialog).getByRole('region', { name: '目录条目预览' });
+    expect(nonRunnablePreview).toHaveTextContent('功能类别信号响应');
+    expect(nonRunnablePreview).toHaveTextContent('生物元件类别AHL 接收/调控系统');
     expect(nonRunnablePreview).not.toHaveTextContent('Hill 响应');
     expect(dialog.querySelector('.bfn-catalog-groups')).not.toHaveTextContent('添加到网络');
   });
@@ -179,6 +256,8 @@ describe('BFN catalog discovery drawer', () => {
 
     const preview = within(dialog).getByRole('region', { name: '目录条目预览' });
     expect(preview).toHaveTextContent('发送元件');
+    expect(preview).toHaveTextContent('功能类别信号产生');
+    expect(preview).toHaveTextContent('生物元件类别AHL 合成系统');
     expect(preview).toHaveTextContent('暂无定量发送函数');
     expect(preview).toHaveTextContent('没有可独立计算输入→AHL 输出的发送函数');
     expect(within(preview).queryByText('模型')).not.toBeInTheDocument();
@@ -204,6 +283,11 @@ describe('BFN catalog discovery drawer', () => {
 
     expect(dialog).toContainElement(within(dialog).getByLabelText(/完整详情/u));
     expect(within(dialog).queryByRole('searchbox')).not.toBeInTheDocument();
+    expect(within(dialog).getByText('功能分类')).toBeInTheDocument();
+    expect(within(dialog).getByText('功能类别')).toBeInTheDocument();
+    expect(within(dialog).getByText('信号响应')).toBeInTheDocument();
+    expect(within(dialog).getByText('生物元件类别')).toBeInTheDocument();
+    expect(within(dialog).getByText('AHL 接收/调控系统')).toBeInTheDocument();
     expect(within(dialog).getByText('当前软件使用的响应模型')).toBeInTheDocument();
     expect(within(dialog).getByText('文献中的原始拟合参数')).toBeInTheDocument();
 
@@ -374,6 +458,34 @@ describe('BFN catalog discovery drawer', () => {
     expect(within(dialog).queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
   });
 
+  it('isolates semantic resolution failure from Catalog browsing, Full Detail, and Add eligibility', () => {
+    const throwingAdapter: BfnSemanticPresentationAdapter = {
+      ...DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+      resolveCatalogComponent: () => {
+        throw new BfnOntologyContractError('ontology-invalid');
+      },
+    };
+    const listView = renderDrawer({ semanticAdapter: throwingAdapter });
+    const listDialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    expect(listDialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
+    expect(within(listDialog).queryByText('文献目录暂时无法加载。')).not.toBeInTheDocument();
+    const functionFilter = within(listDialog).getByRole('combobox', { name: '功能' });
+    expect(functionFilter).toBeDisabled();
+    expect(functionFilter).toHaveTextContent('功能分类暂不可用');
+    listView.unmount();
+
+    const { response } = runnableFixture();
+    renderDrawer({
+      semanticAdapter: throwingAdapter,
+      initialDetailTarget: { kind: 'response', responseId: response.id },
+    });
+    const detailDialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    expect(within(detailDialog).getByText('功能分类暂不可用')).toBeInTheDocument();
+    expect(within(detailDialog).getByText('当前软件使用的响应模型')).toBeInTheDocument();
+    expect(within(detailDialog).getByRole('button', { name: '添加到网络' })).toBeInTheDocument();
+    expect(within(detailDialog).queryByText('文献记录暂不可用')).not.toBeInTheDocument();
+  });
+
   it('contains an invalid deep-link failure inside the Drawer and can return to discovery', async () => {
     const user = userEvent.setup();
     renderDrawer({
@@ -404,10 +516,29 @@ describe('BFN catalog discovery drawer', () => {
     expect(body?.firstElementChild).toBe(builtIn);
     expect(builtIn?.nextElementSibling).toHaveClass('bfn-catalog-release-summary');
     await user.click(within(dialog).getByText('内置示例模块'));
+    const reporter = within(dialog).getByRole('heading', { name: '报告表达' }).closest('article');
+    if (!reporter) throw new Error('Built-in Reporter row was not rendered.');
+    expect(reporter).toHaveTextContent('功能类别表达响应');
+    expect(reporter).toHaveTextContent('数学模型线性响应');
+    expect(reporter).toHaveTextContent('模型依据机制模型');
     const addButtons = within(dialog).getAllByRole('button', { name: '添加到网络' });
     expect(addButtons).toHaveLength(3);
     await user.click(addButtons[2]!);
     expect(onAdd).toHaveBeenCalledWith('dual-input-gate');
+  });
+
+  it('keeps a built-in function category stable while the current mode changes its model label', async () => {
+    const user = userEvent.setup();
+    const project = createDemoBfnProject();
+    project.network.mode = 'dynamic';
+    renderDrawer({ project });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    await user.click(within(dialog).getByText('内置示例模块'));
+    const sensor = within(dialog).getByRole('heading', { name: 'AHL 响应' }).closest('article');
+    if (!sensor) throw new Error('Built-in AHL Sensor row was not rendered.');
+    expect(sensor).toHaveTextContent('功能类别信号响应');
+    expect(sensor).toHaveTextContent('数学模型一阶动态模型');
   });
 
   it('closes on Escape', () => {

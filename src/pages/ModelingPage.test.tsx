@@ -36,7 +36,7 @@ describe('biological network design workspace', () => {
     expect(screen.getAllByText('启动子活性 → 报告信号').length).toBeGreaterThan(0);
     expect(screen.getByRole('option', { name: '3OC6-HSL · 浓度 · nM' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /3OC6-HSL · 3OC6-HSL/ })).not.toBeInTheDocument();
-    expect(within(canvas).queryByText(/Hill 响应|一阶动态响应|线性响应/)).not.toBeInTheDocument();
+    expect(within(canvas).queryByText(/Hill 响应|一阶动态模型|线性响应/)).not.toBeInTheDocument();
     expect(screen.queryByText(/BFN-IR|uⱼ|DAG|完整模型/)).not.toBeInTheDocument();
 
     const moduleInspector = screen.getByRole('heading', { name: 'AHL 响应' }).closest('aside');

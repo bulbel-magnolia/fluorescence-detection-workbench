@@ -164,24 +164,24 @@ cargo test --manifest-path src-tauri/Cargo.toml --test hc08d_hardware_smoke -- -
 
 ### 组件、国际化与可访问性
 
-| 场景                   | 组件检查要求                                                                                                           |
-| ---------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| 中英文与未知值         | 中英文标签、状态和边界含义一致；未知值显示“未知 / Unknown”，来源原文可保留原语言，不能被表述为团队实测结果             |
-| 搜索与四项主筛选       | 名称、ID、别名、输入分子、DOI、PMID、accession 可检索；可用状态、输入分子和宿主可组合筛选；无结果状态可一键清除        |
-| 42 个元件与 52 条响应  | 组件列表数量、响应数量、当前选中项、20 条可运行标识和不可运行原因一致；一条输出未知的响应仍作为参考项展示              |
-| 详情渐进展开           | 首屏突出输入、输出、方向、模型、EC50、Hill、工作范围和上下文；证据缺口、配对、兼容关系和来源按需展开                   |
-| 长 DOI、网址与登录号   | 长值不撑破网格；用户可查看完整 DOI、URL 和 accession，按钮文字不发生突兀换行                                           |
-| 键盘焦点与 Escape      | 打开后焦点进入对话框，Tab 焦点留在弹窗内，方向键选择结果，Escape 关闭并把焦点还给入口                                  |
-| 应用与引用资格         | 主操作只对 20 条可信响应启用并新增独立节点；其他条目保留浏览或次要引用，不生成待标定的伪运行节点                       |
-| 绑定参数只读           | 已应用节点的响应 ID、分子、方向、EC50、Hill、工作范围、上下文和来源只读显示；新增匹配输入节点使用精确分子和 EC50 初值  |
-| 页面保持性             | 应用只新增节点且不自动连线；引用附加或解除只改变明确的引用字段，现有结构、端口、参数和输出选择不被悄然改写             |
-| 视觉对比与减少动态效果 | 正文和说明文字不小于 14 px，交互控件有 `:focus-visible`，长值可换行展开；`prefers-reduced-motion` 下压缩弹窗动画和过渡 |
+| 场景                   | 组件检查要求                                                                                                                            |
+| ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 中英文与未知值         | 中英文标签、状态和边界含义一致；未知值显示“未知 / Unknown”，来源原文可保留原语言，不能被表述为团队实测结果                              |
+| 搜索与四项主筛选       | 名称、别名、双语 Family 名称、输入分子、DOI、PMID、accession 可检索；Function、可用状态、输入分子和宿主可组合筛选；无结果状态可一键清除 |
+| 42 个元件与 52 条响应  | 组件列表数量、响应数量、当前选中项、20 条可运行标识和不可运行原因一致；一条输出未知的响应仍作为参考项展示                               |
+| 详情渐进展开           | 首屏突出输入、输出、方向、模型、EC50、Hill、工作范围和上下文；证据缺口、配对、兼容关系和来源按需展开                                    |
+| 长 DOI、网址与登录号   | 长值不撑破网格；用户可查看完整 DOI、URL 和 accession，按钮文字不发生突兀换行                                                            |
+| 键盘焦点与 Escape      | 打开后焦点进入对话框，Tab 焦点留在弹窗内，方向键选择结果，Escape 关闭并把焦点还给入口                                                   |
+| 应用与引用资格         | 主操作只对 20 条可信响应启用并新增独立节点；其他条目保留浏览或次要引用，不生成待标定的伪运行节点                                        |
+| 绑定参数只读           | 已应用节点的响应 ID、分子、方向、EC50、Hill、工作范围、上下文和来源只读显示；新增匹配输入节点使用精确分子和 EC50 初值                   |
+| 页面保持性             | 应用只新增节点且不自动连线；引用附加或解除只改变明确的引用字段，现有结构、端口、参数和输出选择不被悄然改写                              |
+| 视觉对比与减少动态效果 | 正文和说明文字不小于 14 px，交互控件有 `:focus-visible`，长值可换行展开；`prefers-reduced-motion` 下压缩弹窗动画和过渡                  |
 
 ### Windows 手工验收
 
 | 场景                   | 操作与期望                                                                                                              | 状态 |
 | ---------------------- | ----------------------------------------------------------------------------------------------------------------------- | ---- |
-| 1280 px 深色中文       | 搜索、三项筛选、查看响应并展开长 DOI/登录号；列表和详情保持可读，不出现水平溢出                                         | 待测 |
+| 1280 px 深色中文       | 搜索、四项筛选、查看响应并展开长 DOI/登录号；列表和详情保持可读，不出现水平溢出                                         | 待测 |
 | 1280 px 浅色英文       | 重复浏览、无结果、清除筛选、可运行资格与未知值检查；文字、边框、焦点和禁用态均清晰                                      | 待测 |
 | 1920 px 深色英文       | 检查元件列表、响应详情、长名称、来源链接和科学边界；控件和数值不出现突兀换行                                            | 待测 |
 | 1920 px 浅色中文       | 检查 42/52/20 数量、详情分组、附加引用和解除操作；视觉层级与深色主题一致                                                | 待测 |
@@ -770,3 +770,34 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 相对 Batch 8.3 基线 `506215e128cb9e5da66542caa13363722702b383`，冻结 AHL/HSL V1.1 JSON 为零差异，SHA-256 仍为 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；
 - `src/features/bfn/types.ts`、Simulation、Inverse Design、Workspace、`package.json` 与 lockfile 均为零差异；
 - BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 版本保持 1；Ontology 不写 Project、Version、Run、localStorage 或 IndexedDB。
+
+## 2026-08-28 Batch 9.2 Semantic Presentation & Scientific UX Integration
+
+### Presentation adapter 与 Catalog Discovery
+
+- 新增只读 semantic presentation adapter 测试，覆盖中英文名称、稳定 ID、深冻结、unknown / unclassified、typed Ontology failure 与 unexpected failure 边界；adapter 不复制 Registry 或 assignment 表；
+- Discovery 投影测试覆盖全部真实 receiver / sender 的精确分类、稳定 Function option、Component-level Function 筛选、Function + Status / Signal / Host 组合、双语 Family 名称搜索，以及语义不可用时 Catalog 数量、状态和 runnable 合同保持不变；
+- 搜索只加入 Functional 与 Biological Family 的 `names.en` / `names.zh`，不索引 Ontology ID 或 description；sender 继续保持 0 response、0 output 与“暂无定量发送函数”；
+- Drawer 回归覆盖四项筛选、2×2 桌面布局、stable-ID option value、筛选与清除、group / receiver / sender preview、Full Detail classification、内置模块分层措辞和 semantic failure isolation。
+
+### Full Detail、Inspector 与科学边界
+
+- Full Detail 独立显示 Functional Family 与 Biological Component Family；语义读取失败只降级该区块，原有模型、来源、Add eligibility 和 Add action 保持可用；
+- Module Inspector 回归覆盖 Catalog-backed stable Component ID、Built-in Reporter、Dual Input、unknown module、static / dynamic model 切换和损坏 Catalog semantic identity；解析前后 Project 与 computation signature 保持不变；
+- 内置模块分别呈现 Module Function、Mathematical Model 与 Model Basis。Reporter 动态模式显示 First-order dynamic model，Functional Family 仍为 Expression transfer，Model Basis 仍为 Mechanistic model；
+- Batch 9.2 定向回归共 9 个测试文件、90 项测试，全部通过。沙箱内首次启动因 esbuild 子进程权限返回 `spawn EPERM`，相同命令在获批环境通过。
+
+### Visual audit
+
+- 9 张真实 1440×900 PNG 与逐图科学检查点位于 `docs/ui-audit/semantic-ontology/`，覆盖默认 Function 筛选、signal response、signal production、Family-aware search、Full Detail、Catalog-backed Inspector、Built-in Reporter、static / dynamic 分离和深色主题；
+- 1440×900、1280×720 与 1180×700 的 document width 分别等于 viewport width，页面级横向溢出均为 0；560 px Catalog Drawer 中四项筛选均完整可见；
+- 三个断点的 Inspector body 均使用独立滚动：1440 为 628 / 1123 px、1280 为 478 / 1141 px、1180 为 458 / 1141 px client / scroll height；浏览器控制台为 0 warning、0 error。
+
+### Complete gates 与冻结边界
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 115 个测试文件、881 项测试全部通过；
+- Vite 7.3.6 生产构建通过，259 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB；主 CSS 为 262.76 kB、gzip 44.51 kB；主 JavaScript chunk 为 1,270.52 kB、gzip 308.11 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
+- 相对 Batch 9.0 + 9.1 基线 `f0abd41f90360ccc6eb744ab9c4cbab7a0d27ef1`，Ontology Registry 与 assignment、冻结 AHL/HSL V1.1 JSON、BFN types、Simulation、Inverse Design、Workspace、`package.json` 和 lockfile 均为零差异；Catalog SHA-256 仍为 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；
+- BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 版本保持 1；语义展示不写 Project、Version、Run、localStorage 或 IndexedDB。

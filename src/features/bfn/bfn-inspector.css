@@ -82,6 +82,36 @@
   line-height: 1.5;
 }
 
+.bfn-inspector-semantic dl {
+  display: grid;
+  margin: 0;
+}
+
+.bfn-inspector-semantic dl > div {
+  display: grid;
+  min-height: 29px;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: 10px;
+  border-top: 1px solid var(--ui-border-subtle);
+}
+
+.bfn-inspector-semantic dt,
+.bfn-inspector-semantic dd {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.bfn-inspector-semantic dt {
+  color: var(--ui-text-muted);
+}
+
+.bfn-inspector-semantic dd {
+  color: var(--ui-text-primary);
+  text-align: right;
+}
+
 .bfn-catalog-provenance {
   box-shadow: inset 2px 0 var(--ui-accent);
 }

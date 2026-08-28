@@ -19,7 +19,7 @@ Ontology describes what an object is categorized as; it does not grant evidence,
 
 四个维度可以独立变化。`hill_activation`、`linear_transfer`、`independent_inputs` 和 `first_order` 是数学模型族；static、dynamic 是模型能力；runtime-demo 是目录使用状态；literature 是来源性质。它们都不是功能本体术语。
 
-既有 `BfnCatalogModuleSummary.familyKey` 继续表示 model-family presentation。Batch 9.0 + 9.1 不扩大范围重命名该字段，它不表示新的 Functional Family。
+展示 DTO 使用 `BfnCatalogModuleSummary.modelFamilyKey` 表示 Mathematical Model Family。该字段不表示 Ontology Functional Family，二者由不同权威来源解析并独立呈现。
 
 ## Ontology version and registry
 
@@ -120,10 +120,18 @@ Classification is descriptive, not evidentiary. 所属类别不表示 runnable�
 
 ## BFN-IR, simulation, and workspace isolation
 
-Batch 9.0 + 9.1 不向 `BfnFunctionalModule`、`BfnModelVariant`、`BfnCatalogModelReference`、Project、Version 或 Run snapshot 增加 ontology 字段。BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1。
+Batch 9.2 仍不向 `BfnFunctionalModule`、`BfnModelVariant`、`BfnCatalogModelReference`、Project、Version 或 Run snapshot 增加 ontology 字段。BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1。
 
 语义解析是纯读取操作，不修改 Project、computation signature、Undo/Redo、Run 或 Workspace。Simulation、Catalog runtime candidate 和实例化路径不读取 Ontology；即使语义层不可用，既有可信计算路径仍保持独立。Registry 是内置版本化资源，不写 localStorage 或 IndexedDB。
 
-## Deferred Batch 9.2
+## Batch 9.2 presentation integration
 
-Catalog semantic presentation、Functional Family 筛选、Full Detail semantic labels、Module Inspector semantic profile、内置目录措辞清理、family-aware search、Ontology Browser、拓扑模板和 network-level inverse design 约束均延期到 Batch 9.2 或以后。Batch 9.0 + 9.1 没有可见 UI 变化。
+Batch 9.2 在 Ontology resolver 与界面之间加入窄范围只读 presentation adapter。它只把精确解析得到的稳定术语投影为当前语言的名称、搜索词和 property-row 数据；不复制 assignment 表，也不从名称、描述、端口或模型族推断类别。
+
+Catalog Discovery 现在以稳定 Functional Family ID 提供 Function 筛选，并把 Functional 与 Biological Family 的审定中英文名称加入搜索语料。Ontology ID 和术语描述不进入搜索。Component group 与 preview 使用简短本地化名称；Full Detail 和 Module Inspector 独立解析并显示 Functional Family 与 Biological Component Family。单个语义展示失败只显示“语义分类暂不可用”，Catalog 浏览、详情、Add、项目编辑和 Simulation 继续按既有可信合同运行。
+
+内置示例明确分开 Module Function、Mathematical Model 与 Model Basis。静态或动态模式只改变 Mathematical Model 文案，不改变 Functional Family。所有新增文本均通过中英文 i18n key 呈现，分类使用中性 property row，不复用运行成功或证据警告 badge。
+
+## Future scope
+
+Ontology Browser、层级父子术语、拓扑模板、图文法、自动布线和 network-level inverse design 约束属于后续范围。当前分类仍不授予连接兼容、运行资格、构建资格或实验验证状态。

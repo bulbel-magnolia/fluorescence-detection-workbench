@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../i18n';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
 import { createDemoBfnProject } from '../fixtures';
+import {
+  resolveCatalogComponentSemanticPresentation,
+  unavailableBfnSemanticPresentation,
+} from '../semantic/semanticPresentation';
 import { BfnCatalogDetailView } from './BfnCatalogDetailView';
 import { buildBfnCatalogDetail, type BfnCatalogDetail } from './catalogDetail';
 
@@ -44,6 +48,9 @@ describe('BFN catalog full-detail view', () => {
   it('renders sender capability, component evidence, and sources without a receiver model', () => {
     renderDetail(componentDetail('sender'));
 
+    expect(screen.getByText('功能分类')).toBeInTheDocument();
+    expect(screen.getByText('信号产生')).toBeInTheDocument();
+    expect(screen.getByText('AHL 合成系统')).toBeInTheDocument();
     expect(screen.getByText('暂无定量发送函数')).toBeInTheDocument();
     expect(screen.getByText('组件信息')).toBeInTheDocument();
     expect(screen.getByText('来源文献')).toBeInTheDocument();
@@ -119,9 +126,36 @@ describe('BFN catalog full-detail view', () => {
     );
 
     expect(screen.getByText('Response model used by this software')).toBeInTheDocument();
+    expect(screen.getByText('Functional classification')).toBeInTheDocument();
+    expect(screen.getByText('Signal response')).toBeInTheDocument();
+    expect(screen.getByText('AHL receiver / regulatory system')).toBeInTheDocument();
     expect(screen.getByText('Original parameters reported in the literature')).toBeInTheDocument();
     expect(screen.getByText('Sequence source')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Add to network' })).toBeInTheDocument();
+  });
+
+  it('keeps runnable Detail and Add eligibility intact when semantic presentation is unavailable', () => {
+    const response = presentation.responseVariants.find((entry) => entry.runnable);
+    if (!response) throw new Error('Expected a runnable response.');
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'response',
+      responseId: response.id,
+    });
+
+    render(
+      <BfnCatalogDetailView
+        detail={detail}
+        semantic={unavailableBfnSemanticPresentation()}
+        language={'zh-CN'}
+        project={createDemoBfnProject()}
+        onBack={vi.fn()}
+        onInstantiate={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('功能分类暂不可用')).toBeInTheDocument();
+    expect(screen.getByText('当前软件使用的响应模型')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '添加到网络' })).toBeInTheDocument();
   });
 
   it('keeps known release codes and source-English pair text out of the primary Chinese UI', () => {
@@ -237,6 +271,11 @@ function renderDetail(detail: BfnCatalogDetail, language: 'zh-CN' | 'en-US' = 'z
   return render(
     <BfnCatalogDetailView
       detail={detail}
+      semantic={resolveCatalogComponentSemanticPresentation(
+        detail.component.id,
+        presentation,
+        language,
+      )}
       language={language}
       project={createDemoBfnProject()}
       onBack={vi.fn()}

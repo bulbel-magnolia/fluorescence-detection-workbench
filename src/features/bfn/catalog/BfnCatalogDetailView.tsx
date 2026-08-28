@@ -14,11 +14,13 @@ import type {
   BfnCatalogResponseDetail,
 } from './catalogDetail';
 import type { BfnProject } from '../types';
+import type { BfnSemanticPresentation } from '../semantic/semanticPresentation';
 import { BfnCatalogInstantiationPanel } from './BfnCatalogInstantiationPanel';
 import { bfnCatalogEvidenceText } from './catalogEvidencePresentation';
 
 interface BfnCatalogDetailViewProps {
   detail: BfnCatalogDetail;
+  semantic?: BfnSemanticPresentation;
   language: ReleaseCatalogLanguage;
   project: BfnProject;
   onBack: () => void;
@@ -27,6 +29,7 @@ interface BfnCatalogDetailViewProps {
 
 export function BfnCatalogDetailView({
   detail,
+  semantic,
   language,
   project,
   onBack,
@@ -80,6 +83,8 @@ export function BfnCatalogDetailView({
         </p>
       </header>
 
+      <SemanticClassificationSection semantic={semantic} />
+
       {detail.kind === 'response' && detail.canAddToNetwork ? (
         <BfnCatalogInstantiationPanel
           detail={detail}
@@ -102,6 +107,37 @@ export function BfnCatalogDetailView({
       <CompatibilitySection entries={detail.compatibility} language={language} />
       <AdvancedSection detail={detail} />
     </article>
+  );
+}
+
+function SemanticClassificationSection({
+  semantic,
+}: {
+  semantic: BfnSemanticPresentation | undefined;
+}) {
+  const { t } = useTranslation();
+  if (!semantic || semantic.status === 'unavailable') {
+    return (
+      <DetailSection title={t('bfn.semantic.classificationTitle')}>
+        <p>{t('bfn.semantic.unavailable')}</p>
+      </DetailSection>
+    );
+  }
+  return (
+    <DetailSection title={t('bfn.semantic.classificationTitle')}>
+      <PropertyList
+        rows={[
+          [
+            t('bfn.semantic.functionalFamily'),
+            semantic.functionalFamilies[0]?.label ?? t('bfn.semantic.unavailable'),
+          ],
+          [
+            t('bfn.semantic.biologicalFamily'),
+            semantic.biologicalFamilies[0]?.label ?? t('bfn.semantic.unavailable'),
+          ],
+        ]}
+      />
+    </DetailSection>
   );
 }
 

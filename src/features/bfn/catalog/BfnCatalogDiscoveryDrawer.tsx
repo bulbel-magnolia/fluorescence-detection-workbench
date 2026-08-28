@@ -8,9 +8,19 @@ import {
   type ReleaseCatalogLanguage,
   type ReleaseCatalogPresentation,
 } from '../../modeling/catalog/releaseCatalogPresentation';
+import type { BfnFunctionalFamilyId } from '../../modeling/ontology/v1/ontologyTypes';
 import { bfnModuleCatalog, createCatalogModule, type BfnCatalogModuleId } from '../fixtures';
 import { resolveEffectiveBfnModel } from '../modelResolution';
 import { bfnEvidenceTone, bfnModuleFlowLabel } from '../presentation';
+import {
+  DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+  presentBfnSemanticFamilyIdentity,
+  resolveBfnModuleSemanticPresentation,
+  resolveCatalogComponentSemanticPresentation,
+  unavailableBfnSemanticPresentation,
+  type BfnSemanticPresentation,
+  type BfnSemanticPresentationAdapter,
+} from '../semantic/semanticPresentation';
 import type { BfnProject } from '../types';
 import { BfnCatalogDetailView } from './BfnCatalogDetailView';
 import {
@@ -39,6 +49,7 @@ interface BfnCatalogDiscoveryDrawerProps {
   initialDetailTarget?: BfnCatalogDetailTarget;
   presentationLoader?: () => ReleaseCatalogPresentation;
   runtimeCandidateBuilder?: BfnCatalogRuntimeCandidateBuilder;
+  semanticAdapter?: BfnSemanticPresentationAdapter;
 }
 
 type SelectedEntry =
@@ -54,6 +65,7 @@ export function BfnCatalogDiscoveryDrawer({
   initialDetailTarget,
   presentationLoader = loadReleaseCatalogPresentation,
   runtimeCandidateBuilder,
+  semanticAdapter = DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
 }: BfnCatalogDiscoveryDrawerProps) {
   const { i18n } = useTranslation();
   const language = releaseLanguage(i18n.resolvedLanguage ?? i18n.language);
@@ -62,6 +74,9 @@ export function BfnCatalogDiscoveryDrawer({
   const listScrollTopRef = useRef(0);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<BfnCatalogDiscoveryStatusFilter | 'all'>('all');
+  const [functionalFamilyId, setFunctionalFamilyId] = useState<BfnFunctionalFamilyId | 'all'>(
+    'all',
+  );
   const [inputSignalId, setInputSignalId] = useState('all');
   const [host, setHost] = useState('all');
   const [expandedGroups, setExpandedGroups] = useState<ReadonlySet<string>>(() => new Set());
@@ -75,19 +90,25 @@ export function BfnCatalogDiscoveryDrawer({
       const presentation = presentationLoader();
       return {
         presentation,
-        model: buildBfnCatalogDiscoveryModel(presentation),
+        model: buildBfnCatalogDiscoveryModel(presentation, semanticAdapter),
         error: false,
       } as const;
     } catch {
       return { presentation: null, model: null, error: true } as const;
     }
-  }, [presentationLoader]);
+  }, [presentationLoader, semanticAdapter]);
   const result = useMemo(
     () =>
       loadResult.model
-        ? queryBfnCatalogDiscovery(loadResult.model, { query, status, inputSignalId, host })
+        ? queryBfnCatalogDiscovery(loadResult.model, {
+            query,
+            status,
+            functionalFamilyId,
+            inputSignalId,
+            host,
+          })
         : null,
-    [host, inputSignalId, loadResult.model, query, status],
+    [functionalFamilyId, host, inputSignalId, loadResult.model, query, status],
   );
   const singleGroupId = result?.componentCount === 1 ? (result.groups[0]?.id ?? null) : null;
   const detailResult = useMemo(() => {
@@ -106,6 +127,19 @@ export function BfnCatalogDiscoveryDrawer({
       return { detail: null, error: true } as const;
     }
   }, [detailTarget, loadResult.presentation, runtimeCandidateBuilder]);
+  const detailSemantic = useMemo(() => {
+    if (!detailResult.detail || !loadResult.presentation) return null;
+    try {
+      return resolveCatalogComponentSemanticPresentation(
+        detailResult.detail.component.id,
+        loadResult.presentation,
+        language,
+        semanticAdapter,
+      );
+    } catch {
+      return unavailableBfnSemanticPresentation();
+    }
+  }, [detailResult.detail, language, loadResult.presentation, semanticAdapter]);
 
   useEffect(() => {
     if (!initialDetailTarget) searchRef.current?.focus();
@@ -113,10 +147,15 @@ export function BfnCatalogDiscoveryDrawer({
   useEffect(() => setAutoCollapsedGroupId(null), [singleGroupId]);
 
   const hasActiveFilters =
-    query.trim().length > 0 || status !== 'all' || inputSignalId !== 'all' || host !== 'all';
+    query.trim().length > 0 ||
+    status !== 'all' ||
+    functionalFamilyId !== 'all' ||
+    inputSignalId !== 'all' ||
+    host !== 'all';
   const clearDiscovery = (): void => {
     setQuery('');
     setStatus('all');
+    setFunctionalFamilyId('all');
     setInputSignalId('all');
     setHost('all');
     setExpandedGroups(new Set());
@@ -169,11 +208,13 @@ export function BfnCatalogDiscoveryDrawer({
       result={result}
       query={query}
       status={status}
+      functionalFamilyId={functionalFamilyId}
       inputSignalId={inputSignalId}
       host={host}
       hasActiveFilters={hasActiveFilters}
       selected={selected}
       detail={detailResult.detail}
+      detailSemantic={detailSemantic}
       detailOpen={detailTarget !== null}
       detailError={detailResult.error}
       isExpanded={isExpanded}
@@ -183,6 +224,7 @@ export function BfnCatalogDiscoveryDrawer({
       onBackToCatalog={backToCatalog}
       onQueryChange={setQuery}
       onStatusChange={setStatus}
+      onFunctionalFamilyChange={setFunctionalFamilyId}
       onInputSignalChange={setInputSignalId}
       onHostChange={setHost}
       onClear={clearDiscovery}
@@ -202,11 +244,13 @@ interface DiscoveryDrawerSurfaceProps {
   result: BfnCatalogDiscoveryQueryResult | null;
   query: string;
   status: BfnCatalogDiscoveryStatusFilter | 'all';
+  functionalFamilyId: BfnFunctionalFamilyId | 'all';
   inputSignalId: string;
   host: string;
   hasActiveFilters: boolean;
   selected: SelectedEntry | null;
   detail: BfnCatalogDetail | null;
+  detailSemantic: BfnSemanticPresentation | null;
   detailOpen: boolean;
   detailError: boolean;
   isExpanded: (groupId: string) => boolean;
@@ -216,6 +260,7 @@ interface DiscoveryDrawerSurfaceProps {
   onBackToCatalog: () => void;
   onQueryChange: (value: string) => void;
   onStatusChange: (value: BfnCatalogDiscoveryStatusFilter | 'all') => void;
+  onFunctionalFamilyChange: (value: BfnFunctionalFamilyId | 'all') => void;
   onInputSignalChange: (value: string) => void;
   onHostChange: (value: string) => void;
   onClear: () => void;
@@ -259,6 +304,7 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
           {props.detail ? (
             <BfnCatalogDetailView
               detail={props.detail}
+              semantic={props.detailSemantic ?? unavailableBfnSemanticPresentation()}
               language={props.language}
               project={props.project}
               onBack={props.onBackToCatalog}
@@ -445,10 +491,40 @@ function CatalogFilters(props: DiscoveryDrawerSurfaceProps & { model: BfnCatalog
   const { t } = useTranslation();
   return (
     <div className="bfn-catalog-filters" aria-label={t('bfn.catalogDiscovery.filters')}>
+      <FunctionalFamilyFilter {...props} />
       <StatusFilter {...props} />
       <InputSignalFilter {...props} />
       <HostFilter {...props} />
     </div>
+  );
+}
+
+function FunctionalFamilyFilter(
+  props: DiscoveryDrawerSurfaceProps & { model: BfnCatalogDiscoveryModel },
+) {
+  const { t } = useTranslation();
+  const options = props.model.filterOptions.functionalFamilies;
+  return (
+    <label>
+      <span>{t('bfn.semantic.functionFilter')}</span>
+      <select
+        value={props.functionalFamilyId}
+        aria-label={t('bfn.semantic.functionFilter')}
+        disabled={options.length === 0}
+        onChange={(event) =>
+          props.onFunctionalFamilyChange(event.target.value as BfnFunctionalFamilyId | 'all')
+        }
+      >
+        <option value={'all'}>
+          {options.length > 0 ? t('bfn.catalogDiscovery.all') : t('bfn.semantic.unavailable')}
+        </option>
+        {options.map((option) => (
+          <option key={option.id} value={option.id}>
+            {functionalFamilyLabel(option.id, props.language, t)}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -544,7 +620,7 @@ function DiscoveryGroup(props: DiscoveryGroupProps) {
         <span className="bfn-catalog-group__chevron" aria-hidden="true" />
         <span className="bfn-catalog-group__identity">
           <strong>{localizedName(props.group.names, props.language)}</strong>
-          <small>{groupSummary(props.group, t)}</small>
+          <small>{groupSummary(props.group, props.language, t)}</small>
         </span>
       </button>
       {props.expanded ? (
@@ -693,6 +769,7 @@ function ResponsePreview({
           label={t('bfn.catalogDiscovery.component')}
           value={localizedName(group.names, language)}
         />
+        <SemanticPreviewFacts group={group} language={language} />
         <PreviewFact
           label={t('bfn.catalogDiscovery.function')}
           value={`${bfnCatalogSignalDisplayName(
@@ -745,6 +822,7 @@ function SenderPreview({
           label={t('bfn.catalogDiscovery.component')}
           value={localizedName(group.names, language)}
         />
+        <SemanticPreviewFacts group={group} language={language} />
         <PreviewFact
           label={t('bfn.catalogDiscovery.type')}
           value={t('bfn.catalogDiscovery.sender')}
@@ -797,6 +875,7 @@ function ComponentPreview({
           label={t('bfn.catalogDiscovery.component')}
           value={localizedName(group.names, language)}
         />
+        <SemanticPreviewFacts group={group} language={language} />
         <PreviewFact
           label={t('bfn.catalogDiscovery.status')}
           value={statusLabel(group.status, t)}
@@ -809,6 +888,37 @@ function ComponentPreview({
       <p className="bfn-catalog-preview__boundary">{t('bfn.catalogDetail.referenceBoundary')}</p>
       <PreviewDetailAction onClick={onViewDetails} />
     </section>
+  );
+}
+
+function SemanticPreviewFacts({
+  group,
+  language,
+}: {
+  group: BfnCatalogDiscoveryGroup;
+  language: ReleaseCatalogLanguage;
+}) {
+  const { t } = useTranslation();
+  const semantic = groupSemanticPresentation(group, language);
+  if (semantic.status === 'unavailable') {
+    return (
+      <PreviewFact
+        label={t('bfn.semantic.classificationTitle')}
+        value={t('bfn.semantic.unavailable')}
+      />
+    );
+  }
+  return (
+    <>
+      <PreviewFact
+        label={t('bfn.semantic.functionalFamily')}
+        value={semantic.functionalFamilies[0]?.label ?? t('bfn.semantic.unavailable')}
+      />
+      <PreviewFact
+        label={t('bfn.semantic.biologicalFamily')}
+        value={semantic.biologicalFamilies[0]?.label ?? t('bfn.semantic.unavailable')}
+      />
+    </>
   );
 }
 
@@ -877,9 +987,19 @@ function BuiltInModuleRow({
   project: BfnProject;
   onAdd: (catalogId: BfnCatalogModuleId) => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const previewModule = createCatalogModule(entry.id, 'catalog-preview');
   const previewModel = resolveEffectiveBfnModel(project, previewModule);
+  const semantic = (() => {
+    try {
+      return resolveBfnModuleSemanticPresentation(
+        previewModule,
+        i18n.resolvedLanguage ?? i18n.language,
+      );
+    } catch {
+      return unavailableBfnSemanticPresentation();
+    }
+  })();
   const relatedDatasets = previewModel
     ? project.registry.datasets.filter((dataset) =>
         previewModel.sourceDatasetIds.includes(dataset.id),
@@ -893,6 +1013,20 @@ function BuiltInModuleRow({
         <p>{t(entry.descriptionKey)}</p>
       </div>
       <dl>
+        <div>
+          <dt>{t('bfn.semantic.functionalFamily')}</dt>
+          <dd>
+            {semantic.status === 'resolved'
+              ? (semantic.functionalFamilies[0]?.label ?? t('bfn.semantic.unavailable'))
+              : t('bfn.semantic.unavailable')}
+          </dd>
+        </div>
+        <div>
+          <dt>{t('bfn.semantic.mathematicalModel')}</dt>
+          <dd>
+            {previewModel ? t(`bfn.modelFamilies.${previewModel.family}`) : t(entry.modelFamilyKey)}
+          </dd>
+        </div>
         <div>
           <dt>{t('bfn.registry.modelBasis')}</dt>
           <dd>
@@ -944,12 +1078,50 @@ function statusLabel(status: BfnCatalogDiscoveryStatus, t: TFunction): string {
   return t(`bfn.catalogDiscovery.statuses.${status}`);
 }
 
-function groupSummary(group: BfnCatalogDiscoveryGroup, t: TFunction): string {
-  return group.role === 'sender'
-    ? `${t('bfn.catalogDiscovery.sender')} · ${t('bfn.catalogDiscovery.noSenderFunction')}`
-    : `${t('bfn.catalogDiscovery.receiver')} · ${t('bfn.catalogDiscovery.responseCount', {
-        count: group.responses.length,
-      })}`;
+function groupSemanticPresentation(
+  group: BfnCatalogDiscoveryGroup,
+  language: ReleaseCatalogLanguage,
+): BfnSemanticPresentation {
+  return presentBfnSemanticFamilyIdentity(
+    group.semantic
+      ? {
+          functionalFamilyIds: [group.semantic.functionalFamilyId],
+          biologicalFamilyIds: [group.semantic.biologicalComponentFamilyId],
+        }
+      : null,
+    language,
+  );
+}
+
+function functionalFamilyLabel(
+  id: BfnFunctionalFamilyId,
+  language: ReleaseCatalogLanguage,
+  t: TFunction,
+): string {
+  const presentation = presentBfnSemanticFamilyIdentity(
+    { functionalFamilyIds: [id], biologicalFamilyIds: [] },
+    language,
+  );
+  return presentation.functionalFamilies[0]?.label ?? t('bfn.semantic.unavailable');
+}
+
+function groupSummary(
+  group: BfnCatalogDiscoveryGroup,
+  language: ReleaseCatalogLanguage,
+  t: TFunction,
+): string {
+  const semantic = groupSemanticPresentation(group, language);
+  const functional =
+    semantic.status === 'resolved'
+      ? (semantic.functionalFamilies[0]?.label ?? t('bfn.semantic.unavailable'))
+      : t('bfn.semantic.unavailable');
+  const existing =
+    group.role === 'sender'
+      ? `${t('bfn.catalogDiscovery.sender')} · ${t('bfn.catalogDiscovery.noSenderFunction')}`
+      : `${t('bfn.catalogDiscovery.receiver')} · ${t('bfn.catalogDiscovery.responseCount', {
+          count: group.responses.length,
+        })}`;
+  return `${functional} · ${existing}`;
 }
 
 function hostLine(species: string | null, strain: string | null, t: TFunction): string {

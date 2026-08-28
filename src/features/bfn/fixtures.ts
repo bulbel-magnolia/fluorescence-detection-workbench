@@ -14,7 +14,7 @@ export interface BfnCatalogModuleSummary {
   id: BfnCatalogModuleId;
   labelKey: string;
   descriptionKey: string;
-  familyKey: string;
+  modelFamilyKey: string;
   evidenceKey: string;
 }
 
@@ -23,21 +23,21 @@ export const bfnModuleCatalog: BfnCatalogModuleSummary[] = [
     id: 'ahl-sensor',
     labelKey: 'bfn.modules.ahlSensor.name',
     descriptionKey: 'bfn.modules.ahlSensor.catalogDescription',
-    familyKey: 'bfn.modelFamilies.hill_activation',
+    modelFamilyKey: 'bfn.modelFamilies.hill_activation',
     evidenceKey: 'bfn.evidence.data_driven_prediction',
   },
   {
     id: 'reporter',
     labelKey: 'bfn.modules.reporter.name',
     descriptionKey: 'bfn.modules.reporter.catalogDescription',
-    familyKey: 'bfn.modelFamilies.linear_transfer',
+    modelFamilyKey: 'bfn.modelFamilies.linear_transfer',
     evidenceKey: 'bfn.evidence.mechanistic_model_only',
   },
   {
     id: 'dual-input-gate',
     labelKey: 'bfn.modules.dualInput.name',
     descriptionKey: 'bfn.modules.dualInput.catalogDescription',
-    familyKey: 'bfn.modelFamilies.independent_inputs',
+    modelFamilyKey: 'bfn.modelFamilies.independent_inputs',
     evidenceKey: 'bfn.evidence.independent_assumption',
   },
 ];

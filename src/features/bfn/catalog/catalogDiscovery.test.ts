@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
+import { BfnOntologyContractError } from '../../modeling/ontology/v1/ontologyTypes';
+import {
+  DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+  type BfnSemanticPresentationAdapter,
+} from '../semantic/semanticPresentation';
 import {
   bfnCatalogSignalDisplayName,
   bfnCatalogDiscoveryStatus,
@@ -53,6 +58,64 @@ describe('BFN catalog discovery projection', () => {
     expect(bfnCatalogDiscoveryStatus({ runnable: false, usageStatus: 'reference-only' })).toBe(
       'reference-only',
     );
+  });
+
+  it('projects exact semantic families for every trusted component without changing runtime facts', () => {
+    expect(model.groups.every((group) => group.semantic !== null)).toBe(true);
+    expect(
+      model.groups
+        .filter((group) => group.role === 'receiver')
+        .every(
+          (group) =>
+            group.semantic?.functionalFamilyId === 'functional.signal_response' &&
+            group.semantic.biologicalComponentFamilyId === 'bio.ahl_receiver_regulator',
+        ),
+    ).toBe(true);
+    expect(
+      model.groups
+        .filter((group) => group.role === 'sender')
+        .every(
+          (group) =>
+            group.semantic?.functionalFamilyId === 'functional.signal_production' &&
+            group.semantic.biologicalComponentFamilyId === 'bio.ahl_synthase',
+        ),
+    ).toBe(true);
+    expect(new Set(model.filterOptions.functionalFamilies.map((option) => option.id))).toEqual(
+      new Set(['functional.signal_response', 'functional.signal_production']),
+    );
+
+    const throwingAdapter: BfnSemanticPresentationAdapter = {
+      ...DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+      resolveCatalogComponent: () => {
+        throw new BfnOntologyContractError('ontology-invalid');
+      },
+    };
+    const withoutSemantic = buildBfnCatalogDiscoveryModel(presentation, throwingAdapter);
+    const runtimeFacts = (source: BfnCatalogDiscoveryModel) =>
+      source.groups.map((group) => ({
+        id: group.id,
+        role: group.role,
+        status: group.status,
+        responses: group.responses.map((response) => ({
+          id: response.id,
+          runnable: response.runnable,
+          status: response.status,
+        })),
+      }));
+
+    expect(runtimeFacts(withoutSemantic)).toEqual(runtimeFacts(model));
+    expect(withoutSemantic.counts).toEqual(model.counts);
+    expect(withoutSemantic.groups.every((group) => group.semantic === null)).toBe(true);
+    expect(withoutSemantic.filterOptions.functionalFamilies).toEqual([]);
+    expect(queryBfnCatalogDiscovery(withoutSemantic)).toMatchObject({
+      componentCount: 42,
+      responseCount: 52,
+    });
+    expect(
+      queryBfnCatalogDiscovery(withoutSemantic, {
+        functionalFamilyId: 'functional.signal_response',
+      }),
+    ).toMatchObject({ componentCount: 0, responseCount: 0 });
   });
 
   it('keeps real catalog signal identities distinct when abbreviations are shared', () => {
@@ -114,6 +177,18 @@ describe('BFN catalog discovery projection', () => {
     },
   );
 
+  it.each([
+    ['信号响应', 'receiver'],
+    ['Signal response', 'receiver'],
+    ['信号产生', 'sender'],
+    ['Signal production', 'sender'],
+    ['AHL 合成系统', 'sender'],
+  ] as const)('finds %s through family names as a low-priority search field', (query, role) => {
+    const result = queryBfnCatalogDiscovery(model, { query });
+    expect(result.componentCount).toBeGreaterThan(0);
+    expect(result.groups.every((group) => group.role === role)).toBe(true);
+  });
+
   it('normalizes case and whitespace and applies multi-token AND semantics', () => {
     const canonical = queryBfnCatalogDiscovery(model, { query: 'rhl c4' });
     const normalized = queryBfnCatalogDiscovery(model, { query: '  RHL   C4  ' });
@@ -151,6 +226,7 @@ describe('BFN catalog discovery projection', () => {
         signals: [],
         hosts: [],
         sources: ['needle'],
+        semanticTerms: [],
       },
     };
     const nameMatch = {
@@ -161,6 +237,7 @@ describe('BFN catalog discovery projection', () => {
         signals: [],
         hosts: [],
         sources: [],
+        semanticTerms: [],
       },
     };
     const stableNameMatch = {
@@ -171,6 +248,7 @@ describe('BFN catalog discovery projection', () => {
         signals: [],
         hosts: [],
         sources: [],
+        semanticTerms: [],
       },
     };
     const synthetic: BfnCatalogDiscoveryModel = {
@@ -214,6 +292,52 @@ describe('BFN catalog discovery projection', () => {
       model.filterOptions.inputSignals.some((signal) => signal.id === target.inputSignalId),
     ).toBe(true);
     expect(model.filterOptions.hosts).toContain(target.hostSpecies);
+  });
+
+  it('combines the component-level function filter with signal, status, and host filters', () => {
+    const signalResponse = queryBfnCatalogDiscovery(model, {
+      functionalFamilyId: 'functional.signal_response',
+    });
+    expect(signalResponse.componentCount).toBeGreaterThan(0);
+    expect(signalResponse.groups.every((group) => group.role === 'receiver')).toBe(true);
+
+    const signalProduction = queryBfnCatalogDiscovery(model, {
+      functionalFamilyId: 'functional.signal_production',
+    });
+    expect(signalProduction.componentCount).toBeGreaterThan(0);
+    expect(signalProduction.groups.every((group) => group.role === 'sender')).toBe(true);
+    expect(signalProduction.responseCount).toBe(0);
+
+    const target = signalResponse.groups
+      .flatMap((group) => group.responses)
+      .find((response) => response.runnable && response.hostSpecies !== null);
+    if (!target?.hostSpecies) throw new Error('Runnable semantic filter fixture is missing.');
+    const combined = queryBfnCatalogDiscovery(model, {
+      functionalFamilyId: 'functional.signal_response',
+      status: 'runnable-demo',
+      inputSignalId: target.inputSignalId,
+      host: target.hostSpecies,
+    });
+    expect(combined.responseCount).toBeGreaterThan(0);
+    expect(
+      combined.groups.every(
+        (group) =>
+          group.semantic?.functionalFamilyId === 'functional.signal_response' &&
+          group.responses.every(
+            (response) =>
+              response.runnable &&
+              response.inputSignalId === target.inputSignalId &&
+              response.hostSpecies === target.hostSpecies,
+          ),
+      ),
+    ).toBe(true);
+
+    expect(
+      queryBfnCatalogDiscovery(model, {
+        functionalFamilyId: 'functional.signal_production',
+        inputSignalId: target.inputSignalId,
+      }),
+    ).toMatchObject({ componentCount: 0, responseCount: 0 });
   });
 
   it('keeps component grouping while pruning response rows for a signal', () => {

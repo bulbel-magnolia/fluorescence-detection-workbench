@@ -167,7 +167,7 @@ export const bfnEnUS = {
     linear_transfer: 'Linear response',
     identity: 'Direct response',
     independent_inputs: 'Independent dual-input response',
-    first_order: 'First-order dynamic response',
+    first_order: 'First-order dynamic model',
   },
   entities: {
     normalizedPromoterActivity: 'Promoter activity',
@@ -415,6 +415,14 @@ export const bfnEnUS = {
       'The input is outside the trusted literature-response working range, so execution was blocked.',
     catalog_execution_unavailable:
       'This literature catalog response is not admitted for numerical execution in the current release.',
+  },
+  semantic: {
+    functionFilter: 'Function',
+    classificationTitle: 'Functional classification',
+    functionalFamily: 'Functional family',
+    biologicalFamily: 'Biological component family',
+    mathematicalModel: 'Mathematical model',
+    unavailable: 'Semantic classification unavailable',
   },
   inspector: {
     project: 'Network details',

@@ -8,6 +8,16 @@ import type {
   ReleaseSignalView,
   ReleaseSourceView,
 } from '../../modeling/catalog/releaseCatalogPresentation';
+import type {
+  BfnBiologicalComponentFamilyId,
+  BfnFunctionalFamilyId,
+} from '../../modeling/ontology/v1/ontologyTypes';
+import {
+  bfnSemanticProfileFamilyIdentity,
+  bfnSemanticProfileSearchTerms,
+  DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+  type BfnSemanticPresentationAdapter,
+} from '../semantic/semanticPresentation';
 
 export type BfnCatalogDiscoveryStatus =
   'runnable-demo' | 'needs-calibration' | 'qualitative-only' | 'reference-only' | 'unavailable';
@@ -29,6 +39,12 @@ interface BfnCatalogDiscoverySearchCorpus {
   signals: readonly string[];
   hosts: readonly string[];
   sources: readonly string[];
+  semanticTerms: readonly string[];
+}
+
+export interface BfnCatalogDiscoverySemantic {
+  functionalFamilyId: BfnFunctionalFamilyId;
+  biologicalComponentFamilyId: BfnBiologicalComponentFamilyId;
 }
 
 export interface BfnCatalogDiscoveryResponse {
@@ -62,6 +78,7 @@ export interface BfnCatalogDiscoveryGroup {
   hostStrain: string | null;
   source: BfnCatalogDiscoverySourceSummary | null;
   additionalSourceCount: number;
+  semantic: BfnCatalogDiscoverySemantic | null;
   responses: readonly BfnCatalogDiscoveryResponse[];
   search: BfnCatalogDiscoverySearchCorpus;
 }
@@ -73,11 +90,16 @@ export interface BfnCatalogDiscoverySignalFilter {
   abbreviations: readonly string[];
 }
 
+export interface BfnCatalogDiscoveryFunctionalFamilyFilter {
+  id: BfnFunctionalFamilyId;
+}
+
 export interface BfnCatalogDiscoveryModel {
   catalogVersion: string;
   groups: readonly BfnCatalogDiscoveryGroup[];
   filterOptions: {
     statuses: readonly BfnCatalogDiscoveryStatusFilter[];
+    functionalFamilies: readonly BfnCatalogDiscoveryFunctionalFamilyFilter[];
     inputSignals: readonly BfnCatalogDiscoverySignalFilter[];
     hosts: readonly string[];
   };
@@ -91,6 +113,7 @@ export interface BfnCatalogDiscoveryModel {
 export interface BfnCatalogDiscoveryFilters {
   query?: string;
   status?: BfnCatalogDiscoveryStatusFilter | 'all';
+  functionalFamilyId?: BfnFunctionalFamilyId | 'all';
   inputSignalId?: string;
   host?: string;
 }
@@ -123,13 +146,15 @@ interface SearchMatch {
 
 export function buildBfnCatalogDiscoveryModel(
   presentation: ReleaseCatalogPresentation,
+  semanticAdapter: BfnSemanticPresentationAdapter = DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
 ): BfnCatalogDiscoveryModel {
   const responseOrder = new Map(
     presentation.responseVariants.map((response, index) => [response.id, index]),
   );
   const groups = presentation.components.map((component, order) =>
-    buildDiscoveryGroup(component, order, responseOrder),
+    buildDiscoveryGroup(component, order, responseOrder, presentation, semanticAdapter),
   );
+  const functionalFamilies = uniqueFunctionalFamilies(groups);
   const inputSignals = uniqueById(
     presentation.responseVariants.map((response) => response.inputMolecule),
   ).map(toSignalFilter);
@@ -146,6 +171,7 @@ export function buildBfnCatalogDiscoveryModel(
     groups,
     filterOptions: {
       statuses: BFN_CATALOG_DISCOVERY_STATUS_FILTERS,
+      functionalFamilies,
       inputSignals,
       hosts,
     },
@@ -163,11 +189,14 @@ export function queryBfnCatalogDiscovery(
 ): BfnCatalogDiscoveryQueryResult {
   const tokens = tokenize(filters.query ?? '');
   const status = filters.status ?? 'all';
+  const functionalFamilyId = filters.functionalFamilyId ?? 'all';
   const inputSignalId = filters.inputSignalId ?? 'all';
   const host = filters.host ?? 'all';
   const matches: Array<{ group: BfnCatalogDiscoveryGroup; score: number }> = [];
 
   for (const group of model.groups) {
+    if (functionalFamilyId !== 'all' && group.semantic?.functionalFamilyId !== functionalFamilyId)
+      continue;
     if (group.role === 'sender') {
       if (inputSignalId !== 'all') continue;
       if (status !== 'all' && group.status !== status) continue;
@@ -250,8 +279,11 @@ function buildDiscoveryGroup(
   component: ReleaseComponentView,
   order: number,
   responseOrder: ReadonlyMap<string, number>,
+  presentation: ReleaseCatalogPresentation,
+  semanticAdapter: BfnSemanticPresentationAdapter,
 ): BfnCatalogDiscoveryGroup {
-  const componentSearch = componentSearchCorpus(component);
+  const semanticProjection = projectDiscoverySemantic(component.id, presentation, semanticAdapter);
+  const componentSearch = componentSearchCorpus(component, semanticProjection.searchTerms);
   const sourceSummary = summarizeSources(component.sources);
   const responses = component.responseVariants.map((response) => {
     const responseSources = response.sources.length > 0 ? response.sources : component.sources;
@@ -278,6 +310,7 @@ function buildDiscoveryGroup(
         signals: signalSearchTerms(response.inputMolecule),
         hosts: compact([hostSpecies, hostStrain]),
         sources: sourceSearchTerms(responseSources),
+        semanticTerms: [],
       }),
     };
   });
@@ -299,12 +332,60 @@ function buildDiscoveryGroup(
     hostStrain: component.hostStrain,
     source: sourceSummary.source,
     additionalSourceCount: sourceSummary.additionalCount,
+    semantic: semanticProjection.semantic,
     responses,
     search: componentSearch,
   };
 }
 
-function componentSearchCorpus(component: ReleaseComponentView): BfnCatalogDiscoverySearchCorpus {
+function projectDiscoverySemantic(
+  componentId: string,
+  presentation: ReleaseCatalogPresentation,
+  semanticAdapter: BfnSemanticPresentationAdapter,
+): {
+  semantic: BfnCatalogDiscoverySemantic | null;
+  searchTerms: readonly string[];
+} {
+  try {
+    const profile = semanticAdapter.resolveCatalogComponent(componentId, presentation);
+    const identity = bfnSemanticProfileFamilyIdentity(profile);
+    const functionalFamilyId = identity.functionalFamilyIds[0];
+    const biologicalComponentFamilyId = identity.biologicalFamilyIds[0];
+    if (
+      identity.functionalFamilyIds.length !== 1 ||
+      identity.biologicalFamilyIds.length !== 1 ||
+      functionalFamilyId === undefined ||
+      biologicalComponentFamilyId === undefined
+    ) {
+      return { semantic: null, searchTerms: Object.freeze([]) };
+    }
+    return {
+      semantic: { functionalFamilyId, biologicalComponentFamilyId },
+      searchTerms: bfnSemanticProfileSearchTerms(profile),
+    };
+  } catch {
+    return { semantic: null, searchTerms: Object.freeze([]) };
+  }
+}
+
+function uniqueFunctionalFamilies(
+  groups: readonly BfnCatalogDiscoveryGroup[],
+): BfnCatalogDiscoveryFunctionalFamilyFilter[] {
+  const seen = new Set<BfnFunctionalFamilyId>();
+  const result: BfnCatalogDiscoveryFunctionalFamilyFilter[] = [];
+  for (const group of groups) {
+    const id = group.semantic?.functionalFamilyId;
+    if (id === undefined || seen.has(id)) continue;
+    seen.add(id);
+    result.push({ id });
+  }
+  return result;
+}
+
+function componentSearchCorpus(
+  component: ReleaseComponentView,
+  semanticTerms: readonly string[],
+): BfnCatalogDiscoverySearchCorpus {
   return {
     componentNames: compact([component.names.en, component.names.zh]),
     componentMetadata: compact([
@@ -316,6 +397,7 @@ function componentSearchCorpus(component: ReleaseComponentView): BfnCatalogDisco
     signals: [],
     hosts: compact([component.hostSpecies, component.hostStrain]),
     sources: sourceSearchTerms(component.sources),
+    semanticTerms,
   };
 }
 
@@ -345,6 +427,7 @@ function mergeSearchCorpus(
     signals: [...left.signals, ...right.signals],
     hosts: [...left.hosts, ...right.hosts],
     sources: [...left.sources, ...right.sources],
+    semanticTerms: [...left.semanticTerms, ...right.semanticTerms],
   };
 }
 
@@ -370,6 +453,7 @@ function tokenRank(corpus: BfnCatalogDiscoverySearchCorpus, token: string): numb
   if (containsToken(corpus.signals, token)) return 3;
   if (containsToken(corpus.hosts, token)) return 4;
   if (containsToken(corpus.sources, token)) return 5;
+  if (containsToken(corpus.semanticTerms, token)) return 6;
   return null;
 }
 
