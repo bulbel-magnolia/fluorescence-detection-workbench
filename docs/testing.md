@@ -679,3 +679,29 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 一次沙箱内定向 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；定向 Vitest、完整 Vitest 与 Vite build 均在获批环境使用相同 npm 命令通过；
 - 冻结 AHL/HSL V1.1 JSON、BFN types、Workspace、`package.json` 与 lockfile 相对基线保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
 - 基线提交 `e9c6228343f7598ced668904f1fb518742928676` 的 GitHub combined status 返回 `statuses: []`；本轮结论仅为 local full validation passed，不声明 GitHub CI 已通过。
+
+## 2026-08-28 Batch 8.2.1 Scientific UX & Chart Integrity Fix
+
+### 交互与图表回归
+
+- Inverse Engine 定向回归为 5 个测试文件、83 项测试全部通过；既有 admission、exact Signal、working-range Eligibility、trusted evaluator、EC50 / Hill deviation、三类状态与确定性排序合同保持原样；
+- Inverse UI 定向回归为 5 个测试文件、31 项测试全部通过，覆盖 Host 为空时的 strain-only 精确搜索、Host 改变时保留合法 Strain / 清空不兼容 Strain、实时 validation Search gate、可搜索 warning、fresh explicit search、stale 结果、最多 3 条手动比较与比较计数；
+- 图表回归确认单候选和多候选只消费调用方提供的曲线点；每个真实 eligible Candidate 仍为 61 点。比较视图只绘制已选曲线并共享一组 2 条 Target 约束，Not Applicable 不绘图；宽量程横轴使用 5 个可读整十倍刻度；
+- 跨实验背景比较继续显示归一化响应边界提示，生产文案不包含综合评分、最佳方案、推荐方案或自动 Top 3 表达。
+
+### Visual / responsive audit
+
+- `docs/ui-audit/catalog-inverse-design/` 中的 `01`、`02`、`03`、`05`、`06` 与新增 `07` 已从真实 Application 生产路径重新生成，均为 1440×900 PNG；覆盖初始 Search gate、Matched、Near Match + Not Applicable、候选比较、深色主题和 strain-only filter；
+- 1440×900、1280×720、1180×700 下 document/body client width 与 scroll width 分别严格相等，页面级水平溢出均为 0；三栏宽度分别为 303 / 357 / 505 px、286 / 330 / 422 px、261 / 302 / 378 px；
+- 1280×720 下对比表容器 client / scroll width 为 392 / 540 px；1180×700 下为 348 / 540 px，水平滚动限制在表格容器内；
+- 运行时审计确认真实单候选曲线为 61 点，对比曲线为 2 × 61 点，Target 约束为 2 条；图中文字和科学表格为 10.5 px，轴标题为 11 px；页面 warn / error 日志为 0。
+
+### Batch 8.2.1 完整门禁
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 108 个测试文件、826 项测试全部通过；未提高 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，253 个模块完成转换；主 JavaScript chunk 为 1,248.75 kB、gzip 302.18 kB；主 CSS 为 261.68 kB、gzip 44.36 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
+- 一次沙箱内 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；定向回归、完整 Vitest 与 Vite build 随后在获批环境使用相同 npm scripts 通过；
+- 冻结 AHL/HSL V1.1 JSON、BFN types、BFN-SIM、Workspace、`package.json` 与 lockfile 相对基线 `996c8d9b4b4b074ffd0a94ab9246d53b1919eef9` 保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
+- 实现提交 `18733256c86be89da5ec0d5f353a86286c24bd48` 的 GitHub combined status 返回 `state: pending`、`total_count: 0`、`statuses: []`；本轮结论为 local full validation passed，不声明 GitHub CI 已通过。
