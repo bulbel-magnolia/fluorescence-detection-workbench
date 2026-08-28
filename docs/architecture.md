@@ -25,6 +25,8 @@ flowchart LR
   FILE["JSON / CSV"] --> I["导入校验"]
   I --> A
 
+  ONTO[BFN ONTOLOGY 1.0 只读语义层] -. 运行时分类且不持久化 .-> MODEL
+
   MODEL["BFN-IR 2.0 功能模块网络"] --> SIM["静态 / 动态完整模型求解"]
   SIM --> ANN["条件化 ANN 近似"]
   SIM --> RUNS["本机运行快照"]
@@ -119,6 +121,10 @@ LED 命令使用单一在途请求：BLE 写入后状态为 `accepted`，收到�
 
 功能模块保存完整静态或动态响应、参数区间、上下文、适用域、数据来源、证据等级、模型版本和生物实现。静态引擎支持固定值、工作域扫描、多输入组合、Hill、线性、identity 和独立作用模型；动态引擎当前支持一阶响应、恒定/阶跃/脉冲/周期/自定义输入和静态无记忆模块。两条路径都传播演示参数区间并标记域外外推。
 
+`features/modeling/ontology/v1` 提供独立 BFN-ONTOLOGY-1.0 语义覆盖层。Functional Family、Biological Component Family、Mathematical Model Family 与 Runtime / Evidence Capability 是四个独立维度。Catalog 对象只从可信 presentation 的精确 Component ID 与 canonical role 分类；内置模块只从稳定 label key 的精确软件映射分类。未知模块返回两个显式 unclassified term，名称、别名、模型族和 static/dynamic 模式不触发推断。
+
+Ontology registry、term 与 assignment 深冻结并执行 manifest、唯一性、父级、环、顺序和覆盖校验。Resolver 只读取 BFN module identity，返回深冻结 semantic profile，不调用求值器、仿真或实例化逻辑。分类不改变端口兼容、运行资格、Catalog trust、证据等级、Add eligibility 或构建状态。
+
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
 反向设计把功能参数 `θ` 与生物设计变量 `q` 分离，通过版本化校准映射计算候选完整响应，并综合评价功能误差、宿主负载、串扰、噪声、不确定性和遗传稳定性。结果是带 `proposed_unbuilt_design` 证据等级和验证建议的候选集合，不是一个无解释的最优答案。
@@ -138,6 +144,8 @@ Tauri 环境使用 `sqlite:fluorescence.db`，迁移位于 `src-tauri/migrations
 浏览器开发模式使用 localStorage 回退，使界面和状态测试不依赖原生插件。该回退不用于生产数据库能力评价。
 
 BFN-IR 2.0 项目和运行快照分别使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`。旧建模键保持原样，V2 导入只接受 `schema: BFN-IR` 与 `schemaVersion: 2.0`。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
+
+BFN-ONTOLOGY-1.0 是随应用发布的版本化只读 registry，不写 localStorage、IndexedDB、BFN Project、Version 或 Run。Workspace IndexedDB schema 继续保持 v1。
 
 ### 云端层
 

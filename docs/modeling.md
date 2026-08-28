@@ -76,6 +76,16 @@ V2 直接保存以下证据等级：
 
 多输入缺少交互证据时使用 `independent_assumption`，模型内部同时保存 `independent_unverified`。反向设计生成的候选统一标记为 `proposed_unbuilt_design`。
 
+## Semantic classification layer
+
+BFN-ONTOLOGY-1.0 在 BFN-IR 外提供独立的运行时生物语义分类。Functional Family 回答模块在网络中做什么；Biological Component Family 描述广义生物实现；`BfnModelFamily` 继续回答数学上如何计算；运行资格和证据能力继续由 Catalog 与既有 BFN 合同决定。Ontology 只描述类别，不授予证据、运行、兼容或构建状态。
+
+Reporter 的 Functional Family 为 `functional.expression_transfer`，其 Mathematical Model Family 仍为 `linear_transfer`。AHL Sensor 的 Functional Family 为 `functional.signal_response`，其模型 variant 可以是静态 Hill 或动态 first-order。Dual Input 的 `functional.multi_input_integration` 不改变 `independent_unverified` 交互假设。
+
+Catalog Component 只按可信 canonical role 与精确 Component ID 分类；内置模块只按稳定 label key 的 exact software mapping 分类。名称、别名、翻译、端口、数学模型和 static/dynamic 模式都不参与推断。派生 profile 不写入 BFN-IR、Workspace 或 Run。完整术语、assignment、fallback 和科学边界见 [BFN 生物功能语义本体](ontology.md)。
+
+既有 `BfnCatalogModuleSummary.familyKey` 仍是 model-family presentation，不是 Ontology Functional Family；内部重命名留待后续展示层整理。
+
 ## 静态完整模型
 
 静态求解器支持：
@@ -331,6 +341,7 @@ Current Draft 使用 320 ms 防抖自动保存。Autosave 防止编辑丢失，�
 ## 代码边界
 
 - `src/features/bfn/types.ts`：BFN-IR 2.0 类型；
+- `src/features/modeling/ontology/v1/`：BFN-ONTOLOGY-1.0 术语、可信 assignment、纯读取 resolver 与 fail-closed validation；
 - `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；

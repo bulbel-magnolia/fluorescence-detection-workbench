@@ -736,3 +736,37 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
 - 一次沙箱内定向 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；定向回归、完整 Vitest 与 Vite build 随后在获批环境使用相同 npm scripts 通过；
 - 冻结 AHL/HSL V1.1 JSON、BFN types、BFN-SIM、Workspace、`package.json` 与 lockfile 相对基线 `15b954fd7f73fd99a2744f1999c8b68049e6c3fb` 保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1。
+
+## 2026-08-28 Batch 9.0 + 9.1 Semantic Ontology Contract & Versioned Registry
+
+### Registry 与 assignment 合同
+
+- `ontologyRegistry.test.ts` 为 1 个文件、5 项测试，覆盖 BFN-ONTOLOGY-1.0 manifest、13 个精确术语、稳定 ID 顺序、kind 查询、双语名称、深冻结，以及数学模型、运行状态和证据词汇不进入 term ID；
+- `ontologyAssignments.test.ts` 为 1 个文件、5 项测试，按当前冻结 release 实际 Component 数验证每个 canonical receiver / sender 恰好得到 1 个 Functional 与 1 个 Broad Biological assignment，并核对 3 个内置模块的显式 curated 表、exact label-key map、90 条完整 assignment 的深冻结与稳定顺序；
+- assignment validation 拒绝重复 subject-term、未知 ontology ID、空 subject ID、错误 basis、缺失 family 和当前 exact mapping 偏移；Catalog 规则只读取可信 canonical role，不读取名称、alias、搜索词或模型族；
+- 当前 AHL/HSL V1.1 的 42 个 Component 全部解析；该数量来自冻结 release，resolver 与业务规则没有把 42 固定为循环上限。
+
+### Resolver、纯读取与科学边界
+
+- `ontologyResolver.test.ts` 为 1 个文件、8 项测试，覆盖 Catalog Component、Built-in ID、Catalog-backed BFN Module、Built-in BFN Module、unknown Module、active / available model、displayName mutation、near-match label key、`LuxR Sensor` 名称和 `hill_activation` model-family 非推断；
+- Catalog resolver 只接受 `isTrustedReleaseCatalogPresentation()` 通过的对象；untrusted presentation 与缺失 exact Component ID 分别产生 typed fail-closed 错误；普通未知模块返回两个显式 unclassified term；
+- Catalog sender 可解析为 signal production 与 AHL synthase，同时 sender output 仍为 0、response variant 为 0、simulationReady 为 false；Ontology 未授予定量发送函数；
+- Built-in Reporter 的 evidence 保持 `mechanistic_model_only`，Dual Input 的 `interactionAssumption` 保持 `independent_unverified`，AHL Sensor 的 static Hill 与 dynamic first-order variant 共享同一 Functional Family；
+- Project 在解析前后 deep equal，computation signature 不变，BFN-IR 仍为 2.0；源码依赖边界测试确认 Registry、Assignment 与 Resolver 不接求值、Simulation 或 Instantiation 路径。
+
+### Validation 与完整门禁
+
+- `ontologyValidation.test.ts` 为 1 个文件、5 项测试，覆盖合法 Registry、mutable registry 拒绝、manifest、重复 term、稳定顺序、parent existence、kind consistency、cycle detection、assignment cardinality、basis 和 expected mapping；
+- Ontology 定向回归合计 4 个测试文件、23 项测试全部通过；
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 113 个测试文件、858 项测试全部通过；Batch 5 Catalog、Batch 6 Workspace、Batch 8 inverse、静态/动态 BFN 与 Simulation 回归保持通过；
+- Vite 7.3.6 生产构建通过，253 个模块完成转换；主 JavaScript chunk 为 1,251.05 kB、gzip 302.69 kB；主 CSS 为 262.29 kB、gzip 44.46 kB；`index.html` 为 0.54 kB、gzip 0.37 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增 warning 或运行时依赖；
+- 沙箱内首次定向 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；相同命令在获批环境复跑通过，完整 Vitest 与 Vite build 也在获批环境通过；
+- 本轮没有可见 UI 变化，不新增视觉审计截图。
+
+### Frozen artifacts
+
+- 相对 Batch 8.3 基线 `506215e128cb9e5da66542caa13363722702b383`，冻结 AHL/HSL V1.1 JSON 为零差异，SHA-256 仍为 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；
+- `src/features/bfn/types.ts`、Simulation、Inverse Design、Workspace、`package.json` 与 lockfile 均为零差异；
+- BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 版本保持 1；Ontology 不写 Project、Version、Run、localStorage 或 IndexedDB。
