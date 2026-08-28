@@ -1900,10 +1900,16 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           />
         ) : null}
 
-        {view === 'inverse' ? <BfnCatalogInverseWorkspace /> : null}
+        {view === 'inverse' ? (
+          <BfnCatalogInverseWorkspace
+            onOpenCatalogDetail={(responseId) =>
+              openCatalogDetail({ kind: 'response', responseId })
+            }
+          />
+        ) : null}
       </div>
 
-      {view === 'design' && modulePickerOpen ? (
+      {modulePickerOpen ? (
         <BfnCatalogDiscoveryDrawer
           project={project}
           onClose={closeCatalogDrawer}

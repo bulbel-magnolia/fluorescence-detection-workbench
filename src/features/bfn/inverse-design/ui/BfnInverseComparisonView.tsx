@@ -26,6 +26,7 @@ interface BfnInverseComparisonViewProps {
   presentation: ReleaseCatalogPresentation;
   language: ReleaseCatalogLanguage;
   concentrationUnit: BfnCatalogInverseConcentrationUnit;
+  onOpenCatalogDetail?: ((responseId: string) => void) | undefined;
 }
 
 export function BfnInverseComparisonView({
@@ -34,21 +35,23 @@ export function BfnInverseComparisonView({
   presentation,
   language,
   concentrationUnit,
+  onOpenCatalogDetail,
 }: BfnInverseComparisonViewProps) {
   const { t } = useTranslation();
   const identities = candidates.map((candidate) =>
     resolveCatalogInverseResponsePresentation(presentation, candidate.responseId, language),
   );
-  const contextsDiffer = new Set(candidates.map((candidate) => candidate.parameterContextId)).size > 1;
+  const contextsDiffer =
+    new Set(candidates.map((candidate) => candidate.parameterContextId)).size > 1;
 
   return (
-    <section className='bfn-inverse-comparison'>
+    <section className="bfn-inverse-comparison">
       {contextsDiffer ? (
-        <p className='bfn-inverse-context-warning' role='note'>
+        <p className="bfn-inverse-context-warning" role="note">
           {t('bfn.inverseDesign.comparison.contextWarning')}
         </p>
       ) : null}
-      <section className='bfn-inverse-inspector-section'>
+      <section className="bfn-inverse-inspector-section">
         <h3>{t('bfn.inverseDesign.comparison.curves')}</h3>
         <BfnInverseResponseChart
           curves={candidates.map((candidate, index) => ({
@@ -62,11 +65,11 @@ export function BfnInverseComparisonView({
           ariaLabel={t('bfn.inverseDesign.comparison.curveAriaLabel')}
         />
       </section>
-      <section className='bfn-inverse-inspector-section'>
+      <section className="bfn-inverse-inspector-section">
         <h3>{t('bfn.inverseDesign.comparison.parameters')}</h3>
-        <div className='bfn-inverse-comparison-table-wrap'>
+        <div className="bfn-inverse-comparison-table-wrap">
           <table
-            className='bfn-inverse-comparison-table'
+            className="bfn-inverse-comparison-table"
             aria-label={t('bfn.inverseDesign.comparison.tableAriaLabel')}
           >
             <thead>
@@ -76,6 +79,18 @@ export function BfnInverseComparisonView({
                   <th key={identity.responseId}>
                     <strong>{identity.componentName}</strong>
                     <span>{identity.variantName}</span>
+                    {onOpenCatalogDetail ? (
+                      <button
+                        className="bfn-inverse-evidence-link"
+                        type="button"
+                        aria-label={t('bfn.inverseDesign.comparison.evidenceAria', {
+                          name: `${identity.componentName} · ${identity.variantName}`,
+                        })}
+                        onClick={() => onOpenCatalogDetail(identity.responseId)}
+                      >
+                        {t('bfn.inverseDesign.comparison.evidence')}
+                      </button>
+                    ) : null}
                   </th>
                 ))}
               </tr>
@@ -83,11 +98,15 @@ export function BfnInverseComparisonView({
             <tbody>
               <ComparisonRow
                 label={t('bfn.inverseDesign.comparison.lowResponse')}
-                values={candidates.map((candidate) => formatNumber(candidate.evaluation.lowResponse))}
+                values={candidates.map((candidate) =>
+                  formatNumber(candidate.evaluation.lowResponse),
+                )}
               />
               <ComparisonRow
                 label={t('bfn.inverseDesign.comparison.highResponse')}
-                values={candidates.map((candidate) => formatNumber(candidate.evaluation.highResponse))}
+                values={candidates.map((candidate) =>
+                  formatNumber(candidate.evaluation.highResponse),
+                )}
               />
               <ComparisonRow
                 label={t('bfn.inverseDesign.inspector.ec50')}
@@ -97,7 +116,9 @@ export function BfnInverseComparisonView({
               />
               <ComparisonRow
                 label={t('bfn.inverseDesign.inspector.hill')}
-                values={candidates.map((candidate) => formatNumber(candidate.model.hillCoefficient))}
+                values={candidates.map((candidate) =>
+                  formatNumber(candidate.model.hillCoefficient),
+                )}
               />
               <ComparisonRow
                 label={t('bfn.inverseDesign.inspector.workingRange')}

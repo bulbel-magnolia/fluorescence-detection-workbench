@@ -209,6 +209,7 @@
 .bfn-inverse-compare-check input:focus-visible,
 .bfn-inverse-result-row__select:focus-visible,
 .bfn-inverse-inspector-tabs button:focus-visible,
+.bfn-inverse-evidence-link:focus-visible,
 .bfn-inverse-result-group > summary:focus-visible {
   outline: 2px solid var(--ui-focus-ring);
   outline-offset: 1px;
@@ -701,6 +702,10 @@
   font-weight: 680;
 }
 
+.bfn-inverse-evidence-summary__action {
+  margin-top: 9px;
+}
+
 .bfn-inverse-unavailable-note,
 .bfn-inverse-context-warning {
   margin: 10px 0;
@@ -906,6 +911,25 @@
   margin-top: 2px;
   color: var(--ui-text-muted);
   font-weight: 400;
+}
+
+.bfn-inverse-evidence-link {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  margin-top: 6px;
+  padding: 0 6px;
+  color: var(--ui-accent);
+  background: var(--ui-accent-subtle);
+  border: 1px solid var(--ui-accent);
+  border-radius: var(--ui-radius-sm);
+  font-size: 9.5px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.bfn-inverse-evidence-link:hover {
+  background: var(--ui-bg-hover);
 }
 
 @media (max-width: 1280px) {

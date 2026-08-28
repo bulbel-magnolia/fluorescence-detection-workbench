@@ -335,6 +335,63 @@ describe('BFN catalog discovery drawer', () => {
     expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
   });
 
+  it('deep-links to the exact Kylilis 3OC6 response instead of a sibling record', () => {
+    renderDrawer({
+      initialDetailTarget: {
+        kind: 'response',
+        responseId: 'resp.kylilis2018.rhl.3oc6',
+      },
+    });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    const flow = dialog.querySelector('.bfn-catalog-detail__flow');
+
+    expect(flow).toHaveTextContent('3OC6-HSL（L）');
+    expect(flow).not.toHaveTextContent('C4-HSL');
+    expect(within(dialog).getByText('resp.kylilis2018.rhl.3oc6')).toBeInTheDocument();
+    expect(within(dialog).getByText('RhlR / pRhl')).toBeInTheDocument();
+    expect(within(dialog).getAllByText(/Escherichia coli/u).length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText(/TOP10/u).length).toBeGreaterThan(0);
+    expect(
+      within(dialog).getByText(
+        'Tools for engineering coordinated system behaviour in synthetic microbial consortia',
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getAllByText('10.1038/s41467-018-05046-2').length).toBeGreaterThan(0);
+  });
+
+  it('keeps a canonical non-runnable response view-only', () => {
+    const response = loadReleaseCatalogPresentation().responseVariants.find(
+      (entry) => !entry.runnable,
+    );
+    if (!response) throw new Error('Release has no non-runnable response fixture.');
+    renderDrawer({
+      initialDetailTarget: { kind: 'response', responseId: response.id },
+    });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    expect(within(dialog).getByText(response.id)).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: '返回目录' })).toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+  });
+
+  it('contains an invalid deep-link failure inside the Drawer and can return to discovery', async () => {
+    const user = userEvent.setup();
+    renderDrawer({
+      initialDetailTarget: {
+        kind: 'response',
+        responseId: 'resp.missing.invalid-target',
+      },
+    });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+    const error = within(dialog).getByRole('alert');
+
+    expect(error).toHaveTextContent('文献记录暂不可用');
+    expect(error).toHaveTextContent('当前记录无法完成来源核对。');
+    expect(within(dialog).queryByRole('searchbox')).not.toBeInTheDocument();
+    await user.click(within(error).getByRole('button', { name: '返回目录' }));
+    expect(within(dialog).getByRole('searchbox', { name: '搜索文献目录' })).toBeInTheDocument();
+  });
+
   it('keeps the three built-in demos in a secondary disclosure', async () => {
     const user = userEvent.setup();
     const onAdd = vi.fn();

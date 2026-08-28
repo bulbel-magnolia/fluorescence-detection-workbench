@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Button } from '../../../../components/Button';
 import type {
   BfnCatalogInverseCandidateResult,
   BfnCatalogInverseCriterionResult,
@@ -13,6 +14,7 @@ import {
   catalogInverseExclusionReasonLabelKey,
   catalogInverseStatusLabelKey,
   resolveCatalogInverseResponsePresentation,
+  type BfnCatalogInverseResponsePresentation,
 } from './catalogInverseDesignPresentation';
 import type { BfnCatalogInverseResultSelection } from './catalogInverseDesignUiTypes';
 import {
@@ -27,6 +29,7 @@ interface BfnInverseCandidateInspectorProps {
   presentation: ReleaseCatalogPresentation;
   language: ReleaseCatalogLanguage;
   concentrationUnit: BfnCatalogInverseConcentrationUnit;
+  onOpenCatalogDetail?: ((responseId: string) => void) | undefined;
 }
 
 export function BfnInverseCandidateInspector({
@@ -35,57 +38,56 @@ export function BfnInverseCandidateInspector({
   presentation,
   language,
   concentrationUnit,
+  onOpenCatalogDetail,
 }: BfnInverseCandidateInspectorProps) {
   const { t } = useTranslation();
 
   if (selection === null || target === null) {
     return (
-      <section className='bfn-inverse-pane-empty bfn-inverse-pane-empty--inspector'>
+      <section className="bfn-inverse-pane-empty bfn-inverse-pane-empty--inspector">
         <strong>{t('bfn.inverseDesign.inspector.empty')}</strong>
       </section>
     );
   }
 
-  const responseId = selection.kind === 'candidate' ? selection.result.responseId : selection.responseId;
+  const responseId =
+    selection.kind === 'candidate' ? selection.result.responseId : selection.responseId;
   const response = resolveCatalogInverseResponsePresentation(presentation, responseId, language);
 
   if (selection.kind === 'unavailable') {
     return (
-      <section className='bfn-inverse-inspector-content'>
+      <section className="bfn-inverse-inspector-content">
         <CandidateHeading
           componentName={response.componentName}
           variantName={response.variantName}
-          status='not-applicable'
+          status="not-applicable"
         />
-        <div className='bfn-inverse-unavailable-note' role='note'>
+        <div className="bfn-inverse-unavailable-note" role="note">
           <strong>{t('bfn.inverseDesign.inspector.noEvaluation')}</strong>
           <p>{t(catalogInverseExclusionReasonLabelKey('trust-unavailable'))}</p>
         </div>
+        <EvidenceSummary
+          response={response}
+          candidate={null}
+          language={language}
+          concentrationUnit={concentrationUnit}
+          onOpenCatalogDetail={onOpenCatalogDetail}
+        />
       </section>
     );
   }
 
   const candidate = selection.result;
   return (
-    <section className='bfn-inverse-inspector-content'>
+    <section className="bfn-inverse-inspector-content">
       <CandidateHeading
         componentName={response.componentName}
         variantName={response.variantName}
         status={candidate.status}
       />
-      <dl className='bfn-inverse-identity-meta'>
-        <div>
-          <dt>{t('bfn.inverseDesign.inspector.source')}</dt>
-          <dd>{response.sourceSummary ?? t('bfn.inverseDesign.common.notRecorded')}</dd>
-        </div>
-        <div>
-          <dt>{t('bfn.inverseDesign.inspector.context')}</dt>
-          <dd>{contextLabel(response.hostSpecies, response.hostStrain, t('bfn.inverseDesign.common.notRecorded'))}</dd>
-        </div>
-      </dl>
 
       {candidate.status === 'not-applicable' ? (
-        <div className='bfn-inverse-unavailable-note' role='note'>
+        <div className="bfn-inverse-unavailable-note" role="note">
           <strong>{t('bfn.inverseDesign.inspector.noEvaluation')}</strong>
           <ul>
             {candidate.exclusionReasons.map((reason) => (
@@ -95,7 +97,7 @@ export function BfnInverseCandidateInspector({
         </div>
       ) : (
         <>
-          <section className='bfn-inverse-inspector-section'>
+          <section className="bfn-inverse-inspector-section">
             <h3>{t('bfn.inverseDesign.inspector.responseCurve')}</h3>
             <BfnInverseResponseChart
               curves={[
@@ -111,9 +113,12 @@ export function BfnInverseCandidateInspector({
               ariaLabel={t('bfn.inverseDesign.inspector.curveAriaLabel')}
             />
           </section>
-          <section className='bfn-inverse-inspector-section'>
+          <section className="bfn-inverse-inspector-section">
             <h3>{t('bfn.inverseDesign.inspector.criteriaTitle')}</h3>
-            <table className='bfn-inverse-criteria-table' aria-label={t('bfn.inverseDesign.inspector.criteriaTable')}>
+            <table
+              className="bfn-inverse-criteria-table"
+              aria-label={t('bfn.inverseDesign.inspector.criteriaTable')}
+            >
               <thead>
                 <tr>
                   <th>{t('bfn.inverseDesign.inspector.criterion')}</th>
@@ -141,9 +146,9 @@ export function BfnInverseCandidateInspector({
         </>
       )}
 
-      <section className='bfn-inverse-inspector-section'>
+      <section className="bfn-inverse-inspector-section">
         <h3>{t('bfn.inverseDesign.inspector.modelTitle')}</h3>
-        <dl className='bfn-inverse-model-grid'>
+        <dl className="bfn-inverse-model-grid">
           <ModelFact
             label={t('bfn.inverseDesign.inspector.ec50')}
             value={formatConcentration(candidate.model.ec50M, concentrationUnit, language)}
@@ -152,24 +157,78 @@ export function BfnInverseCandidateInspector({
             label={t('bfn.inverseDesign.inspector.hill')}
             value={formatNumber(candidate.model.hillCoefficient)}
           />
-          <ModelFact
-            label={t('bfn.inverseDesign.inspector.workingRange')}
-            value={`${formatConcentration(candidate.model.workingRangeM.minimum, concentrationUnit, language)} – ${formatConcentration(candidate.model.workingRangeM.maximum, concentrationUnit, language)}`}
-          />
-          <ModelFact
-            label={t('bfn.inverseDesign.inspector.mechanism')}
-            value={t(`bfn.inverseDesign.direction.${candidate.biologicalDirection}`)}
-          />
-          <ModelFact
-            label={t('bfn.inverseDesign.target.host')}
-            value={candidate.context.hostSpecies ?? t('bfn.inverseDesign.common.notRecorded')}
-          />
-          <ModelFact
-            label={t('bfn.inverseDesign.target.strain')}
-            value={candidate.context.hostStrain ?? t('bfn.inverseDesign.common.notRecorded')}
-          />
         </dl>
       </section>
+      <EvidenceSummary
+        response={response}
+        candidate={candidate}
+        language={language}
+        concentrationUnit={concentrationUnit}
+        onOpenCatalogDetail={onOpenCatalogDetail}
+      />
+    </section>
+  );
+}
+
+function EvidenceSummary({
+  response,
+  candidate,
+  language,
+  concentrationUnit,
+  onOpenCatalogDetail,
+}: {
+  response: BfnCatalogInverseResponsePresentation;
+  candidate: BfnCatalogInverseCandidateResult | null;
+  language: ReleaseCatalogLanguage;
+  concentrationUnit: BfnCatalogInverseConcentrationUnit;
+  onOpenCatalogDetail?: ((responseId: string) => void) | undefined;
+}) {
+  const { t } = useTranslation();
+  const notRecorded = t('bfn.inverseDesign.common.notRecorded');
+  const hostSpecies = candidate?.context.hostSpecies ?? response.hostSpecies;
+  const hostStrain = candidate?.context.hostStrain ?? response.hostStrain;
+  return (
+    <section className="bfn-inverse-inspector-section bfn-inverse-evidence-summary">
+      <h3>{t('bfn.inverseDesign.inspector.evidenceTitle')}</h3>
+      <dl className="bfn-inverse-model-grid">
+        <ModelFact
+          label={t('bfn.inverseDesign.inspector.primarySource')}
+          value={response.sourceSummary ?? notRecorded}
+        />
+        <ModelFact
+          label={t('bfn.inverseDesign.inspector.hostStrain')}
+          value={contextLabel(hostSpecies, hostStrain, notRecorded)}
+        />
+        <ModelFact
+          label={t('bfn.inverseDesign.inspector.workingRange')}
+          value={
+            candidate
+              ? `${formatConcentration(candidate.model.workingRangeM.minimum, concentrationUnit, language)} – ${formatConcentration(candidate.model.workingRangeM.maximum, concentrationUnit, language)}`
+              : notRecorded
+          }
+        />
+        <ModelFact
+          label={t('bfn.inverseDesign.inspector.mechanism')}
+          value={
+            candidate
+              ? t(`bfn.inverseDesign.direction.${candidate.biologicalDirection}`)
+              : notRecorded
+          }
+        />
+      </dl>
+      {onOpenCatalogDetail ? (
+        <Button
+          className="bfn-inverse-evidence-summary__action"
+          size="sm"
+          variant="secondary"
+          aria-label={t('bfn.inverseDesign.inspector.evidenceActionAria', {
+            name: `${response.componentName} · ${response.variantName}`,
+          })}
+          onClick={() => onOpenCatalogDetail(response.responseId)}
+        >
+          {t('bfn.inverseDesign.inspector.evidenceAction')}
+        </Button>
+      ) : null}
     </section>
   );
 }
@@ -185,12 +244,12 @@ function CandidateHeading({
 }) {
   const { t } = useTranslation();
   return (
-    <header className='bfn-inverse-candidate-heading'>
+    <header className="bfn-inverse-candidate-heading">
       <div>
         <p>{variantName}</p>
         <h2>{componentName}</h2>
       </div>
-      <span className='bfn-inverse-status' data-status={status}>
+      <span className="bfn-inverse-status" data-status={status}>
         {t(catalogInverseStatusLabelKey(status))}
       </span>
     </header>
@@ -211,7 +270,8 @@ function criterionObserved(
   unit: BfnCatalogInverseConcentrationUnit,
   language: ReleaseCatalogLanguage,
 ): string {
-  if (criterion.kind === 'ec50-range') return formatConcentration(criterion.actualM, unit, language);
+  if (criterion.kind === 'ec50-range')
+    return formatConcentration(criterion.actualM, unit, language);
   if (criterion.kind === 'hill-range') return formatNumber(criterion.actual);
   return formatNumber(criterion.actual);
 }
@@ -221,8 +281,10 @@ function criterionRequirement(
   unit: BfnCatalogInverseConcentrationUnit,
   language: ReleaseCatalogLanguage,
 ): string {
-  if (criterion.kind === 'low-response-maximum') return `≤ ${formatNumber(criterion.requiredMaximum)}`;
-  if (criterion.kind === 'high-response-minimum') return `≥ ${formatNumber(criterion.requiredMinimum)}`;
+  if (criterion.kind === 'low-response-maximum')
+    return `≤ ${formatNumber(criterion.requiredMaximum)}`;
+  if (criterion.kind === 'high-response-minimum')
+    return `≥ ${formatNumber(criterion.requiredMinimum)}`;
   if (criterion.kind === 'ec50-range')
     return `${formatConcentration(criterion.requiredRangeM.minimum, unit, language)} – ${formatConcentration(criterion.requiredRangeM.maximum, unit, language)}`;
   return `${formatNumber(criterion.requiredRange.minimum)} – ${formatNumber(criterion.requiredRange.maximum)}`;

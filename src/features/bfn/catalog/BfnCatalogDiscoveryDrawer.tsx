@@ -90,9 +90,21 @@ export function BfnCatalogDiscoveryDrawer({
     [host, inputSignalId, loadResult.model, query, status],
   );
   const singleGroupId = result?.componentCount === 1 ? (result.groups[0]?.id ?? null) : null;
-  const detail = useMemo(() => {
-    if (!detailTarget || !loadResult.presentation) return null;
-    return buildBfnCatalogDetail(loadResult.presentation, detailTarget, runtimeCandidateBuilder);
+  const detailResult = useMemo(() => {
+    if (!detailTarget) return { detail: null, error: false } as const;
+    if (!loadResult.presentation) return { detail: null, error: true } as const;
+    try {
+      return {
+        detail: buildBfnCatalogDetail(
+          loadResult.presentation,
+          detailTarget,
+          runtimeCandidateBuilder,
+        ),
+        error: false,
+      } as const;
+    } catch {
+      return { detail: null, error: true } as const;
+    }
   }, [detailTarget, loadResult.presentation, runtimeCandidateBuilder]);
 
   useEffect(() => {
@@ -161,7 +173,9 @@ export function BfnCatalogDiscoveryDrawer({
       host={host}
       hasActiveFilters={hasActiveFilters}
       selected={selected}
-      detail={detail}
+      detail={detailResult.detail}
+      detailOpen={detailTarget !== null}
+      detailError={detailResult.error}
       isExpanded={isExpanded}
       onToggleGroup={toggleGroup}
       onSelect={setSelected}
@@ -193,6 +207,8 @@ interface DiscoveryDrawerSurfaceProps {
   hasActiveFilters: boolean;
   selected: SelectedEntry | null;
   detail: BfnCatalogDetail | null;
+  detailOpen: boolean;
+  detailError: boolean;
   isExpanded: (groupId: string) => boolean;
   onToggleGroup: (group: BfnCatalogDiscoveryGroup) => void;
   onSelect: (entry: SelectedEntry) => void;
@@ -207,6 +223,12 @@ interface DiscoveryDrawerSurfaceProps {
 
 function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
   const { t } = useTranslation();
+  const footerKey =
+    props.detail?.kind === 'response' && props.detail.canAddToNetwork
+      ? 'bfn.catalogDetail.runnableFooter'
+      : props.detailOpen
+        ? 'bfn.catalogDetail.viewOnlyFooter'
+        : 'bfn.catalogDiscovery.readOnlyBoundary';
   return (
     <div className="bfn-drawer-layer">
       <button
@@ -224,7 +246,7 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
           if (event.key !== 'Escape') return;
           event.preventDefault();
           event.stopPropagation();
-          if (props.detail) props.onBackToCatalog();
+          if (props.detailOpen) props.onBackToCatalog();
           else props.onClose();
         }}
       >
@@ -232,7 +254,7 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
         <div
           ref={props.bodyRef}
           className="bfn-catalog-discovery__body"
-          data-view={props.detail ? 'detail' : 'catalog'}
+          data-view={props.detailOpen ? 'detail' : 'catalog'}
         >
           {props.detail ? (
             <BfnCatalogDetailView
@@ -242,6 +264,8 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
               onBack={props.onBackToCatalog}
               onInstantiate={props.onInstantiateCatalogResponse}
             />
+          ) : props.detailError ? (
+            <CatalogDetailLoadError onBack={props.onBackToCatalog} />
           ) : (
             <>
               <BuiltInModuleDisclosure project={props.project} onAdd={props.onAddBuiltInModule} />
@@ -250,16 +274,8 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
           )}
         </div>
         <footer className="bfn-catalog-discovery__footer">
-          <Icon name={props.detail ? 'info' : 'file'} size={14} />
-          <span>
-            {t(
-              props.detail
-                ? props.detail.kind === 'response' && props.detail.canAddToNetwork
-                  ? 'bfn.catalogDetail.runnableFooter'
-                  : 'bfn.catalogDetail.viewOnlyFooter'
-                : 'bfn.catalogDiscovery.readOnlyBoundary',
-            )}
-          </span>
+          <Icon name={props.detailOpen ? 'info' : 'file'} size={14} />
+          <span>{t(footerKey)}</span>
         </footer>
       </aside>
     </div>
@@ -283,6 +299,22 @@ function DiscoveryDrawerHeader({ onClose }: { onClose: () => void }) {
         ×
       </button>
     </header>
+  );
+}
+
+function CatalogDetailLoadError({ onBack }: { onBack: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <div className="bfn-catalog-load-error bfn-catalog-detail-error" role="alert">
+      <Icon name="warning" size={18} />
+      <div>
+        <strong>{t('bfn.catalogDetail.loadError')}</strong>
+        <p>{t('bfn.catalogDetail.loadErrorHint')}</p>
+        <Button size="sm" variant="secondary" onClick={onBack}>
+          {t('bfn.catalogDetail.back')}
+        </Button>
+      </div>
+    </div>
   );
 }
 

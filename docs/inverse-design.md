@@ -163,9 +163,13 @@ Target Panel 的 Host 与 Strain 继续构成可选 exact Context filter。选�
 
 响应图只消费 `candidate.evaluation.curve` 提供的 61 个点，不生成目标曲线或替代模型。横轴为带单位的 log 浓度，宽量程使用 3–5 个可读整十倍刻度；纵轴固定显示 0、0.5、1。低点上限与高点下限各以一段短水平线和端点圆标注，分别锚定 Target 的低、高浓度，并共享于单候选与多候选视图。图内文字、图例、科学表格与结果元数据使用 10–11 px 的桌面可读字号。
 
-## Apply-to-network boundary
+## Candidate evidence and explicit add
 
-每个结果保留 responseId，供未来从 Catalog Full Detail 进入现有可信实例化流程。本阶段不提供 Apply Candidate、不自动创建 Module、不连线，也不修改当前 Project。
+每个候选以 `responseId` 作为反向设计与 Catalog 之间的唯一身份桥。Matched、Near Match 与 Not Applicable 都可以尝试打开证据；反向匹配状态只说明当前 Target 的数值核对结果，不代表该 Response 具备运行或添加资格。Candidate Inspector 的紧凑证据摘要只展示主要来源、Host / Strain、当前模型可信范围和生物学机制；Comparison 表头提供同一 `responseId` 的文献入口，不提供直接 Apply。
+
+文献入口打开既有 Catalog Full Detail Drawer，并复用 fresh `buildBfnCatalogDetail`、`BfnCatalogDetailView` 与 `BfnCatalogInstantiationPanel`。打开、返回和关闭详情只改变 Overlay，不切换一级工作区，不修改 Target Draft、Search Result、stale 状态、当前候选或比较选择，也不写入 Project、Undo/Redo、Run 或 computation signature。详情构建异常在 Drawer 内转换为可返回目录的本地化错误状态。
+
+只有 fresh Full Detail 判定为 runnable 的 Response 才显示现有 Add Panel。空项目默认创建一个可信 Response Module 和匹配 Input Source；存在兼容来源时默认只创建 Module。两种方式都不自动连线、不创建或修改 Output Monitor，也不自动运行。用户点击 Add 后，`instantiateBfnCatalogResponse` 形成一次原子项目编辑；成功后切回 Network Design 并选中新 Module，一次 Undo 恢复添加前的完整项目。Catalog 状态变化、详情失效或实例化失败均 fail closed，不写入部分对象或历史步骤。
 
 ## Deferred capabilities
 
@@ -179,6 +183,6 @@ Target Panel 的 Host 与 Strain 继续构成可选 exact Context filter。选�
 - time-response target；
 - Medium、温度、reporter、measurement platform、vector 等额外 Context filter；
 - Effective Pair decomposition；
-- Apply-to-network 与自动连线；
-- 完整 Candidate Evidence Detail、文献来源深层展示与 Catalog Full Detail deep-link；
-- Apply-to-Network bridge。
+- 自动连线与自动运行；
+- 从比较页直接实例化候选；
+- 非 runnable Response 的网络实例化。

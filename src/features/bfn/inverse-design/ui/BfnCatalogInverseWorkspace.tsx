@@ -33,6 +33,7 @@ import './bfn-catalog-inverse.css';
 
 export interface BfnCatalogInverseWorkspaceProps {
   buildSearchSpace?: () => BfnCatalogInverseSearchSpace;
+  onOpenCatalogDetail?: ((responseId: string) => void) | undefined;
 }
 
 interface CatalogInverseResources {
@@ -45,6 +46,7 @@ type InspectorMode = 'single' | 'comparison';
 
 export function BfnCatalogInverseWorkspace({
   buildSearchSpace,
+  onOpenCatalogDetail,
 }: BfnCatalogInverseWorkspaceProps) {
   const { t, i18n } = useTranslation();
   const searchSpaceBuilder = buildSearchSpace ?? buildCatalogInverseSearchSpace;
@@ -85,8 +87,8 @@ export function BfnCatalogInverseWorkspace({
     );
     return comparisonIds
       .map((responseId) => byId.get(responseId))
-      .filter((candidate): candidate is BfnCatalogInverseComparableResult =>
-        candidate !== undefined,
+      .filter(
+        (candidate): candidate is BfnCatalogInverseComparableResult => candidate !== undefined,
       );
   }, [comparisonIds, result]);
   const comparisonAvailable = comparableResults.length >= 2;
@@ -136,11 +138,11 @@ export function BfnCatalogInverseWorkspace({
 
   if (resources.failed || resources.searchSpace === null || resources.presentation === null) {
     return (
-      <section className='bfn-catalog-inverse bfn-catalog-inverse--error'>
-        <div className='bfn-catalog-inverse__load-error' role='alert'>
+      <section className="bfn-catalog-inverse bfn-catalog-inverse--error">
+        <div className="bfn-catalog-inverse__load-error" role="alert">
           <h1>{t('bfn.inverseDesign.errors.releaseUnavailable')}</h1>
           <p>{t('bfn.inverseDesign.errors.releaseUnavailableHint')}</p>
-          <Button variant='secondary' onClick={retryResources}>
+          <Button variant="secondary" onClick={retryResources}>
             {t('bfn.inverseDesign.actions.retry')}
           </Button>
         </div>
@@ -149,10 +151,10 @@ export function BfnCatalogInverseWorkspace({
   }
 
   return (
-    <section className='bfn-catalog-inverse' data-testid='catalog-inverse-workspace'>
+    <section className="bfn-catalog-inverse" data-testid="catalog-inverse-workspace">
       {stale || releaseFailure ? (
         <div
-          className='bfn-catalog-inverse__statebar'
+          className="bfn-catalog-inverse__statebar"
           data-tone={releaseFailure ? 'error' : 'warning'}
           role={releaseFailure ? 'alert' : 'status'}
         >
@@ -168,14 +170,14 @@ export function BfnCatalogInverseWorkspace({
                 : t('bfn.inverseDesign.stale.description')}
             </span>
           </div>
-          <Button size='sm' variant='secondary' disabled={!searchEnabled} onClick={search}>
+          <Button size="sm" variant="secondary" disabled={!searchEnabled} onClick={search}>
             {releaseFailure
               ? t('bfn.inverseDesign.actions.retry')
               : t('bfn.inverseDesign.actions.research')}
           </Button>
         </div>
       ) : null}
-      <div className='bfn-catalog-inverse__layout'>
+      <div className="bfn-catalog-inverse__layout">
         <BfnInverseTargetPanel
           draft={draft}
           searchSpace={resources.searchSpace}
@@ -189,8 +191,10 @@ export function BfnCatalogInverseWorkspace({
               signalId === null
                 ? draft.concentrationUnit
                 : chooseReadableConcentrationUnit(
-                    resources.searchSpace!.candidates
-                      .filter((candidate) => candidate.inputSignalId === signalId)
+                    resources
+                      .searchSpace!.candidates.filter(
+                        (candidate) => candidate.inputSignalId === signalId,
+                      )
                       .map((candidate) => candidate.model.ec50M),
                   );
             setDraft((current) => changeCatalogInverseDraftSignal(current, signalId, unit));
@@ -220,26 +224,29 @@ export function BfnCatalogInverseWorkspace({
             )
           }
         />
-        <aside className='bfn-catalog-inverse__inspector' aria-labelledby='bfn-inverse-inspector-title'>
-          <header className='bfn-catalog-inverse__pane-header bfn-catalog-inverse__pane-header--row'>
-            <h2 id='bfn-inverse-inspector-title'>{t('bfn.inverseDesign.inspector.title')}</h2>
+        <aside
+          className="bfn-catalog-inverse__inspector"
+          aria-labelledby="bfn-inverse-inspector-title"
+        >
+          <header className="bfn-catalog-inverse__pane-header bfn-catalog-inverse__pane-header--row">
+            <h2 id="bfn-inverse-inspector-title">{t('bfn.inverseDesign.inspector.title')}</h2>
             {comparisonAvailable ? (
               <div
-                className='bfn-inverse-inspector-tabs'
-                role='tablist'
+                className="bfn-inverse-inspector-tabs"
+                role="tablist"
                 aria-label={t('bfn.inverseDesign.inspector.viewMode')}
               >
                 <button
-                  type='button'
-                  role='tab'
+                  type="button"
+                  role="tab"
                   aria-selected={effectiveInspectorMode === 'single'}
                   onClick={() => setInspectorMode('single')}
                 >
                   {t('bfn.inverseDesign.inspector.singleView')}
                 </button>
                 <button
-                  type='button'
-                  role='tab'
+                  type="button"
+                  role="tab"
                   aria-selected={effectiveInspectorMode === 'comparison'}
                   onClick={() => setInspectorMode('comparison')}
                 >
@@ -255,6 +262,7 @@ export function BfnCatalogInverseWorkspace({
               presentation={resources.presentation}
               language={language}
               concentrationUnit={draft.concentrationUnit}
+              onOpenCatalogDetail={onOpenCatalogDetail}
             />
           ) : (
             <BfnInverseCandidateInspector
@@ -263,6 +271,7 @@ export function BfnCatalogInverseWorkspace({
               presentation={resources.presentation}
               language={language}
               concentrationUnit={draft.concentrationUnit}
+              onOpenCatalogDetail={onOpenCatalogDetail}
             />
           )}
         </aside>

@@ -162,6 +162,8 @@ NRMSE ≤ 10%
 
 上述双参数空间流程作为 legacy demonstration candidate search 代码保留，不再是生产可见的“按目标设计”界面。当前可见工作区使用 Catalog-backed inverse design：它是 BFN-IR 2.0 外部的纯查询层，从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑不混接；可见工作区合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
 
+生产交互链为 `Target → Match → Evidence → Explicit Add → Network Design`。Candidate 与既有 Catalog Full Detail 只通过 exact `responseId` 连接；证据浏览保持 Target Draft、结果新鲜度、候选选择、比较集合和 Project 不变。匹配分组不授予运行资格，只有 fresh Full Detail 中仍为 runnable 的 Response 才能进入既有 Add Panel。显式添加复用可信实例化路径，形成一次可撤销的原子编辑；默认策略不会自动连线、创建 Output Monitor 或运行模型。
+
 ## 模块注册与证据账本
 
 标准注册流程为：

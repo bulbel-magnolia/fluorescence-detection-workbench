@@ -918,6 +918,17 @@
   color: var(--ui-error);
 }
 
+.bfn-catalog-detail-error {
+  margin-top: 12px;
+  padding: 14px;
+  background: var(--ui-error-subtle);
+  border: 1px solid var(--ui-error);
+}
+
+.bfn-catalog-detail-error .button {
+  margin-top: 10px;
+}
+
 .bfn-built-in-modules {
   margin: 0 0 4px;
   border-top: 1px solid var(--ui-border-default);

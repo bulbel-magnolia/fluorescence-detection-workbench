@@ -822,11 +822,13 @@ export const bfnEnUS = {
     },
     stale: {
       title: 'Conditions changed',
-      description: 'The current results are from the previous search and remain available for review.',
+      description:
+        'The current results are from the previous search and remain available for review.',
     },
     errors: {
       releaseUnavailable: 'Literature models unavailable',
-      releaseUnavailableHint: 'The current catalog release could not be read completely. Try again.',
+      releaseUnavailableHint:
+        'The current catalog release could not be read completely. Try again.',
     },
     inspector: {
       kicker: 'Response review',
@@ -847,6 +849,11 @@ export const bfnEnUS = {
       passed: 'Met',
       notMet: 'Not met',
       modelTitle: 'Literature model parameters',
+      evidenceTitle: 'Literature & conditions',
+      primarySource: 'Primary source',
+      hostStrain: 'Host / Strain',
+      evidenceAction: 'Literature & conditions',
+      evidenceActionAria: 'Literature & conditions: {{name}}',
       ec50: 'EC50',
       hill: 'Hill coefficient',
       workingRange: 'Trusted range',
@@ -856,12 +863,15 @@ export const bfnEnUS = {
       comparisonView: 'Compare',
     },
     comparison: {
-      contextWarning: 'Experimental context differs | Comparison uses normalized responses reported in each source.',
+      contextWarning:
+        'Experimental context differs | Comparison uses normalized responses reported in each source.',
       curves: 'Response curve comparison',
       curveAriaLabel: 'Candidate response comparison curve',
       parameters: 'Parameter comparison',
       tableAriaLabel: 'Candidate parameter comparison',
       property: 'Property',
+      evidence: 'Evidence',
+      evidenceAria: 'Evidence: {{name}}',
       lowResponse: 'Low response',
       highResponse: 'High response',
     },
@@ -1083,6 +1093,8 @@ export const bfnEnUS = {
     detailLabel: 'Full details for {{name}}',
     viewDetails: 'View full details',
     back: 'Back to catalog',
+    loadError: 'Literature record unavailable',
+    loadErrorHint: 'The source evidence for this record cannot be verified right now.',
     runnableFooter:
       'This response can be added after you confirm how it should enter the current network.',
     viewOnlyFooter:

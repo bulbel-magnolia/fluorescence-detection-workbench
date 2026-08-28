@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../../i18n';
+import { loadReleaseCatalogPresentation } from '../../../modeling/catalog/releaseCatalogPresentation';
 import { runCatalogInverseDesign } from '../catalogInverseDesignEvaluation';
 import {
   buildCatalogInverseSearchSpace,
@@ -27,7 +28,9 @@ describe('catalog-backed inverse design workspace', () => {
     expect(screen.getByRole('button', { name: '查找匹配响应' })).toBeDisabled();
     expect(buildSearchSpace).toHaveBeenCalledTimes(1);
     expect(
-      screen.queryByText(/目录逆向设计|按目录检索响应方案|目录结果|响应核对|推荐方案|综合评分|宿主负载|遗传风险/u),
+      screen.queryByText(
+        /目录逆向设计|按目录检索响应方案|目录结果|响应核对|推荐方案|综合评分|宿主负载|遗传风险/u,
+      ),
     ).not.toBeInTheDocument();
   });
 
@@ -195,9 +198,9 @@ describe('catalog-backed inverse design workspace', () => {
     await user.click(screen.getByRole('button', { name: '使用此范围' }));
     await user.click(screen.getByRole('button', { name: '查找匹配响应' }));
     const results = await screen.findByRole('region', { name: '匹配结果' });
-    const eligibleRows = within(results).getAllByRole('article').filter((row) =>
-      within(row).queryByRole('checkbox', { name: '加入比较' }),
-    );
+    const eligibleRows = within(results)
+      .getAllByRole('article')
+      .filter((row) => within(row).queryByRole('checkbox', { name: '加入比较' }));
     expect(eligibleRows.length).toBeGreaterThanOrEqual(4);
 
     await user.click(within(eligibleRows[0]!).getByRole('button', { name: '查看候选详情' }));
@@ -206,14 +209,12 @@ describe('catalog-backed inverse design workspace', () => {
     await user.click(within(eligibleRows[1]!).getByRole('checkbox', { name: '加入比较' }));
     await user.click(within(eligibleRows[2]!).getByRole('checkbox', { name: '加入比较' }));
     expect(
-      within(results).getAllByRole('checkbox', { name: '加入比较' }).filter((box) =>
-        (box as HTMLInputElement).checked
-      ),
+      within(results)
+        .getAllByRole('checkbox', { name: '加入比较' })
+        .filter((box) => (box as HTMLInputElement).checked),
     ).toHaveLength(3);
     expect(screen.getByText('对比 3 / 3')).toBeInTheDocument();
-    expect(
-      within(eligibleRows[3]!).getByRole('checkbox', { name: '加入比较' }),
-    ).toBeDisabled();
+    expect(within(eligibleRows[3]!).getByRole('checkbox', { name: '加入比较' })).toBeDisabled();
     await user.click(screen.getByRole('tab', { name: '对比' }));
 
     const comparisonChart = screen.getByRole('img', { name: '候选响应比较曲线' });
@@ -228,6 +229,94 @@ describe('catalog-backed inverse design workspace', () => {
     await user.click(within(eligibleRows[0]!).getByRole('checkbox', { name: '加入比较' }));
     expect(screen.getByText('对比 2 / 3')).toBeInTheDocument();
     expect(within(eligibleRows[3]!).getByRole('checkbox', { name: '加入比较' })).toBeEnabled();
+  });
+
+  it('opens literature evidence by canonical response ID from every result status', async () => {
+    const user = userEvent.setup();
+    const onOpenCatalogDetail = vi.fn();
+    const baseSpace = buildCatalogInverseSearchSpace();
+    const presentation = loadReleaseCatalogPresentation();
+    const unavailableResponse = presentation.responseVariants.find(
+      (response) =>
+        response.inputMolecule.id === L_3OC6_SIGNAL_ID &&
+        !response.runnable &&
+        !baseSpace.candidates.some((candidate) => candidate.responseId === response.id),
+    );
+    if (!unavailableResponse) throw new Error('expected a canonical unavailable response');
+    const space = {
+      ...baseSpace,
+      unavailableResponses: [
+        ...baseSpace.unavailableResponses,
+        { responseId: unavailableResponse.id, inputSignalId: L_3OC6_SIGNAL_ID },
+      ],
+      unavailableResponseIds: [...baseSpace.unavailableResponseIds, unavailableResponse.id],
+    };
+
+    render(
+      <BfnCatalogInverseWorkspace
+        buildSearchSpace={() => space}
+        onOpenCatalogDetail={onOpenCatalogDetail}
+      />,
+    );
+    await user.selectOptions(screen.getByRole('combobox', { name: '输入信号' }), L_3OC6_SIGNAL_ID);
+    await user.click(screen.getByText('高级条件'));
+    await user.selectOptions(screen.getByRole('combobox', { name: '菌株' }), 'TOP10');
+    await user.click(screen.getByRole('button', { name: '使用此范围' }));
+    await user.click(screen.getByRole('button', { name: '查找匹配响应' }));
+    const workspace = await screen.findByTestId('catalog-inverse-workspace');
+    const resultRows = [...workspace.querySelectorAll<HTMLElement>('.bfn-inverse-result-row')];
+    const unavailableRow = resultRows.find(
+      (row) => row.dataset.responseId === unavailableResponse.id,
+    );
+    const responseRows = [
+      resultRows.find((row) => row.dataset.status === 'matched'),
+      resultRows.find((row) => row.dataset.status === 'near-match'),
+      resultRows.find(
+        (row) =>
+          row.dataset.status === 'not-applicable' &&
+          !row.textContent?.includes('当前无法完成可信校验'),
+      ),
+      unavailableRow,
+    ];
+    expect(responseRows.every((row) => row !== undefined)).toBe(true);
+
+    for (const row of responseRows) {
+      if (!row || !row.dataset.responseId) throw new Error('expected all inverse result fixtures');
+      const group = row.closest('details');
+      if (group && !group.open) await user.click(group.querySelector('summary')!);
+      await user.click(within(row).getByRole('button', { name: '查看候选详情' }));
+      await user.click(screen.getByRole('button', { name: /^文献与实验条件：/u }));
+      expect(onOpenCatalogDetail).toHaveBeenLastCalledWith(row.dataset.responseId);
+    }
+    expect(onOpenCatalogDetail).toHaveBeenCalledTimes(4);
+  });
+
+  it('opens the evidence record belonging to the selected comparison column', async () => {
+    const user = userEvent.setup();
+    const onOpenCatalogDetail = vi.fn();
+    render(<BfnCatalogInverseWorkspace onOpenCatalogDetail={onOpenCatalogDetail} />);
+
+    await user.selectOptions(screen.getByRole('combobox', { name: '输入信号' }), L_3OC6_SIGNAL_ID);
+    await user.click(screen.getByRole('button', { name: '使用此范围' }));
+    await user.click(screen.getByRole('button', { name: '查找匹配响应' }));
+    const results = await screen.findByRole('region', { name: '匹配结果' });
+    const rows = within(results)
+      .getAllByRole('article')
+      .filter((row) => within(row).queryByRole('checkbox', { name: '加入比较' }))
+      .slice(0, 2);
+    const responseIds = rows.map((row) => row.dataset.responseId);
+    expect(responseIds.every((responseId) => responseId !== undefined)).toBe(true);
+    for (const row of rows) {
+      await user.click(within(row).getByRole('checkbox', { name: '加入比较' }));
+    }
+    await user.click(screen.getByRole('tab', { name: '对比' }));
+
+    const table = screen.getByRole('table', { name: '候选参数比较' });
+    const evidenceButtons = within(table).getAllByRole('button', { name: /^文献：/u });
+    expect(evidenceButtons).toHaveLength(2);
+    expect(within(table).queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+    await user.click(evidenceButtons[1]!);
+    expect(onOpenCatalogDetail).toHaveBeenCalledWith(responseIds[1]);
   });
 
   it('clears candidate inspection and manual comparison when a fresh search replaces results', async () => {
@@ -251,11 +340,12 @@ describe('catalog-backed inverse design workspace', () => {
 
     expect(screen.getByText('未选择响应')).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: '候选响应曲线' })).not.toBeInTheDocument();
-    const comparisonBoxes = within(
-      screen.getByRole('region', { name: '匹配结果' }),
-    ).getAllByRole('checkbox', {
+    const comparisonBoxes = within(screen.getByRole('region', { name: '匹配结果' })).getAllByRole(
+      'checkbox',
+      {
         name: '加入比较',
-      });
+      },
+    );
     expect(comparisonBoxes.every((box) => !(box as HTMLInputElement).checked)).toBe(true);
   });
 

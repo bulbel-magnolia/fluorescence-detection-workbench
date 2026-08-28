@@ -705,3 +705,34 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - 一次沙箱内 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；定向回归、完整 Vitest 与 Vite build 随后在获批环境使用相同 npm scripts 通过；
 - 冻结 AHL/HSL V1.1 JSON、BFN types、BFN-SIM、Workspace、`package.json` 与 lockfile 相对基线 `996c8d9b4b4b074ffd0a94ab9246d53b1919eef9` 保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1；
 - 实现提交 `18733256c86be89da5ec0d5f353a86286c24bd48` 的 GitHub combined status 返回 `state: pending`、`total_count: 0`、`statuses: []`；本轮结论为 local full validation passed，不声明 GitHub CI 已通过。
+
+## 2026-08-28 Batch 8.3 Candidate Evidence Detail, Catalog Deep-link & Apply-to-Network Bridge
+
+### Evidence 与深链回归
+
+- Inverse Workspace、Catalog Drawer 与 Platform bridge 定向回归为 3 个测试文件、34 项测试全部通过；
+- Matched、Near Match、Not Applicable 和 canonical unavailable 候选都使用 exact `responseId` 打开证据，Comparison 的每个候选列也保持独立身份；
+- Kylilis 3OC6 深链核对 RhlR / pRhl、TOP10、原始标题与 DOI，没有误落到 C4 Response；canonical non-runnable 详情保持只读且不显示 Add；
+- `buildBfnCatalogDetail` 异常被限制在 Drawer 内，显示本地化错误并可返回目录，应用不崩溃；
+- 浏览 Full Detail、返回与关闭不会修改 Target Draft、Search Result、stale 状态、候选选择、比较集合、Project、Run 或 Undo/Redo。
+
+### 显式添加回归
+
+- 空项目默认一次加入可信 Module 与匹配 Input Source，不创建 Edge、Output Monitor 或 Run；Catalog provenance 保持 exact response、component、signal、context 和 source identity；
+- 存在兼容来源时默认只添加 Module；成功后进入 Network Design 并选中新 Module，一次 Undo 恢复添加前的完整项目；
+- Catalog 状态变化会使实例化 fail closed：Drawer 保持打开，Project 与 Undo 历史不变，不产生部分对象。
+
+### Visual / responsive audit
+
+- `docs/ui-audit/catalog-inverse-design/08`–`13` 由真实 Windows Application 生产路径生成，均为 1440×900 PNG；覆盖候选证据入口、完整文献详情、空项目 Add 设置、添加后网络、Comparison 文献入口和深色主题；
+- 1440×900、1280×720、1180×700 下 document/body client width 与 scroll width 分别严格相等，页面级水平溢出均为 0；主内容宽度分别为 1224、1090、990 px；
+- 1180×700 下 Full Detail Drawer 为 560 px，正文 client / scroll width 均为 549 px，纵向 client / scroll height 为 599 / 3401 px；浏览器 warning / error 日志为 0。
+
+### Batch 8.3 完整门禁
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 109 个测试文件、835 项测试全部通过；未提高 timeout，未删除、跳过或弱化断言；
+- Vite 7.3.6 生产构建通过，253 个模块完成转换；主 JavaScript chunk 为 1,251.05 kB、gzip 302.69 kB；主 CSS 为 262.29 kB、gzip 44.46 kB；
+- 构建保留大于 500 kB 的既有代码拆分提示，产物生成成功，没有新增运行时依赖；
+- 一次沙箱内定向 Vitest 启动因 esbuild 子进程权限返回 `spawn EPERM`；定向回归、完整 Vitest 与 Vite build 随后在获批环境使用相同 npm scripts 通过；
+- 冻结 AHL/HSL V1.1 JSON、BFN types、BFN-SIM、Workspace、`package.json` 与 lockfile 相对基线 `15b954fd7f73fd99a2744f1999c8b68049e6c3fb` 保持零差异；BFN-IR 仍为 2.0，BFN-SIM 仍为 2.0，Workspace IndexedDB 版本仍为 1。
