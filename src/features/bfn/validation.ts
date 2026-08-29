@@ -2,6 +2,7 @@ import type {
   BfnFunctionalModule,
   BfnIdealEdge,
   BfnIdealEdgeEndpoint,
+  BfnModelVariant,
   BfnPort,
   BfnProject,
   BfnValidationIssue,
@@ -254,6 +255,16 @@ function hasResolvedEnabledIncomingSignal(
   });
 }
 
+function modeledInputPortIds(model: BfnModelVariant | null): ReadonlySet<string> {
+  if (!model) return new Set();
+  const response = model.mode === 'dynamic' ? model.steadyStateResponse : model.response;
+  return new Set(
+    response.family === 'independent_inputs'
+      ? response.terms.map((term) => term.inputPortId)
+      : [response.inputPortId],
+  );
+}
+
 export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
   const issues: BfnValidationIssue[] = [...validateInputSpecification(project)];
   for (const edge of project.network.edges) {
@@ -267,9 +278,16 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
     };
     issues.push(...checkIdealConnection(withoutEdge, edge.source, edge.target, edge.id));
   }
+  const outputReachableModuleIds = new Set<string>();
+  for (const monitor of project.network.outputMonitors) {
+    for (const moduleId of findBfnOutputReachableModuleIds(project, monitor.id)) {
+      outputReachableModuleIds.add(moduleId);
+    }
+  }
   for (const module of project.network.modules) {
     const model = resolveEffectiveBfnModel(project, module);
     const catalogBacked = model !== null && bfnCatalogReferencePresence(model).present;
+    const modeledInputs = modeledInputPortIds(model);
     if (!model) {
       issues.push({
         code: 'missing_required_input',
@@ -288,6 +306,10 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
     }
     for (const port of module.inputPorts) {
       if (!hasResolvedEnabledIncomingSignal(project, module.id, port.id)) {
+        const authoredRuntimeRequired =
+          module.authoring?.origin === 'user_defined' &&
+          outputReachableModuleIds.has(module.id) &&
+          modeledInputs.has(port.id);
         issues.push(
           catalogBacked
             ? {
@@ -297,17 +319,11 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
               }
             : {
                 code: 'missing_required_input',
-                severity: 'warning',
+                severity: authoredRuntimeRequired ? 'error' : 'warning',
                 subjectId: port.id,
               },
         );
       }
-    }
-  }
-  const outputReachableModuleIds = new Set<string>();
-  for (const monitor of project.network.outputMonitors) {
-    for (const moduleId of findBfnOutputReachableModuleIds(project, monitor.id)) {
-      outputReachableModuleIds.add(moduleId);
     }
   }
   for (const module of project.network.modules) {

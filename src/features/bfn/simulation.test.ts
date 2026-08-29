@@ -10,8 +10,12 @@ describe('BFN-IR complete-model simulation', () => {
     expect(result.mode).toBe('static');
     expect(result.points).toHaveLength(33);
     expect(result.points.at(-1)!.output).toBeGreaterThan(result.points[0]!.output);
-    expect(result.points.every((point) => point.lower <= point.output)).toBe(true);
-    expect(result.points.every((point) => point.upper >= point.output)).toBe(true);
+    expect(
+      result.points.every((point) => point.lower !== null && point.lower <= point.output),
+    ).toBe(true);
+    expect(
+      result.points.every((point) => point.upper !== null && point.upper >= point.output),
+    ).toBe(true);
     expect(result.extrapolated).toBe(false);
     expect(result.annApproximation).toMatchObject({
       status: 'accepted',

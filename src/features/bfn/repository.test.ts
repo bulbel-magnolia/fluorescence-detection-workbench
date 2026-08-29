@@ -150,6 +150,23 @@ describe('BFN-IR repository', () => {
     expect(loaded[0]?.contextApplicabilitySnapshot).not.toBe(result.contextApplicabilitySnapshot);
   });
 
+  it('writes BFN-SIM 2.1 runs and keeps frozen BFN-SIM 2.0 records readable and immutable', () => {
+    const current = runBfnSimulation(createDemoBfnProject());
+    const historical = structuredClone(current) as unknown as Record<string, unknown>;
+    historical.id = 'historical-bfn-sim-2.0';
+    historical.engineVersion = 'BFN-SIM-2.0';
+    delete historical.uncertaintySnapshot;
+    const historicalJson = JSON.stringify(historical);
+    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([historical, current]));
+
+    const loaded = loadBfnRuns();
+
+    expect(current.engineVersion).toBe('BFN-SIM-2.1');
+    expect(loaded.map((run) => run.engineVersion)).toEqual(['BFN-SIM-2.0', 'BFN-SIM-2.1']);
+    expect(JSON.stringify(loaded[0])).toBe(historicalJson);
+    expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(JSON.stringify([historical, current]));
+  });
+
   it('accepts legacy runs without a signal snapshot', () => {
     const legacy = runBfnSimulation(createDemoBfnProject());
     delete legacy.signalSnapshot;
@@ -177,7 +194,7 @@ describe('BFN-IR repository', () => {
     });
     localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([malformed]));
 
-    expect(malformed.engineVersion).toBe('BFN-SIM-2.0');
+    expect(malformed.engineVersion).toBe('BFN-SIM-2.1');
     expect(loadBfnRuns()).toEqual([]);
   });
 

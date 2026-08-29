@@ -91,11 +91,24 @@ export function buildAnnApproximation(
   const maximumAbsoluteError = Math.max(
     ...outputs.map((value, index) => Math.abs(value - (predictions[index] ?? 0))),
   );
-  const predictionIntervalCoverage =
-    points.filter((point, index) => {
-      const prediction = predictions[index] ?? 0;
-      return prediction >= point.lower && prediction <= point.upper;
-    }).length / points.length;
+  const hasPredictionIntervals = points.every(
+    (point) =>
+      point.lower !== null &&
+      point.upper !== null &&
+      Number.isFinite(point.lower) &&
+      Number.isFinite(point.upper),
+  );
+  const predictionIntervalCoverage = hasPredictionIntervals
+    ? points.filter((point, index) => {
+        const prediction = predictions[index] ?? 0;
+        return (
+          point.lower !== null &&
+          point.upper !== null &&
+          prediction >= point.lower &&
+          prediction <= point.upper
+        );
+      }).length / points.length
+    : null;
   const status =
     r2 >= project.analysis.annThresholds.minimumR2 &&
     nrmse <= project.analysis.annThresholds.maximumNrmse

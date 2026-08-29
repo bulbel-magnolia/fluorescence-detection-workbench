@@ -220,7 +220,7 @@ export function serializeBfnFigureSvg({
   const descriptionText = description ?? defaultDescription(result);
   const axisMarkup = `${tickMarkup('x', model.ticks.x, model.geometry)}${tickMarkup('y', model.ticks.y, model.geometry)}`;
   const axisLabels = `<text x="${numberText(padding.left + (width - padding.left - padding.right) / 2)}" y="${numberText(height - 10)}" text-anchor="middle" fill="#203040" style="fill:#203040;font-size:12px;font-weight:600">${escapeXml(model.labels.x)}</text><text x="16" y="${numberText(padding.top + (height - padding.top - padding.bottom) / 2)}" transform="rotate(-90 16 ${numberText(padding.top + (height - padding.top - padding.bottom) / 2)})" text-anchor="middle" fill="#203040" style="fill:#203040;font-size:12px;font-weight:600">${escapeXml(model.labels.y)}</text>`;
-  const metadata = `<metadata font-family="Arial, Helvetica, sans-serif" data-run-id="${escapeXml(result.id)}" data-engine-version="${escapeXml(result.engineVersion)}" data-mode="${escapeXml(result.mode)}" data-uncertainty-method="${escapeXml(result.uncertaintyMethod)}" data-model-versions="${escapeXml(result.modelVersions.join(','))}" data-context-ids="${escapeXml(result.contextIds.join(','))}"/>`;
+  const metadata = `<metadata font-family="Arial, Helvetica, sans-serif" data-run-id="${escapeXml(result.id)}" data-engine-version="${escapeXml(result.engineVersion)}" data-mode="${escapeXml(result.mode)}" data-uncertainty-method="${escapeXml(result.uncertaintyMethod ?? 'unavailable')}" data-model-versions="${escapeXml(result.modelVersions.join(','))}" data-context-ids="${escapeXml(result.contextIds.join(','))}"/>`;
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${numberText(width)}" height="${numberText(height)}" viewBox="0 0 ${numberText(width)} ${numberText(height)}" role="img" aria-labelledby="bfn-figure-title bfn-figure-description" data-x-scale="${escapeXml(model.requestedScales.x)}" data-y-scale="${escapeXml(model.requestedScales.y)}" data-x-domain="${escapeXml(xDomain)}" data-y-domain="${escapeXml(yDomain)}" style="font-family:Arial, Helvetica, sans-serif;background:#ffffff"><title id="bfn-figure-title">${escapeXml(titleText)}</title><desc id="bfn-figure-description">${escapeXml(descriptionText)}</desc>${metadata}<rect x="0" y="0" width="${numberText(width)}" height="${numberText(height)}" fill="#ffffff" style="fill:#ffffff"/><g data-role="axes" fill="none" stroke="#637383" stroke-width="1" style="fill:none;stroke:#637383;stroke-width:1"><line x1="${numberText(yAxis)}" y1="${numberText(padding.top)}" x2="${numberText(yAxis)}" y2="${numberText(xAxis)}"/><line x1="${numberText(yAxis)}" y1="${numberText(xAxis)}" x2="${numberText(width - padding.right)}" y2="${numberText(xAxis)}"/></g>${axisMarkup}${seriesMarkup}${axisLabels}${legendMarkup ? `<g data-role="legend" transform="translate(${numberText(legendX)} ${numberText(legendY)})" style="font-family:Arial, Helvetica, sans-serif">${legendMarkup}</g>` : ''}</svg>`;
 }
 
@@ -431,7 +431,7 @@ export function createBfnProvenanceRows({
       value:
         result.uncertaintyMethod === 'parameter_interval_envelope'
           ? 'parameter-interval envelope'
-          : result.uncertaintyMethod,
+          : 'unavailable',
     },
     { key: 'experimental_validity', value: result.experimentalValidity },
     { key: 'extrapolated', value: provenanceValue(result.extrapolated) },
@@ -447,6 +447,20 @@ export function createBfnProvenanceRows({
         : 'Not available',
     },
   ];
+  if (result.engineVersion === 'BFN-SIM-2.1') {
+    rows.push(
+      { key: 'uncertainty_status', value: result.uncertaintySnapshot.status },
+      {
+        key: 'uncertainty_module_audit',
+        value: result.uncertaintySnapshot.modules
+          .map(
+            (module) =>
+              `${module.moduleId}:${module.intervalExecutable ? 'available' : (module.reason ?? 'unavailable')}`,
+          )
+          .join(' | '),
+      },
+    );
+  }
   if (result.temporalSnapshot) {
     rows.push(
       {

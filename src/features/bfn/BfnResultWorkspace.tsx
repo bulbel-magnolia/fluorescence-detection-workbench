@@ -359,6 +359,7 @@ export function BfnResultWorkspace({
                   model={model}
                 />
               </div>
+              <UncertaintyResultNotice result={result} />
               <div className="bfn-result-facts">
                 <article>
                   <span>{t('bfn.results.finalOutput')}</span>
@@ -478,10 +479,40 @@ function AnnResultCard({ result }: { result: BfnSimulationResult }) {
           </div>
           <div>
             <dt>{t('bfn.ann.coverage')}</dt>
-            <dd>{(ann.metrics.predictionIntervalCoverage * 100).toFixed(1)}%</dd>
+            <dd>
+              {ann.metrics.predictionIntervalCoverage === null
+                ? t('bfn.ann.coverageUnavailable')
+                : `${(ann.metrics.predictionIntervalCoverage * 100).toFixed(1)}%`}
+            </dd>
           </div>
         </dl>
       </details>
+    </section>
+  );
+}
+
+function UncertaintyResultNotice({ result }: { result: BfnSimulationResult }) {
+  const { t } = useTranslation();
+  if (result.engineVersion !== 'BFN-SIM-2.1' || result.uncertaintySnapshot.status === 'available') {
+    return null;
+  }
+  const reasons = [
+    ...new Set(
+      result.uncertaintySnapshot.modules.flatMap((module) =>
+        module.intervalExecutable || module.reason === null ? [] : [module.reason],
+      ),
+    ),
+  ];
+  return (
+    <section className="bfn-uncertainty-boundary" role="status">
+      <strong>{t('bfn.results.uncertainty.unavailableTitle')}</strong>
+      {reasons.length > 0 ? (
+        reasons.map((reason) => (
+          <p key={reason}>{t(`bfn.results.uncertainty.reasons.${reason}`)}</p>
+        ))
+      ) : (
+        <p>{t('bfn.results.uncertainty.unavailableFallback')}</p>
+      )}
     </section>
   );
 }

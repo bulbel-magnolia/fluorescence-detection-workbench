@@ -63,6 +63,22 @@ const BFN_CONTEXT_APPLICABILITY_STATES: ReadonlySet<string> = new Set([
   'unavailable',
 ]);
 
+const BFN_UNCERTAINTY_METHODS: ReadonlySet<string> = new Set([
+  'parameter_interval_envelope',
+  'posterior_samples',
+  'bootstrap',
+  'covariance',
+  'none',
+  'not_recorded',
+]);
+
+const BFN_UNCERTAINTY_UNAVAILABLE_REASONS: ReadonlySet<string> = new Set([
+  'none_declared',
+  'not_recorded',
+  'parameter_interval_incomplete',
+  'method_not_executable',
+]);
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -143,25 +159,95 @@ function hasValidContextApplicabilitySnapshot(value: Record<string, unknown>): b
   );
 }
 
+function hasValidUncertaintySnapshot(value: Record<string, unknown>): boolean {
+  const snapshot = value.uncertaintySnapshot;
+  if (
+    !isRecord(snapshot) ||
+    snapshot.scope !== 'output_reachable' ||
+    (snapshot.status !== 'available' && snapshot.status !== 'unavailable') ||
+    !Array.isArray(snapshot.modules)
+  ) {
+    return false;
+  }
+  const validModules = snapshot.modules.every((module) => {
+    if (
+      !isRecord(module) ||
+      !isNonEmptyString(module.moduleId) ||
+      (module.selectedModelId !== null && !isNonEmptyString(module.selectedModelId)) ||
+      (module.method !== null &&
+        (typeof module.method !== 'string' || !BFN_UNCERTAINTY_METHODS.has(module.method))) ||
+      typeof module.intervalExecutable !== 'boolean' ||
+      (module.reason !== null &&
+        (typeof module.reason !== 'string' ||
+          !BFN_UNCERTAINTY_UNAVAILABLE_REASONS.has(module.reason)))
+    ) {
+      return false;
+    }
+    return module.intervalExecutable
+      ? module.method === 'parameter_interval_envelope' && module.reason === null
+      : module.reason !== null;
+  });
+  if (!validModules) return false;
+  const available =
+    snapshot.modules.length > 0 &&
+    snapshot.modules.every((module) => isRecord(module) && module.intervalExecutable === true);
+  return snapshot.status === 'available'
+    ? available && snapshot.method === 'parameter_interval_envelope'
+    : !available && snapshot.method === null;
+}
+
+function hasValidSimulationPoints(
+  value: Record<string, unknown>,
+  intervalsAvailable: boolean,
+): boolean {
+  if (!Array.isArray(value.points)) return false;
+  return value.points.every((point) => {
+    if (!isRecord(point) || !Number.isFinite(point.output)) return false;
+    if (intervalsAvailable) {
+      return Number.isFinite(point.lower) && Number.isFinite(point.upper);
+    }
+    return point.lower === null && point.upper === null;
+  });
+}
+
 export function isBfnProject(value: unknown): value is BfnProject {
   return isBfnProjectV22(value);
 }
 
 function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
+  if (
+    !isRecord(value) ||
+    (value.engineVersion !== 'BFN-SIM-2.0' && value.engineVersion !== 'BFN-SIM-2.1') ||
+    !isNonEmptyString(value.id)
+  ) {
+    return false;
+  }
+  if (
+    typeof value.networkId !== 'string' ||
+    (value.mode !== 'static' && value.mode !== 'dynamic') ||
+    !isNonEmptyString(value.primaryInputSourceId) ||
+    !isNonEmptyString(value.outputMonitorId) ||
+    !Array.isArray(value.validationIssues) ||
+    typeof value.completedAt !== 'string' ||
+    !hasValidSignalSnapshot(value) ||
+    !hasValidTemporalSnapshot(value) ||
+    !hasValidContextApplicabilitySnapshot(value)
+  ) {
+    return false;
+  }
+  if (value.engineVersion === 'BFN-SIM-2.0') {
+    return (
+      value.uncertaintyMethod === 'parameter_interval_envelope' &&
+      hasValidSimulationPoints(value, true)
+    );
+  }
+  if (!hasValidUncertaintySnapshot(value)) return false;
+  const snapshot = value.uncertaintySnapshot;
+  if (!isRecord(snapshot)) return false;
+  const intervalsAvailable = snapshot.status === 'available';
   return (
-    isRecord(value) &&
-    value.engineVersion === 'BFN-SIM-2.0' &&
-    typeof value.id === 'string' &&
-    typeof value.networkId === 'string' &&
-    (value.mode === 'static' || value.mode === 'dynamic') &&
-    Array.isArray(value.points) &&
-    isNonEmptyString(value.primaryInputSourceId) &&
-    isNonEmptyString(value.outputMonitorId) &&
-    Array.isArray(value.validationIssues) &&
-    typeof value.completedAt === 'string' &&
-    hasValidSignalSnapshot(value) &&
-    hasValidTemporalSnapshot(value) &&
-    hasValidContextApplicabilitySnapshot(value)
+    value.uncertaintyMethod === (intervalsAvailable ? 'parameter_interval_envelope' : null) &&
+    hasValidSimulationPoints(value, intervalsAvailable)
   );
 }
 

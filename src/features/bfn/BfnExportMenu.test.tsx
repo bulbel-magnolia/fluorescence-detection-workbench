@@ -554,7 +554,7 @@ describe('BFN run provenance', () => {
     expect(screen.getByText(result.outputMonitorId)).toBeInTheDocument();
     expect(screen.getByText(result.modelVersions.join(' · '))).toBeInTheDocument();
     expect(screen.getByText(result.contextIds.join(' · '))).toBeInTheDocument();
-    expect(screen.getByText('Parameter-interval envelope')).toBeInTheDocument();
+    expect(screen.getAllByText('Parameter-interval envelope')).toHaveLength(3);
     expect(screen.getByText(result.extrapolated ? 'Yes' : 'No')).toBeInTheDocument();
     expect(screen.getByText(result.isDemo ? 'Yes' : 'No')).toBeInTheDocument();
     expect(screen.getByText('Not experimentally validated')).toBeInTheDocument();
@@ -585,7 +585,7 @@ describe('BFN run provenance', () => {
     const details = container.querySelector('details');
     expect(screen.getByText('稳态分析')).toBeInTheDocument();
     expect(screen.getAllByText('不可用')).toHaveLength(2);
-    expect(screen.getByText('参数区间包络')).toBeInTheDocument();
+    expect(screen.getAllByText('参数区间包络')).toHaveLength(3);
     expect(screen.getByText('未经实验验证')).toBeInTheDocument();
     expect(details).not.toHaveTextContent(
       /quasi_static|stateful_dynamic|t0_steady_state|not_recorded|Not available|parameter_interval_envelope|not_validated/u,

@@ -534,8 +534,8 @@ describe('Batch 4 precise chart reading controls', () => {
       points: base.points.map((point) => ({
         ...point,
         output: point.output + 0.1,
-        lower: point.lower + 0.1,
-        upper: point.upper + 0.1,
+        lower: point.lower === null ? null : point.lower + 0.1,
+        upper: point.upper === null ? null : point.upper + 0.1,
       })),
     };
     saveBfnRun(first);
@@ -654,8 +654,8 @@ describe('Batch 4 precise chart reading controls', () => {
       points: base.points.map((point) => ({
         ...point,
         output: point.output + 0.1,
-        lower: point.lower + 0.1,
-        upper: point.upper + 0.1,
+        lower: point.lower === null ? null : point.lower + 0.1,
+        upper: point.upper === null ? null : point.upper + 0.1,
       })),
     };
     saveBfnRun(first);

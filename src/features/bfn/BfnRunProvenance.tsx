@@ -13,13 +13,6 @@ export interface BfnRunProvenanceProps {
   result: BfnSimulationResult;
 }
 
-const uncertaintyMethodKeys: Record<
-  BfnSimulationResult['uncertaintyMethod'],
-  'bfn.results.provenance.parameterIntervalEnvelope'
-> = {
-  parameter_interval_envelope: 'bfn.results.provenance.parameterIntervalEnvelope',
-};
-
 const experimentalValidityKeys: Record<
   BfnSimulationResult['experimentalValidity'],
   'bfn.results.provenance.notValidated'
@@ -71,6 +64,12 @@ function contextApplicabilitySummary(result: BfnSimulationResult, t: TFunction):
       result.contextApplicabilitySnapshot,
     )}`,
   );
+}
+
+function uncertaintySummary(result: BfnSimulationResult, t: TFunction): string {
+  return result.uncertaintyMethod === 'parameter_interval_envelope'
+    ? t('bfn.results.provenance.parameterIntervalEnvelope')
+    : t('bfn.results.provenance.uncertaintyUnavailable');
 }
 
 export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
@@ -127,7 +126,7 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
     ['temporalExecutionSummary', temporalExecutionSummary(result, t)],
     ['temporalEvidenceSummary', temporalEvidenceSummary(result, t)],
     ['contextApplicabilitySummary', contextApplicabilitySummary(result, t)],
-    ['uncertaintyMethod', t(uncertaintyMethodKeys[result.uncertaintyMethod])],
+    ['uncertaintyMethod', uncertaintySummary(result, t)],
     [
       'extrapolated',
       t(result.extrapolated ? 'bfn.results.provenance.yes' : 'bfn.results.provenance.no'),
@@ -167,6 +166,39 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
                   <td>{module.selectedModelId ?? t('bfn.results.provenance.notAvailable')}</td>
                   <td>{t(`bfn.temporal.modes.${module.executionMode}`)}</td>
                   <td>{t(`bfn.temporal.evidenceTiers.${module.evidenceTier}`)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      ) : null}
+      {result.engineVersion === 'BFN-SIM-2.1' ? (
+        <details className="bfn-run-provenance__uncertainty-modules">
+          <summary>{t('bfn.results.provenance.uncertaintyModuleDetails')}</summary>
+          <table>
+            <thead>
+              <tr>
+                <th>{t('bfn.results.provenance.module')}</th>
+                <th>{t('bfn.results.provenance.model')}</th>
+                <th>{t('bfn.results.provenance.uncertaintyMethod')}</th>
+                <th>{t('bfn.results.provenance.availability')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {result.uncertaintySnapshot.modules.map((module) => (
+                <tr key={module.moduleId}>
+                  <td>{module.moduleId}</td>
+                  <td>{module.selectedModelId ?? t('bfn.results.provenance.notAvailable')}</td>
+                  <td>
+                    {module.method
+                      ? t(`bfn.results.uncertainty.methods.${module.method}`)
+                      : t('bfn.results.provenance.notAvailable')}
+                  </td>
+                  <td>
+                    {module.intervalExecutable
+                      ? t('bfn.results.uncertainty.available')
+                      : t(`bfn.results.uncertainty.reasons.${module.reason ?? 'not_recorded'}`)}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -15,6 +15,7 @@ import type {
 } from './chartTypes';
 import type { BfnProject, BfnSimulationResult } from './types';
 import { bfnChartResultIdentity } from './BfnResponseChart';
+import { hasBfnExecutableResultInterval } from './simulationUncertainty';
 
 interface BfnChartControlsProps {
   project?: BfnProject;
@@ -301,14 +302,16 @@ export function BfnChartControls({
         >
           {t('bfn.results.chart.fullModel')}
         </button>
-        <button
-          type="button"
-          data-series="uncertainty"
-          aria-pressed={viewState.showUncertainty}
-          onClick={() => setSeries('showUncertainty')}
-        >
-          {t('bfn.results.chart.uncertaintyBand')}
-        </button>
+        {hasBfnExecutableResultInterval(result) ? (
+          <button
+            type="button"
+            data-series="uncertainty"
+            aria-pressed={viewState.showUncertainty}
+            onClick={() => setSeries('showUncertainty')}
+          >
+            {t('bfn.results.chart.uncertaintyBand')}
+          </button>
+        ) : null}
         {result.annApproximation ? (
           <button
             type="button"

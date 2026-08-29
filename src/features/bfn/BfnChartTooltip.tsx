@@ -11,8 +11,8 @@ interface BfnChartTooltipProps {
   cursor?: BfnChartCursor;
 }
 
-function valueLabel(value: number, unit?: string): string {
-  if (!Number.isFinite(value)) return '—';
+function valueLabel(value: number | null, unit?: string): string {
+  if (value === null || !Number.isFinite(value)) return '—';
   const text =
     Math.abs(value) > 0 && Math.abs(value) < 0.001 ? value.toExponential(3) : value.toFixed(3);
   return unit ? `${text} ${unit}` : text;
@@ -117,14 +117,18 @@ export function BfnChartTooltip({ result, comparison, model, cursor }: BfnChartT
           </dt>
           <dd>{valueLabel(point.output, outputUnit)}</dd>
         </div>
-        <div>
-          <dt>{t('bfn.results.chart.cursorLower')}</dt>
-          <dd>{valueLabel(point.lower, outputUnit)}</dd>
-        </div>
-        <div>
-          <dt>{t('bfn.results.chart.cursorUpper')}</dt>
-          <dd>{valueLabel(point.upper, outputUnit)}</dd>
-        </div>
+        {point.lower !== null && point.upper !== null ? (
+          <>
+            <div>
+              <dt>{t('bfn.results.chart.cursorLower')}</dt>
+              <dd>{valueLabel(point.lower, outputUnit)}</dd>
+            </div>
+            <div>
+              <dt>{t('bfn.results.chart.cursorUpper')}</dt>
+              <dd>{valueLabel(point.upper, outputUnit)}</dd>
+            </div>
+          </>
+        ) : null}
         {approximation !== null ? (
           <div>
             <dt>{t('bfn.results.chart.annOverlay')}</dt>

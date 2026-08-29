@@ -71,7 +71,9 @@ function valuesForPoint(
 ): number[] {
   const values: number[] = [];
   if (visibilityFlag(visibility, 'full')) values.push(point.output);
-  if (visibilityFlag(visibility, 'uncertainty')) values.push(point.lower, point.upper);
+  if (visibilityFlag(visibility, 'uncertainty') && point.lower !== null && point.upper !== null) {
+    values.push(point.lower, point.upper);
+  }
   if (visibilityFlag(visibility, 'ann')) {
     const value = annValue(result, point);
     if (value !== null) values.push(value);

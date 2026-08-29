@@ -25,6 +25,7 @@ import type {
 import type { BfnSimulationPoint, BfnSimulationResult } from './types';
 import { nearestBfnPointOnValidatedGrid } from './runComparison';
 import { resolveBfnResultSignals } from './resultSignals';
+import { hasBfnExecutableResultInterval } from './simulationUncertainty';
 
 function finiteExtent(values: readonly number[], fallback: BfnChartDomain): BfnChartDomain {
   const finite = values.filter((value) => Number.isFinite(value));
@@ -184,6 +185,10 @@ function uncertaintySegments(
   };
   for (const { point, index } of points) {
     if (previousIndex !== undefined && index !== previousIndex + 1) flush();
+    if (point.upper === null || point.lower === null) {
+      flush();
+      continue;
+    }
     const x = mapX(point.coordinate);
     const upperY = mapY(point.upper);
     const lowerY = mapY(point.lower);
@@ -404,22 +409,23 @@ export function createBfnChartModel({
         mapY,
       )
     : undefined;
-  const uncertaintySeries = viewState.showUncertainty
-    ? (() => {
-        const segments = uncertaintySegments(fullPoints, mapX, mapY);
-        const upper = segments.flatMap(({ upper: segmentUpper }) => segmentUpper);
-        const path = bandPath(segments);
-        return {
-          kind: 'uncertainty' as const,
-          label: fallbackTranslation(translate, 'bfn.results.uncertaintyBand', 'Uncertainty'),
-          visible: true,
-          path,
-          band: path,
-          points: upper,
-          resultId: result.id,
-        };
-      })()
-    : undefined;
+  const uncertaintySeries =
+    viewState.showUncertainty && hasBfnExecutableResultInterval(result)
+      ? (() => {
+          const segments = uncertaintySegments(fullPoints, mapX, mapY);
+          const upper = segments.flatMap(({ upper: segmentUpper }) => segmentUpper);
+          const path = bandPath(segments);
+          return {
+            kind: 'uncertainty' as const,
+            label: fallbackTranslation(translate, 'bfn.results.uncertaintyBand', 'Uncertainty'),
+            visible: true,
+            path,
+            band: path,
+            points: upper,
+            resultId: result.id,
+          };
+        })()
+      : undefined;
   const annSeries =
     viewState.showAnn && result.annApproximation
       ? seriesFor(
@@ -486,8 +492,8 @@ export function createBfnChartModel({
                 y,
                 point: cursorPoint,
                 value: cursorPoint.output,
-                lower: cursorPoint.lower,
-                upper: cursorPoint.upper,
+                ...(cursorPoint.lower === null ? {} : { lower: cursorPoint.lower }),
+                ...(cursorPoint.upper === null ? {} : { upper: cursorPoint.upper }),
                 ...(comparisonCursor ? { comparison: comparisonCursor } : {}),
               }
             : undefined;

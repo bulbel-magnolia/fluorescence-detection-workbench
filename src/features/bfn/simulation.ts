@@ -4,6 +4,7 @@ import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
 import { createBfnRunContextApplicabilitySnapshot } from './compatibility/contextIntegration';
 import { resolveEffectiveBfnModel } from './modelResolution';
 import { findBfnOutputReachableModuleIds } from './outputReachability';
+import { createBfnRunUncertaintySnapshot } from './simulationUncertainty';
 import type { BfnParameterScenario } from './responseMath';
 import type {
   BfnDynamicInputSpecification,
@@ -13,7 +14,7 @@ import type {
   BfnModelVariant,
   BfnProject,
   BfnSimulationPoint,
-  BfnSimulationResult,
+  BfnSimulationResultV21,
   BfnStaticInputSpecification,
   BfnStaticModel,
   BfnValidationIssue,
@@ -150,7 +151,10 @@ function evaluateStaticNetwork(
   return { output, moduleOutputs, extrapolatedSubjects };
 }
 
-function staticSimulation(project: BfnProject): {
+function staticSimulation(
+  project: BfnProject,
+  intervalExecutable: boolean,
+): {
   points: BfnSimulationPoint[];
   extrapolatedSubjects: string[];
 } {
@@ -163,7 +167,8 @@ function staticSimulation(project: BfnProject): {
   const primarySource = project.network.inputSources[0];
   const extrapolatedSubjects = new Set<string>();
   const points = combinations.map((inputs, index) => {
-    const evaluations = parameterScenarios.map((scenario) =>
+    const scenarios = intervalExecutable ? parameterScenarios : (['estimate'] as const);
+    const evaluations = scenarios.map((scenario) =>
       evaluateStaticNetwork(project, inputs, scenario),
     );
     const estimate = evaluations[0]!;
@@ -174,8 +179,8 @@ function staticSimulation(project: BfnProject): {
       inputs: { ...inputs },
       moduleOutputs: estimate.moduleOutputs,
       output: estimate.output,
-      lower: Math.min(...outputs),
-      upper: Math.max(...outputs),
+      lower: intervalExecutable ? Math.min(...outputs) : null,
+      upper: intervalExecutable ? Math.max(...outputs) : null,
       extrapolated: estimate.extrapolatedSubjects.length > 0,
     };
   });
@@ -394,13 +399,15 @@ function dynamicMetrics(
   };
 }
 
-function dynamicSimulation(project: BfnProject): {
+function dynamicSimulation(
+  project: BfnProject,
+  intervalExecutable: boolean,
+): {
   points: BfnSimulationPoint[];
   extrapolatedSubjects: string[];
 } {
-  const scenarios = parameterScenarios.map((scenario) =>
-    simulateDynamicScenario(project, scenario),
-  );
+  const parameterCases = intervalExecutable ? parameterScenarios : (['estimate'] as const);
+  const scenarios = parameterCases.map((scenario) => simulateDynamicScenario(project, scenario));
   const estimate = scenarios[0] ?? [];
   const extrapolatedSubjects = new Set<string>();
   const points = estimate.map((point, index) => {
@@ -412,8 +419,8 @@ function dynamicSimulation(project: BfnProject): {
       inputs: point.inputs,
       moduleOutputs: point.moduleOutputs,
       output: point.output,
-      lower: Math.min(...outputs),
-      upper: Math.max(...outputs),
+      lower: intervalExecutable ? Math.min(...outputs) : null,
+      upper: intervalExecutable ? Math.max(...outputs) : null,
       extrapolated: point.extrapolatedSubjects.length > 0,
     };
   });
@@ -439,14 +446,21 @@ function provenance(project: BfnProject): { modelVersions: string[]; contextIds:
 export function runBfnSimulation(
   project: BfnProject,
   completedAt = new Date().toISOString(),
-): BfnSimulationResult {
+): BfnSimulationResultV21 {
   const baseIssues = validateBfnProject(project);
   const fatal = baseIssues.filter((issue) => issue.severity === 'error');
   if (fatal.length > 0) {
     throw new Error(`BFN_VALIDATION_FAILED:${fatal.map((issue) => issue.code).join(',')}`);
   }
+  const monitor = project.network.outputMonitors[0];
+  const primarySource = project.network.inputSources[0];
+  if (!monitor || !primarySource) throw new Error('BFN_NETWORK_ENDPOINT_MISSING');
+  const uncertaintySnapshot = createBfnRunUncertaintySnapshot(project, monitor.id);
+  const intervalExecutable = uncertaintySnapshot.status === 'available';
   const simulation =
-    project.network.mode === 'static' ? staticSimulation(project) : dynamicSimulation(project);
+    project.network.mode === 'static'
+      ? staticSimulation(project, intervalExecutable)
+      : dynamicSimulation(project, intervalExecutable);
   const outsideIssues: BfnValidationIssue[] = simulation.extrapolatedSubjects.map((subjectId) => ({
     code: 'outside_validity_domain',
     severity: 'warning',
@@ -454,9 +468,6 @@ export function runBfnSimulation(
   }));
   const annApproximation =
     project.network.mode === 'static' ? buildAnnApproximation(project, simulation.points) : null;
-  const monitor = project.network.outputMonitors[0];
-  const primarySource = project.network.inputSources[0];
-  if (!monitor || !primarySource) throw new Error('BFN_NETWORK_ENDPOINT_MISSING');
   const source = resolveBfnPort(project, {
     nodeId: primarySource.id,
     portId: primarySource.outputPort.id,
@@ -471,7 +482,7 @@ export function runBfnSimulation(
   );
   return {
     id: createId('bfn-run'),
-    engineVersion: 'BFN-SIM-2.0',
+    engineVersion: 'BFN-SIM-2.1',
     networkId: project.network.id,
     mode: project.network.mode,
     points: simulation.points,
@@ -502,7 +513,8 @@ export function runBfnSimulation(
     modelVersions: trace.modelVersions,
     contextIds: trace.contextIds,
     extrapolated: outsideIssues.length > 0,
-    uncertaintyMethod: 'parameter_interval_envelope',
+    uncertaintyMethod: uncertaintySnapshot.method,
+    uncertaintySnapshot,
     completedAt,
     isDemo:
       project.isDemo ||

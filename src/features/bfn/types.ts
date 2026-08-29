@@ -523,8 +523,8 @@ export interface BfnSimulationPoint {
   inputs: Record<string, number>;
   moduleOutputs: Record<string, number>;
   output: number;
-  lower: number;
-  upper: number;
+  lower: number | null;
+  upper: number | null;
   extrapolated: boolean;
 }
 
@@ -539,7 +539,7 @@ export interface BfnAnnApproximation {
     r2: number;
     nrmse: number;
     maximumAbsoluteError: number;
-    predictionIntervalCoverage: number;
+    predictionIntervalCoverage: number | null;
   };
   thresholds: {
     minimumR2: number;
@@ -563,9 +563,26 @@ export interface BfnDynamicMetrics {
   } | null;
 }
 
-export interface BfnSimulationResult {
+export type BfnUncertaintyUnavailableReason =
+  'none_declared' | 'not_recorded' | 'parameter_interval_incomplete' | 'method_not_executable';
+
+export interface BfnRunModuleUncertaintySnapshot {
+  moduleId: string;
+  selectedModelId: string | null;
+  method: BfnUncertaintyMethod | null;
+  intervalExecutable: boolean;
+  reason: BfnUncertaintyUnavailableReason | null;
+}
+
+export interface BfnRunUncertaintySnapshot {
+  scope: 'output_reachable';
+  status: 'available' | 'unavailable';
+  method: 'parameter_interval_envelope' | null;
+  modules: BfnRunModuleUncertaintySnapshot[];
+}
+
+interface BfnSimulationResultBase {
   id: string;
-  engineVersion: 'BFN-SIM-2.0';
   networkId: string;
   mode: BfnNetworkMode;
   points: BfnSimulationPoint[];
@@ -580,11 +597,24 @@ export interface BfnSimulationResult {
   modelVersions: string[];
   contextIds: string[];
   extrapolated: boolean;
-  uncertaintyMethod: 'parameter_interval_envelope';
   completedAt: string;
   isDemo: boolean;
   experimentalValidity: 'not_validated';
 }
+
+export interface BfnSimulationResultV20 extends BfnSimulationResultBase {
+  engineVersion: 'BFN-SIM-2.0';
+  uncertaintyMethod: 'parameter_interval_envelope';
+  uncertaintySnapshot?: never;
+}
+
+export interface BfnSimulationResultV21 extends BfnSimulationResultBase {
+  engineVersion: 'BFN-SIM-2.1';
+  uncertaintyMethod: 'parameter_interval_envelope' | null;
+  uncertaintySnapshot: BfnRunUncertaintySnapshot;
+}
+
+export type BfnSimulationResult = BfnSimulationResultV20 | BfnSimulationResultV21;
 
 export interface BfnRunInputSignalSnapshot {
   sourceId: string;

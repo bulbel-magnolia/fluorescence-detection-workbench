@@ -96,6 +96,68 @@ describe('BFN-IR ideal connection validation', () => {
     expect(issue).toMatchObject({ code: 'missing_required_input', severity: 'warning' });
   });
 
+  it('blocks an unconnected modeled input on an output-reachable user-defined module', () => {
+    const project = createDemoBfnProject();
+    const sensor = project.network.modules[0]!;
+    sensor.authoring = {
+      origin: 'user_defined',
+      name: 'Authored sensor',
+      description: null,
+    };
+    const inputPort = sensor.inputPorts[0]!;
+    project.network.edges = project.network.edges.filter(
+      (edge) => edge.target.portId !== inputPort.id,
+    );
+
+    expect(validateBfnProject(project)).toContainEqual(
+      expect.objectContaining({
+        code: 'missing_required_input',
+        severity: 'error',
+        subjectId: inputPort.id,
+      }),
+    );
+  });
+
+  it('accepts an explicitly connected zero and does not block an unreachable authored module', () => {
+    const project = createDemoBfnProject();
+    const sensor = project.network.modules[0]!;
+    sensor.authoring = {
+      origin: 'user_defined',
+      name: 'Authored sensor',
+      description: null,
+    };
+    project.network.inputSources[0]!.staticSpecification = {
+      type: 'fixed_value',
+      value: 0,
+      unit: 'nM',
+    };
+    const unreachable = createDemoBfnProject().network.modules[0]!;
+    unreachable.id = 'module-user-unreachable';
+    unreachable.authoring = {
+      origin: 'user_defined',
+      name: 'Unreachable authored module',
+      description: null,
+    };
+    unreachable.inputPorts = unreachable.inputPorts.map((port) => ({
+      ...port,
+      id: `unreachable-${port.id}`,
+    }));
+    project.network.modules.push(unreachable);
+
+    const issues = validateBfnProject(project);
+
+    expect(
+      issues.some(
+        (issue) => issue.subjectId === sensor.inputPorts[0]!.id && issue.severity === 'error',
+      ),
+    ).toBe(false);
+    expect(
+      issues.some(
+        (issue) => issue.subjectId === unreachable.inputPorts[0]!.id && issue.severity === 'error',
+      ),
+    ).toBe(false);
+  });
+
   it('emits fact-based context applicability issues without the legacy context-ID warning', () => {
     const project = createDemoBfnProject();
     const originalTemperature = project.registry.contexts[0]!.temperatureCelsius;

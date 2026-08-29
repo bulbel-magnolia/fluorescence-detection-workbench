@@ -633,6 +633,26 @@ export const bfnEnUS = {
       legacySemanticsUnavailable:
         'Signal semantics were not recorded for this historical run; labels and units are unavailable.',
     },
+    uncertainty: {
+      unavailableTitle: 'Parameter interval unavailable',
+      unavailableFallback: 'This run contains a point estimate without an executable interval.',
+      available: 'Parameter interval propagation available',
+      reasons: {
+        none_declared: 'One or more active models explicitly declare no uncertainty.',
+        not_recorded: 'Uncertainty was not recorded for one or more active models.',
+        parameter_interval_incomplete:
+          'One or more active models have a missing or invalid parameter interval.',
+        method_not_executable: 'A recorded uncertainty method cannot be executed by this runtime.',
+      },
+      methods: {
+        parameter_interval_envelope: 'Parameter-interval envelope',
+        posterior_samples: 'Posterior samples',
+        bootstrap: 'Bootstrap',
+        covariance: 'Covariance',
+        none: 'None declared',
+        not_recorded: 'Not recorded',
+      },
+    },
     fullModel: 'Network response',
     uncertaintyBand: 'Parameter interval',
     annOverlay: 'ANN approximation',
@@ -726,6 +746,9 @@ export const bfnEnUS = {
       experimentalValidity: 'Experimental validity',
       annApproximation: 'ANN approximation',
       parameterIntervalEnvelope: 'Parameter-interval envelope',
+      uncertaintyUnavailable: 'Unavailable for this run',
+      uncertaintyModuleDetails: 'View module uncertainty details',
+      availability: 'Interval availability',
       yes: 'Yes',
       no: 'No',
       notValidated: 'Not experimentally validated',
@@ -786,6 +809,7 @@ export const bfnEnUS = {
     showMetrics: 'View detailed metrics',
     maxError: 'Maximum absolute error',
     coverage: 'Interval coverage',
+    coverageUnavailable: 'Unavailable without an executable parameter interval',
     acceptedText:
       'Within this input range, a simplified relationship summarizes the input-output trend.',
     rejectedText:

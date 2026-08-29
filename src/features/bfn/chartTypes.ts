@@ -1,4 +1,5 @@
 import type { BfnProject, BfnSimulationPoint, BfnSimulationResult } from './types';
+import { hasBfnExecutableResultInterval } from './simulationUncertainty';
 
 export type BfnChartScale = 'linear' | 'log';
 
@@ -198,7 +199,7 @@ export function defaultBfnChartViewState(result: BfnSimulationResult): BfnChartV
     xDomainMode: 'auto',
     yDomainMode: 'auto',
     showFullModel: true,
-    showUncertainty: true,
+    showUncertainty: hasBfnExecutableResultInterval(result),
     showAnn: result.annApproximation !== null,
     cursorIndex: null,
   };
