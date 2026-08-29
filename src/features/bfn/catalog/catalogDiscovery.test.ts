@@ -17,24 +17,35 @@ describe('BFN catalog discovery projection', () => {
   const presentation = loadReleaseCatalogPresentation();
   const model = buildBfnCatalogDiscoveryModel(presentation);
 
-  it('projects the complete frozen release contract without inventing sender responses', () => {
+  it('projects the frozen base and Sender V1.2 extension without inventing sender runtime', () => {
     expect(model.counts).toEqual({
-      components: 42,
+      components: 76,
       responses: 52,
       runnableResponses: 20,
+      receiverResponses: 52,
+      runnableReceivers: 20,
+      senderEvidenceRecords: 53,
+      runnableSenders: 0,
     });
-    expect(model.groups).toHaveLength(42);
+    expect(model.groups).toHaveLength(76);
     expect(model.groups.flatMap((group) => group.responses)).toHaveLength(52);
     expect(queryBfnCatalogDiscovery(model)).toMatchObject({
-      componentCount: 42,
+      componentCount: 76,
       responseCount: 52,
+      senderEvidenceCount: 53,
     });
+    expect(model.catalogVersion).toBe('1.1');
+    expect(model.senderExtensionVersion).toBe('1.2');
     expect(Object.isFrozen(model)).toBe(true);
 
     const senders = model.groups.filter((group) => group.role === 'sender');
+    const senderOutputs = senders.flatMap((sender) => sender.senderOutputs);
     expect(senders.length).toBeGreaterThan(0);
     expect(senders.every((sender) => sender.responses.length === 0)).toBe(true);
     expect(senders.every((sender) => sender.status !== 'runnable-demo')).toBe(true);
+    expect(senderOutputs).toHaveLength(53);
+    expect(senderOutputs.every((output) => output.runtimeAdmission.admitted === false)).toBe(true);
+    expect(senderOutputs.every((output) => output.runtimeAdmission.outputPort === null)).toBe(true);
     expect(
       presentation.components.every(
         (component) => component.component.admission.status !== 'rejected',
@@ -60,10 +71,16 @@ describe('BFN catalog discovery projection', () => {
     );
   });
 
-  it('projects exact semantic families for every trusted component without changing runtime facts', () => {
-    expect(model.groups.every((group) => group.semantic !== null)).toBe(true);
+  it('preserves base semantics and leaves new extension records uninferred', () => {
+    const baseIds = new Set(presentation.components.map((component) => component.id));
+    const baseGroups = model.groups.filter((group) => baseIds.has(group.id));
+    const extensionGroups = model.groups.filter((group) => !baseIds.has(group.id));
+    expect(baseGroups).toHaveLength(42);
+    expect(baseGroups.every((group) => group.semantic !== null)).toBe(true);
+    expect(extensionGroups).toHaveLength(34);
+    expect(extensionGroups.every((group) => group.semantic === null)).toBe(true);
     expect(
-      model.groups
+      baseGroups
         .filter((group) => group.role === 'receiver')
         .every(
           (group) =>
@@ -72,7 +89,7 @@ describe('BFN catalog discovery projection', () => {
         ),
     ).toBe(true);
     expect(
-      model.groups
+      baseGroups
         .filter((group) => group.role === 'sender')
         .every(
           (group) =>
@@ -101,6 +118,11 @@ describe('BFN catalog discovery projection', () => {
           runnable: response.runnable,
           status: response.status,
         })),
+        senderOutputs: group.senderOutputs.map((output) => ({
+          id: output.id,
+          admitted: output.runtimeAdmission.admitted,
+          status: output.status,
+        })),
       }));
 
     expect(runtimeFacts(withoutSemantic)).toEqual(runtimeFacts(model));
@@ -108,8 +130,9 @@ describe('BFN catalog discovery projection', () => {
     expect(withoutSemantic.groups.every((group) => group.semantic === null)).toBe(true);
     expect(withoutSemantic.filterOptions.functionalFamilies).toEqual([]);
     expect(queryBfnCatalogDiscovery(withoutSemantic)).toMatchObject({
-      componentCount: 42,
+      componentCount: 76,
       responseCount: 52,
+      senderEvidenceCount: 53,
     });
     expect(
       queryBfnCatalogDiscovery(withoutSemantic, {
@@ -176,6 +199,20 @@ describe('BFN catalog discovery projection', () => {
       expect(queryBfnCatalogDiscovery(model, { query }).componentCount).toBeGreaterThan(0);
     },
   );
+
+  it.each([
+    'AAA063 genomic CepI sender',
+    'C8-HSL',
+    'Aafke C. A. van Aalst',
+    'Engineering N-acyl-homoserine lactone-based quorum-sensing circuit',
+    '10.1038/s42003-025-09163-9',
+    'Saccharomyces cerevisiae',
+    'enzyme kinetics',
+  ])('finds Sender V1.2 evidence through %s', (query) => {
+    const result = queryBfnCatalogDiscovery(model, { query });
+    expect(result.senderEvidenceCount).toBeGreaterThan(0);
+    expect(result.groups.some((group) => group.role === 'sender')).toBe(true);
+  });
 
   it.each([
     ['信号响应', 'receiver'],

@@ -4,6 +4,23 @@ import type {
 } from '../../modeling/catalog/v2/catalogTypes';
 import type { AhlHslSequenceMetadata } from '../../modeling/catalog/v2/releaseTypes';
 import {
+  assessSenderExtensionRuntimeAdmissions,
+  isTrustedSenderEvidenceExtension,
+  loadSenderEvidenceExtension,
+  senderEvidenceScopes,
+  type BfnSenderRuntimeAdmission,
+  type SenderEvidenceExtension,
+  type SenderEvidenceScope,
+  type SenderEvidenceTraceRecord,
+  type SenderExtensionComponentRecord,
+  type SenderExtensionParameterContextRecord,
+  type SenderExtensionSignalRecord,
+  type SenderFunctionParameterRecord,
+  type SenderOutputRecord,
+  type SenderRawPointRecord,
+  type SenderSourceRecord,
+} from '../../modeling/catalog/sender/v1_2';
+import {
   isTrustedReleaseCatalogPresentation,
   type ReleaseCatalogLanguage,
   type ReleaseCatalogLocalizedName,
@@ -25,7 +42,9 @@ import {
 } from './catalogDiscovery';
 
 export type BfnCatalogDetailTarget =
-  { kind: 'response'; responseId: string } | { kind: 'component'; componentId: string };
+  | { kind: 'response'; responseId: string }
+  | { kind: 'component'; componentId: string }
+  | { kind: 'sender_output'; senderOutputId: string };
 
 export type BfnCatalogRuntimeCandidateBuilder = (responseId: string) => BfnCatalogRuntimeCandidate;
 
@@ -165,7 +184,38 @@ export interface BfnCatalogComponentDetail extends BfnCatalogDetailBase {
   currentNumericCapability: 'no-quantitative-sender-function' | 'reference-only';
 }
 
-export type BfnCatalogDetail = BfnCatalogResponseDetail | BfnCatalogComponentDetail;
+export interface BfnCatalogSenderSignalDetail {
+  id: string;
+  names: ReleaseCatalogLocalizedName;
+  canonicalName: string;
+  abbreviations: readonly string[];
+  extensionRecord: SenderExtensionSignalRecord | null;
+}
+
+export interface BfnCatalogSenderOutputDetail {
+  kind: 'sender_output';
+  senderOutputId: string;
+  status: BfnCatalogDiscoveryStatus;
+  component: BfnCatalogDetailComponent;
+  extensionComponent: SenderExtensionComponentRecord | null;
+  context: BfnCatalogDetailContext;
+  extensionContext: SenderExtensionParameterContextRecord | null;
+  sources: readonly SenderSourceRecord[];
+  outputSignal: BfnCatalogSenderSignalDetail | null;
+  output: SenderOutputRecord;
+  rawPoints: readonly SenderRawPointRecord[];
+  functionParameters: readonly SenderFunctionParameterRecord[];
+  evidenceTrace: readonly SenderEvidenceTraceRecord[];
+  evidenceScopes: readonly SenderEvidenceScope[];
+  runtimeAdmission: BfnSenderRuntimeAdmission;
+  catalogVersion: string;
+  extensionName: string;
+  extensionVersion: string;
+  canAddToNetwork: false;
+}
+
+export type BfnCatalogDetail =
+  BfnCatalogResponseDetail | BfnCatalogComponentDetail | BfnCatalogSenderOutputDetail;
 
 export function bfnCatalogComponentDisplayName(
   component: Pick<ReleaseComponentView, 'names' | 'regulatorOrEnzyme' | 'promoter'>,
@@ -181,9 +231,17 @@ export function buildBfnCatalogDetail(
   presentation: ReleaseCatalogPresentation,
   target: BfnCatalogDetailTarget,
   candidateBuilder: BfnCatalogRuntimeCandidateBuilder = buildBfnCatalogRuntimeCandidate,
+  senderExtension: SenderEvidenceExtension = loadSenderEvidenceExtension(),
 ): BfnCatalogDetail {
   if (!isTrustedReleaseCatalogPresentation(presentation)) {
     throw new Error('BFN_CATALOG_DETAIL_PRESENTATION_UNTRUSTED');
+  }
+  if (target.kind === 'sender_output') {
+    if (!isTrustedSenderEvidenceExtension(senderExtension))
+      throw new Error('BFN_CATALOG_SENDER_EXTENSION_UNTRUSTED');
+    return deepFreeze(
+      buildSenderOutputDetail(presentation, senderExtension, target.senderOutputId),
+    );
   }
   if (target.kind === 'response') {
     const response = required(
@@ -201,6 +259,184 @@ export function buildBfnCatalogDetail(
     'BFN_CATALOG_DETAIL_COMPONENT_NOT_FOUND',
   );
   return deepFreeze(buildComponentDetail(presentation, component));
+}
+
+function buildSenderOutputDetail(
+  presentation: ReleaseCatalogPresentation,
+  extension: SenderEvidenceExtension,
+  senderOutputId: string,
+): BfnCatalogSenderOutputDetail {
+  const output = required(
+    extension.outputsDocument.sender_outputs.find((item) => item.id === senderOutputId),
+    'BFN_CATALOG_DETAIL_SENDER_OUTPUT_NOT_FOUND',
+  );
+  const baseComponent = presentation.components.find(
+    (component) => component.id === output.sender_component_id,
+  );
+  const extensionComponent =
+    extension.componentsDocument.new_sender_components.find(
+      (component) => component.id === output.sender_component_id,
+    ) ?? null;
+  let component: BfnCatalogDetailComponent;
+  if (baseComponent) component = componentDetail(presentation, baseComponent);
+  else if (extensionComponent) component = extensionComponentDetail(extensionComponent);
+  else throw new Error('BFN_CATALOG_DETAIL_SENDER_COMPONENT_NOT_FOUND');
+  const extensionContext =
+    extension.componentsDocument.new_parameter_contexts.find(
+      (context) => context.id === output.parameter_context_id,
+    ) ?? null;
+  const baseContext = presentation.parameterContexts.find(
+    (context) => context.id === output.parameter_context_id,
+  );
+  const context = extensionContext
+    ? senderContextDetail(extensionContext)
+    : contextDetail(required(baseContext, 'BFN_CATALOG_DETAIL_SENDER_CONTEXT_NOT_FOUND'));
+  const sources = output.source_ids.map((sourceId) =>
+    required(
+      extension.sources.find((source) => source.source_id === sourceId),
+      'BFN_CATALOG_DETAIL_SENDER_SOURCE_NOT_FOUND:' + sourceId,
+    ),
+  );
+  const rawPoints = extension.rawPoints.filter((point) => point.sender_output_id === output.id);
+  const functionParameters = extension.functionParameters.filter(
+    (parameter) => parameter.sender_output_id === output.id,
+  );
+  const admission = required(
+    assessSenderExtensionRuntimeAdmissions(extension, presentation.release).find(
+      (assessment) => assessment.senderOutputId === output.id,
+    )?.admission,
+    'BFN_CATALOG_DETAIL_SENDER_ADMISSION_NOT_FOUND',
+  );
+  const relatedTraceIds = new Set([
+    output.id,
+    output.sender_component_id,
+    output.parameter_context_id,
+    ...output.source_ids,
+    ...output.product_profile.map((profile) => profile.signal_id),
+    ...rawPoints.map((point) => point.raw_point_id),
+  ]);
+  return {
+    kind: 'sender_output',
+    senderOutputId: output.id,
+    status: senderEvidenceStatus(output.software_status),
+    component,
+    extensionComponent,
+    context,
+    extensionContext,
+    sources,
+    outputSignal: senderSignalDetail(output.output_signal_id, presentation, extension),
+    output,
+    rawPoints,
+    functionParameters,
+    evidenceTrace: extension.evidenceTrace.filter((trace) => relatedTraceIds.has(trace.record_id)),
+    evidenceScopes: senderEvidenceScopes(output, rawPoints, functionParameters),
+    runtimeAdmission: admission,
+    catalogVersion: presentation.catalog.releaseManifest.releaseVersion,
+    extensionName: extension.componentsDocument.release_metadata.release_name,
+    extensionVersion: extension.componentsDocument.release_metadata.version,
+    canAddToNetwork: false,
+  };
+}
+
+function extensionComponentDetail(
+  component: SenderExtensionComponentRecord,
+): BfnCatalogDetailComponent {
+  const names = {
+    en: component.display_name_en,
+    zh: component.display_name_zh,
+  };
+  return {
+    id: component.id,
+    names,
+    displayNames: names,
+    aliases: [],
+    role: 'sender',
+    status: senderEvidenceStatus(component.software_status),
+    regulatorOrEnzyme: component.regulator_or_enzyme,
+    promoter: component.promoter,
+    reporter: component.reporter,
+    vectorOrBackbone: component.vector_or_backbone,
+    copyNumberContext: component.copy_number_or_replication_context,
+    expressionConfiguration: component.expression_configuration,
+    inputDescription: component.input_port,
+    outputDescription: component.output_port,
+    sequenceStatus: component.sequence_status,
+    sequenceReference: component.sequence_reference,
+    sequenceMetadata: null,
+    constructionReady: component.construction_ready,
+    evidenceGaps: [...component.evidence_gap],
+    notes: component.notes,
+    revisionStatus: component.revision_status,
+    lastVerifiedAt: component.last_verified_at,
+  };
+}
+
+function senderContextDetail(
+  context: SenderExtensionParameterContextRecord,
+): BfnCatalogDetailContext {
+  return {
+    id: context.id,
+    hostSpecies: context.host_species,
+    hostStrain: context.host_strain,
+    vectorSystem: context.vector_system,
+    promoterConfiguration: context.promoter_configuration,
+    reporter: context.reporter,
+    cultureMedium: context.culture_medium,
+    temperature: context.temperature,
+    inductionConditions: context.induction_conditions,
+    exposureTime: context.exposure_time,
+    measurementPlatform: context.measurement_platform,
+    measurementUnit: context.measurement_unit,
+    normalizationMethod: context.normalization_method,
+    backgroundSubtraction: context.background_subtraction,
+    biologicalReplicates: context.biological_replicates,
+    technicalReplicates: context.technical_replicates,
+    measurementDetails: structuredClone(context.measurement_details),
+  };
+}
+
+function senderSignalDetail(
+  signalId: string | null,
+  presentation: ReleaseCatalogPresentation,
+  extension: SenderEvidenceExtension,
+): BfnCatalogSenderSignalDetail | null {
+  if (signalId === null) return null;
+  const baseSignal = presentation.signals.find((signal) => signal.id === signalId);
+  if (baseSignal)
+    return {
+      id: baseSignal.id,
+      names: { ...baseSignal.names },
+      canonicalName: baseSignal.canonicalName,
+      abbreviations: [...baseSignal.abbreviations],
+      extensionRecord: null,
+    };
+  const extensionSignal = required(
+    extension.componentsDocument.new_signals.find((signal) => signal.id === signalId),
+    'BFN_CATALOG_DETAIL_SENDER_SIGNAL_NOT_FOUND',
+  );
+  return {
+    id: extensionSignal.id,
+    names: {
+      en: extensionSignal.display_name_en,
+      zh: extensionSignal.display_name_zh,
+    },
+    canonicalName: extensionSignal.canonical_name,
+    abbreviations: [...extensionSignal.common_abbreviations],
+    extensionRecord: extensionSignal,
+  };
+}
+
+function senderEvidenceStatus(
+  status: SenderOutputRecord['software_status'],
+): BfnCatalogDiscoveryStatus {
+  switch (status) {
+    case 'calibration_candidate':
+      return 'needs-calibration';
+    case 'effective_pair_only':
+      return 'qualitative-only';
+    case 'reference_only':
+      return 'reference-only';
+  }
 }
 
 function buildResponseDetail(

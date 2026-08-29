@@ -870,3 +870,45 @@ Batch 6.0.1 没有独立留存一组可核验的完整套件最终数字；上�
 - mixed dynamic 与 context uncertain 的真实导入 fixture 已生成；浏览器扩展当前拒绝本地文件上传，故对应 `03`、`04` 截图仍待扩展启用 file URL access 后补录。真实 UI 无法自然构造跨单位端口，按任务边界未为 `05` 新增 Demo 业务对象；
 - 相对 Batch 10.0 基线 `73f29f39d446b4eb16603f2a8ccd61dc4509790f`，五个冻结 10.0 core files、AHL/HSL V1.1 Catalog JSON、Ontology v1 production files、Inverse Design engine、Workspace architecture、`package.json` 与 lockfile 保持零差异；
 - BFN-IR 保持 2.0，数值引擎保持 BFN-SIM-2.0，Workspace IndexedDB 保持 v1；Run provenance 采用向后兼容的可选字段，没有新增运行时依赖。
+
+## 2026-08-29 Batch 10.1.1 + Batch 11.0 + Batch 11.1
+
+### Batch 10.1.1 Validation Severity Presentation Fix
+
+- `prioritizeBfnValidationIssues()` 只改变运行前问题的展示顺序：error、warning、info；同 severity 保持原顺序，输入数组不被修改；
+- UI 在排序后截取前 5 条，多个 Context info 不再遮蔽 `temporal_execution_unsupported` 或其他 hard error；
+- 定向验证为 2 个测试文件、11 项测试，全部通过；`validateBfnProject()`、issue severity、Simulation 与 Compatibility Contract 未修改。
+
+### Batch 11.0 Sender Evidence Extension V1.2
+
+- 用户源包 SHA-256 为 `E05A053976ECA37A0433908C6AD22B149315AA02A3AE696E7F46D539B184C1BE`；12 个源文件逐字节保存在独立 extension 目录；
+- Source integrity 测试逐文件核对名称、字节数和 SHA-256；loader 验证 release/base identity、固定数量、duplicate ID、unknown reference、V1.1 overwrite、source reuse identity、raw-point round-trip、evidence trace 与科学 null；
+- 实际加载 3 个新 Signal、34 个新 Sender Component、17 个新 Context、13 个 V1.1 Sender link、53 条 Sender Output、60 个 raw point、5 条 function parameter、21 条 Source、18 条 rejected candidate 和 6,127 条 evidence trace；
+- Catalog Discovery 与 Full Detail 回归覆盖 76 个 Composite Component、52 条 Receiver response、53 条 Sender evidence、20 条 runnable Receiver、0 条 runnable Sender；搜索覆盖 Component、Signal、Author、Title、DOI、Host 与 evidence type；
+- Full Detail 回归覆盖 endpoint、fixed-condition time course、production rate、cell-free enzyme kinetics、effective-pair-only、ND、Source、Context、Raw Point、exact deep-link 与 sibling isolation；所有不可运行 Sender 均没有 Add to Network。
+
+### Batch 11.1 Sender Runtime Admission
+
+- Admission 为独立、确定、无评分的 fail-closed evaluator，按 identity、quantity/unit、直接测量、输入定义/工作域、模型、参数、模型评价、Context、provenance、执行授权与科学 scope 判定；
+- 全部 53 条真实 V1.2 Sender Output 均执行 admission，实际 admitted 数量为 0；hard regression 使用 `expect(admitted).toHaveLength(0)` 固定当前 release evidence invariant；
+- evaluator 没有按版本号拒绝。测试提供一条满足完整合同的隔离输入，确认未来证据满足条件时同一 gate 可以返回 admitted；
+- Two-level endpoint 不生成 curve；fixed-condition time course 不作为 dose response；enzyme kinetics 不作为 cellular Sender；effective pair 不拆解；ND 不变成 0；production rate 与 concentration 保持不同 quantity semantics。
+
+Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过。全仓第一次运行发现 `ModelingPage.batch51.test.tsx` 仍期待 CinI SEVA 的旧“暂无定量发送函数”占位；该真实 Sender 已有 V1.2 evidence，因此测试更新为 evidence row、runtime unavailable 与 workspace isolation 合同。该回归单独 1 个文件、1 项测试通过，最终全仓为 128 个测试文件、985 项测试全部通过。
+
+### Visual / Responsive audit
+
+- 7 张真实页面 PNG 与逐图检查点位于 `docs/ui-audit/sender-evidence/`，覆盖 Discovery、endpoint concentration、fixed-condition time course、enzyme kinetics、effective-pair boundary、dark mode 与 1180×700 raw table；
+- 1440×900、1280×720 与 1180×700 的 document client width 分别等于 scroll width，页面级水平溢出均为 0；
+- 560 px Catalog Drawer 自身纵向滚动；Raw Table 在窄屏下 `clientWidth=495 px`、`scrollWidth=620 px`，125 px 溢出被限制在表格内部，实际水平滚动从 0 到 100；
+- App tab console 为 0 warning / 0 error；Sender Full Detail 中 Add to Network 按钮数量为 0。
+
+### Complete gates 与冻结边界
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 本批修改的代码与文档通过定向 Prettier 检查，原始 Sender source files 未参与格式化并由字节哈希测试保护；
+- Vite 7.3.6 生产构建通过，289 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB；主 CSS 为 270.14 kB、gzip 45.41 kB；主 JavaScript chunk 为 3,220.86 kB、gzip 431.51 kB；
+- 构建保留大于 500 kB 的 chunk 提示，产物生成成功；没有新增运行时依赖；
+- 相对基线 `cb3d8a470d02b445580e501abb5bff90e75b7aee`，冻结 AHL/HSL V1.1 JSON、20 Receiver whitelist、Receiver runtime candidate/evaluator、Inverse Design engine、Ontology v1、五个 Temporal / Compatibility core files、Workspace architecture、`package.json` 与 lockfile 均为零差异；
+- 冻结 V1.1 JSON SHA-256 保持 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1；
+- Batch 10.1.1 presentation fix 通过最终全量回归，Batch 10 core 保持冻结。

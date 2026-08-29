@@ -8,6 +8,10 @@ import {
   type ReleaseCatalogLanguage,
   type ReleaseCatalogPresentation,
 } from '../../modeling/catalog/releaseCatalogPresentation';
+import {
+  loadSenderEvidenceExtension,
+  type SenderEvidenceExtension,
+} from '../../modeling/catalog/sender/v1_2';
 import type { BfnFunctionalFamilyId } from '../../modeling/ontology/v1/ontologyTypes';
 import { bfnModuleCatalog, createCatalogModule, type BfnCatalogModuleId } from '../fixtures';
 import { resolveEffectiveBfnModel } from '../modelResolution';
@@ -37,6 +41,7 @@ import {
   type BfnCatalogDiscoveryModel,
   type BfnCatalogDiscoveryQueryResult,
   type BfnCatalogDiscoveryResponse,
+  type BfnCatalogDiscoverySenderOutput,
   type BfnCatalogDiscoveryStatus,
   type BfnCatalogDiscoveryStatusFilter,
 } from './catalogDiscovery';
@@ -50,10 +55,12 @@ interface BfnCatalogDiscoveryDrawerProps {
   presentationLoader?: () => ReleaseCatalogPresentation;
   runtimeCandidateBuilder?: BfnCatalogRuntimeCandidateBuilder;
   semanticAdapter?: BfnSemanticPresentationAdapter;
+  senderExtensionLoader?: () => SenderEvidenceExtension;
 }
 
 type SelectedEntry =
   | { kind: 'response'; groupId: string; responseId: string }
+  | { kind: 'sender_output'; groupId: string; senderOutputId: string }
   | { kind: 'sender'; groupId: string }
   | { kind: 'component'; groupId: string };
 
@@ -66,6 +73,7 @@ export function BfnCatalogDiscoveryDrawer({
   presentationLoader = loadReleaseCatalogPresentation,
   runtimeCandidateBuilder,
   semanticAdapter = DEFAULT_BFN_SEMANTIC_PRESENTATION_ADAPTER,
+  senderExtensionLoader = loadSenderEvidenceExtension,
 }: BfnCatalogDiscoveryDrawerProps) {
   const { i18n } = useTranslation();
   const language = releaseLanguage(i18n.resolvedLanguage ?? i18n.language);
@@ -88,15 +96,22 @@ export function BfnCatalogDiscoveryDrawer({
   const loadResult = useMemo(() => {
     try {
       const presentation = presentationLoader();
+      const senderExtension = senderExtensionLoader();
       return {
         presentation,
-        model: buildBfnCatalogDiscoveryModel(presentation, semanticAdapter),
+        senderExtension,
+        model: buildBfnCatalogDiscoveryModel(presentation, semanticAdapter, senderExtension),
         error: false,
       } as const;
     } catch {
-      return { presentation: null, model: null, error: true } as const;
+      return {
+        presentation: null,
+        senderExtension: null,
+        model: null,
+        error: true,
+      } as const;
     }
-  }, [presentationLoader, semanticAdapter]);
+  }, [presentationLoader, semanticAdapter, senderExtensionLoader]);
   const result = useMemo(
     () =>
       loadResult.model
@@ -113,20 +128,22 @@ export function BfnCatalogDiscoveryDrawer({
   const singleGroupId = result?.componentCount === 1 ? (result.groups[0]?.id ?? null) : null;
   const detailResult = useMemo(() => {
     if (!detailTarget) return { detail: null, error: false } as const;
-    if (!loadResult.presentation) return { detail: null, error: true } as const;
+    if (!loadResult.presentation || !loadResult.senderExtension)
+      return { detail: null, error: true } as const;
     try {
       return {
         detail: buildBfnCatalogDetail(
           loadResult.presentation,
           detailTarget,
           runtimeCandidateBuilder,
+          loadResult.senderExtension,
         ),
         error: false,
       } as const;
     } catch {
       return { detail: null, error: true } as const;
     }
-  }, [detailTarget, loadResult.presentation, runtimeCandidateBuilder]);
+  }, [detailTarget, loadResult.presentation, loadResult.senderExtension, runtimeCandidateBuilder]);
   const detailSemantic = useMemo(() => {
     if (!detailResult.detail || !loadResult.presentation) return null;
     try {
@@ -165,7 +182,8 @@ export function BfnCatalogDiscoveryDrawer({
   const isExpanded = (groupId: string): boolean =>
     expandedGroups.has(groupId) || (singleGroupId === groupId && autoCollapsedGroupId !== groupId);
   const toggleGroup = (group: BfnCatalogDiscoveryGroup): void => {
-    if (group.role === 'sender') setSelected({ kind: 'sender', groupId: group.id });
+    if (group.role === 'sender' && group.senderOutputs.length === 0)
+      setSelected({ kind: 'sender', groupId: group.id });
     if (
       singleGroupId === group.id &&
       !expandedGroups.has(group.id) &&
@@ -394,9 +412,6 @@ function DiscoveryResults(
       <div className="bfn-catalog-empty" role="status">
         <Icon name="scan" size={20} />
         <p>{t('bfn.catalogDiscovery.empty')}</p>
-        <button type="button" onClick={props.onClear}>
-          {t('bfn.catalogDiscovery.clearFilters')}
-        </button>
       </div>
     );
   return (
@@ -430,12 +445,21 @@ function CatalogControls(
         className="bfn-catalog-release-summary"
         aria-label={t('bfn.catalogDiscovery.releaseSummary')}
       >
-        <strong>AHL/HSL V{props.model.catalogVersion}</strong>
+        <div>
+          <strong>
+            {props.model.baseReleaseName} · V{props.model.catalogVersion}
+          </strong>
+          <small>
+            {props.model.senderExtensionName} · V{props.model.senderExtensionVersion}
+          </small>
+        </div>
         <span>
-          {t('bfn.catalogDiscovery.totalCounts', {
+          {t('bfn.catalogDiscovery.totalCountsV12', {
             components: props.model.counts.components,
-            responses: props.model.counts.responses,
-            runnable: props.model.counts.runnableResponses,
+            receiverResponses: props.model.counts.receiverResponses,
+            senderEvidence: props.model.counts.senderEvidenceRecords,
+            runnableReceivers: props.model.counts.runnableReceivers,
+            runnableSenders: props.model.counts.runnableSenders,
           })}
         </span>
       </section>
@@ -443,9 +467,10 @@ function CatalogControls(
       <CatalogFilters {...props} />
       <div className="bfn-catalog-results-summary" aria-live="polite">
         <span>
-          {t('bfn.catalogDiscovery.visibleCounts', {
+          {t('bfn.catalogDiscovery.visibleCountsV12', {
             components: props.result.componentCount,
-            responses: props.result.responseCount,
+            receiverResponses: props.result.responseCount,
+            senderEvidence: props.result.senderEvidenceCount,
           })}
         </span>
         {props.hasActiveFilters ? (
@@ -626,7 +651,11 @@ function DiscoveryGroup(props: DiscoveryGroupProps) {
       {props.expanded ? (
         <div id={panelId} className="bfn-catalog-group__content">
           {props.group.role === 'sender' ? (
-            <SenderEntry {...props} />
+            props.group.senderOutputs.length ? (
+              <SenderOutputEntries {...props} />
+            ) : (
+              <SenderEntry {...props} />
+            )
           ) : props.group.responses.length === 0 ? (
             <ComponentReferenceEntry {...props} />
           ) : (
@@ -635,6 +664,61 @@ function DiscoveryGroup(props: DiscoveryGroupProps) {
         </div>
       ) : null}
     </section>
+  );
+}
+
+function SenderOutputEntries(props: DiscoveryGroupProps) {
+  return props.group.senderOutputs.map((output) => (
+    <SenderOutputEntry key={output.id} {...props} output={output} />
+  ));
+}
+
+function SenderOutputEntry(
+  props: DiscoveryGroupProps & { output: BfnCatalogDiscoverySenderOutput },
+) {
+  const { t } = useTranslation();
+  const selected =
+    props.selected?.kind === 'sender_output' &&
+    props.selected.groupId === props.group.id &&
+    props.selected.senderOutputId === props.output.id;
+  return (
+    <div className="bfn-catalog-sender-output-entry">
+      <button
+        className="bfn-catalog-sender-output-row"
+        type="button"
+        aria-pressed={selected}
+        onClick={() =>
+          props.onSelect({
+            kind: 'sender_output',
+            groupId: props.group.id,
+            senderOutputId: props.output.id,
+          })
+        }
+      >
+        <span className="bfn-catalog-response-row__identity">
+          <strong>{senderOutputName(props.output, props.language, t)}</strong>
+          <small>
+            {props.output.evidenceScopes
+              .map((scope) => t('bfn.senderEvidence.scopes.' + scope))
+              .join(' · ')}
+          </small>
+        </span>
+        <StatusLabel status={props.output.status} />
+      </button>
+      {selected ? (
+        <SenderOutputPreview
+          group={props.group}
+          output={props.output}
+          language={props.language}
+          onViewDetails={() =>
+            props.onViewDetails({
+              kind: 'sender_output',
+              senderOutputId: props.output.id,
+            })
+          }
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -853,6 +937,72 @@ function SenderPreview({
       </dl>
       <AdditionalSources count={group.additionalSourceCount} />
       <p className="bfn-catalog-preview__boundary">{t('bfn.catalogDiscovery.senderBoundary')}</p>
+      <PreviewDetailAction onClick={onViewDetails} />
+    </section>
+  );
+}
+
+function SenderOutputPreview({
+  group,
+  output,
+  language,
+  onViewDetails,
+}: {
+  group: BfnCatalogDiscoveryGroup;
+  output: BfnCatalogDiscoverySenderOutput;
+  language: ReleaseCatalogLanguage;
+  onViewDetails: () => void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <section className="bfn-catalog-preview" aria-label={t('bfn.catalogDiscovery.previewLabel')}>
+      <dl>
+        <PreviewFact
+          label={t('bfn.catalogDiscovery.component')}
+          value={localizedName(group.names, language)}
+        />
+        <SemanticPreviewFacts group={group} language={language} />
+        <PreviewFact
+          label={t('bfn.senderEvidence.preview.output')}
+          value={senderOutputName(output, language, t)}
+        />
+        <PreviewFact
+          label={t('bfn.senderEvidence.preview.evidence')}
+          value={output.evidenceScopes
+            .map((scope) => t('bfn.senderEvidence.scopes.' + scope))
+            .join(' · ')}
+        />
+        <PreviewFact
+          label={t('bfn.senderEvidence.preview.quantity')}
+          value={t('bfn.senderEvidence.outputQuantities.' + output.outputQuantity)}
+        />
+        {output.measurementMethod ? (
+          <PreviewFact
+            label={t('bfn.senderEvidence.preview.measurement')}
+            value={output.measurementMethod}
+          />
+        ) : null}
+        <PreviewFact
+          label={t('bfn.senderEvidence.preview.context')}
+          value={hostLine(output.hostSpecies, output.hostStrain, t)}
+        />
+        <PreviewFact
+          label={t('bfn.catalogDiscovery.source')}
+          value={sourceLabel(output.source, t)}
+        />
+        <PreviewFact
+          label={t('bfn.senderEvidence.preview.runtime')}
+          value={t(
+            output.runtimeAdmission.admitted
+              ? 'bfn.senderEvidence.runtime.admitted'
+              : 'bfn.senderEvidence.runtime.unavailable',
+          )}
+        />
+      </dl>
+      <AdditionalSources count={output.additionalSourceCount} />
+      <p className="bfn-catalog-preview__boundary">
+        {t('bfn.senderEvidence.presentationBoundary')}
+      </p>
       <PreviewDetailAction onClick={onViewDetails} />
     </section>
   );
@@ -1117,7 +1267,11 @@ function groupSummary(
       : t('bfn.semantic.unavailable');
   const existing =
     group.role === 'sender'
-      ? `${t('bfn.catalogDiscovery.sender')} · ${t('bfn.catalogDiscovery.noSenderFunction')}`
+      ? t('bfn.catalogDiscovery.sender') +
+        ' · ' +
+        (group.senderOutputs.length
+          ? t('bfn.senderEvidence.recordCount', { count: group.senderOutputs.length })
+          : t('bfn.catalogDiscovery.noSenderFunction'))
       : `${t('bfn.catalogDiscovery.receiver')} · ${t('bfn.catalogDiscovery.responseCount', {
           count: group.responses.length,
         })}`;
@@ -1134,4 +1288,18 @@ function sourceLabel(
 ): string {
   if (!source) return t('bfn.catalogDiscovery.notRecorded');
   return [source.authors, source.year].filter((value) => value !== null).join(' · ');
+}
+
+function senderOutputName(
+  output: BfnCatalogDiscoverySenderOutput,
+  language: ReleaseCatalogLanguage,
+  t: TFunction,
+): string {
+  if (output.outputSignalNames)
+    return bfnCatalogSignalDisplayName(
+      output.outputSignalNames,
+      output.outputSignalAbbreviations,
+      language,
+    );
+  return t('bfn.senderEvidence.wholeSystemOutput');
 }

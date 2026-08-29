@@ -44,15 +44,14 @@ describe('biological network design Batch 5.1 catalog isolation', () => {
 
     await user.click(within(dialog).getByRole('button', { name: '清除筛选' }));
     await user.type(search, 'CinI SEVA');
-    const sender = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-sender-row');
+    const sender = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-sender-output-row');
     expect(sender).not.toBeNull();
-    if (!sender) throw new Error('Sender catalog entry was not rendered.');
+    if (!sender) throw new Error('Sender evidence entry was not rendered.');
     await user.click(sender);
-    expect(
-      within(within(dialog).getByRole('region', { name: '目录条目预览' })).getByText(
-        '暂无定量发送函数',
-      ),
-    ).toBeInTheDocument();
+    const senderPreview = within(dialog).getByRole('region', { name: '目录条目预览' });
+    expect(senderPreview).toHaveTextContent('当前不可作为发送端运行');
+    expect(senderPreview).toHaveTextContent('证据可查不等于运行准入');
+    expect(within(senderPreview).queryByText('添加到网络')).not.toBeInTheDocument();
 
     fireEvent.keyDown(search, { key: 'z', ctrlKey: true });
     fireEvent.keyDown(search, { key: 'y', ctrlKey: true });

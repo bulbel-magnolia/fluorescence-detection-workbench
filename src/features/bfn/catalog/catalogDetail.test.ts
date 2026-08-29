@@ -22,7 +22,6 @@ describe('BFN catalog full-detail projection', () => {
       kind: 'response',
       responseId: response.id,
     });
-
     expect(detail.kind).toBe('response');
     if (detail.kind !== 'response') return;
     expect(detail.status).toBe('runnable-demo');
@@ -154,6 +153,7 @@ describe('BFN catalog full-detail projection', () => {
       kind: 'response',
       responseId: response.id,
     });
+    if (detail.kind !== 'response') throw new Error('Expected response detail.');
 
     expect(detail.sources.map((source) => source.id)).toEqual(
       response.sources.map((source) => source.id),
@@ -171,11 +171,94 @@ describe('BFN catalog full-detail projection', () => {
       kind: 'component',
       componentId: component.id,
     });
+    if (detail.kind !== 'component') throw new Error('Expected component detail.');
 
     expect(detail.observedPairs.length).toBe(component.observedPairs.length);
     expect(detail.observedPairs.every((pair) => pair.decompositionProhibited)).toBe(true);
     expect(detail.compatibility.length).toBe(component.compatibilityRelations.length);
     expect(detail.compatibility.every((entry) => entry.numericUseAllowed === false)).toBe(true);
+  });
+
+  it('deep-links to one exact Sender output without leaking a sibling record', () => {
+    const senderOutputId = 'sout.kokarakis2023.1017ec.luxi.v1.concentration.v1';
+    const siblingId = 'sout.kokarakis2023.1017ec.luxi.v1.productivity.v1';
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'sender_output',
+      senderOutputId,
+    });
+
+    expect(detail.kind).toBe('sender_output');
+    if (detail.kind !== 'sender_output') return;
+    expect(detail.senderOutputId).toBe(senderOutputId);
+    expect(detail.output.id).toBe(senderOutputId);
+    expect(detail.rawPoints.every((point) => point.sender_output_id === senderOutputId)).toBe(true);
+    expect(detail.evidenceTrace.some((trace) => trace.record_id === siblingId)).toBe(false);
+    expect(detail.evidenceScopes).toContain('endpoint_concentration');
+    expect(detail.runtimeAdmission.admitted).toBe(false);
+    expect(detail.runtimeAdmission.outputPort).toBeNull();
+    expect(detail.canAddToNetwork).toBe(false);
+    expect(Object.isFrozen(detail)).toBe(true);
+  });
+
+  it('preserves ND as missing output evidence rather than numerical zero', () => {
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'sender_output',
+      senderOutputId: 'sout.morohoshi2017.stfrb508.triple-deletion.v1.profile.v1',
+    });
+    if (detail.kind !== 'sender_output') throw new Error('Expected Sender output detail.');
+    const nonDetections = detail.rawPoints.filter((point) => point.detection_status === 'ND');
+
+    expect(nonDetections.length).toBeGreaterThan(0);
+    expect(nonDetections.every((point) => point.output_value === null)).toBe(true);
+    expect(detail.evidenceScopes).toContain('non_detection');
+    expect(detail.runtimeAdmission.admitted).toBe(false);
+  });
+
+  it('keeps fixed-condition time courses separate from input-response execution', () => {
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'sender_output',
+      senderOutputId: 'sout.kokarakis2023.1017ec.luxi.v1.concentration.v1',
+    });
+    if (detail.kind !== 'sender_output') throw new Error('Expected Sender output detail.');
+
+    expect(detail.evidenceScopes).toContain('fixed_condition_time_course');
+    expect(detail.runtimeAdmission.reasons).toContain('time_course_not_input_response');
+    expect(detail.runtimeAdmission.reasons).toContain('fixed_condition_only');
+    expect(detail.runtimeAdmission.admitted).toBe(false);
+  });
+
+  it('retains cell-free enzyme parameters while blocking cellular Sender execution', () => {
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'sender_output',
+      senderOutputId: 'sout.christensen2014.bjai.ivcoa.kinetics.v1',
+    });
+    if (detail.kind !== 'sender_output') throw new Error('Expected Sender output detail.');
+
+    expect(detail.evidenceScopes).toContain('enzyme_kinetics');
+    expect(detail.functionParameters).toHaveLength(1);
+    expect(detail.functionParameters[0]).toMatchObject({
+      runtime_allowed: false,
+      r_squared: null,
+      rmse: null,
+      data_point_count: null,
+    });
+    expect(detail.runtimeAdmission.reasons).toContain('enzyme_kinetics_scope_mismatch');
+    expect(detail.runtimeAdmission.admitted).toBe(false);
+  });
+
+  it('keeps effective-pair evidence non-decomposable and signal-free', () => {
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'sender_output',
+      senderOutputId: 'sout.daer2018.aubi.v1.end-to-end.v1',
+    });
+    if (detail.kind !== 'sender_output') throw new Error('Expected Sender output detail.');
+
+    expect(detail.outputSignal).toBeNull();
+    expect(detail.output.decomposition_prohibited).toBe(true);
+    expect(detail.evidenceScopes).toContain('effective_pair_only');
+    expect(detail.runtimeAdmission.reasons).toContain('effective_pair_only');
+    expect(detail.runtimeAdmission.reasons).toContain('decomposition_prohibited');
+    expect(detail.runtimeAdmission.admitted).toBe(false);
   });
 
   it('rebuilds trust on Detail entry and fails closed when the fresh build fails', () => {

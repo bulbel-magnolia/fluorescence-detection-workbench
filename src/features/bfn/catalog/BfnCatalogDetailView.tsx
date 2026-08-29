@@ -16,6 +16,7 @@ import type {
 import type { BfnProject } from '../types';
 import type { BfnSemanticPresentation } from '../semantic/semanticPresentation';
 import { BfnCatalogInstantiationPanel } from './BfnCatalogInstantiationPanel';
+import { BfnSenderEvidenceDetailView } from './BfnSenderEvidenceDetailView';
 import { bfnCatalogEvidenceText } from './catalogEvidencePresentation';
 
 interface BfnCatalogDetailViewProps {
@@ -36,6 +37,15 @@ export function BfnCatalogDetailView({
   onInstantiate,
 }: BfnCatalogDetailViewProps) {
   const { t } = useTranslation();
+  if (detail.kind === 'sender_output')
+    return (
+      <BfnSenderEvidenceDetailView
+        detail={detail}
+        semantic={semantic}
+        language={language}
+        onBack={onBack}
+      />
+    );
   const componentName = localized(detail.component.displayNames, language);
   const catalogName = localized(detail.component.names, language);
   return (
@@ -639,7 +649,11 @@ function CompatibilitySection({
   );
 }
 
-function AdvancedSection({ detail }: { detail: BfnCatalogDetail }) {
+function AdvancedSection({
+  detail,
+}: {
+  detail: BfnCatalogResponseDetail | BfnCatalogComponentDetail;
+}) {
   const { t } = useTranslation();
   const rawEvidenceRows = buildRawEvidenceRows(detail, t);
   const identityRows: Array<readonly [string, string]> =
@@ -726,7 +740,7 @@ function AdvancedSection({ detail }: { detail: BfnCatalogDetail }) {
 }
 
 function buildRawEvidenceRows(
-  detail: BfnCatalogDetail,
+  detail: BfnCatalogResponseDetail | BfnCatalogComponentDetail,
   t: Translate,
 ): Array<readonly [string, string]> {
   const rows: Array<readonly [string, string]> = [];

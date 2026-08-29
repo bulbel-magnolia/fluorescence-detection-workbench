@@ -58,6 +58,69 @@ describe('BFN catalog full-detail view', () => {
     expect(screen.queryByText('当前软件使用的响应模型')).not.toBeInTheDocument();
   });
 
+  it('renders fixed-condition Sender evidence and its raw points without an Add action', () => {
+    renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'sender_output',
+        senderOutputId: 'sout.kokarakis2023.1017ec.luxi.v1.concentration.v1',
+      }),
+    );
+
+    expect(screen.getByText('发送端文献证据')).toBeInTheDocument();
+    expect(screen.getByText('当前不可作为发送端运行')).toBeInTheDocument();
+    expect(screen.getByText(/固定条件时间序列/u)).toBeInTheDocument();
+    expect(screen.getByText('原始证据点')).toBeInTheDocument();
+    expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(screen.getAllByText('功能分类暂不可用').length).toBe(2);
+    expect(screen.queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+    expect(screen.queryByText('当前软件使用的响应模型')).not.toBeInTheDocument();
+  });
+
+  it('renders ND explicitly and never converts it into a zero-valued raw point', () => {
+    renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'sender_output',
+        senderOutputId: 'sout.morohoshi2017.stfrb508.triple-deletion.v1.profile.v1',
+      }),
+    );
+    const table = screen.getByRole('table');
+    const ndCells = within(table).getAllByText('ND（未检出）');
+
+    expect(ndCells.length).toBeGreaterThan(0);
+    expect(ndCells.every((cell) => cell.textContent === 'ND（未检出）')).toBe(true);
+    expect(screen.getByText(/ND 表示未检出，不代表数值 0/u)).toBeInTheDocument();
+  });
+
+  it('presents cell-free enzyme parameters as evidence while keeping runtime blocked', () => {
+    renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'sender_output',
+        senderOutputId: 'sout.christensen2014.bjai.ivcoa.kinetics.v1',
+      }),
+    );
+
+    expect(screen.getByText('文献函数参数')).toBeInTheDocument();
+    expect(screen.getByText('reported_michaelis_menten')).toBeInTheDocument();
+    expect(screen.getAllByText('v = kcat*[E]*S/(Km+S)').length).toBeGreaterThan(0);
+    expect(screen.getByText(/无细胞酶实验/u)).toBeInTheDocument();
+    expect(screen.getByText(/无细胞酶动力学不能直接作为细胞发送端函数/u)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+  });
+
+  it('shows the non-decomposable whole-pair boundary without an output signal', () => {
+    renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'sender_output',
+        senderOutputId: 'sout.daer2018.aubi.v1.end-to-end.v1',
+      }),
+    );
+
+    expect(screen.getByText('未解析为独立输出信号')).toBeInTheDocument();
+    expect(screen.getAllByText('端到端配对证据').length).toBeGreaterThan(0);
+    expect(screen.getByText(/不能拆解为独立发送函数或接收参数/u)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+  });
+
   it('renders all response sources instead of keeping the preview summary only', () => {
     const response = presentation.responseVariants.find((entry) => entry.sources.length > 1);
     if (!response) throw new Error('Expected a multi-source response.');
@@ -271,11 +334,11 @@ function renderDetail(detail: BfnCatalogDetail, language: 'zh-CN' | 'en-US' = 'z
   return render(
     <BfnCatalogDetailView
       detail={detail}
-      semantic={resolveCatalogComponentSemanticPresentation(
-        detail.component.id,
-        presentation,
-        language,
-      )}
+      semantic={
+        detail.kind === 'sender_output'
+          ? unavailableBfnSemanticPresentation()
+          : resolveCatalogComponentSemanticPresentation(detail.component.id, presentation, language)
+      }
       language={language}
       project={createDemoBfnProject()}
       onBack={vi.fn()}

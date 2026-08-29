@@ -96,6 +96,14 @@ Temporal Evidence 独立使用 T0、T1、T2、T3 与 `not_recorded`。当前 Cat
 
 Port Compatibility 只允许 `output → input`、exact Entity、exact Quantity Type 与 compatible Unit Dimension。`nM → M` 是同一物理量的表示换算；`production_rate → concentration` 是硬冲突，未来需要显式 Signal Pool / Accumulation Module。Scientific Applicability 按 Host、Strain、Medium 与 Celsius Temperature 区分 matched、uncertain 和 mismatched；missing information 产生 uncertain，不按不同 `contextId` 推断生物学冲突。完整合同与延期边界见 [BFN 时间语义、端口兼容性与实验适用性合同](temporal-and-compatibility.md)。
 
+## Sender evidence layer
+
+Sender V1.2 作为冻结 AHL/HSL V1.1 之外的独立 evidence extension 加载。Composite Catalog 同时投影 V1.1 Component / Receiver Response 与 53 条 V1.2 Sender Output，Receiver runtime 继续只接受冻结白名单中的 20 条可信响应。V1.2 记录不写回基础 JSON，也不改变 Receiver evaluator、Catalog instantiation 或 Receiver-only inverse search。
+
+Sender evidence 保留 endpoint concentration、production rate、fixed-condition time course、enzyme kinetics、effective-pair-only、non-detection 与其他定量证据范围。证据范围描述数据形式，不自动指定 mathematical model family。输出 entity、quantity type、unit、compartment、timepoint / duration 与 normalization basis 共同定义测量量；ND 保持检测状态和 null，reported range 保持上下界，产生速率与浓度保持不同物理量。
+
+独立的 Sender Runtime Admission 按身份解析、控制输入、输入域、直接测量、quantity/unit、可执行模型、参数、模型评价、Context、来源和明确执行授权进行 fail-closed 判定，不使用评分。当前 53 条真实输出的 admitted 数量为 0，Catalog 只提供检索、精确深链、原始数据与来源审计，不显示 Add to Network。完整发布清单、证据范围与后续可执行路径见 [Sender Evidence Extension V1.2](sender-evidence-v1.2.md)。
+
 ## 静态完整模型
 
 静态求解器支持：

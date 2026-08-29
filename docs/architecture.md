@@ -127,6 +127,25 @@ Ontology registry、term 与 assignment 深冻结并执行 manifest、唯一性�
 
 `features/bfn/temporal` 与 `features/bfn/compatibility` 构成 BFN-IR 外的 derived read-only contract layer。Temporal resolver 复用唯一的 effective-model selection，命名 steady-state、quasi-static、stateful dynamic 与 unsupported，并将执行方式与 T0–T3 / not-recorded 时间证据分离。Compatibility assessment 复用既有单位量纲定义，独立评估端口硬边界与 Host、Strain、Medium、Temperature 的实验适用性。核心 resolver/assessment 不写 Project、Run、Workspace 或 schema，不调用 Simulation、Catalog verification、Instantiation 或 Ontology 推断来改变运行资格。仿真编排层在成功运行后复制输出可达模块与模块边的 assessment，形成可选的 BFN-SIM 2.0 时间和上下文 provenance；历史展示只读快照，不从当前 Project 回算。
 
+Sender V1.2 位于独立的 evidence extension 层。它与冻结 Receiver runtime 的关系为：
+
+```mermaid
+flowchart LR
+  V11["冻结 AHL/HSL V1.1"] --> VERIFY["既有 Catalog 验证"]
+  VERIFY --> TRUST["20 条 trusted Receiver runtime"]
+  TRUST --> RECEIVER["Receiver evaluator / inverse search"]
+
+  V12["Sender Evidence Extension V1.2"] --> LOAD["Extension loader + validator"]
+  LOAD --> BROWSE["Evidence browsing / exact source trace"]
+  LOAD --> ADMIT["Sender runtime admission assessment"]
+  ADMIT --> ZERO["当前 0 条 admitted"]
+
+  V11 --> COMPOSITE["Composite Catalog presentation"]
+  V12 --> COMPOSITE
+```
+
+`features/modeling/catalog/sender/v1_2` 保存源文件、无损 evidence types、CSV/JSON loader、发布与引用校验、展示范围和 runtime admission。`features/bfn/catalog` 只把验证后的扩展投影为 Catalog Search、Preview 与 Full Detail。Composite presentation 不成为 runtime authority；V1.2 presence 不改变 20 条 Receiver whitelist，0-admitted Sender 不生成 Module、Add 操作、Evaluator、自动连线或 inverse candidate。完整合同见 [Sender Evidence Extension V1.2](sender-evidence-v1.2.md)。
+
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
 反向设计把功能参数 `θ` 与生物设计变量 `q` 分离，通过版本化校准映射计算候选完整响应，并综合评价功能误差、宿主负载、串扰、噪声、不确定性和遗传稳定性。结果是带 `proposed_unbuilt_design` 证据等级和验证建议的候选集合，不是一个无解释的最优答案。

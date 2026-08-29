@@ -24,9 +24,13 @@ describe('BFN catalog discovery drawer', () => {
     const search = within(dialog).getByRole('searchbox', { name: '搜索文献目录' });
 
     expect(search).toHaveFocus();
-    expect(within(dialog).getByText('42个元件 · 52条响应 · 20个可运行示例')).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        '76个元件 · 52条受体响应 · 53条发送端证据 · 可运行受体 20 · 可运行发送端 0',
+      ),
+    ).toBeInTheDocument();
     const groups = dialog.querySelectorAll<HTMLButtonElement>('.bfn-catalog-group__trigger');
-    expect(groups).toHaveLength(42);
+    expect(groups).toHaveLength(76);
     expect([...groups].every((group) => group.getAttribute('aria-expanded') === 'false')).toBe(
       true,
     );
@@ -56,7 +60,7 @@ describe('BFN catalog discovery drawer', () => {
     const groups = dialog.querySelectorAll<HTMLButtonElement>('.bfn-catalog-group__trigger');
     expect(groups).toHaveLength(1);
     expect(groups[0]).toHaveAttribute('aria-expanded', 'true');
-    expect(within(dialog).getByText('暂无定量发送函数')).toBeInTheDocument();
+    expect(dialog.querySelectorAll('.bfn-catalog-sender-output-row').length).toBeGreaterThan(0);
 
     await user.click(within(dialog).getByRole('button', { name: '清除筛选' }));
     await user.type(within(dialog).getByRole('searchbox', { name: '搜索文献目录' }), '3OC6');
@@ -110,7 +114,7 @@ describe('BFN catalog discovery drawer', () => {
     expect(functionFilter).toHaveValue('all');
     expect(statusFilter).toHaveValue('all');
     expect(search).toHaveValue('');
-    expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
+    expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(76);
   });
 
   it('finds receiver and sender groups through localized semantic family names', async () => {
@@ -244,23 +248,26 @@ describe('BFN catalog discovery drawer', () => {
     );
   });
 
-  it('previews a sender without inventing a response model', async () => {
+  it('previews a Sender V1.2 evidence record without inventing semantics or a model', async () => {
     const user = userEvent.setup();
     renderDrawer();
     const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
-    await user.type(within(dialog).getByRole('searchbox', { name: '搜索文献目录' }), 'CinI SEVA');
-    const senderRow = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-sender-row');
+    await user.type(
+      within(dialog).getByRole('searchbox', { name: '搜索文献目录' }),
+      'AAA063 genomic CepI sender',
+    );
+    const senderRow = dialog.querySelector<HTMLButtonElement>('.bfn-catalog-sender-output-row');
     expect(senderRow).not.toBeNull();
-    if (!senderRow) throw new Error('Sender entry was not rendered.');
+    if (!senderRow) throw new Error('Sender evidence entry was not rendered.');
     await user.click(senderRow);
 
     const preview = within(dialog).getByRole('region', { name: '目录条目预览' });
-    expect(preview).toHaveTextContent('发送元件');
-    expect(preview).toHaveTextContent('功能类别信号产生');
-    expect(preview).toHaveTextContent('生物元件类别AHL 合成系统');
-    expect(preview).toHaveTextContent('暂无定量发送函数');
-    expect(preview).toHaveTextContent('没有可独立计算输入→AHL 输出的发送函数');
-    expect(within(preview).queryByText('模型')).not.toBeInTheDocument();
+    expect(preview).toHaveTextContent('功能分类暂不可用');
+    expect(preview).toHaveTextContent('端点浓度证据');
+    expect(preview).toHaveTextContent('当前不可作为发送端运行');
+    expect(preview).toHaveTextContent('证据可查不等于运行准入');
+    expect(preview).not.toHaveTextContent('信号产生');
+    expect(within(preview).queryByText('添加到网络')).not.toBeInTheDocument();
   });
 
   it('opens Full Detail in the same Drawer and restores discovery state and scroll', async () => {
@@ -416,7 +423,7 @@ describe('BFN catalog discovery drawer', () => {
 
     await user.click(within(dialog).getByRole('button', { name: '返回目录' }));
     expect(within(dialog).getByRole('searchbox', { name: '搜索文献目录' })).toBeInTheDocument();
-    expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
+    expect(dialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(76);
   });
 
   it('deep-links to the exact Kylilis 3OC6 response instead of a sibling record', () => {
@@ -443,6 +450,33 @@ describe('BFN catalog discovery drawer', () => {
     expect(within(dialog).getAllByText('10.1038/s41467-018-05046-2').length).toBeGreaterThan(0);
   });
 
+  it('deep-links to one exact Sender evidence record and keeps it view-only', () => {
+    renderDrawer({
+      initialDetailTarget: {
+        kind: 'sender_output',
+        senderOutputId: 'sout.vanaalst2025.aaa063.cepi.v1.c8hsl.v1',
+      },
+    });
+    const dialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    expect(within(dialog).getByLabelText(/发送端证据详情/u)).toBeInTheDocument();
+    expect(within(dialog).getByText('当前不可作为发送端运行')).toBeInTheDocument();
+    expect(within(dialog).getAllByText('端点浓度证据').length).toBeGreaterThan(0);
+    expect(within(dialog).getByText('原始证据点')).toBeInTheDocument();
+    expect(
+      within(dialog).getAllByText(
+        'Engineering N-acyl-homoserine lactone-based quorum-sensing circuit for dynamic regulatory control in Saccharomyces cerevisiae',
+      ).length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(dialog).getAllByText('sout.vanaalst2025.aaa063.cepi.v1.c8hsl.v1').length,
+    ).toBeGreaterThan(0);
+    expect(
+      within(dialog).queryByText('AAA111 CepI + strong SAM2/MET6 sender'),
+    ).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+  });
+
   it('keeps a canonical non-runnable response view-only', () => {
     const response = loadReleaseCatalogPresentation().responseVariants.find(
       (entry) => !entry.runnable,
@@ -467,7 +501,7 @@ describe('BFN catalog discovery drawer', () => {
     };
     const listView = renderDrawer({ semanticAdapter: throwingAdapter });
     const listDialog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
-    expect(listDialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(42);
+    expect(listDialog.querySelectorAll('.bfn-catalog-group__trigger')).toHaveLength(76);
     expect(within(listDialog).queryByText('文献目录暂时无法加载。')).not.toBeInTheDocument();
     const functionFilter = within(listDialog).getByRole('combobox', { name: '功能' });
     expect(functionFilter).toBeDisabled();
