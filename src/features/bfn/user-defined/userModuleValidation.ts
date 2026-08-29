@@ -39,6 +39,7 @@ const provenanceKinds = new Set<string>([
   'repository_record',
   'user_note',
 ]);
+const contextFactPlaceholders = new Set(['unknown', 'n/a', 'not recorded', 'unspecified']);
 const runtimeBlockingSemanticIssues = new Set<UserModuleContractIssueCode>([
   'port_id_missing',
   'unsupported_quantity_type',
@@ -433,7 +434,9 @@ function validateContextAndUncertainty(
   if (draft.context.state === 'defined') {
     const { hostSpecies, hostStrain, medium, temperatureCelsius, ph } = draft.context.facts;
     if (
-      [hostSpecies, hostStrain, medium].some((value) => value !== undefined && !hasText(value)) ||
+      [hostSpecies, hostStrain, medium].some(
+        (value) => value !== undefined && !hasScientificContextText(value),
+      ) ||
       (temperatureCelsius !== undefined && !Number.isFinite(temperatureCelsius)) ||
       (ph !== undefined && (!Number.isFinite(ph) || ph < 0 || ph > 14))
     ) {
@@ -595,11 +598,16 @@ function hasCompleteContext(facts: {
   readonly temperatureCelsius?: number;
 }): boolean {
   return (
-    hasText(facts.hostSpecies ?? '') &&
-    hasText(facts.hostStrain ?? '') &&
-    hasText(facts.medium ?? '') &&
+    hasScientificContextText(facts.hostSpecies ?? '') &&
+    hasScientificContextText(facts.hostStrain ?? '') &&
+    hasScientificContextText(facts.medium ?? '') &&
     Number.isFinite(facts.temperatureCelsius)
   );
+}
+
+function hasScientificContextText(value: string): boolean {
+  const normalized = value.trim().toLowerCase();
+  return normalized.length > 0 && !contextFactPlaceholders.has(normalized);
 }
 
 function hasText(value: string): boolean {

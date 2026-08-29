@@ -35,6 +35,14 @@ interface ResolvedContextFacts {
   readonly facts: BfnComparableContextFacts | null;
 }
 
+const missingReportedContextText = new Set(['unknown', 'n/a', 'not recorded', 'unspecified']);
+
+function comparableReportedText(value: string | null): string | null {
+  if (value === null) return null;
+  const normalized = value.trim().toLowerCase();
+  return normalized.length === 0 || missingReportedContextText.has(normalized) ? null : value;
+}
+
 function unavailableFacts(): ResolvedContextFacts {
   return Object.freeze({ state: 'unavailable', facts: null });
 }
@@ -58,9 +66,18 @@ function builtInContextFacts(project: BfnProject, contextId: string | null): Res
   return Object.freeze({
     state: 'available',
     facts: Object.freeze({
-      hostSpecies: Object.freeze({ value: context.host, comparisonBasis: 'reported_text' }),
-      hostStrain: Object.freeze({ value: context.strain, comparisonBasis: 'reported_text' }),
-      medium: Object.freeze({ value: context.medium, comparisonBasis: 'reported_text' }),
+      hostSpecies: Object.freeze({
+        value: comparableReportedText(context.host),
+        comparisonBasis: 'reported_text',
+      }),
+      hostStrain: Object.freeze({
+        value: comparableReportedText(context.strain),
+        comparisonBasis: 'reported_text',
+      }),
+      medium: Object.freeze({
+        value: comparableReportedText(context.medium),
+        comparisonBasis: 'reported_text',
+      }),
       temperatureCelsius: Object.freeze({
         value: context.temperatureCelsius,
         comparisonBasis: 'canonical',
@@ -79,15 +96,15 @@ function catalogContextFacts(
     state: 'available',
     facts: Object.freeze({
       hostSpecies: Object.freeze({
-        value: context.hostSpecies,
+        value: comparableReportedText(context.hostSpecies),
         comparisonBasis: 'reported_text',
       }),
       hostStrain: Object.freeze({
-        value: context.hostStrain,
+        value: comparableReportedText(context.hostStrain),
         comparisonBasis: 'reported_text',
       }),
       medium: Object.freeze({
-        value: context.canonical.details?.cultureMedium ?? null,
+        value: comparableReportedText(context.canonical.details?.cultureMedium ?? null),
         comparisonBasis: 'reported_text',
       }),
       // Catalog temperature is retained as source text. It is never inferred into a number.

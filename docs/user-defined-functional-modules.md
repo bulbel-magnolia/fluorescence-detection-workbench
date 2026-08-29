@@ -96,7 +96,9 @@ Evidence basis 是独立维度，不由 `independent_inputs` family 决定。`in
 
 Draft 可以明确记录 `not_recorded`，也可以逐项记录 Host、Strain、Medium、Temperature 和 pH。缺少 Context 降低科学适用性判断的确定程度，不阻止一个数学完整模型执行。
 
-合同禁止用 “unknown”、“N/A”、“not recorded”、空字符串或 Demo Context 伪造 Context facts。Batch 12.0 审计时，BFN-IR 2.0 的 `BfnContext` 强制 Host、Strain、Medium 和 Temperature，`BfnModelVariantBase` 又强制 `contextId`，因此 partial/not-recorded Context 无法无损 materialize。BFN-IR 2.1 现已增加 documentation state、nullable facts 与 nullable model Context reference；本批仍不执行 materialization。
+合同禁止用 “unknown”、“N/A”、“not recorded”、“unspecified”、空字符串、纯空白字符串或 Demo Context 伪造 Context facts。User-defined validator 对 `hostSpecies`、`hostStrain` 与 `medium` 执行 trim 后的 case-insensitive placeholder 判断；真正缺失的 Context 使用显式 `not_recorded` state 或未提供的 fact 表达，缺失本身不阻断数学合同。
+
+Batch 12.0 审计时，BFN-IR 2.0 的 `BfnContext` 强制 Host、Strain、Medium 和 Temperature，`BfnModelVariantBase` 又强制 `contextId`，因此 partial/not-recorded Context 无法无损 materialize。BFN-IR 2.1 现已增加 documentation state、nullable facts 与 nullable model Context reference；本批仍不执行 materialization。Legacy migration 为审计保留原始 placeholder text，但这些字符串不具有正向科学事实权威，并在 Context Applicability comparison projection 中作为 missing information 处理。
 
 ### 3.6 Uncertainty
 

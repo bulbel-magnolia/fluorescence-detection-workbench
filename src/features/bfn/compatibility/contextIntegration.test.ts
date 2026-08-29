@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
+import { upgradeBfnProjectToCurrent } from '../bfnIrMigration';
 import { createDemoBfnProject } from '../fixtures';
 import {
   buildBfnCatalogRuntimeCandidate,
@@ -13,6 +14,41 @@ import {
 } from './contextIntegration';
 
 const RESPONSE_ID = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id;
+
+function record(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Expected a record fixture.');
+  }
+  return value as Record<string, unknown>;
+}
+
+function records(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) throw new Error('Expected a record array fixture.');
+  return value.map(record);
+}
+
+function migratedLegacyProjectWithContextText(
+  field: 'host' | 'strain' | 'medium',
+  rawText: string,
+): BfnProject {
+  const legacy = record(structuredClone(createDemoBfnProject()));
+  legacy.schemaVersion = '2.0';
+  const registry = record(legacy.registry);
+  delete registry.entities;
+  delete registry.provenanceRecords;
+  const context = records(registry.contexts)[0]!;
+  context[field] = rawText;
+  for (const candidate of records(registry.contexts)) delete candidate.documentationState;
+  for (const implementation of records(registry.implementations)) {
+    delete implementation.maturity;
+    delete implementation.provenanceIds;
+  }
+  for (const module of records(record(legacy.network).modules)) {
+    delete module.implementationState;
+    for (const model of records(module.modelVariants)) delete model.provenanceIds;
+  }
+  return upgradeBfnProjectToCurrent(legacy);
+}
 
 function activeStaticModel(project: BfnProject, moduleIndex: number): BfnStaticModel {
   const module = project.network.modules[moduleIndex]!;
@@ -99,6 +135,34 @@ describe('BFN context integration', () => {
     expect(assessment.checks).toHaveLength(4);
     expect(assessment.checks.every((check) => check.state === 'uncertain')).toBe(true);
   });
+
+  it.each([
+    ['unknown', 'host', 'unknown', 'hostSpecies'],
+    ['trimmed mixed-case unknown', 'host', '  UnKnOwN  ', 'hostSpecies'],
+    ['N/A', 'medium', 'N/A', 'medium'],
+    ['not recorded', 'host', 'not recorded', 'hostSpecies'],
+    ['unspecified', 'strain', 'UNSPECIFIED', 'hostStrain'],
+    ['empty', 'medium', '', 'medium'],
+    ['whitespace-only', 'medium', '  \t ', 'medium'],
+  ] as const)(
+    'preserves migrated %s raw text but projects it as missing information',
+    (_label, field, rawText, projectedField) => {
+      const project = migratedLegacyProjectWithContextText(field, rawText);
+      const edge = moduleEdge(project);
+
+      expect(project.registry.contexts[0]?.[field]).toBe(rawText);
+      const resolved = resolveBfnModuleComparableContextFacts(project, project.network.modules[0]!);
+      expect(resolved.facts?.[projectedField].value).toBeNull();
+
+      const assessment = assessBfnConnectionContextApplicability(project, edge.source, edge.target);
+      expect(assessment.overall).toBe('uncertain');
+      expect(assessment.checks.find((check) => check.field === projectedField)).toMatchObject({
+        state: 'uncertain',
+        evidenceValue: null,
+        projectValue: null,
+      });
+    },
+  );
 
   it('matches known partial facts, keeps missing facts uncertain, and preserves canonical conflicts', () => {
     const project = createDemoBfnProject();

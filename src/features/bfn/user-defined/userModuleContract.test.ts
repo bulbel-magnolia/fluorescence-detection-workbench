@@ -45,6 +45,50 @@ describe('user-defined functional module authoring contract', () => {
     );
   });
 
+  it('rejects placeholder strings in every user-defined Context text fact', () => {
+    const source = createDesignedSenderDraft();
+    const fields = ['hostSpecies', 'hostStrain', 'medium'] as const;
+    const placeholders = [
+      'unknown',
+      '  UnKnOwN  ',
+      'N/A',
+      'not recorded',
+      'UNSPECIFIED',
+      '',
+      '  \t ',
+    ];
+
+    for (const field of fields) {
+      for (const placeholder of placeholders) {
+        const assessment = assessUserDefinedFunctionalModule({
+          ...source,
+          context: {
+            state: 'defined',
+            facts: {
+              hostSpecies: 'Escherichia coli',
+              hostStrain: 'MG1655',
+              medium: 'LB',
+              temperatureCelsius: 37,
+              [field]: placeholder,
+            },
+          },
+        });
+
+        expect(
+          issueCodes(assessment.semantic.issues),
+          `${field} = ${JSON.stringify(placeholder)}`,
+        ).toContain('context_fact_invalid');
+      }
+    }
+  });
+
+  it('keeps genuinely missing user-defined Context mathematically supported', () => {
+    const assessment = assessUserDefinedFunctionalModule(createDesignedSenderDraft());
+
+    expect(issueCodes(assessment.semantic.issues)).not.toContain('context_fact_invalid');
+    expect(assessment.runtime.state).toBe('supported');
+  });
+
   it('accepts a production-rate output without coercing it to concentration', () => {
     const assessment = assessUserDefinedFunctionalModule(createDesignedSenderDraft());
 

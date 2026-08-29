@@ -992,3 +992,22 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 仅对 27 个本批变更文件执行 Prettier write/check，没有全仓格式重排；无 UI 变化，不执行截图或 Visual Audit；
 - Sender V1.2 source、loader、validator、Runtime Admission、Receiver data/evaluator、Inverse Design engine、Ontology production assignments、Port Compatibility policy、Temporal production policy、response equations、`package.json` 与 lockfile 均为零差异；Simulation 只过滤 null Context ID 的 provenance list，不改变数值方程；
 - BFN-SIM 保持 `BFN-SIM-2.0`，Workspace IndexedDB 保持 v1；GitHub status check 不用于本批验收，以上只表示本地完整验证通过。
+
+## 2026-08-29 Batch 12.0.1 Master Review Context Placeholder Fix
+
+### Placeholder semantics regression
+
+- TDD RED 阶段新增测试得到 8 个预期失败：migration 已逐字保留 legacy raw text，但 Context projection 仍暴露 placeholder，User Module Contract 仍接受这些字符串；
+- GREEN 阶段的 2 个直接目标文件、30 项测试全部通过。`unknown`、trim 后的 mixed-case `unknown`、`N/A`、`not recorded`、`unspecified`、空字符串与纯空白字符串在 Context Applicability projection 中均成为 `null`；相同 placeholder 对比为 `uncertain`；
+- 2.0 → 2.1 migration 的原始 `host` / `strain` / `medium` 字符串保持逐字不变。真实相同 reported facts 继续 `matched`，真实 reported-text 差异继续 `uncertain`，canonical temperature conflict 继续 `mismatched`；
+- User-defined `hostSpecies`、`hostStrain` 与 `medium` 对全部上述 placeholder 执行 trim 后的 case-insensitive rejection，并产生 `context_fact_invalid`。显式 `not_recorded` Context 继续允许数学合同保持 `supported`。
+
+### Complete gates 与 frozen diff
+
+- migration、Context、User Module Contract、Receiver release、Sender admission、Port Compatibility、Simulation 与 Workspace 共 8 个定向文件、97 项测试全部通过；
+- 完整 Vitest 共 131 个测试文件、1042 项测试全部通过；20 个 trusted runnable Receiver、53 条 Sender evidence、0 admitted Sender、`production_rate -> concentration` hard block、`BFN-SIM-2.0` 与 Workspace IndexedDB v1 均由回归固定；
+- TypeScript `tsc --noEmit`、ESLint `eslint . --max-warnings 0` 全部通过；
+- 仅对本修复的 7 个变更文件执行 Prettier write/check，`git diff --check` 通过；未执行全仓格式重排；
+- Vite 7.3.6 生产构建通过，291 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB，主 CSS 为 270.74 kB、gzip 45.51 kB，主 JavaScript chunk 为 3,231.49 kB、gzip 434.13 kB；保留既有大 chunk 提示；
+- 相对 reviewed head `9773b1d030c867d396e91671985f1c31532e2a6e`，Sender、Receiver evaluator/Catalog V2、Port policy、Temporal、Simulation equations、Ontology、Workspace、BFN-IR types/repository/migration 与 package dependencies 均为零差异；
+- 本修复无 UI 变化，不执行 Visual Audit；GitHub status check 不用于本批验收，以上只表示本地完整验证通过。

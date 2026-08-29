@@ -37,9 +37,11 @@ Context 文档状态遵守以下约束：
 - `partial`：至少记录一项科学事实，且 Host、Strain、Medium、Temperature 四项可比较事实中至少一项缺失；
 - `recorded`：四项可比较事实均有明确值。该状态只表示项目记录中存在事实，不表示实验验证。
 
-新 2.1 数据使用 `null` 表示缺失，不使用 `unknown`、`N/A`、`not recorded`、`unspecified` 或空字符串作为科学事实占位符。2.0 recorded Context 的既有文本在迁移中逐字保留，不被追溯解释或改写成缺失数据；该兼容规则不会为新 partial/not-recorded Context 生成占位符。
+新 2.1 数据使用 `null` 表示缺失，不使用 `unknown`、`N/A`、`not recorded`、`unspecified` 或空字符串作为科学事实占位符。2.0 recorded Context 的既有文本在迁移中逐字保留，不被追溯解释或静默改写成 `null`；该兼容规则不会为新 partial/not-recorded Context 生成占位符。
 
-模型 `contextId = null` 时，Context Applicability 生成四项未知可比较事实，因此结果为 `uncertain`，不会伪造 `mismatched`。Partial Context 中已知且相等的事实可以匹配，缺失事实保持 uncertain，已知的 canonical 温度冲突仍为 mismatched。Catalog-backed Receiver 继续从可信 Catalog reference 的精确 `parameterContextId` 解析 Context，不被项目用户 Context 覆盖。
+Legacy placeholder text 可以为审计目的保留原始存储值，但不获得正向科学事实权威。Context Applicability projection 对文本执行 trim 后的 case-insensitive placeholder 判断，并将上述词值、空字符串与纯空白字符串投影为 `null`。因此 `unknown` 与 `unknown`、`N/A` 与 `N/A` 均为 missing-information comparison，结果是 `uncertain`，不会因为文字相同而得到 `matched`。
+
+模型 `contextId = null` 时，Context Applicability 生成四项未知可比较事实，因此结果为 `uncertain`，不会伪造 `mismatched`。Partial Context 中已知且相等的事实可以匹配，缺失事实保持 uncertain，已知的 canonical 温度冲突仍为 mismatched。普通真实 reported text 继续沿用 Batch 10 规则；本批不扩大 canonicalization，也不增加同义词推断。Catalog-backed Receiver 继续从可信 Catalog reference 的精确 `parameterContextId` 解析 Context，不被项目用户 Context 覆盖。
 
 ## Uncertainty 语义
 
