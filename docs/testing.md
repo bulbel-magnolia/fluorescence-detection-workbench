@@ -912,3 +912,28 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 相对基线 `cb3d8a470d02b445580e501abb5bff90e75b7aee`，冻结 AHL/HSL V1.1 JSON、20 Receiver whitelist、Receiver runtime candidate/evaluator、Inverse Design engine、Ontology v1、五个 Temporal / Compatibility core files、Workspace architecture、`package.json` 与 lockfile 均为零差异；
 - 冻结 V1.1 JSON SHA-256 保持 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1；
 - Batch 10.1.1 presentation fix 通过最终全量回归，Batch 10 core 保持冻结。
+
+## 2026-08-29 Batch 11.1.1 Sender Evidence Presentation Integrity Fix
+
+### Raw input 与 enzyme kinetics 展示回归
+
+- 纯展示 helper 以结构化 `input_value + input_unit` 为 Raw Table 主值，并将非空 `input_label` 保留为次级说明；`input_value === null` 时依次回退到 label 和 input name，不从自由文本解析或补造数值；
+- 真实 `rp.0013` 回归确认主值为 `100 nM`、`peak near 13 h` 仅为次级语境；真实 `rp.0001` 与 `rp.0003` 分别保留 `0 g/L`、`1 g/L` 主值，以及 `no methionine`、`1 g/L methionine` 次级说明；
+- 真实 `sout.christensen2014.bjai.ivcoa.kinetics.v1` 在主界面显示 Michaelis–Menten 与结构化 Kₘ、kcat、kcat/Kₘ 参数、数值、单位和原始 reported error；主层不显示 `reported_michaelis_menten` 或参数 JSON；
+- Advanced / Audit 保留 raw model type、raw parameter JSON、record identity、origin、`runtime_allowed` 与 reason code。未知 model type 使用用户级 fallback，未知参数 key 保留原科学 identifier，异常嵌套值安全跳过且不修改源对象；
+- cell-free / purified-enzyme scope 与 runtime unavailable 边界保持原样；ND、reported range 与 quantified output 的科学语义未改。
+
+### Targeted、完整门禁与视觉审计
+
+- 展示 helper 与 Full Detail 定向回归为 2 个测试文件、25 项测试全部通过；扩展 Sender 回归为 9 个测试文件、110 项测试全部通过；AHL/HSL V1.1 Receiver release 回归为 1 个测试文件、13 项测试全部通过；
+- 完整 Vitest 共 129 个测试文件、993 项测试全部通过；全部 53 条 Sender evidence 仍为 0 admitted，Catalog 仍为 76 个 Component、52 条 Receiver response、53 条 Sender evidence、20 个 runnable Receiver、0 个 runnable Sender，真实 Sender Full Detail 的 Add to Network 按钮数量仍为 0；
+- TypeScript `tsc --noEmit`、ESLint `eslint . --max-warnings 0` 与本批改动文件的定向 Prettier 检查全部通过；
+- Vite 7.3.6 生产构建通过，290 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB；主 CSS 为 270.74 kB、gzip 45.51 kB；主 JavaScript chunk 为 3,224.98 kB、gzip 432.57 kB；构建保留大于 500 kB 的既有 chunk 提示，没有新增运行时依赖；
+- `docs/ui-audit/sender-evidence/08-raw-input-semantics-1440x900.png` 与 `09-kinetic-parameters-1440x900.png` 来自真实 Windows 生产路径。1440×900 与 1180×700 均无页面级水平溢出；560 px Drawer 内 parameter table 完整适配，Raw Table 的 125 px 窄屏溢出限制在内部并可实际滚动；
+- 深色主题下新参数表保持可读，应用控制台为 0 warning / 0 error。GitHub CI 状态未用于本批验收，本地完整验证已通过。
+
+### Frozen boundaries
+
+- 相对审核基线 `68d90cbbd71997babdb1a63c6fc00e7aa6f1a2cd`，12 个 Sender V1.2 source file、source hash manifest、Loader、Validator、Identity、Integrity、Runtime Admission、Types、Schema、Manifest、Evidence Scope presentation、Catalog Discovery 与 Catalog Detail 均为零差异；现有逐文件 SHA-256 测试继续通过；
+- 冻结 AHL/HSL V1.1 JSON、Receiver whitelist / evaluator / verification / instantiation、Inverse Design、Ontology v1、Temporal / Compatibility core、Simulation、Workspace、`package.json` 与 lockfile 均为零差异；
+- V1.1 JSON SHA-256 保持 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1。本批只改变 Sender evidence presentation。

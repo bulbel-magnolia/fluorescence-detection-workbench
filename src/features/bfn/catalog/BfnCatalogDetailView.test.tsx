@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../i18n';
 import { loadReleaseCatalogPresentation } from '../../modeling/catalog/releaseCatalogPresentation';
@@ -59,7 +60,7 @@ describe('BFN catalog full-detail view', () => {
   });
 
   it('renders fixed-condition Sender evidence and its raw points without an Add action', () => {
-    renderDetail(
+    const view = renderDetail(
       buildBfnCatalogDetail(presentation, {
         kind: 'sender_output',
         senderOutputId: 'sout.kokarakis2023.1017ec.luxi.v1.concentration.v1',
@@ -71,9 +72,53 @@ describe('BFN catalog full-detail view', () => {
     expect(screen.getByText(/固定条件时间序列/u)).toBeInTheDocument();
     expect(screen.getByText('原始证据点')).toBeInTheDocument();
     expect(screen.getByRole('table')).toBeInTheDocument();
+    expect(view.container.querySelector('.bfn-sender-raw-input__primary')).toHaveTextContent(
+      '100 nM',
+    );
+    expect(view.container.querySelector('.bfn-sender-raw-input__secondary')).toHaveTextContent(
+      'peak near 13 h',
+    );
+    expect(view.container.querySelector('.bfn-sender-raw-input__primary')).not.toHaveTextContent(
+      'peak near 13 h',
+    );
     expect(screen.getAllByText('功能分类暂不可用').length).toBe(2);
     expect(screen.queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
     expect(screen.queryByText('当前软件使用的响应模型')).not.toBeInTheDocument();
+  });
+
+  it('keeps zero and nonzero methionine inputs visible beside their descriptive labels', () => {
+    renderDetail(
+      buildBfnCatalogDetail(presentation, {
+        kind: 'sender_output',
+        senderOutputId: 'sout.vanaalst2025.aaa063.cepi.v1.c8hsl.v1',
+      }),
+    );
+    const table = screen.getByRole('table');
+
+    expect(within(table).getAllByText('0 g/L')).toHaveLength(2);
+    expect(
+      within(table)
+        .getAllByText('0 g/L')
+        .every((value) => value.classList.contains('bfn-sender-raw-input__primary')),
+    ).toBe(true);
+    expect(within(table).getAllByText('no methionine')).toHaveLength(2);
+    expect(
+      within(table)
+        .getAllByText('no methionine')
+        .every((value) => value.classList.contains('bfn-sender-raw-input__secondary')),
+    ).toBe(true);
+    expect(within(table).getAllByText('1 g/L')).toHaveLength(2);
+    expect(
+      within(table)
+        .getAllByText('1 g/L')
+        .every((value) => value.classList.contains('bfn-sender-raw-input__primary')),
+    ).toBe(true);
+    expect(within(table).getAllByText('1 g/L methionine')).toHaveLength(2);
+    expect(
+      within(table)
+        .getAllByText('1 g/L methionine')
+        .every((value) => value.classList.contains('bfn-sender-raw-input__secondary')),
+    ).toBe(true);
   });
 
   it('renders ND explicitly and never converts it into a zero-valued raw point', () => {
@@ -91,20 +136,42 @@ describe('BFN catalog full-detail view', () => {
     expect(screen.getByText(/ND 表示未检出，不代表数值 0/u)).toBeInTheDocument();
   });
 
-  it('presents cell-free enzyme parameters as evidence while keeping runtime blocked', () => {
-    renderDetail(
-      buildBfnCatalogDetail(presentation, {
-        kind: 'sender_output',
-        senderOutputId: 'sout.christensen2014.bjai.ivcoa.kinetics.v1',
-      }),
-    );
+  it('presents cell-free enzyme parameters scientifically while retaining raw audit data', async () => {
+    const user = userEvent.setup();
+    const detail = buildBfnCatalogDetail(presentation, {
+      kind: 'sender_output',
+      senderOutputId: 'sout.christensen2014.bjai.ivcoa.kinetics.v1',
+    });
+    const before = structuredClone(detail);
+    const view = renderDetail(detail);
+    const primary = primaryDetailText(view.container);
 
     expect(screen.getByText('文献函数参数')).toBeInTheDocument();
-    expect(screen.getByText('reported_michaelis_menten')).toBeInTheDocument();
+    expect(primary).toContain('Michaelis–Menten');
+    expect(primary).toContain('Kₘ');
+    expect(primary).toContain('7');
+    expect(primary).toContain('µM');
+    expect(primary).toContain('kcat');
+    expect(primary).toContain('0.021');
+    expect(primary).toContain('s⁻¹');
+    expect(primary).toContain('3000');
+    expect(primary).toContain('M⁻¹ s⁻¹');
+    expect(primary).not.toContain('reported_michaelis_menten');
+    expect(primary).not.toContain('{"Km"');
     expect(screen.getAllByText('v = kcat*[E]*S/(Km+S)').length).toBeGreaterThan(0);
     expect(screen.getByText(/无细胞酶实验/u)).toBeInTheDocument();
     expect(screen.getByText(/无细胞酶动力学不能直接作为细胞发送端函数/u)).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '添加到网络' })).not.toBeInTheDocument();
+    const advanced = view.container.querySelector<HTMLDetailsElement>(
+      '.bfn-catalog-detail__advanced',
+    );
+    if (!advanced) throw new Error('Expected Sender advanced audit section.');
+    expect(advanced.open).toBe(false);
+    await user.click(within(advanced).getByText('高级信息'));
+    expect(advanced.open).toBe(true);
+    expect(advanced).toHaveTextContent('reported_michaelis_menten');
+    expect(advanced).toHaveTextContent('{"Km"');
+    expect(detail).toEqual(before);
   });
 
   it('shows the non-decomposable whole-pair boundary without an output signal', () => {

@@ -109,6 +109,14 @@ Sender Full Detail 分离显示 evidence availability 与 runtime state，并按
 - Endpoint、fixed-condition time course、enzyme kinetics、effective-pair 和 ND 的专用解释；
 - 高级审计区中的 record ID、release、source/context ID、内部 evidence scope、admission reason code 与字段级 trace。
 
+### Presentation integrity clarification
+
+Raw Point 的结构化 `input_value` 在存在时是 Input 列的主科学值，并与原始 `input_unit` 组合显示。`input_label` 是补充条件或时间语境，不会覆盖结构化数值：`rp.0013` 显示为主值 `100 nM`、补充说明 `peak near 13 h`；`rp.0001` 与 `rp.0003` 分别保留 `0 g/L` 和 `1 g/L` 主值。仅当 `input_value=null` 时才使用 `input_label`；两者都缺失时回退到 `input_name`。展示层不从描述文字解析或推断数值。
+
+Enzyme Kinetics 主界面把已知 model ID 映射为科学名称，并把 `parameter_json` 结构化为参数、数值、单位和报告误差。Christensen IV-CoA 记录因而显示 Michaelis–Menten、Kₘ、kcat 和 kcat/Kₘ，不在主层直接显示 `reported_michaelis_menten` 或 JSON blob。未知 model ID 使用中性的“文献动力学模型”回退，不根据 code 猜测生物意义。原始 model ID、原始 parameter JSON、`reported_or_refit` 与 `runtime_allowed` 仍逐字保留在 Advanced / Audit 区。
+
+这些规则只改变 Presentation；Sender V1.2 源文件、Loader、Validator、Identity / Integrity 和 Runtime Admission 均不变。
+
 当前所有 Sender 详情均不显示 Add to Network。Catalog Search、Full Detail、Workspace 和 Inverse Design 不把 evidence count 称为 response，不排名、不推荐，也不暗示可以进入数值模拟或 Receiver-only inverse search。
 
 ## 后续可执行 Sender 路径

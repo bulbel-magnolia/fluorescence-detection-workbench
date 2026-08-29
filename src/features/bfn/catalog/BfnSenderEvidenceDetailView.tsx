@@ -12,6 +12,12 @@ import type {
 } from '../../modeling/catalog/sender/v1_2';
 import type { BfnSemanticPresentation } from '../semantic/semanticPresentation';
 import type { BfnCatalogSenderOutputDetail } from './catalogDetail';
+import {
+  presentSenderKineticModel,
+  presentSenderKineticParameters,
+  presentSenderRawInput,
+  type SenderKineticParameterPresentation,
+} from './senderEvidenceUiPresentation';
 
 interface Props {
   detail: BfnCatalogSenderOutputDetail;
@@ -296,7 +302,7 @@ interface RawColumn {
   id: string;
   label: string;
   visible: (points: readonly SenderRawPointRecord[]) => boolean;
-  value: (point: SenderRawPointRecord, t: TFunction) => string;
+  value: (point: SenderRawPointRecord, t: TFunction) => React.ReactNode;
 }
 
 function rawColumns(t: TFunction): RawColumn[] {
@@ -309,11 +315,7 @@ function rawColumns(t: TFunction): RawColumn[] {
       id: 'input',
       label: t('bfn.senderEvidence.raw.input'),
       visible: () => true,
-      value: (point) =>
-        point.input_label ??
-        (point.input_value === null
-          ? point.input_name
-          : joinUnit(formatNumber(point.input_value), point.input_unit)),
+      value: (point) => <RawInputValue point={point} />,
     },
     {
       id: 'output',
@@ -368,6 +370,18 @@ function rawColumns(t: TFunction): RawColumn[] {
   ];
 }
 
+function RawInputValue({ point }: { point: SenderRawPointRecord }) {
+  const value = presentSenderRawInput(point);
+  return (
+    <span className="bfn-sender-raw-input">
+      <span className="bfn-sender-raw-input__primary">{value.primary}</span>
+      {value.secondary ? (
+        <small className="bfn-sender-raw-input__secondary">{value.secondary}</small>
+      ) : null}
+    </span>
+  );
+}
+
 function FunctionSection({ detail }: { detail: BfnCatalogSenderOutputDetail }) {
   const { t } = useTranslation();
   if (!detail.functionParameters.length) return null;
@@ -378,34 +392,74 @@ function FunctionSection({ detail }: { detail: BfnCatalogSenderOutputDetail }) {
     >
       <p className="bfn-catalog-detail__boundary">{t('bfn.senderEvidence.boundaries.cellFree')}</p>
       <div className="bfn-catalog-detail__evidence-list">
-        {detail.functionParameters.map((value) => (
-          <article key={value.sender_output_id + value.source_id}>
-            <strong>{value.model_type}</strong>
-            <PropertyList
-              rows={[
-                [t('bfn.senderEvidence.functions.formula'), value.formula],
-                [
-                  t('bfn.senderEvidence.functions.parameters'),
-                  JSON.stringify(value.parameter_json),
-                ],
-                [
-                  t('bfn.senderEvidence.functions.inputRange'),
-                  formatRange(value.valid_input_min, value.valid_input_max, value.input_unit),
-                ],
-                [
-                  t('bfn.senderEvidence.functions.outputRange'),
-                  formatRange(value.valid_output_min, value.valid_output_max, value.output_unit),
-                ],
-                [t('bfn.senderEvidence.functions.fitMethod'), value.fit_method],
-                [t('bfn.senderEvidence.functions.reportedOrRefit'), value.reported_or_refit],
-                [t('bfn.senderEvidence.functions.location'), value.evidence_location],
-                [t('bfn.senderEvidence.functions.runtime'), yesNo(value.runtime_allowed, t)],
-              ]}
-            />
-          </article>
-        ))}
+        {detail.functionParameters.map((value) => {
+          const model = presentSenderKineticModel(value.model_type);
+          const parameters = presentSenderKineticParameters(value.parameter_json);
+          return (
+            <article key={value.sender_output_id + value.source_id}>
+              <div className="bfn-sender-kinetic-model">
+                <span>{t('bfn.senderEvidence.functions.kineticModel')}</span>
+                <strong>{t('bfn.senderEvidence.functions.models.' + model)}</strong>
+              </div>
+              <PropertyList rows={[[t('bfn.senderEvidence.functions.formula'), value.formula]]} />
+              <KineticParameterTable parameters={parameters} />
+              <PropertyList
+                rows={[
+                  [
+                    t('bfn.senderEvidence.functions.inputRange'),
+                    formatRange(value.valid_input_min, value.valid_input_max, value.input_unit),
+                  ],
+                  [
+                    t('bfn.senderEvidence.functions.outputRange'),
+                    formatRange(value.valid_output_min, value.valid_output_max, value.output_unit),
+                  ],
+                  [t('bfn.senderEvidence.functions.fitMethod'), value.fit_method],
+                  [t('bfn.senderEvidence.functions.reportedOrRefit'), value.reported_or_refit],
+                  [t('bfn.senderEvidence.functions.location'), value.evidence_location],
+                  [t('bfn.senderEvidence.functions.runtime'), yesNo(value.runtime_allowed, t)],
+                ]}
+              />
+            </article>
+          );
+        })}
       </div>
     </Section>
+  );
+}
+
+function KineticParameterTable({
+  parameters,
+}: {
+  parameters: readonly SenderKineticParameterPresentation[];
+}) {
+  const { t } = useTranslation();
+  if (!parameters.length) return null;
+  return (
+    <div className="bfn-sender-table-wrap bfn-sender-kinetic-table-wrap" tabIndex={0}>
+      <table
+        className="bfn-sender-evidence-table bfn-sender-kinetic-table"
+        aria-label={t('bfn.senderEvidence.functions.tableLabel')}
+      >
+        <thead>
+          <tr>
+            <th>{t('bfn.senderEvidence.functions.parameter')}</th>
+            <th>{t('bfn.senderEvidence.functions.value')}</th>
+            <th>{t('bfn.senderEvidence.functions.unit')}</th>
+            <th>{t('bfn.senderEvidence.functions.reportedError')}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {parameters.map((parameter) => (
+            <tr key={parameter.key}>
+              <td className="bfn-sender-kinetic-table__symbol">{parameter.symbol}</td>
+              <td>{parameter.value ?? '—'}</td>
+              <td>{parameter.unit ?? '—'}</td>
+              <td>{parameter.error ?? '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -528,6 +582,31 @@ function AdvancedSection({ detail }: { detail: BfnCatalogSenderOutputDetail }) {
           ],
         ]}
       />
+      {detail.functionParameters.length ? (
+        <div className="bfn-catalog-detail__evidence-list bfn-sender-function-audit">
+          {detail.functionParameters.map((value, index) => (
+            <article key={value.sender_output_id + value.source_id}>
+              <strong>
+                {t('bfn.senderEvidence.advanced.rawFunctionRecord', { index: index + 1 })}
+              </strong>
+              <PropertyList
+                rows={[
+                  [t('bfn.senderEvidence.advanced.rawModelType'), value.model_type],
+                  [
+                    t('bfn.senderEvidence.advanced.rawParameterData'),
+                    JSON.stringify(value.parameter_json),
+                  ],
+                  [t('bfn.senderEvidence.advanced.rawParameterOrigin'), value.reported_or_refit],
+                  [
+                    t('bfn.senderEvidence.advanced.rawRuntimeAllowed'),
+                    yesNo(value.runtime_allowed, t),
+                  ],
+                ]}
+              />
+            </article>
+          ))}
+        </div>
+      ) : null}
       {detail.evidenceTrace.length ? (
         <details className="bfn-catalog-detail__nested">
           <summary>
