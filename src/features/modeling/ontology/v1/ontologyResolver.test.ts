@@ -170,7 +170,7 @@ describe('BFN ontology resolver', () => {
     expect(project).toEqual(snapshot);
     expect(createBfnComputationSignature(project)).toBe(signature);
     expect(project.schema).toBe('BFN-IR');
-    expect(project.schemaVersion).toBe('2.0');
+    expect(project.schemaVersion).toBe('2.1');
   });
 
   it('keeps semantic source files independent from evaluators, simulation, and instantiation', () => {

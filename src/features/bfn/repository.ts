@@ -1,4 +1,5 @@
 import type { BfnProject, BfnQuantityType, BfnSimulationResult, BfnUnit } from './types';
+import { isBfnProjectV21, upgradeBfnProjectToCurrent } from './bfnIrMigration';
 
 export const BFN_PROJECT_STORAGE_KEY = 'fluorescence-desktop.bfn-ir-project.v2';
 export const BFN_RUN_STORAGE_KEY = 'fluorescence-desktop.bfn-ir-runs.v2';
@@ -64,30 +65,6 @@ const BFN_CONTEXT_APPLICABILITY_STATES: ReadonlySet<string> = new Set([
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
-}
-
-function hasValidOptionalDisplayName(value: unknown): boolean {
-  if (!isRecord(value) || !Object.prototype.hasOwnProperty.call(value, 'displayName')) return true;
-  const displayName = value.displayName;
-  return (
-    displayName === undefined ||
-    (isRecord(displayName) && isNonEmptyString(displayName.en) && isNonEmptyString(displayName.zh))
-  );
-}
-
-function hasValidNodeAndPortDisplayNames(value: unknown): boolean {
-  if (!isRecord(value) || !hasValidOptionalDisplayName(value)) return false;
-  if (value.kind === 'input_source') return hasValidOptionalDisplayName(value.outputPort);
-  if (value.kind === 'output_monitor') return hasValidOptionalDisplayName(value.inputPort);
-  if (value.kind === 'functional_module') {
-    return (
-      Array.isArray(value.inputPorts) &&
-      value.inputPorts.every(hasValidOptionalDisplayName) &&
-      Array.isArray(value.outputPorts) &&
-      value.outputPorts.every(hasValidOptionalDisplayName)
-    );
-  }
-  return false;
 }
 
 function isQuantityType(value: unknown): value is BfnQuantityType {
@@ -167,32 +144,7 @@ function hasValidContextApplicabilitySnapshot(value: Record<string, unknown>): b
 }
 
 export function isBfnProject(value: unknown): value is BfnProject {
-  if (!isRecord(value) || value.schema !== 'BFN-IR' || value.schemaVersion !== '2.0') {
-    return false;
-  }
-  if (!isRecord(value.network) || !isRecord(value.registry) || !isRecord(value.analysis)) {
-    return false;
-  }
-  return (
-    typeof value.id === 'string' &&
-    typeof value.labelKey === 'string' &&
-    (value.network.mode === 'static' || value.network.mode === 'dynamic') &&
-    Array.isArray(value.network.inputSources) &&
-    value.network.inputSources.every(hasValidNodeAndPortDisplayNames) &&
-    Array.isArray(value.network.modules) &&
-    value.network.modules.every(hasValidNodeAndPortDisplayNames) &&
-    Array.isArray(value.network.outputMonitors) &&
-    value.network.outputMonitors.every(hasValidNodeAndPortDisplayNames) &&
-    Array.isArray(value.network.edges) &&
-    Array.isArray(value.registry.contexts) &&
-    Array.isArray(value.registry.validityDomains) &&
-    Array.isArray(value.registry.datasets) &&
-    Array.isArray(value.registry.implementations) &&
-    Array.isArray(value.registry.calibrationMaps) &&
-    typeof value.createdAt === 'string' &&
-    typeof value.updatedAt === 'string' &&
-    typeof value.isDemo === 'boolean'
-  );
+  return isBfnProjectV21(value);
 }
 
 function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
@@ -215,8 +167,7 @@ function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
 
 export function parseBfnProject(raw: string): BfnProject {
   const parsed: unknown = JSON.parse(raw);
-  if (!isBfnProject(parsed)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
-  return structuredClone(parsed);
+  return upgradeBfnProjectToCurrent(parsed);
 }
 
 export function loadBfnProject(): BfnProject | null {
@@ -230,6 +181,7 @@ export function loadBfnProject(): BfnProject | null {
 }
 
 export function saveBfnProject(project: BfnProject): void {
+  if (!isBfnProjectV21(project)) throw new Error('BFN_EXPORT_SCHEMA_INVALID');
   localStorage.setItem(BFN_PROJECT_STORAGE_KEY, JSON.stringify(project));
 }
 

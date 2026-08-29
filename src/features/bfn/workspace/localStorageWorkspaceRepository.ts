@@ -1,4 +1,5 @@
 import type { BfnProject } from '../types';
+import { upgradeBfnProjectToCurrent } from '../bfnIrMigration';
 import {
   BFN_WORKSPACE_FALLBACK_KEY,
   BFN_WORKSPACE_MIGRATION_ID,
@@ -112,7 +113,8 @@ export function createLocalStorageBfnWorkspaceRepository(
 
     async getDraft(projectId) {
       await Promise.resolve();
-      return structuredClone(readState(storage).drafts[projectId] ?? null);
+      const draft = readState(storage).drafts[projectId];
+      return draft ? upgradeBfnProjectToCurrent(draft) : null;
     },
 
     async createProject(input: CreateBfnWorkspaceProjectInput) {
@@ -203,7 +205,13 @@ export function createLocalStorageBfnWorkspaceRepository(
 
     async getVersion(versionId) {
       await Promise.resolve();
-      return structuredClone(readState(storage).versions[versionId] ?? null);
+      const version = readState(storage).versions[versionId];
+      return version
+        ? {
+            ...structuredClone(version),
+            snapshot: upgradeBfnProjectToCurrent(version.snapshot),
+          }
+        : null;
     },
 
     async saveRun(record) {

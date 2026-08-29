@@ -51,6 +51,14 @@ export type BfnModelFamily =
   | 'independent_inputs'
   | 'first_order';
 
+export type BfnUncertaintyMethod =
+  | 'parameter_interval_envelope'
+  | 'posterior_samples'
+  | 'bootstrap'
+  | 'covariance'
+  | 'none'
+  | 'not_recorded';
+
 export interface BfnPort {
   id: string;
   displayName?: BfnLocalizedDisplayName;
@@ -137,12 +145,13 @@ export interface BfnCatalogModelReference {
   };
 }
 
-interface BfnModelVariantBase {
+export interface BfnModelVariantBase {
   id: string;
   version: string;
-  contextId: string;
+  contextId: string | null;
   validityDomainId: string;
   sourceDatasetIds: string[];
+  provenanceIds: string[];
   evidenceGrade: BfnEvidenceGrade;
   isDemo: boolean;
 }
@@ -152,8 +161,7 @@ export interface BfnStaticModel extends BfnModelVariantBase {
   catalogReference?: BfnCatalogModelReference;
   family: Exclude<BfnModelFamily, 'first_order'>;
   response: BfnStaticResponse;
-  uncertaintyMethod:
-    'parameter_interval_envelope' | 'posterior_samples' | 'bootstrap' | 'covariance';
+  uncertaintyMethod: BfnUncertaintyMethod;
 }
 
 export interface BfnDynamicModel extends BfnModelVariantBase {
@@ -162,11 +170,15 @@ export interface BfnDynamicModel extends BfnModelVariantBase {
   steadyStateResponse: BfnStaticResponse;
   tau: BfnParameterEstimate;
   initialState: number;
-  uncertaintyMethod:
-    'parameter_interval_envelope' | 'posterior_samples' | 'bootstrap' | 'covariance';
+  uncertaintyMethod: BfnUncertaintyMethod;
 }
 
 export type BfnModelVariant = BfnStaticModel | BfnDynamicModel;
+
+export type BfnImplementationMaturity =
+  'not_recorded' | 'designed' | 'candidate' | 'reported' | 'validated';
+
+export type BfnModuleImplementationState = 'unspecified' | BfnImplementationMaturity;
 
 export interface BfnBiologicalImplementation {
   id: string;
@@ -180,6 +192,8 @@ export interface BfnBiologicalImplementation {
   host: string;
   strainComposition: string | null;
   evidenceGrade: BfnEvidenceGrade;
+  maturity: BfnImplementationMaturity;
+  provenanceIds: string[];
   isDemo: boolean;
 }
 
@@ -193,11 +207,18 @@ export interface BfnLocalizedDisplayName {
   zh: string;
 }
 
+export interface BfnUserAuthoredModuleMetadata {
+  origin: 'user_defined';
+  name: string;
+  description: string | null;
+}
+
 export interface BfnFunctionalModule {
   kind: 'functional_module';
   id: string;
   labelKey: string;
   displayName?: BfnLocalizedDisplayName;
+  authoring?: BfnUserAuthoredModuleMetadata;
   descriptionKey: string;
   inputPorts: BfnPort[];
   outputPorts: BfnPort[];
@@ -207,6 +228,7 @@ export interface BfnFunctionalModule {
     dynamic?: string;
   };
   implementationIds: string[];
+  implementationState: BfnModuleImplementationState;
   evidenceGrade: BfnEvidenceGrade;
   position: BfnCanvasPosition;
   isDemo: boolean;
@@ -306,21 +328,24 @@ export interface BfnIdealEdge {
   enabled: boolean;
 }
 
+export type BfnContextDocumentationState = 'recorded' | 'partial' | 'not_recorded';
+
 export interface BfnContext {
   id: string;
   labelKey: string;
-  host: string;
-  strain: string;
-  medium: string;
-  temperatureCelsius: number;
+  documentationState: BfnContextDocumentationState;
+  host: string | null;
+  strain: string | null;
+  medium: string | null;
+  temperatureCelsius: number | null;
   ph: number | null;
-  oxygenation: string;
-  growthPhase: string;
-  plasmidBackbone: string;
-  copyNumberRegime: string;
-  inductionProtocol: string;
+  oxygenation: string | null;
+  growthPhase: string | null;
+  plasmidBackbone: string | null;
+  copyNumberRegime: string | null;
+  inductionProtocol: string | null;
   measurementTimeHours: number | null;
-  batch: string;
+  batch: string | null;
   isDemo: boolean;
 }
 
@@ -336,7 +361,22 @@ export interface BfnValidityDomain {
   labelKey: string;
   inputRanges: BfnValidityDomainRange[];
   timeRangeHours?: readonly [number, number];
-  contextId: string;
+  contextId: string | null;
+}
+
+export interface BfnEntityDefinition {
+  id: string;
+  origin: 'user_defined';
+  displayName: string;
+  description: string | null;
+}
+
+export type BfnProvenanceKind = 'dataset' | 'publication' | 'repository_record' | 'user_note';
+
+export interface BfnProvenanceRecord {
+  id: string;
+  kind: BfnProvenanceKind;
+  reference: string;
 }
 
 export interface BfnExperimentalDataset {
@@ -392,6 +432,8 @@ export interface BfnCalibrationMap {
 }
 
 export interface BfnRegistry {
+  entities: BfnEntityDefinition[];
+  provenanceRecords: BfnProvenanceRecord[];
   contexts: BfnContext[];
   validityDomains: BfnValidityDomain[];
   datasets: BfnExperimentalDataset[];
@@ -420,7 +462,7 @@ export interface BfnNetwork {
 
 export interface BfnProject {
   schema: 'BFN-IR';
-  schemaVersion: '2.0';
+  schemaVersion: '2.1';
   id: string;
   labelKey: string;
   network: BfnNetwork;

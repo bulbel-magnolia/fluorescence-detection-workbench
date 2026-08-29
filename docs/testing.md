@@ -965,3 +965,30 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 相对 `099294b018d1a6c4644156a9e083edde87570a43`，Sender V1.2、V1.1 Catalog/Receiver runtime、Catalog BFN adapter、Inverse Design、Ontology v1、Temporal、Compatibility、Simulation、BFN types/repository/model resolution/validation/math/unit、Workspace、`package.json` 与 lockfile 均为 zero diff；
 - BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1；没有 UI 改动，因此本批不执行 Visual Audit；
 - GitHub CI 状态不用于本批验收；以上为本地完整验证结果。
+
+## 2026-08-29 Batch 12.0.1 BFN-IR 2.1 User-defined Representation Extension
+
+### Schema、migration 与 repository targeted tests
+
+- TDD RED 阶段的首个 `bfnIrMigration.test.ts` 按预期因中央迁移模块尚不存在而失败，随后实现唯一的 2.0/2.1 validator 与 upgrade path；
+- 迁移回归覆盖 pristine 2.0 的精确保守映射、输入不变、determinism、idempotence、既有 uncertainty/context/range/dataset reference 与 recorded Context 原文保留、2.0 authoring metadata 不推断、2.0 import、2.1 roundtrip 和未知未来版本 fail-closed；
+- 2.1 结构回归覆盖 user authoring metadata、custom Entity、partial/not-recorded Context、nullable model/domain Context reference、`none`/`not_recorded` uncertainty、generic provenance、`sourceDatasetIds` 与 `provenanceIds` 独立、implementation unspecified/maturity 和全部新增字段的 malformed rejection；
+- Context integration 的 RED 回归先得到 `unavailable`，实现后 null model Context 生成四项 unknown comparable facts并返回 uncertain；partial Context 的已知事实匹配、缺失事实 uncertain、canonical 温度冲突 mismatched，既有 recorded 与 Catalog exact parameter Context 行为不变；
+- computation-signature RED 回归证明直接使用 2.1 `schemaVersion` 与 `documentationState` 会产生假变更；最小 projection 保留 legacy 2.0 serialization marker 和原 Context 属性顺序，纯 2.0 → 2.1 migration 与 authoring/Entity/provenance/maturity metadata 不改变已持久化签名，实际 Context facts、模型参数、端口、有效域和分析设置继续进入签名；
+- 7 个核心目标测试文件共 77 项测试通过，覆盖 schema、repository、Context、signature、project factory 与两种 Workspace repository。
+
+### Workspace 与 immutable Version regression
+
+- fake IndexedDB 直接写入旧 2.0 Draft 与 Version snapshot；Draft read、Version read 和 restore-to-Draft 均得到 2.1，底层 immutable Version 在两次读取与恢复后仍为 2.0；
+- localStorage fallback 使用同等原始状态注入，验证相同的 2.1 read view、restore 与历史不改写合同；
+- IndexedDB object store 和 index 集合保持原样，`BFN_WORKSPACE_DATABASE_VERSION` 保持 `1`。
+
+### Complete gates 与 frozen diff
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 131 个测试文件、1033 项测试全部通过；20 个 trusted runnable Receiver、53 条 Sender evidence、0 admitted Sender 继续由既有 hard regression 固定；
+- Vite 7.3.6 生产构建通过，291 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB，主 CSS 为 270.74 kB、gzip 45.51 kB，主 JavaScript chunk 为 3,231.31 kB、gzip 434.13 kB；保留既有大 chunk 提示，没有新增依赖；
+- 沙箱内首次 Vitest/build 启动因 esbuild 子进程权限返回 `spawn EPERM`，相同命令在获批环境复跑通过；
+- 仅对 27 个本批变更文件执行 Prettier write/check，没有全仓格式重排；无 UI 变化，不执行截图或 Visual Audit；
+- Sender V1.2 source、loader、validator、Runtime Admission、Receiver data/evaluator、Inverse Design engine、Ontology production assignments、Port Compatibility policy、Temporal production policy、response equations、`package.json` 与 lockfile 均为零差异；Simulation 只过滤 null Context ID 的 provenance list，不改变数值方程；
+- BFN-SIM 保持 `BFN-SIM-2.0`，Workspace IndexedDB 保持 v1；GitHub status check 不用于本批验收，以上只表示本地完整验证通过。

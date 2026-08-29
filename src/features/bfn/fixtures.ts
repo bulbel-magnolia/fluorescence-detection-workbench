@@ -45,6 +45,7 @@ export const bfnModuleCatalog: BfnCatalogModuleSummary[] = [
 const demoContext: BfnContext = {
   id: 'ctx-demo-ecoli',
   labelKey: 'bfn.contexts.demoEcoli',
+  documentationState: 'recorded',
   host: 'Escherichia coli',
   strain: 'DEMO-STRAIN',
   medium: 'DEMO-MEDIUM',
@@ -103,6 +104,8 @@ const implementations: BfnBiologicalImplementation[] = [
     host: 'DEMO-STRAIN',
     strainComposition: null,
     evidenceGrade: 'proposed_unbuilt_design',
+    maturity: 'not_recorded',
+    provenanceIds: [],
     isDemo: true,
   },
   {
@@ -117,6 +120,8 @@ const implementations: BfnBiologicalImplementation[] = [
     host: 'DEMO-STRAIN',
     strainComposition: null,
     evidenceGrade: 'proposed_unbuilt_design',
+    maturity: 'not_recorded',
+    provenanceIds: [],
     isDemo: true,
   },
 ];
@@ -162,6 +167,7 @@ function sensorModule(id = 'module-ahl-sensor'): BfnFunctionalModule {
         contextId: demoContext.id,
         validityDomainId: sensorDomain.id,
         sourceDatasetIds: [dataset.id],
+        provenanceIds: [],
         evidenceGrade: 'data_driven_prediction',
         uncertaintyMethod: 'parameter_interval_envelope',
         isDemo: true,
@@ -184,6 +190,7 @@ function sensorModule(id = 'module-ahl-sensor'): BfnFunctionalModule {
         contextId: demoContext.id,
         validityDomainId: sensorDomain.id,
         sourceDatasetIds: [dataset.id],
+        provenanceIds: [],
         evidenceGrade: 'data_driven_prediction',
         uncertaintyMethod: 'parameter_interval_envelope',
         isDemo: true,
@@ -194,6 +201,7 @@ function sensorModule(id = 'module-ahl-sensor'): BfnFunctionalModule {
       dynamic: `${id}-dynamic-v1`,
     },
     implementationIds: ['impl-demo-sensor-a'],
+    implementationState: 'not_recorded',
     evidenceGrade: 'data_driven_prediction',
     position: { x: 290, y: 126 },
     isDemo: true,
@@ -241,6 +249,7 @@ function reporterModule(id = 'module-reporter'): BfnFunctionalModule {
         contextId: demoContext.id,
         validityDomainId: reporterDomain.id,
         sourceDatasetIds: [dataset.id],
+        provenanceIds: [],
         evidenceGrade: 'mechanistic_model_only',
         uncertaintyMethod: 'parameter_interval_envelope',
         isDemo: true,
@@ -263,6 +272,7 @@ function reporterModule(id = 'module-reporter'): BfnFunctionalModule {
         contextId: demoContext.id,
         validityDomainId: reporterDomain.id,
         sourceDatasetIds: [dataset.id],
+        provenanceIds: [],
         evidenceGrade: 'mechanistic_model_only',
         uncertaintyMethod: 'parameter_interval_envelope',
         isDemo: true,
@@ -273,6 +283,7 @@ function reporterModule(id = 'module-reporter'): BfnFunctionalModule {
       dynamic: `${id}-dynamic-v1`,
     },
     implementationIds: ['impl-demo-reporter-a'],
+    implementationState: 'not_recorded',
     evidenceGrade: 'mechanistic_model_only',
     position: { x: 555, y: 126 },
     isDemo: true,
@@ -342,6 +353,7 @@ function dualInputModule(id: string): BfnFunctionalModule {
         contextId: demoContext.id,
         validityDomainId: reporterDomain.id,
         sourceDatasetIds: [dataset.id],
+        provenanceIds: [],
         evidenceGrade: 'independent_assumption',
         uncertaintyMethod: 'parameter_interval_envelope',
         isDemo: true,
@@ -349,6 +361,7 @@ function dualInputModule(id: string): BfnFunctionalModule {
     ],
     activeModelIds: { static: `${id}-static-v1` },
     implementationIds: [],
+    implementationState: 'unspecified',
     evidenceGrade: 'independent_assumption',
     position: { x: 410, y: 330 },
     isDemo: true,
@@ -441,7 +454,7 @@ export function createDemoBfnProject(now = '2026-08-20T00:00:00.000Z'): BfnProje
   const reporter = reporterModule();
   return {
     schema: 'BFN-IR',
-    schemaVersion: '2.0',
+    schemaVersion: '2.1',
     id: 'bfn-project-demo-v2',
     labelKey: 'bfn.project.demoName',
     network: {
@@ -518,6 +531,8 @@ export function createDemoBfnProject(now = '2026-08-20T00:00:00.000Z'): BfnProje
       ],
     },
     registry: {
+      entities: [],
+      provenanceRecords: [],
       contexts: [structuredClone(demoContext)],
       validityDomains: [
         {

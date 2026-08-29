@@ -63,6 +63,11 @@ describe('BFN context integration', () => {
   it('keeps reported-text differences uncertain and recognizes canonical temperature differences', () => {
     const project = createDemoBfnProject();
     const original = project.registry.contexts[0]!;
+    const originalHost = original.host;
+    const originalTemperature = original.temperatureCelsius;
+    if (originalHost === null || originalTemperature === null) {
+      throw new Error('Expected the recorded demo Context facts.');
+    }
     const compared = {
       ...structuredClone(original),
       id: 'context-compared',
@@ -76,8 +81,48 @@ describe('BFN context integration', () => {
       'uncertain',
     );
 
-    compared.host = original.host;
-    compared.temperatureCelsius = original.temperatureCelsius + 5;
+    compared.host = originalHost;
+    compared.temperatureCelsius = originalTemperature + 5;
+    expect(assessBfnConnectionContextApplicability(project, edge.source, edge.target).overall).toBe(
+      'mismatched',
+    );
+  });
+
+  it('treats a null model context reference as uncertain missing information', () => {
+    const project = createDemoBfnProject();
+    activeStaticModel(project, 0).contextId = null;
+    const edge = moduleEdge(project);
+
+    const assessment = assessBfnConnectionContextApplicability(project, edge.source, edge.target);
+
+    expect(assessment.overall).toBe('uncertain');
+    expect(assessment.checks).toHaveLength(4);
+    expect(assessment.checks.every((check) => check.state === 'uncertain')).toBe(true);
+  });
+
+  it('matches known partial facts, keeps missing facts uncertain, and preserves canonical conflicts', () => {
+    const project = createDemoBfnProject();
+    const original = project.registry.contexts[0]!;
+    const originalTemperature = original.temperatureCelsius;
+    if (originalTemperature === null) throw new Error('Expected a recorded demo temperature.');
+    const partial = {
+      ...structuredClone(original),
+      id: 'context-partial',
+      documentationState: 'partial' as const,
+      strain: null,
+    };
+    project.registry.contexts.push(partial);
+    activeStaticModel(project, 1).contextId = partial.id;
+    const edge = moduleEdge(project);
+
+    const uncertain = assessBfnConnectionContextApplicability(project, edge.source, edge.target);
+    expect(uncertain.overall).toBe('uncertain');
+    expect(uncertain.checks.find((check) => check.field === 'hostStrain')?.state).toBe('uncertain');
+    expect(uncertain.checks.find((check) => check.field === 'temperatureCelsius')?.state).toBe(
+      'matched',
+    );
+
+    partial.temperatureCelsius = originalTemperature + 5;
     expect(assessBfnConnectionContextApplicability(project, edge.source, edge.target).overall).toBe(
       'mismatched',
     );

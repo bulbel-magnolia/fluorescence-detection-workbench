@@ -426,7 +426,13 @@ function provenance(project: BfnProject): { modelVersions: string[]; contextIds:
     .filter((model): model is BfnModelVariant => model !== null);
   return {
     modelVersions: [...new Set(models.map((model) => model.version))],
-    contextIds: [...new Set(models.map((model) => model.contextId))],
+    contextIds: [
+      ...new Set(
+        models
+          .map((model) => model.contextId)
+          .filter((contextId): contextId is string => contextId !== null),
+      ),
+    ],
   };
 }
 

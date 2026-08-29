@@ -1,4 +1,5 @@
 import type { BfnProject } from '../types';
+import { upgradeBfnProjectToCurrent } from '../bfnIrMigration';
 import {
   BFN_WORKSPACE_DATABASE_NAME,
   BFN_WORKSPACE_DATABASE_VERSION,
@@ -144,7 +145,7 @@ export function createIndexedDbBfnWorkspaceRepository(
       const value = (await requestResult(transaction.objectStore(STORE_DRAFTS).get(projectId))) as
         DraftRecord | undefined;
       await transactionDone(transaction);
-      return value ? structuredClone(value.project) : null;
+      return value ? upgradeBfnProjectToCurrent(value.project) : null;
     },
 
     async createProject(input: CreateBfnWorkspaceProjectInput) {
@@ -262,7 +263,12 @@ export function createIndexedDbBfnWorkspaceRepository(
         transaction.objectStore(STORE_VERSIONS).get(versionId),
       )) as BfnWorkspaceVersion | undefined;
       await transactionDone(transaction);
-      return value ? structuredClone(value) : null;
+      return value
+        ? {
+            ...structuredClone(value),
+            snapshot: upgradeBfnProjectToCurrent(value.snapshot),
+          }
+        : null;
     },
 
     async saveRun(record) {

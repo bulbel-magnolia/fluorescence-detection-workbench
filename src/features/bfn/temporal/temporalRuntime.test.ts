@@ -134,10 +134,12 @@ describe('BFN temporal runtime integration', () => {
 
   it('allows a run with known context differences and records them in provenance', () => {
     const project = createDemoBfnProject();
+    const originalTemperature = project.registry.contexts[0]!.temperatureCelsius;
+    if (originalTemperature === null) throw new Error('Expected a recorded demo temperature.');
     const context = {
       ...structuredClone(project.registry.contexts[0]!),
       id: 'context-run-known-difference',
-      temperatureCelsius: project.registry.contexts[0]!.temperatureCelsius + 3,
+      temperatureCelsius: originalTemperature + 3,
     };
     project.registry.contexts.push(context);
     const reporter = project.network.modules[1]!;

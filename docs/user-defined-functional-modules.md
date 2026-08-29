@@ -2,7 +2,7 @@
 
 ## 1. 状态与边界
 
-本文定义 Batch 12.0 的 User-defined Functional Module Authoring Contract，并审计 BFN-IR 2.0 的无损表示能力。Batch 12.0 只交付合同、纯验证器、机器可读表示审计和测试：
+本文定义 Batch 12.0 的 User-defined Functional Module Authoring Contract，并保留当时对 BFN-IR 2.0 无损表示能力的正式审计。Batch 12.0 的冻结边界只交付合同、纯验证器、机器可读表示审计和测试：
 
 - BFN-IR 保持 `2.0`；
 - BFN-SIM 保持 `2.0`；
@@ -12,19 +12,21 @@
 - 不注册 Catalog、Demo、Ontology assignment、Run 或 Workspace record；
 - 不修改仿真、模型解析、生产验证、计算签名或持久化解析器。
 
+Batch 12.0.1 已将审定的表示缺口落实为 BFN-IR 2.1 types、中央 migration 与 Workspace read integration。它没有进入 Batch 12.1：不创建 authoring UI，不 materialize draft，不修改现有模型族或仿真公式。2.1 的当前生产合同见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)。
+
 User-defined 描述作者来源。Functional Module 描述网络中的计算对象。后续 materialization 的目标仍是 `BfnFunctionalModule`，不会引入 `CustomNode`、`SenderNode` 或 `UserNode` 等平行节点类型。
 
 ## 2. 五个独立判定面
 
 合同对同一个 draft 分别回答以下问题：
 
-| 判定面         | 问题                                         | 状态                                 |
-| -------------- | -------------------------------------------- | ------------------------------------ |
-| Semantic       | 科学身份、端口、数学形式和适用域是否定义完整 | `valid` / `invalid`                  |
-| Representation | BFN-IR 2.0 能否无损保存全部声明              | `lossless` / `requires_ir_extension` |
-| Runtime        | 当前静态数值能力能否计算该模型               | `supported` / `unsupported`          |
-| Evidence       | 证据等级与结构化来源记录是否按各自规则声明   | basis + provenance state + issues    |
-| Implementation | 现实实现处于何种状态                         | maturity state + issues              |
+| 判定面         | 问题                                                | 状态                                 |
+| -------------- | --------------------------------------------------- | ------------------------------------ |
+| Semantic       | 科学身份、端口、数学形式和适用域是否定义完整        | `valid` / `invalid`                  |
+| Representation | Batch 12.0 所审计的 BFN-IR 2.0 能否无损保存全部声明 | `lossless` / `requires_ir_extension` |
+| Runtime        | 当前静态数值能力能否计算该模型                      | `supported` / `unsupported`          |
+| Evidence       | 证据等级与结构化来源记录是否按各自规则声明          | basis + provenance state + issues    |
+| Implementation | 现实实现处于何种状态                                | maturity state + issues              |
 
 合同不生成 confidence、readiness、quality 或 admission score，也不产生一个覆盖全部维度的 `overall` 状态。
 
@@ -94,13 +96,13 @@ Evidence basis 是独立维度，不由 `independent_inputs` family 决定。`in
 
 Draft 可以明确记录 `not_recorded`，也可以逐项记录 Host、Strain、Medium、Temperature 和 pH。缺少 Context 降低科学适用性判断的确定程度，不阻止一个数学完整模型执行。
 
-合同禁止用 “unknown”、“N/A”、“not recorded”、空字符串或 Demo Context 伪造 Context facts。当前 BFN-IR 2.0 的 `BfnContext` 强制 Host、Strain、Medium 和 Temperature，`BfnModelVariantBase` 又强制 `contextId`，因此 partial/not-recorded Context 无法无损 materialize。
+合同禁止用 “unknown”、“N/A”、“not recorded”、空字符串或 Demo Context 伪造 Context facts。Batch 12.0 审计时，BFN-IR 2.0 的 `BfnContext` 强制 Host、Strain、Medium 和 Temperature，`BfnModelVariantBase` 又强制 `contextId`，因此 partial/not-recorded Context 无法无损 materialize。BFN-IR 2.1 现已增加 documentation state、nullable facts 与 nullable model Context reference；本批仍不执行 materialization。
 
 ### 3.6 Uncertainty
 
 Draft 区分 `reported`、`none` 和 `not_recorded`。Reported 使用一个已支持的方法并保存相应数据；none 表示作者明确未提供不确定性模型；not-recorded 表示该信息没有记录。
 
-`none` 和 `not_recorded` 不会被改写为 parameter interval envelope、bootstrap、posterior 或 covariance。当前 `BfnStaticModel.uncertaintyMethod` 没有前两种状态，属于表示缺口。
+`none` 和 `not_recorded` 不会被改写为 parameter interval envelope、bootstrap、posterior 或 covariance。该 Batch 12.0 表示缺口已由 BFN-IR 2.1 的 reusable `BfnUncertaintyMethod` 补齐。
 
 ### 3.7 Evidence
 
@@ -127,7 +129,7 @@ Draft 区分 `reported`、`none` 和 `not_recorded`。Reported 使用一个已�
 
 Implementation state 与运行能力独立：`unspecified`、`designed`、`candidate`、`reported` 和 `validated`。
 
-`unspecified` 要求 implementation ID 列表为空，并允许数学执行。其他状态要求引用至少一个实现记录。当前空 `implementationIds` 可以近似表达“没有引用”，无法无损区分未指定、用户设计、候选、文献报告和验证完成。
+`unspecified` 要求 implementation ID 列表为空，并允许数学执行。其他状态要求引用至少一个实现记录。BFN-IR 2.1 通过 module-level `implementationState` 与 implementation record `maturity` 明确保存这些状态；legacy 非空引用只迁移为 `not_recorded`。
 
 ### 3.9 Temporal semantics
 
@@ -174,7 +176,7 @@ Implementation state 与运行能力独立：`unspecified`、`designed`、`candi
 - 不返回 materialized module；
 - 不写浏览器存储或任何持久化层。
 
-## 6. BFN-IR 2.0 Representation Audit
+## 6. Batch 12.0 BFN-IR 2.0 Representation Audit
 
 | Requirement                   | Current BFN-IR support       | Problem                                                                   | 12.1 impact                                    | Recommended action                                               | Schema impact                           |
 | ----------------------------- | ---------------------------- | ------------------------------------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------------------- | --------------------------------------- |
@@ -201,18 +203,19 @@ Implementation state 与运行能力独立：`unspecified`、`designed`、`candi
 | Signal Pool / Accumulation    | No                           | Rate 到 amount/concentration 需要显式状态、体积和清除                     | 不能直连 Sender rate 与 Receiver concentration | 12.4 引入显式过程模块                                            | Future extension                        |
 | Reusable module template      | No                           | 当前 module 是项目实例，没有 authoring template identity/version          | 无法稳定复用和升级用户定义                     | 12.5 设计独立 library/template contract                          | Future extension                        |
 
-审计结论：BFN-IR 2.0 无法无损表达 12.1 所需的 authoring provenance、custom entity metadata、缺失 Context、缺失 Uncertainty、通用来源和 Implementation maturity。Batch 12.0 遵守 stop rule，不修改 schema。
+审计结论：BFN-IR 2.0 无法无损表达 12.1 所需的 authoring provenance、custom entity metadata、缺失 Context、缺失 Uncertainty、通用来源和 Implementation maturity。Batch 12.0 遵守 stop rule，没有修改 schema；Batch 12.0.1 随后按该审计实现了最小 BFN-IR 2.1 表示扩展。
 
-## 7. 建议的最小 12.1 Schema 变更
+## 7. Batch 12.0.1 最小 Schema 实现
 
-以下建议交由 Master Control 审核，尚未进入生产类型：
+以下结构已在 BFN-IR 2.1 生产类型中实现，authoring workflow 仍留在 Batch 12.1：
 
-1. 为 user-authored module 增加一个显式 authoring metadata 对象，保存 `origin = user_defined`、稳定 draft ID、verbatim name 和 nullable description。
+1. 为 user-authored module 增加一个可选显式 authoring metadata 对象，保存 `origin = user_defined`、verbatim name 和 nullable description；既有 module ID 仍是唯一 graph identity。
 2. 在 Project registry 增加 Entity definition registry；现有 Port entity 值继续作为 stable ID，显示名称由 registry 提供。
 3. 为 Context 增加 `recorded | partial | not_recorded` 文档状态，允许缺失事实，并允许 model 在 `not_recorded` 时使用 nullable Context reference。
 4. 为 static uncertainty 增加 `none | not_recorded`，保留现有四种 reported method。
 5. 增加通用 provenance record/reference，覆盖 dataset、publication、repository record 和 user note；不重载 `sourceDatasetIds`。
-6. 增加明确的 module implementation state，并为具体 implementation record 增加 maturity。
+6. 增加明确的 module implementation state，并为具体 implementation record 增加 maturity 与 provenance references。
+7. 使用唯一、确定、幂等、非变异的 2.0 → 2.1 migration；import、IndexedDB Draft/Version 和 localStorage fallback 共用该入口。
 
 12.1 继续采用以下范围限制以减少 schema 面积：
 
@@ -220,7 +223,7 @@ Implementation state 与运行能力独立：`unspecified`、`designed`、`candi
 - exactly one output，不增加 response output binding；
 - 不增加 constant、lookup-table、arbitrary-formula 或 dynamic family；
 - 不修改 Ontology；user module classification 延后，并禁止按名称推断；
-- materialization、编辑 UI、持久化迁移和 Add to Network 必须在 schema 方案获批后另立任务。
+- materialization、编辑 UI 和 Add to Network 保持在后续授权任务；Batch 12.0.1 只完成项目对象与既有存储读取迁移。
 
 ## 8. 后续路线
 
@@ -230,4 +233,4 @@ Implementation state 与运行能力独立：`unspecified`、`designed`、`candi
 - 12.4：Signal Pool / Accumulation；
 - 12.5：Reusable User Module Library。
 
-Batch 12.0 到此停止，不进入 Batch 11.2、Batch 7 Calibration、网络级反向设计或上述生产实现。
+Batch 12.0.1 到此停止，不进入 Batch 12.1、Batch 11.2、Batch 7 Calibration、网络级反向设计或上述 authoring/materialization 实现。

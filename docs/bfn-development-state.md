@@ -30,21 +30,21 @@ Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master
 
 ## 当前状态
 
-| Workstream                                      | State   | Branch / commit verification                                                                                                        | Current boundary                                                             |
-| ----------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Batch 10 — Temporal Semantics & Compatibility   | FROZEN  | 最终修复 `cca73311de398a68902d1f5af354f346e781c32f`；合同与集成 SHA 见上表                                                          | Port Compatibility、Temporal semantics 和 Context Applicability 冻结         |
-| Batch 11 — Sender Evidence & Runtime Admission  | FROZEN  | 最终 checkpoint `099294b018d1a6c4644156a9e083edde87570a43`                                                                          | Sender V1.2 source、loader、validator、admission 与 presentation 冻结        |
+| Workstream                                      | State   | Branch / commit verification                                                                                                                                  | Current boundary                                                                      |
+| ----------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Batch 10 — Temporal Semantics & Compatibility   | FROZEN  | 最终修复 `cca73311de398a68902d1f5af354f346e781c32f`；合同与集成 SHA 见上表                                                                                    | Port Compatibility、Temporal semantics 和 Context Applicability 冻结                  |
+| Batch 11 — Sender Evidence & Runtime Admission  | FROZEN  | 最终 checkpoint `099294b018d1a6c4644156a9e083edde87570a43`                                                                                                    | Sender V1.2 source、loader、validator、admission 与 presentation 冻结                 |
 | Batch 12.0 — User-defined Module Contract       | FROZEN  | `codex/bfn-user-defined-module-contract`；base `099294b018d1a6c4644156a9e083edde87570a43`；reviewed implementation `2a33365c40d4852d2270252560e148b7dc247aaf` | Authoring contract、representation audit 与测试冻结；无 schema/UI/runtime integration |
-| Batch 12.0.1 — BFN-IR Representation Extension | PLANNED | 尚未启动；必须从包含本冻结状态的 bookkeeping Head 创建                                                                              | 单独实现并冻结 BFN-IR schema / migration；不进入 authoring UI                |
-| Sender Public Evidence Research                 | FROZEN  | Master Control formal boundary；不据此声明新的 production commit                                                                    | public evidence retrieval phase complete；runtime candidate outputs found: 0 |
-| Batch 11.2                                      | FUTURE  | NOT AUTHORIZED；无实施 commit                                                                                                       | 不进入 Sender production runtime                                             |
-| Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                             | blocked pending experimental data                                            |
-| Batch 12.1 — Static Functional Module Authoring | PLANNED | 尚未启动；无实施 commit                                                                                                             | 等待 Batch 12.0.1 schema / migration 单独审核并冻结                          |
-| Batch 12.2 — Designed Sender                    | PLANNED | 尚未启动；无实施 commit                                                                                                             | 等待 12.1 authoring 与 materialization                                       |
-| Batch 12.3 — Stateful / Dynamic Custom Modules  | PLANNED | 尚未启动；无实施 commit                                                                                                             | 不由 static user model 自动获得 stateful execution                           |
-| Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                             | 负责显式 rate-to-amount/concentration 过程                                   |
-| Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                             | 等待稳定 template/version contract                                           |
-| Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                                 | 不在当前授权范围                                                             |
+| Batch 12.0.1 — BFN-IR Representation Extension  | ACTIVE  | `codex/bfn-ir-2-1-user-module-representation`；base `42e4cf6770c2986c950c89efc724a981e9ccf5d9`                                                                | 实现 BFN-IR 2.1 schema / migration；不进入 authoring UI                               |
+| Sender Public Evidence Research                 | FROZEN  | Master Control formal boundary；不据此声明新的 production commit                                                                                              | public evidence retrieval phase complete；runtime candidate outputs found: 0          |
+| Batch 11.2                                      | FUTURE  | NOT AUTHORIZED；无实施 commit                                                                                                                                 | 不进入 Sender production runtime                                                      |
+| Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                                                       | blocked pending experimental data                                                     |
+| Batch 12.1 — Static Functional Module Authoring | PLANNED | 尚未启动；无实施 commit                                                                                                                                       | 等待 Batch 12.0.1 schema / migration 单独审核并冻结                                   |
+| Batch 12.2 — Designed Sender                    | PLANNED | 尚未启动；无实施 commit                                                                                                                                       | 等待 12.1 authoring 与 materialization                                                |
+| Batch 12.3 — Stateful / Dynamic Custom Modules  | PLANNED | 尚未启动；无实施 commit                                                                                                                                       | 不由 static user model 自动获得 stateful execution                                    |
+| Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                                                       | 负责显式 rate-to-amount/concentration 过程                                            |
+| Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                                                       | 等待稳定 template/version contract                                                    |
+| Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                                                           | 不在当前授权范围                                                                      |
 
 ## Batch 12.0 frozen boundary
 
@@ -56,6 +56,16 @@ Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master
 - `independent_inputs` 的 `independent_unverified` 属于模型层假设，不强制 Evidence basis；
 - provenance `provided` 只表示结构记录已提供，不表示科学验证、充分证据、Catalog trust 或 runtime authorization；
 - 后续 schema 变化必须作为 Batch 12.0.1 单独实施、审核和冻结。
+
+## Batch 12.0.1 active boundary
+
+- Batch 12.0.1：`ACTIVE`；
+- 当前项目 schema 为 `BFN-IR 2.1`，合法 2.0 项目通过唯一中央迁移入口读取为 2.1；
+- BFN-SIM 保持 `BFN-SIM-2.0`，Workspace IndexedDB structural version 保持 `1`；
+- 本批只授权 representation types、结构校验、2.0 → 2.1 migration、Workspace read integration、必要的 Context compatibility integration、computation-signature projection 与文档；
+- 不授权 authoring UI、materialization、Designed Sender、Signal Pool、新 model family、任意公式、动态自定义模块或 reusable library；
+- Batch 12.1 保持 `PLANNED`，Batch 12.0.1 不自行宣布 `FROZEN`；
+- Master Control review 决定后续 PASS / FIX / FROZEN。
 
 ## Sender Public Evidence Research formal boundary
 
@@ -80,5 +90,6 @@ Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master
 相关合同：
 
 - [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)
+- [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)
 - [时间语义、兼容性与适用性](temporal-and-compatibility.md)
 - [Sender Evidence Extension V1.2](sender-evidence-v1.2.md)

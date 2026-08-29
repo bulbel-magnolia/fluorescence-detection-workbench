@@ -255,7 +255,7 @@ export function bfnDesignVariableLabel(value: string, t: TFunction): string {
   return key ? t(key) : value;
 }
 
-export function bfnContextValueLabel(value: string, t: TFunction): string {
+export function bfnContextValueLabel(value: string | null, t: TFunction): string | null {
   if (value === 'DEMO-STRAIN') return t('bfn.context.demoStrain');
   if (value === 'DEMO-MEDIUM') return t('bfn.context.demoMedium');
   return value;

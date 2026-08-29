@@ -98,10 +98,12 @@ describe('BFN-IR ideal connection validation', () => {
 
   it('emits fact-based context applicability issues without the legacy context-ID warning', () => {
     const project = createDemoBfnProject();
+    const originalTemperature = project.registry.contexts[0]!.temperatureCelsius;
+    if (originalTemperature === null) throw new Error('Expected a recorded demo temperature.');
     const compared = {
       ...structuredClone(project.registry.contexts[0]!),
       id: 'context-known-temperature-difference',
-      temperatureCelsius: project.registry.contexts[0]!.temperatureCelsius + 4,
+      temperatureCelsius: originalTemperature + 4,
     };
     project.registry.contexts.push(compared);
     const reporter = project.network.modules[1]!;

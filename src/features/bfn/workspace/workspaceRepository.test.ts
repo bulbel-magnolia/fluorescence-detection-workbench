@@ -9,11 +9,65 @@ import type { BfnWorkspaceRepository, BfnWorkspaceRunRecord } from './workspaceT
 import {
   BFN_WORKSPACE_DATABASE_NAME,
   BFN_WORKSPACE_DATABASE_VERSION,
+  BFN_WORKSPACE_FALLBACK_KEY,
   BFN_WORKSPACE_RUN_LIMIT,
 } from './workspaceTypes';
 
 const firstTime = '2026-08-27T01:00:00.000Z';
 const secondTime = '2026-08-27T02:00:00.000Z';
+
+function record(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Expected a record fixture.');
+  }
+  return value as Record<string, unknown>;
+}
+
+function records(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) throw new Error('Expected a record array fixture.');
+  return value.map(record);
+}
+
+function legacyV20Project(): unknown {
+  const legacy = record(structuredClone(createDemoBfnProject()));
+  legacy.schemaVersion = '2.0';
+  const registry = record(legacy.registry);
+  delete registry.entities;
+  delete registry.provenanceRecords;
+  for (const context of records(registry.contexts)) delete context.documentationState;
+  for (const implementation of records(registry.implementations)) {
+    delete implementation.maturity;
+    delete implementation.provenanceIds;
+  }
+  for (const module of records(record(legacy.network).modules)) {
+    delete module.implementationState;
+    for (const model of records(module.modelVariants)) delete model.provenanceIds;
+  }
+  return legacy;
+}
+
+function idbRequest<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('IndexedDB test request failed'));
+  });
+}
+
+function idbTransaction(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onerror = () => reject(transaction.error ?? new Error('IndexedDB test failed'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB test aborted'));
+  });
+}
+
+async function openWorkspaceDatabase(factory: IDBFactory): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open(BFN_WORKSPACE_DATABASE_NAME, BFN_WORKSPACE_DATABASE_VERSION);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error ?? new Error('Workspace database open failed'));
+  });
+}
 
 function rejectedOpenRequest(message: string): IDBOpenDBRequest {
   const request = {
@@ -210,6 +264,77 @@ describe('workspace repository contracts', () => {
     ]);
     expect(Array.from(transaction.objectStore('runs').indexNames)).toEqual(['projectId']);
     database.close();
+  });
+
+  it('migrates old IndexedDB Draft and Version reads without rewriting the immutable snapshot', async () => {
+    const factory = new IDBFactory();
+    const repository = createIndexedDbBfnWorkspaceRepository(factory);
+    const input = fixture('project-legacy', 'Legacy project');
+    await repository.createProject(input);
+    const version = await repository.createVersion({
+      projectId: input.metadata.id,
+      snapshot: input.draft,
+      computationSignature: 'legacy-signature',
+      createdAt: secondTime,
+    });
+    const legacy = legacyV20Project();
+    const database = await openWorkspaceDatabase(factory);
+    const write = database.transaction(['drafts', 'versions'], 'readwrite');
+    write.objectStore('drafts').put({ projectId: input.metadata.id, project: legacy });
+    const storedVersion = record(await idbRequest(write.objectStore('versions').get(version.id)));
+    storedVersion.snapshot = structuredClone(legacy);
+    write.objectStore('versions').put(storedVersion);
+    await idbTransaction(write);
+
+    expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.1');
+    const migratedVersion = await repository.getVersion(version.id);
+    expect(migratedVersion?.snapshot.schemaVersion).toBe('2.1');
+
+    const inspect = database.transaction('versions', 'readonly');
+    const untouched = record(await idbRequest(inspect.objectStore('versions').get(version.id)));
+    expect(record(untouched.snapshot).schemaVersion).toBe('2.0');
+    await idbTransaction(inspect);
+
+    await repository.replaceDraft(input.metadata.id, migratedVersion!.snapshot, secondTime);
+    expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.1');
+    const inspectAgain = database.transaction('versions', 'readonly');
+    const stillUntouched = record(
+      await idbRequest(inspectAgain.objectStore('versions').get(version.id)),
+    );
+    expect(record(stillUntouched.snapshot).schemaVersion).toBe('2.0');
+    await idbTransaction(inspectAgain);
+    database.close();
+  });
+
+  it('migrates old localStorage Draft and Version reads without rewriting stored history', async () => {
+    const repository = createLocalStorageBfnWorkspaceRepository(localStorage);
+    const input = fixture('project-fallback-legacy', 'Fallback legacy project');
+    await repository.createProject(input);
+    const version = await repository.createVersion({
+      projectId: input.metadata.id,
+      snapshot: input.draft,
+      computationSignature: 'legacy-signature',
+      createdAt: secondTime,
+    });
+    const state = record(JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!));
+    record(state.drafts)[input.metadata.id] = legacyV20Project();
+    record(record(state.versions)[version.id]).snapshot = legacyV20Project();
+    localStorage.setItem(BFN_WORKSPACE_FALLBACK_KEY, JSON.stringify(state));
+
+    expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.1');
+    const migratedVersion = await repository.getVersion(version.id);
+    expect(migratedVersion?.snapshot.schemaVersion).toBe('2.1');
+    const untouched = record(JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!));
+    expect(record(record(untouched.versions)[version.id]).snapshot).toMatchObject({
+      schemaVersion: '2.0',
+    });
+
+    await repository.replaceDraft(input.metadata.id, migratedVersion!.snapshot, secondTime);
+    expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.1');
+    const afterRestore = record(JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!));
+    expect(record(record(afterRestore.versions)[version.id]).snapshot).toMatchObject({
+      schemaVersion: '2.0',
+    });
   });
 
   it('reopens IndexedDB after the first open request fails', async () => {

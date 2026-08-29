@@ -39,7 +39,20 @@ function unavailableFacts(): ResolvedContextFacts {
   return Object.freeze({ state: 'unavailable', facts: null });
 }
 
-function builtInContextFacts(project: BfnProject, contextId: string): ResolvedContextFacts {
+function unrecordedComparableFacts(): ResolvedContextFacts {
+  return Object.freeze({
+    state: 'available',
+    facts: Object.freeze({
+      hostSpecies: Object.freeze({ value: null, comparisonBasis: 'reported_text' }),
+      hostStrain: Object.freeze({ value: null, comparisonBasis: 'reported_text' }),
+      medium: Object.freeze({ value: null, comparisonBasis: 'reported_text' }),
+      temperatureCelsius: Object.freeze({ value: null, comparisonBasis: 'canonical' }),
+    }),
+  });
+}
+
+function builtInContextFacts(project: BfnProject, contextId: string | null): ResolvedContextFacts {
+  if (contextId === null) return unrecordedComparableFacts();
   const context = project.registry.contexts.find((candidate) => candidate.id === contextId);
   if (!context) return unavailableFacts();
   return Object.freeze({

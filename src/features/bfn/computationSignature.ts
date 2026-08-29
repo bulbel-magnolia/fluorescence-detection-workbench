@@ -2,6 +2,12 @@ import type { BfnModelVariant, BfnProject } from './types';
 import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
 import { resolveEffectiveBfnModel } from './modelResolution';
 
+function contextBasis(context: BfnProject['registry']['contexts'][number]) {
+  return Object.fromEntries(
+    Object.entries(context).filter(([key]) => key !== 'documentationState'),
+  );
+}
+
 function portBasis(port: BfnProject['network']['modules'][number]['inputPorts'][number]) {
   return {
     id: port.id,
@@ -61,7 +67,8 @@ export function createBfnComputationSignature(project: BfnProject): string {
 
   return JSON.stringify({
     schema: project.schema,
-    schemaVersion: project.schemaVersion,
+    // Preserve the persisted BFN-IR 2.0 signature representation; the project schema version is descriptive.
+    schemaVersion: '2.0',
     isDemo: project.isDemo,
     network: {
       id: project.network.id,
@@ -83,7 +90,9 @@ export function createBfnComputationSignature(project: BfnProject): string {
     },
     analysis: project.analysis,
     registry: {
-      contexts: project.registry.contexts.filter((context) => contextIds.has(context.id)),
+      contexts: project.registry.contexts
+        .filter((context) => contextIds.has(context.id))
+        .map(contextBasis),
       validityDomains: project.registry.validityDomains.filter((domain) =>
         domainIds.has(domain.id),
       ),

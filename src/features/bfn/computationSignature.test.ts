@@ -4,11 +4,114 @@ import {
   buildBfnCatalogRuntimeCandidate,
   instantiateCatalogResponseInBfnProject,
 } from './catalog/catalogBfnAdapter';
+import { upgradeBfnProjectToCurrent } from './bfnIrMigration';
 import { createBfnComputationSignature } from './computationSignature';
 import { createDemoBfnProject } from './fixtures';
-import type { BfnStaticModel } from './types';
+import type { BfnProject, BfnStaticModel } from './types';
+
+function record(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('Expected a record fixture.');
+  }
+  return value as Record<string, unknown>;
+}
+
+function records(value: unknown): Array<Record<string, unknown>> {
+  if (!Array.isArray(value)) throw new Error('Expected a record array fixture.');
+  return value.map(record);
+}
+
+function legacyV20SignatureFixture(): unknown {
+  const legacy = record(structuredClone(createDemoBfnProject()));
+  legacy.schemaVersion = '2.0';
+  const registry = record(legacy.registry);
+  delete registry.entities;
+  delete registry.provenanceRecords;
+  for (const context of records(registry.contexts)) delete context.documentationState;
+  for (const implementation of records(registry.implementations)) {
+    delete implementation.maturity;
+    delete implementation.provenanceIds;
+  }
+  for (const module of records(record(legacy.network).modules)) {
+    delete module.implementationState;
+    for (const model of records(module.modelVariants)) delete model.provenanceIds;
+  }
+  return legacy;
+}
 
 describe('BFN computation signature', () => {
+  it('does not change for a pure BFN-IR 2.0 to 2.1 representation migration', () => {
+    const legacy = legacyV20SignatureFixture();
+    const migrated = upgradeBfnProjectToCurrent(legacy);
+    const legacyProjection = record(
+      JSON.parse(createBfnComputationSignature(legacy as BfnProject)),
+    );
+    const schema = legacyProjection.schema;
+    delete legacyProjection.schema;
+    delete legacyProjection.schemaVersion;
+    const persistedV20Signature = JSON.stringify({
+      schema,
+      schemaVersion: '2.0',
+      ...legacyProjection,
+    });
+
+    expect(createBfnComputationSignature(migrated)).toBe(
+      createBfnComputationSignature(legacy as BfnProject),
+    );
+    expect(createBfnComputationSignature(migrated)).toBe(persistedV20Signature);
+  });
+
+  it('preserves a legacy persisted signature when imported Context keys use a different order', () => {
+    const legacy = record(legacyV20SignatureFixture());
+    const legacyRegistry = record(legacy.registry);
+    const legacyContext = records(legacyRegistry.contexts)[0]!;
+    const reorderedContext = { batch: legacyContext.batch, ...legacyContext };
+    legacyRegistry.contexts = [reorderedContext];
+    const legacyProjection = record(
+      JSON.parse(createBfnComputationSignature(legacy as unknown as BfnProject)),
+    );
+    record(legacyProjection.registry).contexts = [structuredClone(reorderedContext)];
+    const schema = legacyProjection.schema;
+    delete legacyProjection.schema;
+    delete legacyProjection.schemaVersion;
+    const persistedV20Signature = JSON.stringify({
+      schema,
+      schemaVersion: '2.0',
+      ...legacyProjection,
+    });
+
+    expect(createBfnComputationSignature(upgradeBfnProjectToCurrent(legacy))).toBe(
+      persistedV20Signature,
+    );
+  });
+
+  it('excludes new descriptive authoring, entity, provenance, and maturity metadata', () => {
+    const project = createDemoBfnProject();
+    const described = structuredClone(project);
+    described.network.modules[0]!.authoring = {
+      origin: 'user_defined',
+      name: 'User sensor',
+      description: 'Project-authored description',
+    };
+    described.network.modules[0]!.implementationState = 'reported';
+    described.registry.entities.push({
+      id: 'entity-user-note',
+      origin: 'user_defined',
+      displayName: 'User entity',
+      description: null,
+    });
+    described.registry.provenanceRecords.push({
+      id: 'provenance-user-note',
+      kind: 'user_note',
+      reference: 'Project author declaration',
+    });
+    described.network.modules[0]!.modelVariants[0]!.provenanceIds = ['provenance-user-note'];
+    described.registry.implementations[0]!.maturity = 'reported';
+    described.registry.implementations[0]!.provenanceIds = ['provenance-user-note'];
+
+    expect(createBfnComputationSignature(described)).toBe(createBfnComputationSignature(project));
+  });
+
   it('excludes layout and project presentation metadata', () => {
     const project = createDemoBfnProject();
     const moved = structuredClone(project);

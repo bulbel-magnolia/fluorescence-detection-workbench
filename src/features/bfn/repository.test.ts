@@ -34,7 +34,7 @@ function projectWithCatalogReference() {
 describe('BFN-IR repository', () => {
   beforeEach(() => localStorage.clear());
 
-  it('round-trips a versioned BFN-IR 2.0 project', () => {
+  it('round-trips a versioned BFN-IR 2.1 project', () => {
     const project = createDemoBfnProject();
     saveBfnProject(project);
     expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).not.toBeNull();

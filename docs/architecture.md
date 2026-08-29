@@ -7,7 +7,7 @@
 1. Windows 通过 BLE 直接连接 HC-08D，显示并保存真实四路原始光强。
 2. Demo 传输生成模拟曲线，执行演示分析并形成带 Demo 标记的结果。
 3. 导入 JSON 或 CSV，完成格式校验和离线分析。
-4. BIO-NET 使用 BFN-IR 2.0 组织完整功能模块、静态/动态仿真、条件化 ANN 近似和双参数空间反向设计；检测记录与功能网络保持独立的数据边界。
+4. BIO-NET 使用 BFN-IR 2.1 组织完整功能模块、静态/动态仿真、条件化 ANN 近似和双参数空间反向设计；检测记录与功能网络保持独立的数据边界。
 
 云端仅负责可选账号、团队工作区和记录同步，不进入设备采集关键路径。
 
@@ -27,7 +27,7 @@ flowchart LR
 
   ONTO[BFN ONTOLOGY 1.0 只读语义层] -. 运行时分类且不持久化 .-> MODEL
 
-  MODEL["BFN-IR 2.0 功能模块网络"] --> SIM["静态 / 动态完整模型求解"]
+  MODEL["BFN-IR 2.1 功能模块网络"] --> SIM["静态 / 动态完整模型求解"]
   SIM --> ANN["条件化 ANN 近似"]
   SIM --> RUNS["本机运行快照"]
   MODEL --> INV["双参数空间反向设计"]
@@ -117,7 +117,7 @@ LED 命令使用单一在途请求：BLE 写入后状态为 `accepted`，收到�
 
 ### 建模层
 
-默认建模路径位于 `features/bfn`，使用 `BFN-IR 2.0`。网络对象包括 `InputSource`、`FunctionalModule`、`IdealEdge` 和 `OutputMonitor`。端口使用 `P=(E,Q,U)` 保存实体、量类型和单位。连接层只验证端口语义并执行单位换算；理想边固定为 identity，不保存权重、偏置、增益、延迟、噪声或状态。
+默认建模路径位于 `features/bfn`，使用 `BFN-IR 2.1`。网络对象包括 `InputSource`、`FunctionalModule`、`IdealEdge` 和 `OutputMonitor`。端口使用 `P=(E,Q,U)` 保存实体、量类型和单位。连接层只验证端口语义并执行单位换算；理想边固定为 identity，不保存权重、偏置、增益、延迟、噪声或状态。
 
 功能模块保存完整静态或动态响应、参数区间、上下文、适用域、数据来源、证据等级、模型版本和生物实现。静态引擎支持固定值、工作域扫描、多输入组合、Hill、线性、identity 和独立作用模型；动态引擎当前支持一阶响应、恒定/阶跃/脉冲/周期/自定义输入和静态无记忆模块。两条路径都传播演示参数区间并标记域外外推。
 
@@ -162,7 +162,7 @@ Batch 12.0 在 `features/bfn/user-defined` 增加纯 authoring contract 与只�
 >
 > `BfnFunctionalModule`
 
-当前只实现 authoring contract 检查。Materialization、Project/Registry 写入、Workspace persistence、Editor UI、Catalog registration、Ontology assignment、Add to Network 与 Simulation integration 均未接入生产。BFN-IR 保持 2.0；当前无损表示缺口见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
+当前 authoring contract 检查保持冻结。Batch 12.0.1 只把审定的表示缺口落实为 BFN-IR 2.1 types、结构校验和中央迁移；Materialization、Project/Registry authoring workflow、Editor UI、Catalog registration、Ontology assignment、Add to Network 与 Simulation integration 均未接入生产。完整 schema 与兼容边界见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，authoring 科学合同见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
 
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
@@ -182,9 +182,9 @@ Tauri 环境使用 `sqlite:fluorescence.db`，迁移位于 `src-tauri/migrations
 
 浏览器开发模式使用 localStorage 回退，使界面和状态测试不依赖原生插件。该回退不用于生产数据库能力评价。
 
-BFN-IR 2.0 项目和运行快照分别使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`。运行记录继续声明 `BFN-SIM-2.0`，时间执行和上下文适用性快照为可选字段；没有这些字段的历史运行继续读取。旧建模键保持原样，V2 导入只接受 `schema: BFN-IR` 与 `schemaVersion: 2.0`。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
+BFN-IR 2.1 项目和运行快照继续使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`；storage key 后缀保持不变以发现旧数据。运行记录继续声明 `BFN-SIM-2.0`，时间执行和上下文适用性快照为可选字段；没有这些字段的历史运行继续读取。项目导入接受合法 2.0 与 2.1，并通过 `bfnIrMigration.ts` 返回 2.1；未知未来版本 fail closed。Workspace Draft 与 Version read path 使用同一迁移，Version 只暴露迁移副本，不改写历史 snapshot。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
 
-BFN-ONTOLOGY-1.0 是随应用发布的版本化只读 registry，不写 localStorage、IndexedDB、BFN Project、Version 或 Run。Workspace IndexedDB schema 继续保持 v1。
+BFN-ONTOLOGY-1.0 是随应用发布的版本化只读 registry，不写 localStorage、IndexedDB、BFN Project、Version 或 Run。BFN-IR 对象升级不改变 object store 或 index，Workspace IndexedDB schema 继续保持 v1。
 
 ### 云端层
 
