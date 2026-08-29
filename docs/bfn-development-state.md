@@ -28,21 +28,31 @@
 
 ## 当前状态
 
-| Workstream                                      | State     | Branch / commit verification                                                                                                     | Current boundary                                                                  |
-| ----------------------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| Batch 10 — Temporal Semantics & Compatibility   | FROZEN    | 最终修复 `cca73311de398a68902d1f5af354f346e781c32f`；合同与集成 SHA 见上表                                                       | Port Compatibility、Temporal semantics 和 Context Applicability 冻结              |
-| Batch 11 — Sender Evidence & Runtime Admission  | FROZEN    | 最终 checkpoint `099294b018d1a6c4644156a9e083edde87570a43`                                                                       | Sender V1.2 source、loader、validator、admission 与 presentation 冻结             |
-| Batch 12.0 — User-defined Module Contract       | ACTIVE    | `codex/bfn-user-defined-module-contract`；base `099294b018d1a6c4644156a9e083edde87570a43`；completion SHA `verification pending` | 仅合同、表示审计、测试和文档；无 schema/UI/runtime integration                    |
-| Sender Runtime Research                         | ACTIVE    | 可见 Git refs 中未发现独立 research branch 或 final commit；`verification pending`                                               | 当前正式事实：53 Sender evidence、0 admitted Sender、20 trusted runnable Receiver |
-| Latest Sender Runtime Gap Analysis              | CANDIDATE | 可见 Git refs 中未发现独立 correction-pass commit；`verification pending`                                                        | correction pass 正在进行，尚未成为生产 admission 合同                             |
-| Batch 11.2                                      | FUTURE    | 未授权；无实施 commit                                                                                                            | 不进入 Sender production runtime                                                  |
-| Batch 7 — Calibration                           | PLANNED   | 尚未启动；无实施 commit                                                                                                          | blocked pending experimental data                                                 |
-| Batch 12.1 — Static Functional Module Authoring | PLANNED   | 尚未启动；无实施 commit                                                                                                          | 等待 12.0 contract 与最小 schema 方案审核                                         |
-| Batch 12.2 — Designed Sender                    | PLANNED   | 尚未启动；无实施 commit                                                                                                          | 等待 12.1 authoring 与 materialization                                            |
-| Batch 12.3 — Stateful / Dynamic Custom Modules  | PLANNED   | 尚未启动；无实施 commit                                                                                                          | 不由 static user model 自动获得 stateful execution                                |
-| Batch 12.4 — Signal Pool / Accumulation         | PLANNED   | 尚未启动；无实施 commit                                                                                                          | 负责显式 rate-to-amount/concentration 过程                                        |
-| Batch 12.5 — Reusable User Module Library       | PLANNED   | 尚未启动；无实施 commit                                                                                                          | 等待稳定 template/version contract                                                |
-| Batch 13                                        | FUTURE    | 范围与 SHA 均未建立                                                                                                              | 不在当前授权范围                                                                  |
+| Workstream                                      | State   | Branch / commit verification                                                                                                     | Current boundary                                                             |
+| ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Batch 10 — Temporal Semantics & Compatibility   | FROZEN  | 最终修复 `cca73311de398a68902d1f5af354f346e781c32f`；合同与集成 SHA 见上表                                                       | Port Compatibility、Temporal semantics 和 Context Applicability 冻结         |
+| Batch 11 — Sender Evidence & Runtime Admission  | FROZEN  | 最终 checkpoint `099294b018d1a6c4644156a9e083edde87570a43`                                                                       | Sender V1.2 source、loader、validator、admission 与 presentation 冻结        |
+| Batch 12.0 — User-defined Module Contract       | ACTIVE  | `codex/bfn-user-defined-module-contract`；base `099294b018d1a6c4644156a9e083edde87570a43`；completion SHA `verification pending` | 仅合同、表示审计、测试和文档；无 schema/UI/runtime integration               |
+| Sender Public Evidence Research                 | FROZEN  | Master Control formal boundary；不据此声明新的 production commit                                                                 | public evidence retrieval phase complete；runtime candidate outputs found: 0 |
+| Batch 11.2                                      | FUTURE  | NOT AUTHORIZED；无实施 commit                                                                                                    | 不进入 Sender production runtime                                             |
+| Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                          | blocked pending experimental data                                            |
+| Batch 12.1 — Static Functional Module Authoring | PLANNED | 尚未启动；无实施 commit                                                                                                          | 等待 12.0 contract 与最小 schema 方案审核                                    |
+| Batch 12.2 — Designed Sender                    | PLANNED | 尚未启动；无实施 commit                                                                                                          | 等待 12.1 authoring 与 materialization                                       |
+| Batch 12.3 — Stateful / Dynamic Custom Modules  | PLANNED | 尚未启动；无实施 commit                                                                                                          | 不由 static user model 自动获得 stateful execution                           |
+| Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                          | 负责显式 rate-to-amount/concentration 过程                                   |
+| Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                          | 等待稳定 template/version contract                                           |
+| Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                              | 不在当前授权范围                                                             |
+
+## Sender Public Evidence Research formal boundary
+
+- Sender Public Evidence Research：`FROZEN`；
+- Sender Admission Gap Analysis correction pass：`FROZEN`；
+- Gan 2024 targeted public evidence research：`FROZEN`；
+- public evidence retrieval phase complete；
+- runtime candidate outputs found：`0`；
+- Frozen Sender V1.2 remains `53 evidence / 0 admitted`；
+- Batch 11.2 remains `FUTURE / NOT AUTHORIZED`；
+- reopening requires archived exact-target evidence or new experimental evidence。
 
 ## 维护规则
 

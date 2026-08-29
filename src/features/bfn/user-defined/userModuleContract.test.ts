@@ -267,7 +267,7 @@ describe('user-defined functional module authoring contract', () => {
 
     expect(assessment.semantic.state).toBe('valid');
     expect(assessment.runtime.state).toBe('supported');
-    expect(assessment.evidence.provenanceState).toBe('sufficient');
+    expect(assessment.evidence.provenanceState).toBe('provided');
     expect(issueCodes(assessment.representation.issues)).toContain(
       'generic_provenance_not_representable',
     );
@@ -355,7 +355,7 @@ describe('user-defined functional module authoring contract', () => {
     expect(assessment.runtime.state).toBe('unsupported');
   });
 
-  it('requires explicit independent-input coverage and evidence semantics', () => {
+  it('keeps the independent-input model assumption separate from evidence basis', () => {
     const valid = createIndependentInputDraft();
     const assessment = assessUserDefinedFunctionalModule(valid);
 
@@ -366,6 +366,39 @@ describe('user-defined functional module authoring contract', () => {
       provenanceState: 'not_required',
       issues: [],
     });
+
+    const proposed = assessUserDefinedFunctionalModule({
+      ...valid,
+      evidence: { basis: 'proposed_unbuilt_design', provenance: [] },
+    });
+    expect(proposed.evidence).toEqual({
+      basis: 'proposed_unbuilt_design',
+      provenanceState: 'not_required',
+      issues: [],
+    });
+
+    const provenance = [
+      {
+        id: 'doi:10.0000/independent-input-example',
+        kind: 'publication',
+        reference: 'Example et al. (2026), DOI 10.0000/independent-input-example',
+      },
+    ];
+    for (const basis of ['fitted_from_published_data', 'measured_single_context'] as const) {
+      const withProvenance = assessUserDefinedFunctionalModule({
+        ...valid,
+        evidence: { basis, provenance },
+      });
+      expect(withProvenance.evidence).toEqual({
+        basis,
+        provenanceState: 'provided',
+        issues: [],
+      });
+    }
+  });
+
+  it('retains explicit independent-input term coverage and model-layer assumptions', () => {
+    const valid = createIndependentInputDraft();
 
     const terms = valid.model.terms;
     if (!terms) throw new Error('Independent-input fixture must define terms.');
@@ -378,10 +411,20 @@ describe('user-defined functional module authoring contract', () => {
     expect(issueCodes(incompleteAssessment.semantic.issues)).toContain(
       'independent_input_term_coverage_invalid',
     );
-    expect(issueCodes(incompleteAssessment.evidence.issues)).toContain(
-      'independent_assumption_evidence_missing',
-    );
+    expect(incompleteAssessment.evidence).toEqual({
+      basis: 'proposed_unbuilt_design',
+      provenanceState: 'not_required',
+      issues: [],
+    });
     expect(incompleteAssessment.implementation.state).toBe('unspecified');
+
+    const invalidAssumption = assessUserDefinedFunctionalModule({
+      ...valid,
+      model: { ...valid.model, interactionAssumption: 'synergistic' },
+    });
+    expect(issueCodes(invalidAssumption.semantic.issues)).toContain(
+      'independent_interaction_assumption_invalid',
+    );
 
     const duplicateInput = assessUserDefinedFunctionalModule({
       ...valid,

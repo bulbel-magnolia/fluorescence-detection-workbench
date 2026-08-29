@@ -451,7 +451,7 @@ function validateContextAndUncertainty(
 function validateEvidence(
   draft: UserDefinedFunctionalModuleDraft,
   issues: UserModuleContractIssue[],
-): { readonly provenanceState: 'not_required' | 'sufficient' | 'missing' } {
+): { readonly provenanceState: 'not_required' | 'provided' | 'missing' } {
   if (!evidenceBases.has(draft.evidence.basis)) {
     issues.push(issue('evidence', 'unsupported_evidence_basis', 'evidence.basis'));
   }
@@ -465,19 +465,13 @@ function validateEvidence(
   if (provenanceRequired && validProvenance.length === 0) {
     issues.push(issue('evidence', 'measured_evidence_provenance_missing', 'evidence.provenance'));
   }
-  if (
-    draft.model.family === 'independent_inputs' &&
-    draft.evidence.basis !== 'independent_assumption'
-  ) {
-    issues.push(issue('evidence', 'independent_assumption_evidence_missing', 'evidence.basis'));
-  }
   if (draft.evidence.provenance.length === 0 && !provenanceRequired) {
     return { provenanceState: 'not_required' };
   }
   return {
     provenanceState:
       validProvenance.length > 0 && validProvenance.length === draft.evidence.provenance.length
-        ? 'sufficient'
+        ? 'provided'
         : 'missing',
   };
 }

@@ -23,7 +23,7 @@ User-defined 描述作者来源。Functional Module 描述网络中的计算对�
 | Semantic       | 科学身份、端口、数学形式和适用域是否定义完整 | `valid` / `invalid`                  |
 | Representation | BFN-IR 2.0 能否无损保存全部声明              | `lossless` / `requires_ir_extension` |
 | Runtime        | 当前静态数值能力能否计算该模型               | `supported` / `unsupported`          |
-| Evidence       | 证据等级与来源是否匹配                       | basis + provenance state + issues    |
+| Evidence       | 证据等级与结构化来源记录是否按各自规则声明   | basis + provenance state + issues    |
 | Implementation | 现实实现处于何种状态                         | maturity state + issues              |
 
 合同不生成 confidence、readiness、quality 或 admission score，也不产生一个覆盖全部维度的 `overall` 状态。
@@ -82,9 +82,9 @@ Hill 合同要求一个 input 和一个 output；`K > 0` 且单位与 input Port
 
 #### Independent inputs
 
-Independent-input 模型要求至少两个 input、每个 input 恰好对应一个 term、每个 term 明确 activation/repression、`K`、`n` 和 dimensionless weight。Aggregation 为 `bounded_sum` 或 `multiplicative`，interaction assumption 固定为 `independent_unverified`，evidence basis 使用具有专门含义的 `independent_assumption`。
+Independent-input 模型要求至少两个 input、每个 input 恰好对应一个 term、每个 term 明确 activation/repression、`K`、`n` 和 dimensionless weight。Aggregation 为 `bounded_sum` 或 `multiplicative`，interaction assumption 固定为 `independent_unverified`。该字段属于模型层科学假设，表示当前模型没有声明或验证输入间的协同、竞争、比率感知或资源耦合。
 
-选择多个 input 不会自动获得协同、竞争、比率感知或资源耦合模型。普通用户假设继续使用 `proposed_unbuilt_design`，不会泛化使用 `independent_assumption`。
+Evidence basis 是独立维度，不由 `independent_inputs` family 决定。`independent_assumption` 仍是允许的证据等级，不是该 family 的必选值。`independent_inputs + proposed_unbuilt_design` 可以直接声明；`independent_inputs + fitted_from_published_data` 和 `independent_inputs + measured_single_context` 在提供有效结构记录的 provenance 时也可以声明。
 
 ### 3.4 Validity Domain
 
@@ -114,6 +114,14 @@ Draft 区分 `reported`、`none` 和 `not_recorded`。Reported 使用一个已�
 - 多输入独立作用假设：`independent_assumption`。
 
 `measured_single_context`、`measured_multiple_contexts`、`externally_validated` 和 `fitted_from_published_data` 必须提供结构化 provenance。缺失来源只影响 Evidence assessment，不会反向改变数学公式。`sourceDatasetIds` 不能伪装成通用论文、仓库记录或用户笔记来源。
+
+`provenanceState` 只描述结构记录是否提供：
+
+- `not_required`：当前 evidence basis 不要求 provenance，且没有提交 provenance record；
+- `provided`：已经提交 provenance record，且提交的记录均通过结构校验；
+- `missing`：当前 evidence basis 要求 provenance 却没有可接受的结构记录，或任一提交记录未通过结构校验。
+
+`provided` 只表示提供了包含非空 `id`、受支持 `kind` 和非空 `reference` 的结构化 provenance。它不表示来源已经科学核实、获得 Catalog trust、构成充分证据或取得 runtime authorization。Batch 12.0 不执行网络查询、来源真实性验证或生产 admission。
 
 ### 3.8 Implementation
 
@@ -183,7 +191,7 @@ Implementation state 与运行能力独立：`unspecified`、`designed`、`candi
 | Implementation maturity       | No                           | Implementation 没有 reported/candidate/designed/validated maturity        | 证据与构建阶段无法区分                         | 增加 maturity 字段和一致性规则                                   | Required extension                      |
 | Static Hill                   | Yes                          | 响应可计算；authoring validation 原先未强制全部科学约束                   | 可作为 12.1 首版模型                           | 保留 family，使用本合同前置校验                                  | No family extension                     |
 | Static Linear dimensionality  | Partial                      | scale unit 不能表达 output/input 复合单位                                 | 通用跨 quantity linear 不安全                  | 12.1 限制相同单位；Unit algebra 延期                             | No 12.1 schema change under restriction |
-| Multi-input independent model | Yes with assumptions         | 支持独立 terms 和 `independent_unverified`                                | 必须防止自动推断交互                           | 保留显式 term coverage 与专用 evidence                           | No family extension                     |
+| Multi-input independent model | Yes with assumptions         | 支持独立 terms 和 `independent_unverified`                                | 必须防止自动推断交互                           | 保留显式 term coverage；Evidence basis 独立声明                  | No family extension                     |
 | Zero-input constant module    | No                           | 仿真要求 primary input，静态 family 没有 constant response                | 组成型 Designed Sender 不能表达                | 为 12.2/Signal Source 设计 constant/process contract             | Future extension                        |
 | Multiple outputs              | No lossless response binding | response 没有 output Port binding，solver 把同一 scalar 解释到输出        | 多输出语义不明确                               | 12.1 限制 exactly one output                                     | Future extension                        |
 | Lookup table                  | No generic solver family     | Sender admission 中的术语不是 BFN response family                         | 不能开放自定义表格函数                         | 设计插值、域、外推和 uncertainty 合同后再评审                    | Future extension                        |

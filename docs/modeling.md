@@ -74,7 +74,7 @@ V2 直接保存以下证据等级：
 - `independent_assumption`
 - `proposed_unbuilt_design`
 
-多输入缺少交互证据时使用 `independent_assumption`，模型内部同时保存 `independent_unverified`。反向设计生成的候选统一标记为 `proposed_unbuilt_design`。
+`independent_assumption` 保持为允许的证据等级。多输入独立模型在模型层保存 `independent_unverified`；Evidence basis 独立声明，可以是 `independent_assumption`、`proposed_unbuilt_design`，也可以在提供结构化 provenance 时使用 published-data fit 或 measured grade。反向设计生成的候选统一标记为 `proposed_unbuilt_design`。
 
 ## User-defined Functional Module Contract
 

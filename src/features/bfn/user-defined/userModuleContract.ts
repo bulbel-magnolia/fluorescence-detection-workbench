@@ -210,7 +210,6 @@ export type UserModuleContractIssueCode =
   | 'unsupported_evidence_basis'
   | 'measured_evidence_provenance_missing'
   | 'provenance_record_invalid'
-  | 'independent_assumption_evidence_missing'
   | 'implementation_state_invalid'
   | 'unspecified_implementation_has_ids'
   | 'specified_implementation_ids_missing'
@@ -251,7 +250,7 @@ export interface UserModuleRuntimeAssessment {
 
 export interface UserModuleEvidenceAssessment {
   readonly basis: string;
-  readonly provenanceState: 'not_required' | 'sufficient' | 'missing';
+  readonly provenanceState: 'not_required' | 'provided' | 'missing';
   readonly issues: readonly UserModuleContractIssue[];
 }
 
