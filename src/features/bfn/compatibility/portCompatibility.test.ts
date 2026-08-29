@@ -46,6 +46,22 @@ describe('BFN port compatibility', () => {
     expect(assessment.requiresUnitNormalization).toBe(false);
   });
 
+  it('produces identical compatibility with or without descriptive Port metadata', () => {
+    const baseline = assessBfnPortCompatibility(outputPort(), inputPort());
+    const described = assessBfnPortCompatibility(
+      outputPort({
+        displayName: { en: 'Catalog signal', zh: '目录信号' },
+        authoring: { origin: 'user_defined', name: 'Secreted signal role' },
+      }),
+      inputPort({
+        displayName: { en: 'Input signal', zh: '输入信号' },
+        authoring: { origin: 'user_defined', name: 'Inducer input' },
+      }),
+    );
+
+    expect(described).toEqual(baseline);
+  });
+
   it('hard-rejects production rate to concentration even for the same AHL entity', () => {
     const assessment = assessBfnPortCompatibility(
       outputPort({ entity: 'AHL', quantityType: 'production_rate', unit: 'nM/h' }),

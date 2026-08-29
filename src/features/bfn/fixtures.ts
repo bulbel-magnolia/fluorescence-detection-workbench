@@ -454,7 +454,7 @@ export function createDemoBfnProject(now = '2026-08-20T00:00:00.000Z'): BfnProje
   const reporter = reporterModule();
   return {
     schema: 'BFN-IR',
-    schemaVersion: '2.1',
+    schemaVersion: '2.2',
     id: 'bfn-project-demo-v2',
     labelKey: 'bfn.project.demoName',
     network: {

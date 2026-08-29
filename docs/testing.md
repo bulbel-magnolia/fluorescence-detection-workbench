@@ -1011,3 +1011,30 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - Vite 7.3.6 生产构建通过，291 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB，主 CSS 为 270.74 kB、gzip 45.51 kB，主 JavaScript chunk 为 3,231.49 kB、gzip 434.13 kB；保留既有大 chunk 提示；
 - 相对 reviewed head `9773b1d030c867d396e91671985f1c31532e2a6e`，Sender、Receiver evaluator/Catalog V2、Port policy、Temporal、Simulation equations、Ontology、Workspace、BFN-IR types/repository/migration 与 package dependencies 均为零差异；
 - 本修复无 UI 变化，不执行 Visual Audit；GitHub status check 不用于本批验收，以上只表示本地完整验证通过。
+
+## 2026-08-30 Batch 12.0.2 BFN-IR 2.2 User-authored Port Label Representation
+
+### Schema、migration 与 exact-gap regression
+
+- TDD RED 阶段的 migration/parser 定向测试得到 9 个预期失败：current schema 仍返回 2.1、缺少 2.2 guard，且 Port authoring metadata 尚未校验；最小实现后该文件 28 项测试全部通过；
+- 2.0 → 2.2 保留冻结的 2.0 → 2.1 保守迁移，再执行版本提升；2.1 → 2.2 只提升版本；两条路径都不创建 Port authoring metadata；2.2 输入返回经验证的深拷贝；
+- exact-gap regression 独立保存 `port.authoring.name = "Inducer input"`、`port.entity = "entity.user.inducer-x"` 与 Entity `displayName = "Inducer X"`，并覆盖带前后空格的逐字 name；
+- InputSource output、FunctionalModule input/output 与 OutputMonitor input 四类 Port 都拒绝 inferred/catalog origin、空字符串与纯空白 name；内置与 Catalog Port 不需要 `authoring`；
+- migration 保持 deterministic、idempotent、non-mutating，2.3 与 3.0 继续 fail closed。
+
+### Workspace、signature 与 compatibility regression
+
+- IndexedDB 和 localStorage 分别注入 2.0/2.1 Draft 与 Version；读取均返回 2.2 copy，底层 immutable Version snapshot 在读取和 restore 后保持原版本；
+- Workspace IndexedDB object stores、indexes 与 `BFN_WORKSPACE_DATABASE_VERSION = 1` 不变，storage keys 不变；
+- 只增加或改写 `port.authoring.name` 不改变 computation signature；Port `id`、`entity`、`quantityType`、`unit` 与 `direction` 的变化继续改变签名；
+- 带或不带 Port authoring/localized display metadata 的 compatibility assessment 完全相同；`production_rate → concentration` 继续 hard block；
+- 10 个定向文件、118 项测试全部通过，包含 20 个 trusted runnable Receiver、53 条 Sender evidence 与 0 admitted Sender 的既有 hard regression。
+
+### Complete gates 与 frozen diff
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 完整 Vitest 共 131 个测试文件、1056 项测试全部通过；
+- Vite 7.3.6 生产构建通过，291 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB，主 CSS 为 270.74 kB、gzip 45.51 kB，主 JavaScript chunk 为 3,232.10 kB、gzip 434.27 kB；保留既有大 chunk 提示；
+- 仅对本批变更文件执行 Prettier；未执行全仓格式重排；本批没有 UI 改动，不执行 screenshot 或 Visual Audit；
+- 相对精确基线 `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2`，Sender V1.2 source/loader/validator/admission、Receiver data/whitelist/evaluator、Inverse Design、Ontology production assignments、Temporal policy、Port Compatibility production policy、Simulation equations、Workspace DB structure、`package.json` 与 lockfile 均为零差异；
+- BFN-SIM 保持 `BFN-SIM-2.0`。以上结论为 local full validation passed，不声明 CI passed。

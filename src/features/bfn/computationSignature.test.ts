@@ -40,7 +40,7 @@ function legacyV20SignatureFixture(): unknown {
 }
 
 describe('BFN computation signature', () => {
-  it('does not change for a pure BFN-IR 2.0 to 2.1 representation migration', () => {
+  it('does not change for a pure BFN-IR 2.0 to current representation migration', () => {
     const legacy = legacyV20SignatureFixture();
     const migrated = upgradeBfnProjectToCurrent(legacy);
     const legacyProjection = record(
@@ -110,6 +110,49 @@ describe('BFN computation signature', () => {
     described.registry.implementations[0]!.provenanceIds = ['provenance-user-note'];
 
     expect(createBfnComputationSignature(described)).toBe(createBfnComputationSignature(project));
+  });
+
+  it('excludes a user-authored Port label and changes to that label', () => {
+    const project = createDemoBfnProject();
+    const labeled = structuredClone(project);
+    labeled.network.modules[0]!.inputPorts[0]!.authoring = {
+      origin: 'user_defined',
+      name: 'Inducer input',
+    };
+    const relabeled = structuredClone(labeled);
+    relabeled.network.modules[0]!.inputPorts[0]!.authoring!.name = '  Renamed inducer role  ';
+
+    const baseline = createBfnComputationSignature(project);
+    expect(createBfnComputationSignature(labeled)).toBe(baseline);
+    expect(createBfnComputationSignature(relabeled)).toBe(baseline);
+  });
+
+  it('continues to track every scientific Port field', () => {
+    const project = createDemoBfnProject();
+    const baseline = createBfnComputationSignature(project);
+    const variants = [
+      (candidate: typeof project) => {
+        candidate.network.modules[0]!.inputPorts[0]!.id = 'renamed-scientific-port-id';
+      },
+      (candidate: typeof project) => {
+        candidate.network.modules[0]!.inputPorts[0]!.entity = 'entity.changed';
+      },
+      (candidate: typeof project) => {
+        candidate.network.modules[0]!.inputPorts[0]!.quantityType = 'amount';
+      },
+      (candidate: typeof project) => {
+        candidate.network.modules[0]!.inputPorts[0]!.unit = 'mM';
+      },
+      (candidate: typeof project) => {
+        candidate.network.modules[0]!.inputPorts[0]!.direction = 'output';
+      },
+    ];
+
+    for (const mutate of variants) {
+      const candidate = structuredClone(project);
+      mutate(candidate);
+      expect(createBfnComputationSignature(candidate)).not.toBe(baseline);
+    }
   });
 
   it('excludes layout and project presentation metadata', () => {

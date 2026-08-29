@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from './fixtures';
-import { isBfnProjectV20, isBfnProjectV21, upgradeBfnProjectToCurrent } from './bfnIrMigration';
+import {
+  isBfnProjectV20,
+  isBfnProjectV21,
+  isBfnProjectV22,
+  upgradeBfnProjectToCurrent,
+} from './bfnIrMigration';
 import { parseBfnProject } from './repository';
 
 function record(value: unknown): Record<string, unknown> {
@@ -36,9 +41,27 @@ function asLegacyV20Fixture(): Record<string, unknown> {
   return project;
 }
 
+function asLegacyV21Fixture(): Record<string, unknown> {
+  const project = record(structuredClone(createDemoBfnProject()));
+  project.schemaVersion = '2.1';
+  return project;
+}
+
+function projectPorts(project: Record<string, unknown>): Array<Record<string, unknown>> {
+  const network = record(project.network);
+  return [
+    ...records(network.inputSources).map((source) => record(source.outputPort)),
+    ...records(network.modules).flatMap((module) => [
+      ...records(module.inputPorts),
+      ...records(module.outputPorts),
+    ]),
+    ...records(network.outputMonitors).map((monitor) => record(monitor.inputPort)),
+  ];
+}
+
 function expectedMigration(legacy: Record<string, unknown>): Record<string, unknown> {
   const expected = structuredClone(legacy);
-  expected.schemaVersion = '2.1';
+  expected.schemaVersion = '2.2';
   const registry = record(expected.registry);
   registry.entities = [];
   registry.provenanceRecords = [];
@@ -56,7 +79,7 @@ function expectedMigration(legacy: Record<string, unknown>): Record<string, unkn
   return expected;
 }
 
-describe('BFN-IR 2.0 to 2.1 migration', () => {
+describe('BFN-IR migration to 2.2', () => {
   it('migrates a pristine 2.0 project using the exact conservative defaults', () => {
     const legacy = asLegacyV20Fixture();
 
@@ -122,14 +145,30 @@ describe('BFN-IR 2.0 to 2.1 migration', () => {
     expect(migrated.network.modules[0]).not.toHaveProperty('authoring');
   });
 
-  it('accepts 2.0 import and always returns 2.1', () => {
+  it('accepts 2.0 import and always returns 2.2', () => {
     const parsed = parseBfnProject(JSON.stringify(asLegacyV20Fixture()));
 
-    expect(parsed.schemaVersion).toBe('2.1');
-    expect(isBfnProjectV21(parsed)).toBe(true);
+    expect(parsed.schemaVersion).toBe('2.2');
+    expect(isBfnProjectV22(parsed)).toBe(true);
   });
 
-  it.each(['2.2', '3.0'])('fails closed for unknown future schema version %s', (schemaVersion) => {
+  it('upgrades a valid 2.1 project by version only and invents no Port authoring metadata', () => {
+    const legacy = asLegacyV21Fixture();
+    const untouched = structuredClone(legacy);
+
+    expect(isBfnProjectV21(legacy)).toBe(true);
+
+    const first = upgradeBfnProjectToCurrent(legacy);
+    const second = upgradeBfnProjectToCurrent(legacy);
+
+    expect(first.schemaVersion).toBe('2.2');
+    expect(isBfnProjectV22(first)).toBe(true);
+    expect(projectPorts(record(first)).every((port) => !('authoring' in port))).toBe(true);
+    expect(legacy).toEqual(untouched);
+    expect(first).toEqual(second);
+  });
+
+  it.each(['2.3', '3.0'])('fails closed for unknown future schema version %s', (schemaVersion) => {
     const future = asLegacyV20Fixture();
     future.schemaVersion = schemaVersion;
 
@@ -138,7 +177,7 @@ describe('BFN-IR 2.0 to 2.1 migration', () => {
   });
 });
 
-describe('BFN-IR 2.1 representation contract', () => {
+describe('BFN-IR 2.2 representation contract', () => {
   it('round-trips user metadata, custom entities, partial contexts, provenance, and maturity', () => {
     const project = createDemoBfnProject();
     const module = project.network.modules[0]!;
@@ -188,6 +227,61 @@ describe('BFN-IR 2.1 representation contract', () => {
     expect(parsed.network.modules[0]?.modelVariants[0]?.provenanceIds).toEqual([
       'provenance-user-note',
     ]);
+  });
+
+  it.each(['Inducer input', '  Inducer input  '])(
+    'round-trips Port role label %j independently from Entity identity and display label',
+    (portName) => {
+      const project = createDemoBfnProject();
+      const module = project.network.modules[0]!;
+      const port = module.inputPorts[0]!;
+      const originalModuleLabelKey = module.labelKey;
+
+      delete port.displayName;
+      port.authoring = {
+        origin: 'user_defined',
+        name: portName,
+      };
+      port.entity = 'entity.user.inducer-x';
+      project.registry.entities.push({
+        id: 'entity.user.inducer-x',
+        origin: 'user_defined',
+        displayName: 'Inducer X',
+        description: null,
+      });
+
+      const parsed = parseBfnProject(JSON.stringify(project));
+      const parsedPort = parsed.network.modules[0]!.inputPorts[0]!;
+
+      expect(parsedPort.authoring).toEqual({ origin: 'user_defined', name: portName });
+      expect(parsedPort.authoring?.name).toBe(portName);
+      expect(parsedPort.entity).toBe('entity.user.inducer-x');
+      expect(parsed.registry.entities.find(({ id }) => id === parsedPort.entity)?.displayName).toBe(
+        'Inducer X',
+      );
+      expect(parsedPort.displayName).toBeUndefined();
+      expect(parsed.network.modules[0]?.labelKey).toBe(originalModuleLabelKey);
+    },
+  );
+
+  it('keeps existing Built-in and Catalog Ports valid without Port authoring metadata', () => {
+    const project = createDemoBfnProject();
+
+    expect(projectPorts(record(project)).every((port) => !('authoring' in port))).toBe(true);
+
+    const parsed = parseBfnProject(JSON.stringify(project));
+
+    expect(isBfnProjectV22(parsed)).toBe(true);
+    expect(projectPorts(record(parsed)).every((port) => !('authoring' in port))).toBe(true);
+  });
+
+  it('returns a validated deep clone for an already-current 2.2 project', () => {
+    const project = createDemoBfnProject();
+    const upgraded = upgradeBfnProjectToCurrent(project);
+
+    expect(isBfnProjectV22(project)).toBe(true);
+    expect(upgraded).toEqual(project);
+    expect(upgraded).not.toBe(project);
   });
 
   it('round-trips a truthful not-recorded context and nullable model/domain references', () => {
@@ -295,4 +389,32 @@ describe('BFN-IR 2.1 representation contract', () => {
       expect(() => parseBfnProject(JSON.stringify(malformed))).toThrow('BFN_IMPORT_SCHEMA_INVALID');
     }
   });
+
+  it.each(['inferred', 'catalog'])(
+    'rejects malformed Port authoring origin %j at every Port location',
+    (origin) => {
+      const malformed = record(structuredClone(createDemoBfnProject()));
+      for (const port of projectPorts(malformed)) {
+        port.authoring = { origin, name: 'Inducer input' };
+        expect(() => parseBfnProject(JSON.stringify(malformed))).toThrow(
+          'BFN_IMPORT_SCHEMA_INVALID',
+        );
+        delete port.authoring;
+      }
+    },
+  );
+
+  it.each(['', '   '])(
+    'rejects empty or whitespace-only Port authoring name %j at every Port location',
+    (name) => {
+      const malformed = record(structuredClone(createDemoBfnProject()));
+      for (const port of projectPorts(malformed)) {
+        port.authoring = { origin: 'user_defined', name };
+        expect(() => parseBfnProject(JSON.stringify(malformed))).toThrow(
+          'BFN_IMPORT_SCHEMA_INVALID',
+        );
+        delete port.authoring;
+      }
+    },
+  );
 });

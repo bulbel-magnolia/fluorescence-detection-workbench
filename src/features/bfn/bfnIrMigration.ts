@@ -65,22 +65,32 @@ function hasValidOptionalDisplayName(value: unknown): boolean {
   );
 }
 
-function hasValidPortDisplayNames(value: unknown): boolean {
+function hasValidPortAuthoring(value: unknown): boolean {
+  return isRecord(value) && value.origin === 'user_defined' && isNonEmptyString(value.name);
+}
+
+function hasValidPort(value: unknown, allowAuthoring: boolean): boolean {
   if (!isRecord(value) || !hasValidOptionalDisplayName(value)) return false;
-  if (value.kind === 'input_source') return hasValidOptionalDisplayName(value.outputPort);
-  if (value.kind === 'output_monitor') return hasValidOptionalDisplayName(value.inputPort);
+  const hasAuthoring = Object.prototype.hasOwnProperty.call(value, 'authoring');
+  return allowAuthoring ? !hasAuthoring || hasValidPortAuthoring(value.authoring) : !hasAuthoring;
+}
+
+function hasValidNodePortMetadata(value: unknown, allowPortAuthoring: boolean): boolean {
+  if (!isRecord(value) || !hasValidOptionalDisplayName(value)) return false;
+  if (value.kind === 'input_source') return hasValidPort(value.outputPort, allowPortAuthoring);
+  if (value.kind === 'output_monitor') return hasValidPort(value.inputPort, allowPortAuthoring);
   if (value.kind !== 'functional_module') return false;
   return (
     Array.isArray(value.inputPorts) &&
-    value.inputPorts.every(hasValidOptionalDisplayName) &&
+    value.inputPorts.every((port) => hasValidPort(port, allowPortAuthoring)) &&
     Array.isArray(value.outputPorts) &&
-    value.outputPorts.every(hasValidOptionalDisplayName)
+    value.outputPorts.every((port) => hasValidPort(port, allowPortAuthoring))
   );
 }
 
 function hasProjectEnvelope(
   value: unknown,
-  version: '2.0' | '2.1',
+  version: '2.0' | '2.1' | '2.2',
 ): value is Record<string, unknown> {
   if (
     !isRecord(value) ||
@@ -97,14 +107,19 @@ function hasProjectEnvelope(
   ) {
     return false;
   }
+  const allowPortAuthoring = version === '2.2';
   return (
     (value.network.mode === 'static' || value.network.mode === 'dynamic') &&
     Array.isArray(value.network.inputSources) &&
-    value.network.inputSources.every(hasValidPortDisplayNames) &&
+    value.network.inputSources.every((node) =>
+      hasValidNodePortMetadata(node, allowPortAuthoring),
+    ) &&
     Array.isArray(value.network.modules) &&
-    value.network.modules.every(hasValidPortDisplayNames) &&
+    value.network.modules.every((node) => hasValidNodePortMetadata(node, allowPortAuthoring)) &&
     Array.isArray(value.network.outputMonitors) &&
-    value.network.outputMonitors.every(hasValidPortDisplayNames) &&
+    value.network.outputMonitors.every((node) =>
+      hasValidNodePortMetadata(node, allowPortAuthoring),
+    ) &&
     Array.isArray(value.network.edges) &&
     Array.isArray(value.registry.contexts) &&
     Array.isArray(value.registry.validityDomains) &&
@@ -229,10 +244,10 @@ function hasValidAuthoring(value: unknown): boolean {
   );
 }
 
-function hasValidModule(value: unknown, current: boolean): boolean {
+function hasValidModule(value: unknown, current: boolean, allowPortAuthoring: boolean): boolean {
   if (
     !isRecord(value) ||
-    !hasValidPortDisplayNames(value) ||
+    !hasValidNodePortMetadata(value, allowPortAuthoring) ||
     !Array.isArray(value.modelVariants) ||
     !value.modelVariants.every((model) => hasValidModel(model, current)) ||
     !isStringArray(value.implementationIds)
@@ -330,7 +345,7 @@ export function isBfnProjectV20(value: unknown): boolean {
     isRecord(network) &&
     isRecord(registry) &&
     Array.isArray(network.modules) &&
-    network.modules.every((module) => hasValidModule(module, false)) &&
+    network.modules.every((module) => hasValidModule(module, false, false)) &&
     Array.isArray(registry.contexts) &&
     registry.contexts.every(isLegacyContext) &&
     Array.isArray(registry.validityDomains) &&
@@ -338,15 +353,15 @@ export function isBfnProjectV20(value: unknown): boolean {
   );
 }
 
-export function isBfnProjectV21(value: unknown): value is BfnProject {
-  if (!hasProjectEnvelope(value, '2.1')) return false;
+function isCurrentRepresentation(value: unknown, version: '2.1' | '2.2'): boolean {
+  if (!hasProjectEnvelope(value, version)) return false;
   const network = value.network;
   const registry = value.registry;
   if (
     !isRecord(network) ||
     !isRecord(registry) ||
     !Array.isArray(network.modules) ||
-    !network.modules.every((module) => hasValidModule(module, true)) ||
+    !network.modules.every((module) => hasValidModule(module, true, version === '2.2')) ||
     !Array.isArray(registry.entities) ||
     !registry.entities.every(isEntityDefinition) ||
     !hasUniqueIds(registry.entities) ||
@@ -365,8 +380,23 @@ export function isBfnProjectV21(value: unknown): value is BfnProject {
   return referencesKnownProvenance(value);
 }
 
+export function isBfnProjectV21(value: unknown): boolean {
+  return isCurrentRepresentation(value, '2.1');
+}
+
+export function isBfnProjectV22(value: unknown): value is BfnProject {
+  return isCurrentRepresentation(value, '2.2');
+}
+
 export function upgradeBfnProjectToCurrent(value: unknown): BfnProject {
-  if (isBfnProjectV21(value)) return structuredClone(value);
+  if (isBfnProjectV22(value)) return structuredClone(value);
+  if (isBfnProjectV21(value)) {
+    const migrated: unknown = structuredClone(value);
+    if (!isRecord(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+    migrated.schemaVersion = '2.2';
+    if (!isBfnProjectV22(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+    return migrated;
+  }
   if (!isBfnProjectV20(value)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
 
   const migrated: unknown = structuredClone(value);
@@ -394,5 +424,7 @@ export function upgradeBfnProjectToCurrent(value: unknown): BfnProject {
   }
 
   if (!isBfnProjectV21(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+  migrated.schemaVersion = '2.2';
+  if (!isBfnProjectV22(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
   return migrated;
 }

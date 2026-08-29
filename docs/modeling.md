@@ -2,7 +2,7 @@
 
 ## 平台定位
 
-BIO-NET V2.0 使用 BFN-IR 2.1 作为当前规范内核。平台把实验剂量—响应、多输入观测和时间序列组织为可组合的功能模块，再完成正向仿真、条件化 ANN 解释和双参数空间反向设计。
+BIO-NET V2.0 使用 BFN-IR 2.2 作为当前规范内核。平台把实验剂量—响应、多输入观测和时间序列组织为可组合的功能模块，再完成正向仿真、条件化 ANN 解释和双参数空间反向设计。
 
 平台的核心计算关系为：
 
@@ -21,7 +21,7 @@ Input Source → Functional Module → Ideal Edge → Functional Module → Outp
 
 旧版 `baseline / gain / sensitivity` 项目仍保存在原本的本地存储键中，V2 不自动把这些参数改名为完整模型。旧代码保留用于历史项目诊断和显式迁移，不再是“网络设计”页面的默认运行路径。
 
-## BFN-IR 2.1 对象
+## BFN-IR 2.2 对象
 
 ### Port
 
@@ -36,6 +36,8 @@ P = (E, Q, U)
 - `U`：单位，例如 M、uM、nM、nM/h 或 dimensionless。
 
 直接连接要求实体相同、量类型相同、单位量纲兼容。浓度单位可以自动换算。production_rate 不能直接连接 concentration；这类关系需要积累模块。
+
+用户定义端口可以通过 `port.authoring = { origin: 'user_defined', name }` 保存逐字输入的端口角色标签。该标签与 `port.entity` 指向的稳定 Entity ID、Project Entity registry 的 `displayName` 以及现有双语 `port.displayName` 分别存储；标签只用于 authoring 表示，不改变 `P=(E,Q,U)`、方向校验或计算签名。
 
 一个输出端口可以连接多个下游输入。一个输入端口最多接受一个直接上游来源。信号求和、竞争、比率计算和其他聚合行为位于模块内部。
 
@@ -62,7 +64,7 @@ P = (E, Q, U)
 
 适用域保存每个模型得到数据支持的输入范围和时间范围。仿真会在运行前和逐点计算时检查适用域。域外结果继续计算，并明确标记为 extrapolated。
 
-缺失 Context 产生 uncertain applicability，不产生伪造 mismatch。Catalog-backed Receiver 继续从可信 Catalog reference 解析精确参数 Context。完整 2.1 字段、Context invariant 与 2.0 migration 见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)。
+缺失 Context 产生 uncertain applicability，不产生伪造 mismatch。Catalog-backed Receiver 继续从可信 Catalog reference 解析精确参数 Context。2.1 引入的字段、Context invariant 与 2.0 migration 保留在 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)；当前版本升级与端口标签合同见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)。
 
 ### Evidence grade
 
@@ -89,7 +91,7 @@ Batch 12.0 将用户定义模块拆成相互独立的科学维度：
 
 数学可执行的用户模型可以使用 `proposed_unbuilt_design` 并保持 `implementation = unspecified`。User-defined model 不等于 experimentally validated model；空 implementation list 不阻止数学计算，强证据也不自动补齐缺失的可执行函数。
 
-12.1 预备范围仅包含 static Hill、同单位 linear transfer 和显式 `independent_unverified` 的多输入模型，且每个模型只有一个 output。Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，已实现的 2.1 schema 见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+12.1 预备范围仅包含 static Hill、同单位 linear transfer 和显式 `independent_unverified` 的多输入模型，且每个模型只有一个 output。Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 
 ## Semantic classification layer
 
@@ -203,7 +205,7 @@ NRMSE ≤ 10%
 
 ### Catalog-backed inverse design 查询层
 
-上述双参数空间流程作为 legacy demonstration candidate search 代码保留，不再是生产可见的“按目标设计”界面。当前可见工作区使用 Catalog-backed inverse design：它是 BFN-IR 2.1 外部的纯查询层，从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑不混接；可见工作区合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
+上述双参数空间流程作为 legacy demonstration candidate search 代码保留，不再是生产可见的“按目标设计”界面。当前可见工作区使用 Catalog-backed inverse design：它是 BFN-IR 2.2 外部的纯查询层，从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑不混接；可见工作区合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
 
 生产交互链为 `Target → Match → Evidence → Explicit Add → Network Design`。Candidate 与既有 Catalog Full Detail 只通过 exact `responseId` 连接；证据浏览保持 Target Draft、结果新鲜度、候选选择、比较集合和 Project 不变。匹配分组不授予运行资格，只有 fresh Full Detail 中仍为 runnable 的 Response 才能进入既有 Add Panel。显式添加复用可信实例化路径，形成一次可撤销的原子编辑；默认策略不会自动连线、创建 Output Monitor 或运行模型。
 
@@ -216,7 +218,7 @@ NRMSE ≤ 10%
 → 参数不确定性 → 适用域 → 模块注册
 ```
 
-界面“模块与证据库”展示功能模块、实验数据集、上下文和适用域。内部交换格式为 BFN-IR 2.1。SBOL 3 和 SBML Level 3 作为后续标准适配方向展示，当前版本不声明已经完成双向转换。
+界面“模块与证据库”展示功能模块、实验数据集、上下文和适用域。内部交换格式为 BFN-IR 2.2。SBOL 3 和 SBML Level 3 作为后续标准适配方向展示，当前版本不声明已经完成双向转换。
 
 原有 AHL/HSL V1.1 文献目录继续保留在 `features/modeling/catalog` 中，用于来源追溯和历史项目兼容。V2 模块只有在完成端口、完整模型、上下文、适用域与证据等级登记后才进入 BFN-IR 运行路径。
 
@@ -387,7 +389,7 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 
 ## 代码边界
 
-- `src/features/bfn/types.ts`：当前 BFN-IR 2.1 类型；
+- `src/features/bfn/types.ts`：当前 BFN-IR 2.2 类型；
 - `src/features/bfn/bfnIrMigration.ts`：BFN-IR 2.0/2.1 结构校验与唯一中央升级入口；
 - `src/features/modeling/ontology/v1/`：BFN-ONTOLOGY-1.0 术语、可信 assignment、纯读取 resolver 与 fail-closed validation；
 - `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；

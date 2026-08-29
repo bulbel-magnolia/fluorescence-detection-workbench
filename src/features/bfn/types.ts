@@ -59,9 +59,15 @@ export type BfnUncertaintyMethod =
   | 'none'
   | 'not_recorded';
 
+export interface BfnUserAuthoredPortMetadata {
+  origin: 'user_defined';
+  name: string;
+}
+
 export interface BfnPort {
   id: string;
   displayName?: BfnLocalizedDisplayName;
+  authoring?: BfnUserAuthoredPortMetadata;
   entity: string;
   quantityType: BfnQuantityType;
   unit: BfnUnit;
@@ -462,7 +468,7 @@ export interface BfnNetwork {
 
 export interface BfnProject {
   schema: 'BFN-IR';
-  schemaVersion: '2.1';
+  schemaVersion: '2.2';
   id: string;
   labelKey: string;
   network: BfnNetwork;
