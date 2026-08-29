@@ -937,3 +937,31 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 相对审核基线 `68d90cbbd71997babdb1a63c6fc00e7aa6f1a2cd`，12 个 Sender V1.2 source file、source hash manifest、Loader、Validator、Identity、Integrity、Runtime Admission、Types、Schema、Manifest、Evidence Scope presentation、Catalog Discovery 与 Catalog Detail 均为零差异；现有逐文件 SHA-256 测试继续通过；
 - 冻结 AHL/HSL V1.1 JSON、Receiver whitelist / evaluator / verification / instantiation、Inverse Design、Ontology v1、Temporal / Compatibility core、Simulation、Workspace、`package.json` 与 lockfile 均为零差异；
 - V1.1 JSON SHA-256 保持 `7f31755a24c8a3c066ecbba70c21f361ffe3a05665fbb681903310a93a404596`；BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1。本批只改变 Sender evidence presentation。
+
+## 2026-08-29 Batch 12.0 User-defined Functional Module Contract
+
+### Authoring contract targeted tests
+
+- TDD RED 阶段按预期因 `userModuleValidation` 尚不存在而失败，随后以纯合同实现进入 GREEN；
+- 新增 1 个测试文件、13 项测试，覆盖 Designed Sender `production_rate` fixture、AHL concentration 到 normalized activity、implementation unspecified、五轴独立、无 score、稳定 Entity ID 与 display label 分离、现有 Quantity/Unit 白名单及 unsupported unit 不自动换算；
+- Hill 覆盖单输入/单输出、缺失参数、`K <= 0`、`n <= 0`、参数 unit mismatch、`ymax < ymin`；Linear 覆盖同单位可执行边界和 compound slope unit 缺口；Independent Inputs 覆盖 term 完整性、`independent_unverified` 与专用 evidence basis；
+- Validity Domain 覆盖每个 input 恰好一个 finite range、`minimum < maximum`、Port 引用和 unit 一致；Evidence 覆盖 measured/published grade 的 provenance 要求及普通 `proposed_unbuilt_design`；
+- 相同 draft 重复 assessment 完全一致，输入不变，返回值及嵌套 issues 深冻结，localStorage sentinel 不变；生产合同源文件不依赖项目、工作区、存储、仿真编排、Sender admission 或 Ontology assignment。
+
+### Frozen contract regression
+
+- 6 个定向文件、62 项测试全部通过，组合覆盖新合同、Sender Runtime Admission、V1.1 Catalog release、Port Compatibility、Temporal Capability 与 Context Applicability；
+- V1.1 runtime whitelist 仍为 20 条 trusted runnable Receiver；
+- Sender V1.2 仍为 53 条 evidence、0 条 admitted Sender；
+- `production_rate -> concentration` 继续 hard block，Context missing 继续产生不确定适用性而非伪造 mismatch，static temporal fallback 合同保持不变。
+
+### Complete gates 与 frozen diff
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 本批 9 个改动文件完成定向 Prettier write/check；未执行全仓格式重排；
+- 完整 Vitest 共 130 个测试文件、1006 项测试全部通过；相对 Batch 11.1.1 基线正好新增 1 个文件、13 项测试，没有删除、跳过或弱化既有断言；
+- Vite 7.3.6 生产构建通过，290 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB；主 CSS 为 270.74 kB、gzip 45.51 kB；主 JavaScript chunk 为 3,224.98 kB、gzip 432.57 kB；
+- 构建保留大于 500 kB 的既有 chunk 提示，产物生成成功；用户合同没有接入生产 import graph，因此构建模块与产物尺寸保持冻结基线结果；
+- 相对 `099294b018d1a6c4644156a9e083edde87570a43`，Sender V1.2、V1.1 Catalog/Receiver runtime、Catalog BFN adapter、Inverse Design、Ontology v1、Temporal、Compatibility、Simulation、BFN types/repository/model resolution/validation/math/unit、Workspace、`package.json` 与 lockfile 均为 zero diff；
+- BFN-IR 保持 2.0，BFN-SIM 保持 2.0，Workspace IndexedDB 保持 v1；没有 UI 改动，因此本批不执行 Visual Audit；
+- GitHub CI 状态不用于本批验收；以上为本地完整验证结果。

@@ -76,6 +76,18 @@ V2 直接保存以下证据等级：
 
 多输入缺少交互证据时使用 `independent_assumption`，模型内部同时保存 `independent_unverified`。反向设计生成的候选统一标记为 `proposed_unbuilt_design`。
 
+## User-defined Functional Module Contract
+
+Batch 12.0 将用户定义模块拆成相互独立的科学维度：
+
+- Computational executability 由端口、数学模型、参数单位和有效域的完整性决定；
+- Evidence basis 决定模型可以支持何种科学声明；
+- Implementation maturity 说明是否存在现实生物实现及其阶段。
+
+数学可执行的用户模型可以使用 `proposed_unbuilt_design` 并保持 `implementation = unspecified`。User-defined model 不等于 experimentally validated model；空 implementation list 不阻止数学计算，强证据也不自动补齐缺失的可执行函数。
+
+12.1 预备范围仅包含 static Hill、同单位 linear transfer 和显式 `independent_unverified` 的多输入模型，且每个模型只有一个 output。Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Signal Pool 和 reusable template 分别延期。合同与 BFN-IR 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+
 ## Semantic classification layer
 
 BFN-ONTOLOGY-1.0 在 BFN-IR 外提供独立的运行时生物语义分类。Functional Family 回答模块在网络中做什么；Biological Component Family 描述广义生物实现；`BfnModelFamily` 继续回答数学上如何计算；运行资格和证据能力继续由 Catalog 与既有 BFN 合同决定。Ontology 只描述类别，不授予证据、运行、兼容或构建状态。
@@ -377,6 +389,7 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 - `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；
 - `src/features/bfn/temporal/`：时间执行能力解析与输出可达运行快照；
 - `src/features/bfn/compatibility/`：端口合同、逐字段上下文适用性与 Validation adapter；
+- `src/features/bfn/user-defined/`：用户 draft 合同、纯科学校验与 BFN-IR 2.0 无损表示审计；不 materialize 或写入生产状态；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
 - `validation.ts`：端口、连接、DAG、输入和上下文检查；

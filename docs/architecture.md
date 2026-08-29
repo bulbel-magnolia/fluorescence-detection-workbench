@@ -146,6 +146,24 @@ flowchart LR
 
 `features/modeling/catalog/sender/v1_2` 保存源文件、无损 evidence types、CSV/JSON loader、发布与引用校验、展示范围和 runtime admission。`features/bfn/catalog` 只把验证后的扩展投影为 Catalog Search、Preview 与 Full Detail。Composite presentation 不成为 runtime authority；V1.2 presence 不改变 20 条 Receiver whitelist，0-admitted Sender 不生成 Module、Add 操作、Evaluator、自动连线或 inverse candidate。完整合同见 [Sender Evidence Extension V1.2](sender-evidence-v1.2.md)。
 
+Batch 12.0 在 `features/bfn/user-defined` 增加纯 authoring contract 与只读 representation assessment。未来生产路径为：
+
+> User-defined Authoring
+>
+> ↓
+>
+> validated authoring contract
+>
+> ↓
+>
+> future materialization
+>
+> ↓
+>
+> `BfnFunctionalModule`
+
+当前只实现 authoring contract 检查。Materialization、Project/Registry 写入、Workspace persistence、Editor UI、Catalog registration、Ontology assignment、Add to Network 与 Simulation integration 均未接入生产。BFN-IR 保持 2.0；当前无损表示缺口见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
+
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
 反向设计把功能参数 `θ` 与生物设计变量 `q` 分离，通过版本化校准映射计算候选完整响应，并综合评价功能误差、宿主负载、串扰、噪声、不确定性和遗传稳定性。结果是带 `proposed_unbuilt_design` 证据等级和验证建议的候选集合，不是一个无解释的最优答案。
