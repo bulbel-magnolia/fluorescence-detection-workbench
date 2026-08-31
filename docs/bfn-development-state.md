@@ -2,7 +2,7 @@
 
 - 最后核查日期：2026-08-31
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
-- 当前冻结基线：`1fa9c11909817b3e3b4873e7bf85a1a158b68338`
+- 当前冻结实现基线：`b93a3524004fb4556211328a5fbcf01bd732ede8`
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -36,6 +36,10 @@
 | Batch 12.1 authoring phase             | `48ade9de119bec96d3fe133ca33ee11168424d3c` | `feat(bfn): add static functional module authoring`         |
 | Batch 12.1 reviewed implementation     | `ae7fa56197386571973198e87e9b8b68c7869f7c` | `fix(bfn): preserve static authoring contracts`             |
 | Batch 12.1 freeze bookkeeping          | `1fa9c11909817b3e3b4873e7bf85a1a158b68338` | `docs(bfn): freeze batch 12.1 authoring`                    |
+| Batch 12.2 contract                    | `222291a4a44941bb7593cad0fd60eca012a20543` | `feat(bfn): define designed sender authoring contract`      |
+| Batch 12.2 materialization             | `84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678` | `feat(bfn): materialize designed sender signal production`  |
+| Batch 12.2 authoring workflow          | `d138c61606b3e5cd260257fd5b48f14124df9516` | `feat(bfn): add designed sender authoring workflow`         |
+| Batch 12.2 reviewed implementation     | `b93a3524004fb4556211328a5fbcf01bd732ede8` | `docs(bfn): correct designed sender control units`          |
 
 Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master Control 完成实现审核与窄修正复核。`2a33365c40d4852d2270252560e148b7dc247aaf` 是正式审定的 Batch 12.0 实现 Head，`42e4cf6770c2986c950c89efc724a981e9ccf5d9` 是其 freeze bookkeeping commit。
 
@@ -45,7 +49,7 @@ Batch 12.1 首次 preflight 在 `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2` 上�
 
 Batch 12.1 从精确冻结基线 `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` 重新授权，并在 `codex/bfn-static-user-module-authoring` 按 runtime uncertainty → pure materialization → authoring UI 顺序实施。Phase A、B、C 分别落在 `1f106c833d6f99b780e4e8dc896b8103e9573d6b`、`ff0db81fe0e226f810af0c349b0ebabb7056117e`、`48ade9de119bec96d3fe133ca33ee11168424d3c`；Master Review narrow fix `ae7fa56197386571973198e87e9b8b68c7869f7c` 修正 provenance identity、authorable uncertainty 边界与 target-monitor authored-input validation，并作为正式审定实现 Head。`1fa9c11909817b3e3b4873e7bf85a1a158b68338` 是 Batch 12.1 freeze bookkeeping commit，也是 Batch 12.2 的精确冻结基线。
 
-Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，在 `codex/bfn-designed-sender-authoring` 实施。当前状态为 `ACTIVE`；本账本记录已授权实现边界，不提前声明 Master Review 或冻结完成。
+Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，并在 `codex/bfn-designed-sender-authoring` 按 contract → materialization → authoring workflow 顺序实施。`222291a4a44941bb7593cad0fd60eca012a20543`、`84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678`、`d138c61606b3e5cd260257fd5b48f14124df9516` 分别对应三阶段实现，`b93a3524004fb4556211328a5fbcf01bd732ede8` 修正文档中的控制输入单位记录并作为 Master Review 审定实现 Head。
 
 ## 当前状态
 
@@ -60,8 +64,8 @@ Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，在 `codex/bf
 | Batch 11.2                                      | FUTURE  | NOT AUTHORIZED；无实施 commit                                                                                                                                      | 不进入 Sender production runtime                                                      |
 | Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                                                            | blocked pending experimental data                                                     |
 | Batch 12.1 — Static Functional Module Authoring | FROZEN  | `codex/bfn-static-user-module-authoring`；base `499f44e8a57e8e80a678aaf29e14cba7da99cd2a`；reviewed implementation `ae7fa56197386571973198e87e9b8b68c7869f7c`      | BFN-SIM-2.1、纯 BFN-IR 2.2 物化与 static single-output authoring 冻结                 |
-| Batch 12.2 — Designed Sender                    | ACTIVE  | `codex/bfn-designed-sender-authoring`；base `1fa9c11909817b3e3b4873e7bf85a1a158b68338`；implementation in progress                                                 | 受限单控制输入、Hill、`production_rate` 输出创作；仍为普通 BFN 模块                   |
-| Batch 12.3 — Stateful / Dynamic Custom Modules  | PLANNED | 尚未启动；无实施 commit                                                                                                                                            | 不由 static user model 自动获得 stateful execution                                    |
+| Batch 12.2 — Designed Sender                    | FROZEN  | `codex/bfn-designed-sender-authoring`；base `1fa9c11909817b3e3b4873e7bf85a1a158b68338`；reviewed implementation `b93a3524004fb4556211328a5fbcf01bd732ede8`            | 单控制输入 Hill Designed Sender、canonical signal identity 与 `production_rate` 输出冻结 |
+| Batch 12.3 — Stateful / Dynamic Custom Modules  | PLANNED | 尚未启动；无实施 commit                                                                                                                                            | Batch 12.2 已冻结；等待动态用户模块单独授权                                           |
 | Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                                                            | 负责显式 rate-to-amount/concentration 过程                                            |
 | Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                                                            | 等待稳定 template/version contract                                                    |
 | Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                                                                | 不在当前授权范围                                                                      |
@@ -118,20 +122,20 @@ Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，在 `codex/bf
 - Workspace IndexedDB structural version 保持 `1`，storage keys 与 object store/index 不变；BFN-IR 2.2 schema/migration、Sender/Receiver source、Inverse Design、Ontology、Port Compatibility、Temporal 与 package dependencies 均保持冻结边界；
 - 本批最终本地门禁记录为 137 个测试文件 / 1111 项测试通过，TypeScript、ESLint、Vite build、changed-file Prettier 与 `git diff --check` 通过；GitHub 无 status checks，因此不声明 CI passed。
 
-## Batch 12.2 active boundary
+## Batch 12.2 frozen boundary
 
-- Batch 12.2：`ACTIVE`；不自我声明 `FROZEN`；
-- frozen base：`1fa9c11909817b3e3b4873e7bf85a1a158b68338`；
-- Designed Sender 是受限创作 workflow/preset，物化结果仍为普通 `BfnFunctionalModule`；BFN-IR 保持 `2.2`，不增加 node type、tag 或 Designed Sender marker；
-- 首版只允许一个 `concentration` 控制输入、一个 `production_rate` 输出，以及 static Hill activation/repression；
-- 已知 AHL/HSL Entity 只从可信 V1.1 signal identity 读取精确 canonical name；identity reuse 不复用 evidence、参数、implementation 或 runtime admission；自定义信号沿用 Project-defined Entity；
-- 通用 materializer 增加可选 authoritative external Entity 支持；省略选项时 Batch 12.1 默认行为逐字保持；精确匹配复用且不注册，冲突 fail closed；
-- Evidence 默认 `proposed_unbuilt_design`，Implementation 保持 `unspecified`，Uncertainty 默认 `not_recorded`；
-- BFN-SIM 保持 `2.1` 并使用通用静态执行；required input safety 与 explicit zero 行为保持；不增加专用 Sender evaluator；
-- Add to Network 只执行一个 Project transaction，不自动创建 Input Source、Edge、Output Monitor、Run 或 Signal Pool；
-- `production_rate → concentration` 继续硬拒绝，不隐式积分、不插入隐藏转换；Signal Pool / Accumulation 属于 Batch 12.4；
-- Sender V1.2 source/loader/validator/admission 和 Catalog Sender Add action 保持冻结；当前统计继续为 53 条 Sender evidence、0 admitted Sender、20 trusted runnable Receiver；
-- Batch 12.3、12.4、12.5 保持 `PLANNED`，Batch 11.2 保持 `FUTURE`。
+- Batch 12.2：`FROZEN`；
+- reviewed implementation head：`b93a3524004fb4556211328a5fbcf01bd732ede8`；
+- Designed Sender 是受限 authoring workflow/preset，持久化结果仍为普通 `BfnFunctionalModule`；BFN-IR 保持 `2.2`，没有新增 node type、tag、marker 或 ontology assignment；
+- 首版固定 1 个 `concentration` 控制输入与 1 个 `production_rate` 输出，只开放 static Hill activation/repression；输入单位为 `M | mM | uM | nM | pM`，输出单位为 `nM/h | uM/h`；
+- 已知 AHL/HSL 仅从 trusted V1.1 release signals 投影 `catalogSignalId + canonical_name`；canonical name 作为与 Catalog Receiver 一致的 BFN Entity identity，identity reuse 不复用 Receiver/Sender 参数、Evidence、Implementation 或 Runtime Admission；custom signal 继续创建普通 Project-defined Entity；
+- 通用 Batch 12.1 materializer 只增加可选 authoritative external Entity 参数；省略该参数时冻结的 12.1 默认行为保持不变；精确 ID/display 匹配时复用且不注册为 user-defined Entity，冲突 fail closed；
+- 默认 Evidence 为 `proposed_unbuilt_design`，Implementation 为 `unspecified`；authorable uncertainty 仅 `not_recorded | none | parameter_interval_envelope`；
+- Designed Sender 使用冻结 generic BFN-SIM-2.1 Hill evaluator，没有新增 Sender evaluator；输出可达 control input 缺失继续以 `missing_required_input` error 阻断，显式连接零值继续有效；
+- 对真实 trusted Receiver `resp.kylilis2018.lux.3oc6` 的集成回归确认双方 chemical Entity identity 一致，但 `production_rate → concentration` 继续因 Quantity/Unit mismatch 硬拒绝；不执行隐式积分、不插入 Signal Pool；
+- Add to Network 只创建一个 FunctionalModule 和必要 registry sidecar，不自动创建 Input Source、Edge、Output Monitor、Run 或 Signal Pool；Undo/Redo、Workspace 与 JSON roundtrip 沿用 BFN-IR 2.2 对象图；
+- Sender V1.2 source/hash/loader/validator/admission、Receiver V1.1 source/whitelist/formulas、Catalog Receiver parameter binding、Inverse Design、Ontology、Port Compatibility、Temporal、BFN-IR schema/migration、BFN-SIM result contract/equations、Workspace DB structure、`package.json` 与 lockfile 相对冻结基线保持零差异；Sender release 继续 53 evidence / 0 admitted，trusted runnable Receiver 继续 20；
+- 本批定向门为 8 个文件 / 79 项测试，冻结科学边界定向回归为 17 个文件 / 197 项测试；完整 142 个测试文件 / 1141 项测试在 `--maxWorkers=4` 下全部通过，TypeScript、ESLint、Vite build、changed-file Prettier 与 `git diff --check` 通过；默认高并发 `npm test` 曾在两个既有 UI 测试上出现 5 秒资源型 timeout，单文件复跑全部通过且未修改 timeout/断言，此执行差异记录为测试环境并发稳定性事项，不改变本批科学冻结结论；GitHub 无 status checks/workflow runs，因此不声明 CI passed。
 
 ## Sender Public Evidence Research formal boundary
 
