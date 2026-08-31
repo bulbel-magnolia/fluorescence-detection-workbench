@@ -212,6 +212,17 @@ describe('user-defined first-order dynamic module authoring contract', () => {
     expect(proposed.implementation.state).toBe('unspecified');
   });
 
+  it('fails closed when imported dynamics are missing or malformed', () => {
+    for (const dynamics of [null, undefined, {}, []]) {
+      const assessment = assessUserDefinedDynamicFunctionalModule(
+        createDynamicDraft({ dynamics: dynamics as never }),
+      );
+      expect(assessment.semantic.state).toBe('invalid');
+      expect(issueCodes(assessment)).toContain('dynamic_tau_missing');
+      expect(issueCodes(assessment)).toContain('dynamic_initial_state_non_finite');
+    }
+  });
+
   it('is deterministic, deeply frozen, non-mutating, and storage-independent', () => {
     const draft = createDynamicDraft();
     const before = structuredClone(draft);

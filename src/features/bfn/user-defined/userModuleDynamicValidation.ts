@@ -125,7 +125,8 @@ function validateDynamics(
   draft: UserDefinedDynamicFunctionalModuleDraft,
   issues: UserModuleDynamicContractIssue[],
 ): void {
-  const tau = draft.dynamics.tau;
+  const dynamics = isRecord(draft.dynamics) ? draft.dynamics : undefined;
+  const tau = dynamics?.tau;
   if (!isRecord(tau)) {
     issues.push(issue('semantic', 'dynamic_tau_missing', 'dynamics.tau'));
   } else {
@@ -143,7 +144,7 @@ function validateDynamics(
     }
   }
 
-  const initialState = draft.dynamics.initialState;
+  const initialState = dynamics?.initialState;
   if (!isFiniteNumber(initialState)) {
     issues.push(issue('semantic', 'dynamic_initial_state_non_finite', 'dynamics.initialState'));
   }
