@@ -97,6 +97,8 @@ describe('BFN-SIM 2.1 uncertainty execution contract', () => {
       reason: 'parameter_interval_incomplete',
     });
 
+    Object.assign(model.response.k, { interval95: null });
+    expect(assessBfnModelUncertainty(model).intervalExecutable).toBe(false);
     model.response.k.interval95 = [Number.NaN, 12];
     expect(assessBfnModelUncertainty(model).intervalExecutable).toBe(false);
     model.response.k.interval95 = [13, 12];
@@ -173,5 +175,23 @@ describe('BFN-SIM 2.1 uncertainty execution contract', () => {
       reason: 'parameter_interval_incomplete',
     });
     expect(result.points.every((point) => point.lower === null && point.upper === null)).toBe(true);
+  });
+
+  it('marks a malformed persisted dynamic response unavailable without fabricating intervals', () => {
+    const project = createDemoBfnProject();
+    project.network.mode = 'dynamic';
+    const model = selectedDynamicModel(project);
+    const malformedModel = model as unknown as { steadyStateResponse?: unknown };
+    delete malformedModel.steadyStateResponse;
+
+    expect(() => createBfnRunUncertaintySnapshot(project, 'monitor-reporter')).not.toThrow();
+    const snapshot = createBfnRunUncertaintySnapshot(project, 'monitor-reporter');
+    expect(snapshot.status).toBe('unavailable');
+    expect(snapshot.method).toBeNull();
+    expect(snapshot.modules[0]).toMatchObject({
+      selectedModelId: model.id,
+      intervalExecutable: false,
+      reason: 'parameter_interval_incomplete',
+    });
   });
 });

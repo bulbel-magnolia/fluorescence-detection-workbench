@@ -10,7 +10,10 @@ import type {
   BfnStaticResponse,
 } from './types';
 
-function responseParameters(response: BfnStaticResponse): readonly BfnParameterEstimate[] {
+function responseParameters(
+  response: BfnStaticResponse | undefined,
+): readonly (BfnParameterEstimate | undefined)[] | null {
+  if (!response || typeof response !== 'object') return null;
   switch (response.family) {
     case 'hill_activation':
     case 'hill_repression':
@@ -18,19 +21,31 @@ function responseParameters(response: BfnStaticResponse): readonly BfnParameterE
     case 'linear_transfer':
       return [response.scale, response.intercept];
     case 'identity':
-      return [];
+      return typeof response.inputPortId === 'string' && response.inputPortId.length > 0
+        ? []
+        : [undefined];
     case 'independent_inputs':
+      if (!Array.isArray(response.terms) || response.terms.length === 0) return [undefined];
       return [
         response.basal,
         response.outputMaximum,
-        ...response.terms.flatMap((term) => [term.k, term.n, term.contribution]),
+        ...response.terms.flatMap((term) =>
+          term && typeof term === 'object'
+            ? [term.k, term.n, term.contribution]
+            : [undefined, undefined, undefined],
+        ),
       ];
+    default:
+      return null;
   }
 }
 
-function hasExecutableInterval(parameter: BfnParameterEstimate): boolean {
+function hasExecutableInterval(parameter: BfnParameterEstimate | undefined): boolean {
+  if (!parameter || typeof parameter !== 'object') return false;
   const interval = parameter.interval95;
-  if (!Number.isFinite(parameter.value) || interval === undefined) return false;
+  if (!Number.isFinite(parameter.value) || !Array.isArray(interval) || interval.length !== 2) {
+    return false;
+  }
   const [lower, upper] = interval;
   return (
     Number.isFinite(lower) &&
@@ -65,16 +80,51 @@ export function assessBfnModelUncertainty(
     };
   }
   const response = model.mode === 'dynamic' ? model.steadyStateResponse : model.response;
-  const parameters = [
-    ...responseParameters(response),
-    ...(model.mode === 'dynamic' ? [model.tau] : []),
-  ];
+  if (
+    model.mode === 'dynamic' &&
+    (!Number.isFinite(model.initialState) || !isPositiveDynamicTau(model.tau))
+  ) {
+    return {
+      method: model.uncertaintyMethod,
+      intervalExecutable: false,
+      reason: 'parameter_interval_incomplete',
+    };
+  }
+  const responseParameterValues = responseParameters(response);
+  if (responseParameterValues === null) {
+    return {
+      method: model.uncertaintyMethod,
+      intervalExecutable: false,
+      reason: 'parameter_interval_incomplete',
+    };
+  }
+  const parameters = [...responseParameterValues, ...(model.mode === 'dynamic' ? [model.tau] : [])];
   const intervalExecutable = parameters.every(hasExecutableInterval);
   return {
     method: model.uncertaintyMethod,
     intervalExecutable,
     reason: intervalExecutable ? null : 'parameter_interval_incomplete',
   };
+}
+
+function isPositiveDynamicTau(parameter: BfnParameterEstimate | undefined): boolean {
+  if (
+    !parameter ||
+    parameter.unit !== 'h' ||
+    !Number.isFinite(parameter.value) ||
+    parameter.value <= 0
+  ) {
+    return false;
+  }
+  const interval = parameter.interval95;
+  if (!Array.isArray(interval) || interval.length !== 2) return false;
+  return (
+    Number.isFinite(interval[0]) &&
+    Number.isFinite(interval[1]) &&
+    interval[0] > 0 &&
+    interval[0] <= parameter.value &&
+    parameter.value <= interval[1]
+  );
 }
 
 export function createBfnRunUncertaintySnapshot(

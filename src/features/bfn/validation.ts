@@ -269,6 +269,120 @@ function modeledInputPortIds(model: BfnModelVariant | null): ReadonlySet<string>
   );
 }
 
+/**
+ * Finds directed cycles on one selected monitor's executable module path.
+ * Dynamic user-authored first-order models are stateful and the current
+ * runtime has no feedback solver, so those cycles are rejected at run time
+ * admission while the graph itself remains persistable.
+ */
+function dynamicFeedbackValidationIssues(
+  project: BfnProject,
+  monitorId: string,
+): BfnValidationIssue[] {
+  const reachable = findBfnOutputReachableModuleIds(project, monitorId);
+  const modulesById = new Map(
+    project.network.modules.map((module) => [module.id, module] as const),
+  );
+  const executable = new Set(
+    project.network.modules
+      .filter((module) => reachable.has(module.id) && resolveEffectiveBfnModel(project, module))
+      .map((module) => module.id),
+  );
+  if (executable.size === 0) return [];
+
+  const adjacency = new Map<string, string[]>();
+  for (const edge of project.network.edges) {
+    if (
+      !edge.enabled ||
+      !executable.has(edge.source.nodeId) ||
+      !executable.has(edge.target.nodeId)
+    ) {
+      continue;
+    }
+    const sourceModule = modulesById.get(edge.source.nodeId);
+    const targetModule = modulesById.get(edge.target.nodeId);
+    const sourcePort = sourceModule?.outputPorts.find((port) => port.id === edge.source.portId);
+    const targetPort = targetModule?.inputPorts.find((port) => port.id === edge.target.portId);
+    if (!sourcePort || !targetPort) continue;
+    const targets = adjacency.get(edge.source.nodeId) ?? [];
+    if (!targets.includes(edge.target.nodeId)) targets.push(edge.target.nodeId);
+    adjacency.set(edge.source.nodeId, targets);
+  }
+
+  // Condense the executable graph into strongly connected components. A
+  // back-edge DFS can miss a dynamic node when an SCC has already-visited
+  // cross edges (for example A<->B plus A->C->B->A), so every dynamic user
+  // module in a cyclic SCC is reported explicitly.
+  let nextIndex = 0;
+  const indices = new Map<string, number>();
+  const lowLinks = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const components: string[][] = [];
+
+  const visit = (moduleId: string): void => {
+    indices.set(moduleId, nextIndex);
+    lowLinks.set(moduleId, nextIndex);
+    nextIndex += 1;
+    stack.push(moduleId);
+    onStack.add(moduleId);
+
+    for (const targetId of [...(adjacency.get(moduleId) ?? [])].sort()) {
+      if (!indices.has(targetId)) {
+        visit(targetId);
+        lowLinks.set(moduleId, Math.min(lowLinks.get(moduleId)!, lowLinks.get(targetId)!));
+      } else if (onStack.has(targetId)) {
+        lowLinks.set(moduleId, Math.min(lowLinks.get(moduleId)!, indices.get(targetId)!));
+      }
+    }
+
+    if (lowLinks.get(moduleId) !== indices.get(moduleId)) return;
+    const component: string[] = [];
+    let member: string | undefined;
+    do {
+      member = stack.pop();
+      if (member === undefined) break;
+      onStack.delete(member);
+      component.push(member);
+    } while (member !== moduleId);
+    components.push(component.sort());
+  };
+
+  for (const moduleId of [...executable].sort()) {
+    if (!indices.has(moduleId)) visit(moduleId);
+  }
+
+  const issues: BfnValidationIssue[] = [];
+  for (const component of components
+    .filter(
+      (candidate) =>
+        candidate.length > 1 || adjacency.get(candidate[0]!)?.includes(candidate[0]!) === true,
+    )
+    .sort((left, right) => left[0]!.localeCompare(right[0]!))) {
+    const dynamicUserModules = component
+      .map((moduleId) => modulesById.get(moduleId))
+      .filter((module): module is BfnFunctionalModule => module !== undefined)
+      .filter((module) => {
+        const model = resolveEffectiveBfnModel(project, module);
+        return module.authoring?.origin === 'user_defined' && model?.mode === 'dynamic';
+      })
+      .map((module) => module.id)
+      .sort();
+    for (const subjectId of dynamicUserModules) {
+      issues.push({
+        code: 'dynamic_feedback_unsupported',
+        severity: 'error',
+        subjectId,
+        details: {
+          monitorId,
+          cycle: component.join(','),
+        },
+      });
+    }
+  }
+  return issues;
+}
+
 export function validateBfnProject(
   project: BfnProject,
   options: BfnProjectValidationOptions = {},
@@ -294,6 +408,13 @@ export function validateBfnProject(
   const targetMonitorId = project.network.outputMonitors.find(
     (monitor) => monitor.id === options.targetMonitorId,
   )?.id;
+  const monitorIds =
+    targetMonitorId === undefined
+      ? project.network.outputMonitors.map((monitor) => monitor.id)
+      : [targetMonitorId];
+  for (const monitorId of [...new Set(monitorIds)]) {
+    issues.push(...dynamicFeedbackValidationIssues(project, monitorId));
+  }
   const authoredRuntimeReachableModuleIds =
     targetMonitorId === undefined
       ? outputReachableModuleIds
