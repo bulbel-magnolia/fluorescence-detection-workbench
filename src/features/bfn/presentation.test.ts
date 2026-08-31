@@ -3,12 +3,14 @@ import i18n from '../../i18n';
 import { createCatalogModule, createDemoBfnProject } from './fixtures';
 import {
   bfnContextSectionTitle,
+  bfnEntityLabel,
   bfnEvidenceTone,
   bfnModuleFlowLabel,
   bfnNodeDisplayName,
   bfnParameterPresentations,
   bfnPortMetaLabel,
   bfnPortPrimaryLabel,
+  bfnQuantityLabel,
   bfnUnitLabel,
 } from './presentation';
 
@@ -38,6 +40,25 @@ describe('BFN object presentation', () => {
     expect(bfnUnitLabel('dimensionless', i18n.getFixedT('zh-CN'))).toBe('相对值');
   });
 
+  it('localizes every scientific quantity exposed by user authoring', () => {
+    const zh = i18n.getFixedT('zh-CN');
+    const en = i18n.getFixedT('en-US');
+
+    expect(
+      [
+        'concentration',
+        'amount',
+        'production_rate',
+        'expression_level',
+        'activity',
+        'flux',
+        'fraction',
+        'cell_density',
+      ].map((quantity) => bfnQuantityLabel(quantity, zh)),
+    ).toEqual(['浓度', '物质量', '生成速率', '表达水平', '活性', '通量', '比例', '细胞密度']);
+    expect(bfnQuantityLabel('production_rate', en)).toBe('Production rate');
+  });
+
   it('uses one localized project display name with a label-key fallback', () => {
     const module = createDemoBfnProject().network.modules[0]!;
     const zh = i18n.getFixedT('zh-CN');
@@ -47,6 +68,24 @@ describe('BFN object presentation', () => {
     module.displayName = { en: 'RhlR / pRhl', zh: 'RhlR / pRhl' };
     expect(bfnNodeDisplayName(module, 'zh-CN', zh)).toBe('RhlR / pRhl');
     expect(bfnNodeDisplayName(module, 'en-US', en)).toBe('RhlR / pRhl');
+  });
+
+  it('prioritizes verbatim user-authored module and Port role names', () => {
+    const module = createDemoBfnProject().network.modules[0]!;
+    const port = module.inputPorts[0]!;
+    const t = i18n.getFixedT('zh-CN');
+    module.displayName = { en: 'Localized module', zh: '本地化模块' };
+    module.authoring = {
+      origin: 'user_defined',
+      name: '  User module verbatim  ',
+      description: null,
+    };
+    port.displayName = { en: 'Localized port', zh: '本地化端口' };
+    port.authoring = { origin: 'user_defined', name: '  Input role verbatim  ' };
+
+    expect(bfnNodeDisplayName(module, 'zh-CN', t)).toBe('  User module verbatim  ');
+    expect(bfnPortPrimaryLabel(port, t, 'zh-CN')).toBe('  Input role verbatim  ');
+    expect(bfnEntityLabel(port.entity, t)).toBe('3OC6-HSL');
   });
 
   it('explains Hill response parameters in biological terms', () => {

@@ -418,9 +418,7 @@ describe('user-defined static module materialization', () => {
       ...baseDraft,
       model: { ...baseDraft.model, family: 'custom_formula' },
     };
-    expect(
-      materializeUserDefinedStaticModule(unsupported, createDemoBfnProject()),
-    ).toMatchObject({
+    expect(materializeUserDefinedStaticModule(unsupported, createDemoBfnProject())).toMatchObject({
       ok: false,
       issues: [
         expect.objectContaining({ code: 'semantic_invalid' }),
@@ -463,10 +461,7 @@ describe('user-defined static module materialization', () => {
     expect(first.nextProject.updatedAt).toBe(project.updatedAt);
 
     const productionSource = readFileSync(
-      resolve(
-        process.cwd(),
-        'src/features/bfn/user-defined/userModuleMaterialization.ts',
-      ),
+      resolve(process.cwd(), 'src/features/bfn/user-defined/userModuleMaterialization.ts'),
       'utf8',
     );
     expect(productionSource).not.toMatch(

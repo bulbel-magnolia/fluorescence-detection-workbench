@@ -119,13 +119,13 @@ LED 命令使用单一在途请求：BLE 写入后状态为 `accepted`，收到�
 
 默认建模路径位于 `features/bfn`，使用 `BFN-IR 2.2`。网络对象包括 `InputSource`、`FunctionalModule`、`IdealEdge` 和 `OutputMonitor`。端口使用 `P=(E,Q,U)` 保存实体、量类型和单位；可选的 `port.authoring.name` 单独保存用户逐字输入的端口角色标签，不参与兼容性或计算。连接层只验证端口语义并执行单位换算；理想边固定为 identity，不保存权重、偏置、增益、延迟、噪声或状态。
 
-功能模块保存完整静态或动态响应、参数区间、上下文、适用域、数据来源、证据等级、模型版本和生物实现。静态引擎支持固定值、工作域扫描、多输入组合、Hill、线性、identity 和独立作用模型；动态引擎当前支持一阶响应、恒定/阶跃/脉冲/周期/自定义输入和静态无记忆模块。两条路径都传播演示参数区间并标记域外外推。
+功能模块保存完整静态或动态响应、参数区间、上下文、适用域、数据来源、证据等级、模型版本和生物实现。静态引擎支持固定值、工作域扫描、多输入组合、Hill、线性、identity 和独立作用模型；动态引擎当前支持一阶响应、恒定/阶跃/脉冲/周期/自定义输入和静态无记忆模块。BFN-SIM-2.1 将点估计与定量区间可用性分离，只在所有输出可达 active model 都具有完整可执行区间时传播网络包络；域外外推继续显式标记。
 
 `features/modeling/ontology/v1` 提供独立 BFN-ONTOLOGY-1.0 语义覆盖层。Functional Family、Biological Component Family、Mathematical Model Family 与 Runtime / Evidence Capability 是四个独立维度。Catalog 对象只从可信 presentation 的精确 Component ID 与 canonical role 分类；内置模块只从稳定 label key 的精确软件映射分类。未知模块返回两个显式 unclassified term，名称、别名、模型族和 static/dynamic 模式不触发推断。
 
 Ontology registry、term 与 assignment 深冻结并执行 manifest、唯一性、父级、环、顺序和覆盖校验。Resolver 只读取 BFN module identity，返回深冻结 semantic profile，不调用求值器、仿真或实例化逻辑。分类不改变端口兼容、运行资格、Catalog trust、证据等级、Add eligibility 或构建状态。
 
-`features/bfn/temporal` 与 `features/bfn/compatibility` 构成 BFN-IR 外的 derived read-only contract layer。Temporal resolver 复用唯一的 effective-model selection，命名 steady-state、quasi-static、stateful dynamic 与 unsupported，并将执行方式与 T0–T3 / not-recorded 时间证据分离。Compatibility assessment 复用既有单位量纲定义，独立评估端口硬边界与 Host、Strain、Medium、Temperature 的实验适用性。核心 resolver/assessment 不写 Project、Run、Workspace 或 schema，不调用 Simulation、Catalog verification、Instantiation 或 Ontology 推断来改变运行资格。仿真编排层在成功运行后复制输出可达模块与模块边的 assessment，形成可选的 BFN-SIM 2.0 时间和上下文 provenance；历史展示只读快照，不从当前 Project 回算。
+`features/bfn/temporal` 与 `features/bfn/compatibility` 构成 BFN-IR 外的 derived read-only contract layer。Temporal resolver 复用唯一的 effective-model selection，命名 steady-state、quasi-static、stateful dynamic 与 unsupported，并将执行方式与 T0–T3 / not-recorded 时间证据分离。Compatibility assessment 复用既有单位量纲定义，独立评估端口硬边界与 Host、Strain、Medium、Temperature 的实验适用性。核心 resolver/assessment 不写 Project、Run、Workspace 或 schema，不调用 Simulation、Catalog verification、Instantiation 或 Ontology 推断来改变运行资格。仿真编排层在成功运行后复制输出可达模块与模块边的 assessment，形成 BFN-SIM-2.1 时间、上下文与不确定性 provenance；历史展示只读快照，不从当前 Project 回算。
 
 Sender V1.2 位于独立的 evidence extension 层。它与冻结 Receiver runtime 的关系为：
 
@@ -162,7 +162,7 @@ Batch 12.0 在 `features/bfn/user-defined` 增加纯 authoring contract 与只�
 >
 > `BfnFunctionalModule`
 
-当前 authoring contract 检查保持冻结。Batch 12.0.1 将审定的通用表示缺口落实为 BFN-IR 2.1；Batch 12.0.2 将当前 schema 提升为 BFN-IR 2.2，仅增加用户端口角色标签的无损表示。Materialization、Project/Registry authoring workflow、Editor UI、Catalog registration、Ontology assignment、Add to Network 与 Simulation integration 均未接入生产。当前扩展见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，2.1 历史见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，authoring 科学合同见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
+Batch 12.0 authoring contract 检查保持冻结。Batch 12.0.1 将审定的通用表示缺口落实为 BFN-IR 2.1；Batch 12.0.2 将当前 schema 提升为 BFN-IR 2.2，仅增加用户端口角色标签的无损表示。Batch 12.1 在该冻结基础上增加纯 2.2 物化、静态创作界面、输出可达的必需输入校验和 BFN-SIM-2.1 不确定性合同。一次 Add to Network 只创建一个 `BfnFunctionalModule` 及必要 registry sidecar；Edge、Input Source、Output Monitor 与运行均由用户显式操作。Catalog registration、Ontology assignment、Designed Sender 与 reusable library 继续延期。完整工作流见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，当前扩展见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，2.1 历史见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，authoring 科学合同见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
 
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
@@ -182,7 +182,7 @@ Tauri 环境使用 `sqlite:fluorescence.db`，迁移位于 `src-tauri/migrations
 
 浏览器开发模式使用 localStorage 回退，使界面和状态测试不依赖原生插件。该回退不用于生产数据库能力评价。
 
-BFN-IR 2.2 项目和运行快照继续使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`；storage key 后缀保持不变以发现旧数据。运行记录继续声明 `BFN-SIM-2.0`，时间执行和上下文适用性快照为可选字段；没有这些字段的历史运行继续读取。项目导入接受合法 2.0、2.1 与 2.2，并通过 `bfnIrMigration.ts` 返回 2.2；未知未来版本 fail closed。Workspace Draft 与 Version read path 使用同一迁移，Version 只暴露迁移副本，不改写历史 snapshot。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
+BFN-IR 2.2 项目和运行快照继续使用 `fluorescence-desktop.bfn-ir-project.v2` 与 `fluorescence-desktop.bfn-ir-runs.v2`；storage key 后缀保持不变以发现旧数据。新运行声明 `BFN-SIM-2.1` 并保存显式不确定性快照；历史 `BFN-SIM-2.0` 运行继续读取且不改写。项目导入接受合法 2.0、2.1 与 2.2，并通过 `bfnIrMigration.ts` 返回 2.2；未知未来版本 fail closed。Workspace Draft 与 Version read path 使用同一迁移，Version 只暴露迁移副本，不改写历史 snapshot。这些数据独立于检测 SQLite 表；BIO-NET 不复制原始帧，也不把检测结果自动解释为网络输入。
 
 BFN-ONTOLOGY-1.0 是随应用发布的版本化只读 registry，不写 localStorage、IndexedDB、BFN Project、Version 或 Run。BFN-IR 对象升级不改变 object store 或 index，Workspace IndexedDB schema 继续保持 v1。
 

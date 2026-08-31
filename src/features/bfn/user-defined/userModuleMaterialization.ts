@@ -57,8 +57,7 @@ export interface UserModuleMaterializationFailure {
 }
 
 export type UserModuleMaterializationResult =
-  | UserModuleMaterializationSuccess
-  | UserModuleMaterializationFailure;
+  UserModuleMaterializationSuccess | UserModuleMaterializationFailure;
 
 interface MaterializationIds {
   readonly model: string;
@@ -168,9 +167,7 @@ export function materializeUserDefinedStaticModule(
     ...ids.provenance,
   ];
   const existingIds = collectDefinedIds(project);
-  const duplicateProposedIds = proposedIds.filter(
-    (id, index) => proposedIds.indexOf(id) !== index,
-  );
+  const duplicateProposedIds = proposedIds.filter((id, index) => proposedIds.indexOf(id) !== index);
   const collidingIds = unique([
     ...proposedIds.filter((id) => existingIds.has(id)),
     ...duplicateProposedIds,
@@ -325,12 +322,7 @@ function materializeResponse(draft: UserDefinedFunctionalModuleDraft): BfnStatic
     const k = toParameter(term.k);
     const n = toParameter(term.n);
     const contribution = toParameter(term.weight);
-    if (
-      !k ||
-      !n ||
-      !contribution ||
-      (term.mode !== 'activation' && term.mode !== 'repression')
-    ) {
+    if (!k || !n || !contribution || (term.mode !== 'activation' && term.mode !== 'repression')) {
       return null;
     }
     const direction: 'activation' | 'repression' = term.mode;
@@ -395,11 +387,11 @@ function hasCompleteInterval(parameter: UserModuleParameterDraft | undefined): b
   const interval = parameter?.interval95;
   return Boolean(
     parameter &&
-      interval &&
-      Number.isFinite(interval[0]) &&
-      Number.isFinite(interval[1]) &&
-      interval[0] <= parameter.value &&
-      parameter.value <= interval[1],
+    interval &&
+    Number.isFinite(interval[0]) &&
+    Number.isFinite(interval[1]) &&
+    interval[0] <= parameter.value &&
+    parameter.value <= interval[1],
   );
 }
 
@@ -445,10 +437,7 @@ function materializeProvenance(
   });
 }
 
-function auditEntities(
-  draft: UserDefinedFunctionalModuleDraft,
-  project: BfnProject,
-): EntityAudit {
+function auditEntities(draft: UserDefinedFunctionalModuleDraft, project: BfnProject): EntityAudit {
   const authoritativeNames = collectEntityNames(project);
   const knownEntityIds = collectEntityIds(project);
   const proposedNames = new Map<string, string>();

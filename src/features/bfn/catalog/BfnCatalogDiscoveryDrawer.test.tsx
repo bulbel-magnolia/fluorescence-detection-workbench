@@ -547,7 +547,8 @@ describe('BFN catalog discovery drawer', () => {
     const builtIn = dialog.querySelector('.bfn-built-in-modules');
     const body = dialog.querySelector('.bfn-catalog-discovery__body');
     expect(builtIn).not.toHaveAttribute('open');
-    expect(body?.firstElementChild).toBe(builtIn);
+    expect(body?.firstElementChild).toHaveClass('bfn-user-authoring-entry');
+    expect(body?.firstElementChild?.nextElementSibling).toBe(builtIn);
     expect(builtIn?.nextElementSibling).toHaveClass('bfn-catalog-release-summary');
     await user.click(within(dialog).getByText('内置示例模块'));
     const reporter = within(dialog).getByRole('heading', { name: '报告表达' }).closest('article');
@@ -559,6 +560,26 @@ describe('BFN catalog discovery drawer', () => {
     expect(addButtons).toHaveLength(3);
     await user.click(addButtons[2]!);
     expect(onAdd).toHaveBeenCalledWith('dual-input-gate');
+  });
+
+  it('opens user-defined authoring from the Module Library without mutating the Project', async () => {
+    const user = userEvent.setup();
+    const project = createDemoBfnProject();
+    const snapshot = structuredClone(project);
+    const onAddUserModule = vi.fn(() => ({ ok: false as const, issues: [] }));
+    renderDrawer({ project, onAddUserModule });
+    const catalog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    expect(within(catalog).getByText('自定义功能模块')).toBeInTheDocument();
+    await user.click(within(catalog).getByRole('button', { name: '开始定义' }));
+    const authoring = screen.getByRole('dialog', { name: '自定义功能模块' });
+    expect(within(authoring).getByRole('form', { name: '自定义功能模块' })).toBeInTheDocument();
+    expect(project).toEqual(snapshot);
+    expect(onAddUserModule).not.toHaveBeenCalled();
+
+    await user.click(within(authoring).getByRole('button', { name: '取消' }));
+    expect(screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' })).toBeInTheDocument();
+    expect(project).toEqual(snapshot);
   });
 
   it('keeps a built-in function category stable while the current mode changes its model label', async () => {
@@ -612,6 +633,7 @@ function renderDrawer(
       onClose={vi.fn()}
       onAddBuiltInModule={vi.fn()}
       onInstantiateCatalogResponse={vi.fn()}
+      onAddUserModule={vi.fn(() => ({ ok: false as const, issues: [] }))}
       {...overrides}
     />,
   );

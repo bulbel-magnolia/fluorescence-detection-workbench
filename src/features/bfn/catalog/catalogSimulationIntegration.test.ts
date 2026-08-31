@@ -258,7 +258,7 @@ describe('Catalog-backed BFN simulation integration', () => {
     );
   });
 
-  it('treats zero as trusted and non-extrapolated even when the positive range starts above zero', () => {
+  it('treats an explicit zero as trusted without fabricating a zero-width interval', () => {
     const project = connectedCatalogProject();
     project.network.inputSources[0]!.staticSpecification = {
       type: 'fixed_value',
@@ -269,7 +269,13 @@ describe('Catalog-backed BFN simulation integration', () => {
     const result = runBfnSimulation(project);
 
     expect(result.points).toHaveLength(1);
-    expect(result.points[0]).toMatchObject({ output: 0, lower: 0, upper: 0, extrapolated: false });
+    expect(result.points[0]).toMatchObject({
+      output: 0,
+      lower: null,
+      upper: null,
+      extrapolated: false,
+    });
+    expect(result.uncertaintySnapshot.status).toBe('unavailable');
     expect(result.extrapolated).toBe(false);
     expect(result.validationIssues.map((issue) => issue.code)).not.toContain(
       'outside_validity_domain',

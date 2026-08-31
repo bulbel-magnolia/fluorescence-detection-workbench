@@ -20,6 +20,9 @@ export function bfnNodeDisplayName(
   language: string,
   t: BfnLabelTranslate,
 ): string {
+  if (node.kind === 'functional_module' && node.authoring?.name.trim()) {
+    return node.authoring.name;
+  }
   const localized = node.displayName;
   if (localized) {
     const value = language.toLocaleLowerCase().startsWith('zh') ? localized.zh : localized.en;
@@ -55,8 +58,13 @@ const entityKeys: Record<string, string> = {
 
 const quantityKeys: Record<string, string> = {
   concentration: 'bfn.quantities.concentration',
+  amount: 'bfn.quantities.amount',
+  production_rate: 'bfn.quantities.productionRate',
   activity: 'bfn.quantities.activity',
   expression_level: 'bfn.quantities.expressionLevel',
+  flux: 'bfn.quantities.flux',
+  fraction: 'bfn.quantities.fraction',
+  cell_density: 'bfn.quantities.cellDensity',
 };
 
 const designVariableKeys: Record<string, string> = {
@@ -95,6 +103,7 @@ export function bfnPortPrimaryLabel(
   t: BfnLabelTranslate,
   language?: string,
 ): string {
+  if (port.authoring?.name.trim()) return port.authoring.name;
   if (port.displayName) {
     const localized = language?.toLocaleLowerCase().startsWith('zh')
       ? port.displayName.zh

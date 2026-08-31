@@ -91,7 +91,11 @@ Batch 12.0 将用户定义模块拆成相互独立的科学维度：
 
 数学可执行的用户模型可以使用 `proposed_unbuilt_design` 并保持 `implementation = unspecified`。User-defined model 不等于 experimentally validated model；空 implementation list 不阻止数学计算，强证据也不自动补齐缺失的可执行函数。
 
-12.1 预备范围仅包含 static Hill、同单位 linear transfer 和显式 `independent_unverified` 的多输入模型，且每个模型只有一个 output。Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+Batch 12.1 的生产创作范围包含 static Hill activation、Hill repression、同单位 linear transfer 和显式 `independent_unverified` 的多输入独立作用模型，且每个模型只有一个 output。表单把 Port 角色名与 Entity 身份分开采集，支持复用既有 Entity 或创建 Project-defined Entity，并保存 Context、适用范围、Evidence、结构化 provenance、`unspecified` implementation 与三种首版不确定性状态。
+
+纯 materializer 在 semantic、runtime、evidence 与 implementation 四个当前门通过后生成一个 `BfnFunctionalModule` 和必要 registry 记录；历史 BFN-IR 2.0 representation audit 不参与 2.2 物化判断。Add to Network 不创建 Edge、Input Source、Output Monitor，也不自动运行。该编辑作为一个现有 Undo/Redo transaction 保存，并通过 Workspace Current Draft、Version 与导入导出沿用 BFN-IR 2.2。
+
+Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Designed Sender、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 
 ## Semantic classification layer
 
@@ -290,7 +294,7 @@ Batch 4 将分析结果区扩展为可交互、可追溯、可复现的科学图
 - CSV 保存求解器原始点值、运行角色、输入、模块中间值、输出区间和域外标记，不把界面格式化值写回数据；
 - 复制图像、复制数据和复制图注与下载使用同一当前结果及可选历史对比。
 
-运行结果保存运行 ID、完成时间、引擎版本、模式、网络 ID、主输入源 ID、输出监视器 ID、求解点、模型版本、上下文 ID、不确定性方法、ANN 或动态派生指标，以及 Demo 与实验有效性标记。Batch 4.1 另外保存输入源和输出监视器在运行时的轻量信号语义快照，包括稳定 ID、翻译键、entity、quantity type 和 unit；快照不保存本地化后的中文或英文文本，也不复制完整项目、参数或适用域。
+运行结果保存运行 ID、完成时间、引擎版本、模式、网络 ID、主输入源 ID、输出监视器 ID、求解点、模型版本、上下文 ID、不确定性方法、ANN 或动态派生指标，以及 Demo 与实验有效性标记。BFN-SIM-2.1 另外保存 `output_reachable` 不确定性快照；定量区间不可用时求解点的 `lower/upper` 为 `null`，图表与导出不生成零宽区间。Batch 4.1 的轻量信号语义快照继续保存稳定 ID、翻译键、entity、quantity type 和 unit；快照不保存本地化后的中文或英文文本，也不复制完整项目、参数或适用域。
 
 结果展示统一由运行自身的信号语义快照解析坐标轴、Tooltip、结果摘要、图注、SVG/PNG 和溯源字段。没有快照的旧运行继续加载，并显示运行 ID 与“未知单位”，不会借用当前项目中的标签或单位。历史对比先满足 networkId、mode、primaryInputSourceId 与 outputMonitorId；两条运行都含快照时，还要求输入和输出的 entity、quantity type 与 unit 分别完全一致。旧运行沿用四项 ID 兼容规则，界面明确提示语义未记录，一次仍只叠加一条历史曲线。
 
@@ -385,7 +389,7 @@ Current Draft 使用 320 ms 防抖自动保存。Autosave 防止编辑丢失，�
 
 Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实。不同 context ID 本身不构成冲突；reported text 的不同表述为未确认，明确 canonical 数值差异为已知不同。Catalog 来源只读取 trusted presentation 的 exact parameter context，自由文本温度不转换为 Celsius。上下文 uncertain、mismatched 或 unavailable 都不自动修改模型、插入模块或阻止运行。
 
-成功运行在 BFN-SIM 2.0 中可选保存 output-reachable temporal snapshot 和 module-edge context-applicability snapshot。Dynamic Result、Run Provenance、JSON 与 provenance rows 都消费运行自身快照。旧运行缺少快照时显示未记录，不从当前网络推断历史。完整合同见 [时间语义、端口兼容性与实验适用性](temporal-and-compatibility.md)。
+成功运行在 BFN-SIM-2.1 中保存 output-reachable uncertainty snapshot，并可选保存 temporal snapshot 和 module-edge context-applicability snapshot。Dynamic Result、Run Provenance、JSON 与 provenance rows 都消费运行自身快照。历史 BFN-SIM-2.0 运行继续读取；缺少快照时显示未记录，不从当前网络推断历史。完整合同见 [时间语义、端口兼容性与实验适用性](temporal-and-compatibility.md)。
 
 ## 代码边界
 
@@ -395,7 +399,8 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 - `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；
 - `src/features/bfn/temporal/`：时间执行能力解析与输出可达运行快照；
 - `src/features/bfn/compatibility/`：端口合同、逐字段上下文适用性与 Validation adapter；
-- `src/features/bfn/user-defined/`：冻结的用户 draft 合同、纯科学校验与 Batch 12.0 BFN-IR 2.0 表示审计；不 materialize 或写入生产状态；
+- `src/features/bfn/user-defined/`：冻结的用户 draft 合同与科学校验、历史 BFN-IR 2.0 表示审计、当前 BFN-IR 2.2 纯物化和静态创作界面；
+- `simulationUncertainty.ts`：输出可达模型的不确定性执行审计与 BFN-SIM-2.1 网络区间可用性；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
 - `validation.ts`：端口、连接、DAG、输入和上下文检查；
@@ -431,7 +436,8 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 - 一阶阶跃响应、DC gain 与周期频率增益；
 - 功能参数和生物设计变量分离；
 - 多目标候选排序与 `proposed_unbuilt_design` 标记；
-- BFN-IR 2.0/2.1 JSON 往返、中央迁移、Workspace Draft/Version read migration 与旧项目隔离；
+- BFN-IR 2.0/2.1/2.2 JSON 往返、中央迁移、Workspace Draft/Version read migration 与旧项目隔离；
+- 用户静态模块的合同到 2.2 物化、必需输入连接安全、点估计/区间分离、Add to Network 与 Undo/Redo；
 - 中英文工作台、非法连接说明、模块注册和反向设计交互。
 
 当前演示模型不支持实验效能结论、构建成功率结论或生物安全结论。后续实验数据通过标准注册流程进入新模型版本，并保留原始数据、上下文和证据等级。

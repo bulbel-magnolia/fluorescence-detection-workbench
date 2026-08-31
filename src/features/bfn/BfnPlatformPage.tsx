@@ -72,6 +72,11 @@ import {
 import { runBfnSimulation } from './simulation';
 import { resolveBfnModuleTemporalCapability } from './temporal/temporalCapability';
 import type { BfnTemporalCapability } from './temporal/temporalTypes';
+import type { UserDefinedFunctionalModuleDraft } from './user-defined/userModuleContract';
+import {
+  materializeUserDefinedStaticModule,
+  type UserModuleMaterializationResult,
+} from './user-defined/userModuleMaterialization';
 import type {
   BfnDynamicInputSpecification,
   BfnCanvasPosition,
@@ -177,6 +182,13 @@ function nodeLabel(project: BfnProject, nodeId: string, t: TFunction, language: 
     project.network.modules.find((entry) => entry.id === nodeId) ??
     project.network.outputMonitors.find((entry) => entry.id === nodeId);
   return node ? bfnNodeDisplayName(node, language, t) : nodeId;
+}
+
+function projectEntityLabel(project: BfnProject, entityId: string, t: TFunction): string {
+  return (
+    project.registry.entities.find((entity) => entity.id === entityId)?.displayName ??
+    bfnEntityLabel(entityId, t)
+  );
 }
 
 function endpointOptions(
@@ -803,6 +815,26 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     );
   };
 
+  const addUserDefinedModule = (
+    draft: UserDefinedFunctionalModuleDraft,
+  ): UserModuleMaterializationResult => {
+    const outcome = materializeUserDefinedStaticModule(draft, projectRef.current);
+    if (!outcome.ok) return outcome;
+    const changed = performProjectEdit(() => outcome.nextProject);
+    if (!changed) {
+      return {
+        ok: false,
+        issues: [{ code: 'generated_id_collision', path: 'id' }],
+      };
+    }
+    selectNode(outcome.addedModuleId);
+    setView('design');
+    setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
+    setNotice(t('bfn.notices.userModuleAdded'));
+    return outcome;
+  };
+
   const openCatalogDiscovery = (): void => {
     props.onCatalogOpen?.();
     setCatalogInitialDetailTarget(null);
@@ -1290,9 +1322,13 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                       <header>
                         <strong>{t('bfn.inspector.effect')}</strong>
                       </header>
-                      <p>{t(selectedModule.descriptionKey)}</p>
+                      <p>
+                        {selectedModule.authoring?.description ?? t(selectedModule.descriptionKey)}
+                      </p>
                     </section>
-                    <ModuleSemanticClassification semantic={selectedSemantic} />
+                    {selectedModule.authoring?.origin === 'user_defined' ? null : (
+                      <ModuleSemanticClassification semantic={selectedSemantic} />
+                    )}
                     <ModuleTemporalClassification capability={selectedTemporalCapability} />
                     <section className="bfn-inspector-block">
                       <header>
@@ -1304,7 +1340,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                           {selectedModule.inputPorts.map((port) => (
                             <article key={port.id}>
                               <strong>{bfnPortPrimaryLabel(port, t, nodeLanguage)}</strong>
-                              <small>{bfnUnitLabel(port.unit, t)}</small>
+                              <small>
+                                {port.authoring
+                                  ? `${projectEntityLabel(project, port.entity, t)} · ${bfnPortMetaLabel(port, t)}`
+                                  : bfnUnitLabel(port.unit, t)}
+                              </small>
                             </article>
                           ))}
                         </div>
@@ -1316,7 +1356,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                           {selectedModule.outputPorts.map((port) => (
                             <article key={port.id}>
                               <strong>{bfnPortPrimaryLabel(port, t, nodeLanguage)}</strong>
-                              <small>{bfnUnitLabel(port.unit, t)}</small>
+                              <small>
+                                {port.authoring
+                                  ? `${projectEntityLabel(project, port.entity, t)} · ${bfnPortMetaLabel(port, t)}`
+                                  : bfnUnitLabel(port.unit, t)}
+                              </small>
                             </article>
                           ))}
                         </div>
@@ -1344,6 +1388,18 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         />
                       </div>
                     </section>
+                    {selectedModule.authoring?.origin === 'user_defined' && selectedModuleModel ? (
+                      <section className="bfn-inspector-block">
+                        <header>
+                          <strong>{t('bfn.userAuthoring.sections.uncertainty')}</strong>
+                        </header>
+                        <p>
+                          {t(
+                            `bfn.userAuthoring.uncertainty.${selectedModuleModel.uncertaintyMethod}`,
+                          )}
+                        </p>
+                      </section>
+                    ) : null}
                     {selectedModuleModel?.mode === 'static' &&
                     selectedModuleModel.response.family === 'independent_inputs' ? (
                       <section className="bfn-inspector-block">
@@ -1435,7 +1491,9 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                                 <dd>{selectedContext.temperatureCelsius} °C</dd>
                               </div>
                             </dl>
-                          ) : null}
+                          ) : (
+                            <p>{t('bfn.userAuthoring.contextNotRecorded')}</p>
+                          )}
                           <strong>{t('bfn.inspector.linkedData')}</strong>
                           {selectedDatasets.length ? (
                             <ul className="bfn-linked-datasets">
@@ -1986,6 +2044,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           onClose={closeCatalogDrawer}
           onAddBuiltInModule={addCatalogModule}
           onInstantiateCatalogResponse={addCatalogResponse}
+          onAddUserModule={addUserDefinedModule}
           {...(catalogInitialDetailTarget
             ? { initialDetailTarget: catalogInitialDetailTarget }
             : {})}

@@ -1038,3 +1038,37 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 仅对本批变更文件执行 Prettier；未执行全仓格式重排；本批没有 UI 改动，不执行 screenshot 或 Visual Audit；
 - 相对精确基线 `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2`，Sender V1.2 source/loader/validator/admission、Receiver data/whitelist/evaluator、Inverse Design、Ontology production assignments、Temporal policy、Port Compatibility production policy、Simulation equations、Workspace DB structure、`package.json` 与 lockfile 均为零差异；
 - BFN-SIM 保持 `BFN-SIM-2.0`。以上结论为 local full validation passed，不声明 CI passed。
+
+## 2026-08-31 Batch 12.1 Static Functional Module Authoring & Runtime Integration
+
+### Phase gates
+
+- Phase A 的不确定性运行时、Run repository、required-input safety、ANN、图表与导出定向门为 10 个测试文件、113 项测试全部通过；新运行使用 `BFN-SIM-2.1`，历史 `BFN-SIM-2.0` 继续读取；
+- Phase B 的纯 materializer 单文件包含 18 项测试；materializer、BFN-IR migration 与 repository 联合门为 3 个文件、67 项测试全部通过，覆盖当前 2.2 gate、确定性 ID、Entity reuse/new identity/conflict、Context、validity domain、uncertainty、provenance 与 implementation；
+- Phase C 的 draft builder、authoring form、页面集成、Add Module drawer 与语义展示为 5 个文件、46 项测试全部通过；覆盖四种静态 family、单输出、Port role/Entity 分离、完整参数区间、强证据 provenance、一次 project edit，以及工具栏和键盘 Undo/Redo 恢复精确对象与 ID；
+- 冻结 Receiver/Sender、Port Compatibility、Temporal 与 Ontology 定向回归为 11 个文件、103 项测试全部通过。
+
+### Runtime、materialization 与交互回归
+
+- `none`、`not_recorded` 和不可执行的 posterior/bootstrap/covariance 方法继续生成有限点估计，`lower/upper = null`，没有零宽区间；完整 parameter envelope 才生成定量 ribbon；混合输出路径按所有 output-reachable active model 共同决定网络区间可用性；
+- ANN 的 R²、NRMSE 与 maximum absolute error 保持点预测指标；有效参考区间缺失时 `predictionIntervalCoverage = null`；
+- 输出可达 user-defined model 的 modeled input 缺少 enabled incoming Edge 时产生 error 并阻止运行；已连接的显式零值正常计算；无关断开模块不阻塞目标输出；
+- Materializer 不修改输入 Project，不写 localStorage/IndexedDB，不运行 Simulation，不调用 Sender admission 或 Ontology；成功只生成一个 FunctionalModule 和必要 registry sidecar；
+- Add to Network 不自动创建 Edge、Input Source、Output Monitor 或 Run。Workspace Current Draft 自动保存、Version、项目 JSON 往返和已有存储结构沿用 BFN-IR 2.2。
+
+### Visual Audit
+
+- 1440×900 深色真实应用中完成 Add Module → 自定义功能模块、Hill 与 independent_inputs 表单、校验错误、Entity 复用、Inspector 逐字 Port 角色名、Undo/Redo、手动连接和静态运行审查；
+- point-only 模块运行得到有效点输出，结果明确显示参数区间不可用且不渲染 ribbon；完整 Hill 参数区间运行显示“参数区间”曲线和可见包络；
+- 1280×720 下抽屉宽 560 px；内部滚动容器 `clientHeight = 619`、`scrollHeight = 1411`、`overflow-y = auto`，操作按钮底部为 676 px，保持在 720 px 视口内；文档 `scrollWidth = clientWidth = 1280`，无横向溢出；
+- 深色主题的字段、分组、焦点、固定 footer、画布和结果 Dock 层级清晰；浏览器 warn/error 日志为 0。
+
+### Complete gates 与 frozen diff
+
+- TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；只对本批明确变更文件执行 Prettier，没有全仓格式重排；
+- 首次全量回归定位到 1 个旧 Catalog integration 断言仍把显式零输出写成 `lower = upper = 0`。生产逻辑已符合 2.1；测试改为要求点输出 `0`、`lower/upper = null` 和 uncertainty unavailable，单文件 12 项测试通过；
+- 修正后完整 Vitest 共 137 个测试文件、1102 项测试全部通过；没有删除、skip、todo 或弱化科学断言；
+- Vite 7.3.6 生产构建通过，297 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB，主 CSS 为 277.31 kB、gzip 46.33 kB，主 JavaScript chunk 为 3,300.11 kB、gzip 452.37 kB；保留既有大于 500 kB chunk 提示；
+- 从精确冻结基线 `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` 复核：Sender V1.2 source/loader/validator/admission、Receiver V1.1 data/whitelist/formulas、Inverse Design、Ontology assignment、Port Compatibility policy、Temporal policy、BFN-IR schema/migration、Workspace IndexedDB store/index、`package.json` 与 lockfile 均为零差异；
+- 当前代码与通过的硬回归再次确认 20 个 trusted runnable Receiver、53 条 Sender evidence、0 admitted Sender，以及 `production_rate → concentration` hard incompatibility；
+- BFN-IR 保持 `2.2`，Workspace IndexedDB 保持 v1；Batch 12.1 状态为 `ACTIVE`，等待 Master Control review，不自我声明冻结。以上结论为 local full validation passed，不声明 CI passed。
