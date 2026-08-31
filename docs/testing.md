@@ -1088,7 +1088,7 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 ### Contract、identity 与 materialization gates
 
 - Designed Sender 联合定向门为 8 个测试文件、79 项测试全部通过，覆盖纯合同、draft builder、trusted signal identity projection、generic materializer 扩展、Designed Sender materialization、authoring form、Add Module drawer、页面集成与中英文翻译键；
-- builder 固定一个 concentration control input 和一个 production_rate output，仅接受 Hill activation / repression。输入单位限制为 `nM | uM | mM`，输出单位限制为 `nM/h | uM/h`；K 跟随输入单位，n 为 dimensionless，ymin/ymax 跟随 rate unit，且 `ymax >= ymin`；
+- builder 固定一个 concentration control input 和一个 production_rate output，仅接受 Hill activation / repression。输入单位限制为 `M | mM | uM | nM | pM`，输出单位限制为 `nM/h | uM/h`；K 跟随输入单位，n 为 dimensionless，ymin/ymax 跟随 rate unit，且 `ymax >= ymin`；
 - Context、Evidence、Implementation 与 uncertainty 继续复用 Batch 12.1 合同：支持 `not_recorded` 和 partial Context，拒绝 placeholder；Evidence 默认 `proposed_unbuilt_design`，强证据要求 provenance；Implementation 保持 unspecified；可 author 的 uncertainty 只包含 `not_recorded`、`none` 和完整 parameter interval envelope；
 - trusted signal projection 只读取 release signal 的 identity 字段。已知信号保留 canonical Entity ID 且不创建 user-defined registry record；custom signal 创建独立 user-defined Entity；相同 ID 的 display-name conflict fail closed；Designed Sender 生产代码不依赖 Sender V1.2 数据、loader、validator 或 Runtime Admission；
 - generic materializer 新增可选 authoritative external Entity 输入。缺省调用保持 Batch 12.1 行为；权威 Entity 完全匹配时复用且不写 registry，冲突时返回结构化失败，未知 Entity 继续走既有 user-defined creation 路径。provenance identity 与 uncertainty authorability 的冻结回归保持通过。
