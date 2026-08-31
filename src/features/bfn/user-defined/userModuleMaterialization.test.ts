@@ -154,6 +154,141 @@ describe('user-defined static module materialization', () => {
     expect(result.nextProject.network.modules.at(-1)!.inputPorts[0]!.entity).toBe('3OC6-HSL');
   });
 
+  it('keeps the Batch 12.1 default call identical and creates unknown entities as user-defined', () => {
+    const project = createDemoBfnProject();
+    const draft = createHillDraft({
+      ports: [
+        createHillDraft().ports[0]!,
+        {
+          ...createHillDraft().ports[1]!,
+          entity: {
+            id: 'N-(example)-homoserine lactone',
+            displayName: 'N-(example)-homoserine lactone',
+          },
+        },
+      ],
+    });
+
+    const omitted = materializeUserDefinedStaticModule(draft, project);
+    const explicitUndefined = materializeUserDefinedStaticModule(draft, project, undefined);
+    const emptyOptions = materializeUserDefinedStaticModule(draft, project, {});
+
+    expect(explicitUndefined).toEqual(omitted);
+    expect(emptyOptions).toEqual(omitted);
+    expect(omitted.ok).toBe(true);
+    if (!omitted.ok) return;
+    expect(
+      omitted.nextProject.registry.entities.find(
+        (entity) => entity.id === 'N-(example)-homoserine lactone',
+      ),
+    ).toEqual({
+      id: 'N-(example)-homoserine lactone',
+      origin: 'user_defined',
+      displayName: 'N-(example)-homoserine lactone',
+      description: null,
+    });
+  });
+
+  it('reuses an exact external authoritative entity without adding a registry definition', () => {
+    const project = createDemoBfnProject();
+    const draft = createHillDraft({
+      ports: [
+        createHillDraft().ports[0]!,
+        {
+          ...createHillDraft().ports[1]!,
+          entity: {
+            id: 'N-(3-oxohexanoyl)-L-homoserine lactone',
+            displayName: 'N-(3-oxohexanoyl)-L-homoserine lactone',
+          },
+        },
+      ],
+    });
+    const options = {
+      authoritativeEntities: [
+        {
+          id: 'N-(3-oxohexanoyl)-L-homoserine lactone',
+          displayName: 'N-(3-oxohexanoyl)-L-homoserine lactone',
+        },
+      ],
+    } as const;
+    const before = {
+      project: structuredClone(project),
+      draft: structuredClone(draft),
+      options: structuredClone(options),
+    };
+
+    const result = materializeUserDefinedStaticModule(draft, project, options);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.nextProject.registry.entities.some(
+        (entity) => entity.id === options.authoritativeEntities[0].id,
+      ),
+    ).toBe(false);
+    expect(result.nextProject.network.modules.at(-1)!.outputPorts[0]!.entity).toBe(
+      options.authoritativeEntities[0].id,
+    );
+    expect(project).toEqual(before.project);
+    expect(draft).toEqual(before.draft);
+    expect(options).toEqual(before.options);
+  });
+
+  it('fails closed for external authoritative display-name conflicts', () => {
+    const draft = createHillDraft({
+      ports: [
+        createHillDraft().ports[0]!,
+        {
+          ...createHillDraft().ports[1]!,
+          entity: { id: 'catalog.signal.example', displayName: 'Conflicting signal name' },
+        },
+      ],
+    });
+    const mismatchedDraft = materializeUserDefinedStaticModule(draft, createDemoBfnProject(), {
+      authoritativeEntities: [
+        { id: 'catalog.signal.example', displayName: 'Canonical signal name' },
+      ],
+    });
+    const duplicatedOption = materializeUserDefinedStaticModule(
+      createHillDraft(),
+      createDemoBfnProject(),
+      {
+        authoritativeEntities: [
+          { id: 'catalog.signal.example', displayName: 'Canonical signal name' },
+          { id: 'catalog.signal.example', displayName: 'Different signal name' },
+        ],
+      },
+    );
+
+    expect(mismatchedDraft).toMatchObject({
+      ok: false,
+      issues: [expect.objectContaining({ code: 'entity_display_name_conflict' })],
+    });
+    expect(duplicatedOption).toMatchObject({
+      ok: false,
+      issues: [expect.objectContaining({ code: 'entity_display_name_conflict' })],
+    });
+  });
+
+  it('still creates an unknown custom entity when other external identities are authorized', () => {
+    const result = materializeUserDefinedStaticModule(createHillDraft(), createDemoBfnProject(), {
+      authoritativeEntities: [
+        { id: 'catalog.signal.unused', displayName: 'Unused canonical signal' },
+      ],
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.nextProject.registry.entities.find((entity) => entity.id === 'entity.user.product-x'),
+    ).toEqual({
+      id: 'entity.user.product-x',
+      origin: 'user_defined',
+      displayName: 'Product X',
+      description: null,
+    });
+  });
+
   it('reuses an identical user entity and rejects an authoritative display-name conflict', () => {
     const project = createDemoBfnProject();
     project.registry.entities.push({

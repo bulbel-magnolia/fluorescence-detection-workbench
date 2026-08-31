@@ -61,6 +61,15 @@ export interface UserModuleMaterializationFailure {
 export type UserModuleMaterializationResult =
   UserModuleMaterializationSuccess | UserModuleMaterializationFailure;
 
+export interface UserModuleAuthoritativeEntity {
+  readonly id: string;
+  readonly displayName: string;
+}
+
+export interface UserModuleMaterializationOptions {
+  readonly authoritativeEntities?: readonly UserModuleAuthoritativeEntity[];
+}
+
 interface MaterializationIds {
   readonly model: string;
   readonly domain: string;
@@ -92,6 +101,7 @@ const provenanceKinds = new Set<string>([
 export function materializeUserDefinedStaticModule(
   draft: UserDefinedFunctionalModuleDraft,
   project: BfnProject,
+  options: UserModuleMaterializationOptions = {},
 ): UserModuleMaterializationResult {
   const assessment = assessUserDefinedFunctionalModule(draft);
   const gateIssues: UserModuleMaterializationIssue[] = [];
@@ -202,7 +212,7 @@ export function materializeUserDefinedStaticModule(
     ]);
   }
 
-  const entityAudit = auditEntities(draft, project);
+  const entityAudit = auditEntities(draft, project, options.authoritativeEntities ?? []);
   if (entityAudit.issues.length > 0) return failure(entityAudit.issues);
 
   const response = materializeResponse(draft);
@@ -488,18 +498,44 @@ function sameProvenanceRecord(left: BfnProvenanceRecord, right: BfnProvenanceRec
   return left.kind === right.kind && left.reference === right.reference;
 }
 
-function auditEntities(draft: UserDefinedFunctionalModuleDraft, project: BfnProject): EntityAudit {
+function auditEntities(
+  draft: UserDefinedFunctionalModuleDraft,
+  project: BfnProject,
+  authoritativeEntities: readonly UserModuleAuthoritativeEntity[],
+): EntityAudit {
   const authoritativeNames = collectEntityNames(project);
   const knownEntityIds = collectEntityIds(project);
+  const externalNames = new Map<string, string>();
   const proposedNames = new Map<string, string>();
   const additions: BfnEntityDefinition[] = [];
   const issues: UserModuleMaterializationIssue[] = [];
+
+  for (const [index, entity] of authoritativeEntities.entries()) {
+    const external = externalNames.get(entity.id);
+    const projectNames = authoritativeNames.get(entity.id);
+    if (
+      (external !== undefined && external !== entity.displayName) ||
+      (projectNames !== undefined && !projectNames.has(entity.displayName))
+    ) {
+      issues.push({
+        code: 'entity_display_name_conflict',
+        path: `options.authoritativeEntities[${index}].displayName`,
+        details: [entity.id],
+      });
+      continue;
+    }
+    if (external === undefined) externalNames.set(entity.id, entity.displayName);
+  }
 
   for (const [index, port] of draft.ports.entries()) {
     const id = port.entity.id;
     const displayName = port.entity.displayName;
     const authoritative = authoritativeNames.get(id);
-    if (authoritative && !authoritative.has(displayName)) {
+    const external = externalNames.get(id);
+    if (
+      (external !== undefined && external !== displayName) ||
+      (external === undefined && authoritative !== undefined && !authoritative.has(displayName))
+    ) {
       issues.push({
         code: 'entity_display_name_conflict',
         path: `ports[${index}].entity.displayName`,
@@ -517,7 +553,11 @@ function auditEntities(draft: UserDefinedFunctionalModuleDraft, project: BfnProj
       continue;
     }
     if (proposed === undefined) proposedNames.set(id, displayName);
-    if (!knownEntityIds.has(id) && !additions.some((entity) => entity.id === id)) {
+    if (
+      external === undefined &&
+      !knownEntityIds.has(id) &&
+      !additions.some((entity) => entity.id === id)
+    ) {
       additions.push({ id, origin: 'user_defined', displayName, description: null });
     }
   }
