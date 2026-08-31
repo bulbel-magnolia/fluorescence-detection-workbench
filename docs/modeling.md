@@ -95,7 +95,15 @@ Batch 12.1 的生产创作范围包含 static Hill activation、Hill repression�
 
 纯 materializer 在 semantic、runtime、evidence 与 implementation 四个当前门通过后生成一个 `BfnFunctionalModule` 和必要 registry 记录；历史 BFN-IR 2.0 representation audit 不参与 2.2 物化判断。新建模型拒绝 `posterior_samples`、`bootstrap` 与 `covariance`，既有项目仍以点估计方式兼容运行。Provenance 的 draft ID、kind 与 reference 原样写入；同一 Project 中完全相同的 ID 记录复用，语义冲突返回结构化失败，且不重载 `sourceDatasetIds`。Add to Network 不创建 Edge、Input Source、Output Monitor，也不自动运行。该编辑作为一个现有 Undo/Redo transaction 保存，并通过 Workspace Current Draft、Version 与导入导出沿用 BFN-IR 2.2。
 
-Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Designed Sender、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+### Designed Sender authoring
+
+Batch 12.2 在通用创作能力上增加一个受限的 Designed Sender 工作流。首版固定为一个 `concentration` 控制输入（`M | mM | uM | nM | pM`）、一个 `production_rate` 输出（`nM/h | uM/h`）以及 Hill activation/repression。它没有新的 BFN node type 或 schema marker；draft 通过冻结的通用验证和 materializer 生成普通 `BfnFunctionalModule`，运行继续使用 BFN-SIM 2.1。
+
+已知 AHL/HSL 选择只从可信 V1.1 signal identity 投影精确 canonical name。该 Entity 身份可以作为外部权威身份复用而不写入 Project-defined Entity registry；身份复用不代表 evidence、参数、实现或 Runtime Admission 复用。自定义信号继续创建普通 `origin = user_defined` Entity。默认 Evidence 为 `proposed_unbuilt_design`，Implementation 为 `unspecified`，Uncertainty 为 `not_recorded`。
+
+Add to Network 是一个原子编辑，不自动创建 Edge、Input Source、Output Monitor、Run 或隐藏转换。`production_rate → concentration` 继续硬拒绝；当前求解器不进行隐式积分。完整合同见 [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)。
+
+Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 
 ## Semantic classification layer
 

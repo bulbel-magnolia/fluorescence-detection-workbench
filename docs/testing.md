@@ -1082,3 +1082,36 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - Receiver/Sender 数量、admission、Port Compatibility、BFN-IR migration、BFN-SIM repository 与 Workspace IndexedDB 专项门共 8 个测试文件、107 项测试全部通过，再次固定 20/53/0 与版本边界；
 - `npm run typecheck`、`npm run lint`、完整 Vitest 137 个测试文件/1111 项测试、`npm run build` 全部通过；Vite 7.3.6 转换 297 个模块，主 JavaScript chunk 为 3,300.79 kB、gzip 452.59 kB，保留既有大于 500 kB chunk 提示；
 - Batch 12.1 继续为 `ACTIVE`。以上结论为 local full validation passed，不声明 CI passed。
+
+## 2026-08-31 Batch 12.2 Designed Sender Authoring & Signal Production Semantics
+
+### Contract、identity 与 materialization gates
+
+- Designed Sender 联合定向门为 8 个测试文件、79 项测试全部通过，覆盖纯合同、draft builder、trusted signal identity projection、generic materializer 扩展、Designed Sender materialization、authoring form、Add Module drawer、页面集成与中英文翻译键；
+- builder 固定一个 concentration control input 和一个 production_rate output，仅接受 Hill activation / repression。输入单位限制为 `nM | uM | mM`，输出单位限制为 `nM/h | uM/h`；K 跟随输入单位，n 为 dimensionless，ymin/ymax 跟随 rate unit，且 `ymax >= ymin`；
+- Context、Evidence、Implementation 与 uncertainty 继续复用 Batch 12.1 合同：支持 `not_recorded` 和 partial Context，拒绝 placeholder；Evidence 默认 `proposed_unbuilt_design`，强证据要求 provenance；Implementation 保持 unspecified；可 author 的 uncertainty 只包含 `not_recorded`、`none` 和完整 parameter interval envelope；
+- trusted signal projection 只读取 release signal 的 identity 字段。已知信号保留 canonical Entity ID 且不创建 user-defined registry record；custom signal 创建独立 user-defined Entity；相同 ID 的 display-name conflict fail closed；Designed Sender 生产代码不依赖 Sender V1.2 数据、loader、validator 或 Runtime Admission；
+- generic materializer 新增可选 authoritative external Entity 输入。缺省调用保持 Batch 12.1 行为；权威 Entity 完全匹配时复用且不写 registry，冲突时返回结构化失败，未知 Entity 继续走既有 user-defined creation 路径。provenance identity 与 uncertainty authorability 的冻结回归保持通过。
+
+### Runtime、connection 与 authoring integration
+
+- Add to Network 通过一次 project edit 生成一个普通 `FunctionalModule`，没有 Designed Sender node marker，不创建 Sender Catalog record、Edge、Input Source、Output Monitor 或 Run；BFN-IR 2.2 validator 与项目 JSON roundtrip 保留完整模块、Port authoring label、canonical/custom Entity 语义；
+- real Catalog Receiver `resp.kylilis2018.lux.3oc6` 集成回归确认双方使用相同 3OC6-HSL Entity，`production_rate` 输出到 `concentration` 输入仍因 quantity mismatch hard reject；没有 hidden conversion，也没有自动 Signal Pool；
+- Designed Sender 直接使用冻结的 generic BFN-SIM-2.1 路径：有效 control Input Source 可执行有限 point estimate；output-reachable control input 未连接产生 `missing_required_input`；显式连接零值正常执行；没有新增特殊 Sender evaluator；
+- UI 回归覆盖两个 authoring 入口、打开/取消零 Project mutation、仅显示 Hill activation/repression、known/custom signal、固定 quantity 与单位、evidence/uncertainty 约束、parameter interval 完整性、单模块原子添加、新模块选择、Inspector 语义、精确 Undo/Redo，以及到 concentration Receiver 的禁用连接。
+
+### Visual Audit
+
+- 真实应用 1440×900 完成 10 个规定场景：双 authoring 入口、默认表单、known signal、custom signal、Hill activation、validation error、添加到画布、Inspector production_rate、connection rejection 与 dark theme；
+- 1280×720 下抽屉宽 560 px；内部滚动区 `clientHeight = 619`、`scrollHeight = 1325`、`overflow-y = auto`，测试 `scrollTop = 700`；操作区 top/bottom 为 633/686 px，主按钮 bottom 为 676 px，保持可达且未被 Result Dock 覆盖；
+- 文档 `scrollWidth = clientWidth = 1280`，无页面级横向溢出；浏览器 console 新增 warning/error 均为 0。截图与复核说明保存在 `docs/ui-audit/designed-sender-authoring/`。
+
+### Complete gates 与 frozen diff
+
+- `npm ci`、TypeScript `tsc --noEmit` 与 ESLint `eslint . --max-warnings 0` 全部通过；
+- 默认并发 `npm test` 两次分别因既有 UI 用例达到 5 秒 timeout 得到 2 项和 1 项超时；对应 ModelingPage 1/1 与 Workspace 33/33 单文件复跑通过。保持测试和断言不变后，`npm test -- --maxWorkers=4` 完整回归为 142 个测试文件、1141 项测试全部通过；
+- 冻结科学边界定向回归为 17 个文件、197 项测试全部通过；再次固定 20 个 trusted runnable Receiver、53 条 Sender evidence、0 admitted Sender、`production_rate -> concentration` hard block、BFN-IR 2.2、BFN-SIM-2.1 与 Workspace IndexedDB v1；
+- Vite 7.3.6 生产构建通过，301 个模块完成转换；`index.html` 为 0.54 kB、gzip 0.37 kB，主 CSS 为 278.47 kB、gzip 46.47 kB，主 JavaScript chunk 为 3,327.49 kB、gzip 457.69 kB；保留既有大于 500 kB chunk 提示；
+- 仅对相对冻结基线的 23 个文本变更文件执行 Prettier write/check，没有全仓格式重排；`git diff --check` 通过；
+- 相对精确冻结基线 `1fa9c11909817b3e3b4873e7bf85a1a158b68338`，Sender V1.2 source/hash/loader/validator/admission、Receiver V1.1 source/whitelist/formulas、Catalog Receiver parameter binding、Inverse Design、Ontology assignment、Port Compatibility、Temporal、BFN-IR schema/migration、BFN-SIM result contract/equations、Workspace DB 结构、`package.json` 与 lockfile 均为零差异；
+- Batch 12.2 状态保持 `ACTIVE`，等待 Master Control review，不自我声明冻结。以上为本地完整验证结果；GitHub check 状态在正常 push 后单独记录。

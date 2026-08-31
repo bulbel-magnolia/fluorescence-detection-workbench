@@ -28,6 +28,8 @@ import {
 import type { BfnProject } from '../types';
 import type { UserDefinedFunctionalModuleDraft } from '../user-defined/userModuleContract';
 import { BfnUserModuleAuthoring } from '../user-defined/BfnUserModuleAuthoring';
+import { BfnDesignedSenderAuthoring } from '../user-defined/designed-sender/BfnDesignedSenderAuthoring';
+import type { DesignedSenderSignalIdentity } from '../user-defined/designed-sender/designedSenderSignalCatalog';
 import type { UserModuleMaterializationResult } from '../user-defined/userModuleMaterialization';
 import { BfnCatalogDetailView } from './BfnCatalogDetailView';
 import {
@@ -55,6 +57,10 @@ interface BfnCatalogDiscoveryDrawerProps {
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
   onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
   onAddUserModule: (draft: UserDefinedFunctionalModuleDraft) => UserModuleMaterializationResult;
+  onAddDesignedSender: (
+    draft: UserDefinedFunctionalModuleDraft,
+    authoritativeSignal: DesignedSenderSignalIdentity | null,
+  ) => UserModuleMaterializationResult;
   initialDetailTarget?: BfnCatalogDetailTarget;
   presentationLoader?: () => ReleaseCatalogPresentation;
   runtimeCandidateBuilder?: BfnCatalogRuntimeCandidateBuilder;
@@ -68,12 +74,15 @@ type SelectedEntry =
   | { kind: 'sender'; groupId: string }
   | { kind: 'component'; groupId: string };
 
+type AuthoringMode = 'generic' | 'designed_sender';
+
 export function BfnCatalogDiscoveryDrawer({
   project,
   onClose,
   onAddBuiltInModule,
   onInstantiateCatalogResponse,
   onAddUserModule,
+  onAddDesignedSender,
   initialDetailTarget,
   presentationLoader = loadReleaseCatalogPresentation,
   runtimeCandidateBuilder,
@@ -98,7 +107,7 @@ export function BfnCatalogDiscoveryDrawer({
   const [detailTarget, setDetailTarget] = useState<BfnCatalogDetailTarget | null>(
     () => initialDetailTarget ?? null,
   );
-  const [authoringOpen, setAuthoringOpen] = useState(false);
+  const [authoringMode, setAuthoringMode] = useState<AuthoringMode | null>(null);
   const loadResult = useMemo(() => {
     try {
       const presentation = presentationLoader();
@@ -214,15 +223,15 @@ export function BfnCatalogDiscoveryDrawer({
   };
   const backToCatalog = (): void => {
     setDetailTarget(null);
-    setAuthoringOpen(false);
+    setAuthoringMode(null);
     window.requestAnimationFrame(() => {
       if (bodyRef.current) bodyRef.current.scrollTop = listScrollTopRef.current;
     });
   };
-  const openAuthoring = (): void => {
+  const openAuthoring = (mode: AuthoringMode): void => {
     listScrollTopRef.current = bodyRef.current?.scrollTop ?? 0;
     setDetailTarget(null);
-    setAuthoringOpen(true);
+    setAuthoringMode(mode);
     window.requestAnimationFrame(() => {
       if (bodyRef.current) bodyRef.current.scrollTop = 0;
     });
@@ -235,6 +244,7 @@ export function BfnCatalogDiscoveryDrawer({
       onAddBuiltInModule={onAddBuiltInModule}
       onInstantiateCatalogResponse={onInstantiateCatalogResponse}
       onAddUserModule={onAddUserModule}
+      onAddDesignedSender={onAddDesignedSender}
       language={language}
       searchRef={searchRef}
       bodyRef={bodyRef}
@@ -250,7 +260,7 @@ export function BfnCatalogDiscoveryDrawer({
       detail={detailResult.detail}
       detailSemantic={detailSemantic}
       detailOpen={detailTarget !== null}
-      authoringOpen={authoringOpen}
+      authoringMode={authoringMode}
       detailError={detailResult.error}
       isExpanded={isExpanded}
       onToggleGroup={toggleGroup}
@@ -274,6 +284,10 @@ interface DiscoveryDrawerSurfaceProps {
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
   onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
   onAddUserModule: (draft: UserDefinedFunctionalModuleDraft) => UserModuleMaterializationResult;
+  onAddDesignedSender: (
+    draft: UserDefinedFunctionalModuleDraft,
+    authoritativeSignal: DesignedSenderSignalIdentity | null,
+  ) => UserModuleMaterializationResult;
   language: ReleaseCatalogLanguage;
   searchRef: RefObject<HTMLInputElement | null>;
   bodyRef: RefObject<HTMLDivElement | null>;
@@ -289,14 +303,14 @@ interface DiscoveryDrawerSurfaceProps {
   detail: BfnCatalogDetail | null;
   detailSemantic: BfnSemanticPresentation | null;
   detailOpen: boolean;
-  authoringOpen: boolean;
+  authoringMode: AuthoringMode | null;
   detailError: boolean;
   isExpanded: (groupId: string) => boolean;
   onToggleGroup: (group: BfnCatalogDiscoveryGroup) => void;
   onSelect: (entry: SelectedEntry) => void;
   onViewDetails: (target: BfnCatalogDetailTarget) => void;
   onBackToCatalog: () => void;
-  onOpenAuthoring: () => void;
+  onOpenAuthoring: (mode: AuthoringMode) => void;
   onQueryChange: (value: string) => void;
   onStatusChange: (value: BfnCatalogDiscoveryStatusFilter | 'all') => void;
   onFunctionalFamilyChange: (value: BfnFunctionalFamilyId | 'all') => void;
@@ -307,8 +321,10 @@ interface DiscoveryDrawerSurfaceProps {
 
 function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
   const { t } = useTranslation();
-  const footerKey = props.authoringOpen
-    ? 'bfn.userAuthoring.footer'
+  const footerKey = props.authoringMode
+    ? props.authoringMode === 'designed_sender'
+      ? 'bfn.designedSender.footer'
+      : 'bfn.userAuthoring.footer'
     : props.detail?.kind === 'response' && props.detail.canAddToNetwork
       ? 'bfn.catalogDetail.runnableFooter'
       : props.detailOpen
@@ -331,21 +347,27 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
           if (event.key !== 'Escape') return;
           event.preventDefault();
           event.stopPropagation();
-          if (props.detailOpen || props.authoringOpen) props.onBackToCatalog();
+          if (props.detailOpen || props.authoringMode) props.onBackToCatalog();
           else props.onClose();
         }}
       >
-        <DiscoveryDrawerHeader authoringOpen={props.authoringOpen} onClose={props.onClose} />
+        <DiscoveryDrawerHeader authoringMode={props.authoringMode} onClose={props.onClose} />
         <div
           ref={props.bodyRef}
           className="bfn-catalog-discovery__body"
-          data-view={props.authoringOpen ? 'authoring' : props.detailOpen ? 'detail' : 'catalog'}
+          data-view={props.authoringMode ? 'authoring' : props.detailOpen ? 'detail' : 'catalog'}
         >
-          {props.authoringOpen ? (
+          {props.authoringMode === 'generic' ? (
             <BfnUserModuleAuthoring
               project={props.project}
               onBack={props.onBackToCatalog}
               onAdd={props.onAddUserModule}
+            />
+          ) : props.authoringMode === 'designed_sender' ? (
+            <BfnDesignedSenderAuthoring
+              project={props.project}
+              onBack={props.onBackToCatalog}
+              onAdd={props.onAddDesignedSender}
             />
           ) : props.detail ? (
             <BfnCatalogDetailView
@@ -360,7 +382,7 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
             <CatalogDetailLoadError onBack={props.onBackToCatalog} />
           ) : (
             <>
-              <UserModuleAuthoringEntry onOpen={props.onOpenAuthoring} />
+              <UserModuleAuthoringEntries onOpen={props.onOpenAuthoring} />
               <BuiltInModuleDisclosure project={props.project} onAdd={props.onAddBuiltInModule} />
               <DiscoveryCatalogBody {...props} />
             </>
@@ -376,20 +398,30 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
 }
 
 function DiscoveryDrawerHeader({
-  authoringOpen,
+  authoringMode,
   onClose,
 }: {
-  authoringOpen: boolean;
+  authoringMode: AuthoringMode | null;
   onClose: () => void;
 }) {
   const { t } = useTranslation();
+  const kickerKey =
+    authoringMode === 'designed_sender'
+      ? 'bfn.designedSender.kicker'
+      : authoringMode === 'generic'
+        ? 'bfn.userAuthoring.kicker'
+        : 'bfn.catalogDiscovery.kicker';
+  const titleKey =
+    authoringMode === 'designed_sender'
+      ? 'bfn.designedSender.title'
+      : authoringMode === 'generic'
+        ? 'bfn.userAuthoring.title'
+        : 'bfn.catalogDiscovery.title';
   return (
     <header className="bfn-drawer__header bfn-catalog-discovery__header">
       <div>
-        <span>{t(authoringOpen ? 'bfn.userAuthoring.kicker' : 'bfn.catalogDiscovery.kicker')}</span>
-        <h2 id="bfn-catalog-discovery-title">
-          {t(authoringOpen ? 'bfn.userAuthoring.title' : 'bfn.catalogDiscovery.title')}
-        </h2>
+        <span>{t(kickerKey)}</span>
+        <h2 id="bfn-catalog-discovery-title">{t(titleKey)}</h2>
       </div>
       <button
         className="bfn-drawer__close"
@@ -403,19 +435,52 @@ function DiscoveryDrawerHeader({
   );
 }
 
-function UserModuleAuthoringEntry({ onOpen }: { onOpen: () => void }) {
+function UserModuleAuthoringEntries({ onOpen }: { onOpen: (mode: AuthoringMode) => void }) {
   const { t } = useTranslation();
   return (
-    <section className="bfn-user-authoring-entry" aria-labelledby="bfn-user-authoring-entry-title">
+    <div className="bfn-user-authoring-entries">
+      <AuthoringEntry
+        id="bfn-user-authoring-entry"
+        title={t('bfn.userAuthoring.entryTitle')}
+        description={t('bfn.userAuthoring.entryDescription')}
+        action={t('bfn.userAuthoring.entryAction')}
+        onOpen={() => onOpen('generic')}
+      />
+      <AuthoringEntry
+        id="bfn-designed-sender-entry"
+        title={t('bfn.designedSender.entryTitle')}
+        description={t('bfn.designedSender.entryDescription')}
+        action={t('bfn.designedSender.entryAction')}
+        onOpen={() => onOpen('designed_sender')}
+      />
+    </div>
+  );
+}
+
+function AuthoringEntry({
+  id,
+  title,
+  description,
+  action,
+  onOpen,
+}: {
+  id: string;
+  title: string;
+  description: string;
+  action: string;
+  onOpen: () => void;
+}) {
+  return (
+    <section className="bfn-user-authoring-entry" aria-labelledby={id}>
       <div className="bfn-user-authoring-entry__icon" aria-hidden="true">
         <Icon name="flask" size={18} />
       </div>
       <div>
-        <strong id="bfn-user-authoring-entry-title">{t('bfn.userAuthoring.entryTitle')}</strong>
-        <p>{t('bfn.userAuthoring.entryDescription')}</p>
+        <strong id={id}>{title}</strong>
+        <p>{description}</p>
       </div>
       <Button size="sm" variant="secondary" onClick={onOpen}>
-        {t('bfn.userAuthoring.entryAction')}
+        {action}
       </Button>
     </section>
   );

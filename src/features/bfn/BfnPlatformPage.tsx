@@ -73,6 +73,7 @@ import { runBfnSimulation } from './simulation';
 import { resolveBfnModuleTemporalCapability } from './temporal/temporalCapability';
 import type { BfnTemporalCapability } from './temporal/temporalTypes';
 import type { UserDefinedFunctionalModuleDraft } from './user-defined/userModuleContract';
+import type { DesignedSenderSignalIdentity } from './user-defined/designed-sender/designedSenderSignalCatalog';
 import {
   materializeUserDefinedStaticModule,
   type UserModuleMaterializationResult,
@@ -832,6 +833,31 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setModulePickerOpen(false);
     setCatalogInitialDetailTarget(null);
     setNotice(t('bfn.notices.userModuleAdded'));
+    return outcome;
+  };
+
+  const addDesignedSender = (
+    draft: UserDefinedFunctionalModuleDraft,
+    authoritativeSignal: DesignedSenderSignalIdentity | null,
+  ): UserModuleMaterializationResult => {
+    const outcome = materializeUserDefinedStaticModule(draft, projectRef.current, {
+      authoritativeEntities: authoritativeSignal
+        ? [{ id: authoritativeSignal.entityId, displayName: authoritativeSignal.displayName }]
+        : [],
+    });
+    if (!outcome.ok) return outcome;
+    const changed = performProjectEdit(() => outcome.nextProject);
+    if (!changed) {
+      return {
+        ok: false,
+        issues: [{ code: 'generated_id_collision', path: 'id' }],
+      };
+    }
+    selectNode(outcome.addedModuleId);
+    setView('design');
+    setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
+    setNotice(t('bfn.notices.designedSenderAdded'));
     return outcome;
   };
 
@@ -2045,6 +2071,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           onAddBuiltInModule={addCatalogModule}
           onInstantiateCatalogResponse={addCatalogResponse}
           onAddUserModule={addUserDefinedModule}
+          onAddDesignedSender={addDesignedSender}
           {...(catalogInitialDetailTarget
             ? { initialDetailTarget: catalogInitialDetailTarget }
             : {})}

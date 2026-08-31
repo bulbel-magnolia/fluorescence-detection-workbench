@@ -547,7 +547,7 @@ describe('BFN catalog discovery drawer', () => {
     const builtIn = dialog.querySelector('.bfn-built-in-modules');
     const body = dialog.querySelector('.bfn-catalog-discovery__body');
     expect(builtIn).not.toHaveAttribute('open');
-    expect(body?.firstElementChild).toHaveClass('bfn-user-authoring-entry');
+    expect(body?.firstElementChild).toHaveClass('bfn-user-authoring-entries');
     expect(body?.firstElementChild?.nextElementSibling).toBe(builtIn);
     expect(builtIn?.nextElementSibling).toHaveClass('bfn-catalog-release-summary');
     await user.click(within(dialog).getByText('内置示例模块'));
@@ -576,6 +576,27 @@ describe('BFN catalog discovery drawer', () => {
     expect(within(authoring).getByRole('form', { name: '自定义功能模块' })).toBeInTheDocument();
     expect(project).toEqual(snapshot);
     expect(onAddUserModule).not.toHaveBeenCalled();
+
+    await user.click(within(authoring).getByRole('button', { name: '取消' }));
+    expect(screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' })).toBeInTheDocument();
+    expect(project).toEqual(snapshot);
+  });
+
+  it('shows a separate Designed Sender entry and opens it without mutating the Project', async () => {
+    const user = userEvent.setup();
+    const project = createDemoBfnProject();
+    const snapshot = structuredClone(project);
+    const onAddDesignedSender = vi.fn(() => ({ ok: false as const, issues: [] }));
+    renderDrawer({ project, onAddDesignedSender });
+    const catalog = screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' });
+
+    expect(within(catalog).getByText('自定义功能模块')).toBeInTheDocument();
+    expect(within(catalog).getByText('设计发送模块')).toBeInTheDocument();
+    await user.click(within(catalog).getByRole('button', { name: '开始设计' }));
+    const authoring = screen.getByRole('dialog', { name: '设计发送模块' });
+    expect(within(authoring).getByRole('form', { name: '设计发送模块' })).toBeInTheDocument();
+    expect(project).toEqual(snapshot);
+    expect(onAddDesignedSender).not.toHaveBeenCalled();
 
     await user.click(within(authoring).getByRole('button', { name: '取消' }));
     expect(screen.getByRole('dialog', { name: 'AHL/HSL 文献目录' })).toBeInTheDocument();
@@ -634,6 +655,7 @@ function renderDrawer(
       onAddBuiltInModule={vi.fn()}
       onInstantiateCatalogResponse={vi.fn()}
       onAddUserModule={vi.fn(() => ({ ok: false as const, issues: [] }))}
+      onAddDesignedSender={vi.fn(() => ({ ok: false as const, issues: [] }))}
       {...overrides}
     />,
   );
