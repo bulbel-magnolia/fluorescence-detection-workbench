@@ -41,16 +41,24 @@ export function materializeUserDefinedDynamicModule(
     ...(draft.context.state === 'defined' ? [`${draft.id}.context.v1`] : []),
     ...draft.evidence.provenance.map((record) => record.id),
   ];
-  const duplicateProposedIds = proposedIds.filter((id, index) => proposedIds.indexOf(id) !== index);
-  if (
-    collectDefinedIds(project).has(dynamicModelId) ||
-    duplicateProposedIds.includes(dynamicModelId)
-  ) {
+  const generatedIds = new Set(proposedIds);
+  const duplicateDynamicModelId = proposedIds.filter((id) => id === dynamicModelId).length > 1;
+  const existingIds = collectDefinedIds(project);
+  const projectNonEntityIds = collectProjectNonEntityIds(project);
+  const collidingEntityIds = uniqueStrings(
+    draft.ports
+      .map((port) => port.entity.id)
+      .filter((entityId) => generatedIds.has(entityId) || projectNonEntityIds.has(entityId)),
+  );
+  if (existingIds.has(dynamicModelId) || duplicateDynamicModelId || collidingEntityIds.length > 0) {
     return failure([
       {
         code: 'generated_id_collision',
         path: 'id',
-        details: [dynamicModelId],
+        details: uniqueStrings([
+          ...(existingIds.has(dynamicModelId) || duplicateDynamicModelId ? [dynamicModelId] : []),
+          ...collidingEntityIds,
+        ]),
       },
     ]);
   }
@@ -224,18 +232,38 @@ function normalizeUncertainty(
   return { state: 'not_recorded' };
 }
 
-function toParameterEstimate(parameter: {
-  readonly value: number;
-  readonly unit: string;
-  readonly interval95?: readonly [number, number];
-}): BfnParameterEstimate | null {
-  if (parameter.unit !== 'h' || !Number.isFinite(parameter.value) || parameter.value <= 0) {
+function toParameterEstimate(parameter: unknown): BfnParameterEstimate | null {
+  if (!isRecord(parameter)) return null;
+  const value = parameter.value;
+  if (
+    typeof value !== 'number' ||
+    !Number.isFinite(value) ||
+    value <= 0 ||
+    parameter.unit !== 'h'
+  ) {
+    return null;
+  }
+  const interval = parameter.interval95;
+  if (interval === undefined) return { value, unit: 'h' };
+  if (!isTwoItemArray(interval)) return null;
+  const lower = interval[0];
+  const upper = interval[1];
+  if (
+    typeof lower !== 'number' ||
+    typeof upper !== 'number' ||
+    !Number.isFinite(lower) ||
+    !Number.isFinite(upper) ||
+    lower <= 0 ||
+    lower > upper ||
+    value < lower ||
+    value > upper
+  ) {
     return null;
   }
   return {
-    value: parameter.value,
+    value,
     unit: 'h',
-    ...(parameter.interval95 ? { interval95: [...parameter.interval95] as [number, number] } : {}),
+    interval95: [lower, upper],
   };
 }
 
@@ -248,6 +276,24 @@ function collectDefinedIds(value: unknown, ids = new Set<string>()): ReadonlySet
   if (typeof value.id === 'string') ids.add(value.id);
   for (const child of Object.values(value)) collectDefinedIds(child, ids);
   return ids;
+}
+
+function collectProjectNonEntityIds(project: BfnProject): ReadonlySet<string> {
+  return collectDefinedIds({
+    ...project,
+    registry: {
+      ...project.registry,
+      entities: [],
+    },
+  });
+}
+
+function uniqueStrings(values: readonly string[]): string[] {
+  return [...new Set(values)];
+}
+
+function isTwoItemArray(value: unknown): value is readonly [unknown, unknown] {
+  return Array.isArray(value) && value.length === 2;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

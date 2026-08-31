@@ -139,8 +139,9 @@ function validateDynamics(
     if (tau.unit !== 'h') {
       issues.push(issue('semantic', 'dynamic_tau_unit_invalid', 'dynamics.tau.unit'));
     }
-    if (isEnvelopeUncertainty(draft.uncertainty)) {
-      validateTauInterval(tau.interval95, value, issues);
+    const interval = tau.interval95;
+    if (interval !== undefined || isEnvelopeUncertainty(draft.uncertainty)) {
+      validateTauInterval(interval, value, issues);
     }
   }
 
@@ -155,8 +156,12 @@ function validateTauInterval(
   estimate: number,
   issues: UserModuleDynamicContractIssue[],
 ): void {
-  if (!isInterval(interval)) {
+  if (interval === undefined) {
     issues.push(issue('semantic', 'dynamic_tau_interval_missing', 'dynamics.tau.interval95'));
+    return;
+  }
+  if (!isInterval(interval)) {
+    issues.push(issue('semantic', 'dynamic_tau_interval_invalid', 'dynamics.tau.interval95'));
     return;
   }
   const [lower, upper] = interval;

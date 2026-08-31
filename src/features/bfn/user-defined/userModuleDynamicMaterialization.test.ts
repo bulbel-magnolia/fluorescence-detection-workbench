@@ -92,6 +92,35 @@ function dynamicDraft(
   };
 }
 
+function draftWithPortEntityId(
+  draft: UserDefinedDynamicFunctionalModuleDraft,
+  entityId: string,
+): UserDefinedDynamicFunctionalModuleDraft {
+  return {
+    ...draft,
+    ports: draft.ports.map((port, index) =>
+      index === 0 ? { ...port, entity: { ...port.entity, id: entityId } } : port,
+    ),
+  };
+}
+
+function expectEntityIdCollision(entityId: string): void {
+  const project = createDemoBfnProject();
+  const projectBefore = structuredClone(project);
+  const result = materializeUserDefinedDynamicModule(
+    draftWithPortEntityId(dynamicDraft(), entityId),
+    project,
+  );
+  expect(result.ok).toBe(false);
+  if (!result.ok) {
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: 'generated_id_collision' }),
+    );
+    expect(result.issues.some((issue) => issue.details?.includes(entityId))).toBe(true);
+  }
+  expect(project).toEqual(projectBefore);
+}
+
 function materializedConnectedProject(mode: 'static' | 'dynamic'): BfnProject {
   const base = createDemoBfnProject();
   base.network.mode = mode;
@@ -108,7 +137,7 @@ function materializedConnectedProject(mode: 'static' | 'dynamic'): BfnProject {
         direction: 'output',
       },
       staticSpecification: { type: 'fixed_value', value: 20, unit: 'nM' },
-      dynamicSpecification: { type: 'constant', value: 20, unit: 'nM' },
+      dynamicSpecification: { type: 'step', before: 0, after: 20, atHours: 1, unit: 'nM' },
       position: { x: 30, y: 200 },
     },
   ];
@@ -241,6 +270,39 @@ describe('user-defined first-order dynamic module materialization', () => {
     });
   });
 
+  it('rejects a port entity ID equal to the generated dynamic model ID', () => {
+    expectEntityIdCollision('user.module.dynamic-materialized.model.dynamic.v1');
+  });
+
+  it('rejects a port entity ID equal to a generated static sidecar ID', () => {
+    expectEntityIdCollision('user.module.dynamic-materialized.model.static.v1');
+  });
+
+  it('rejects a port entity ID equal to an existing non-entity project object ID', () => {
+    expectEntityIdCollision('module-ahl-sensor');
+  });
+
+  it('allows repeated ports to reuse one entity ID', () => {
+    const draft = dynamicDraft();
+    const sharedEntityId = 'entity.dynamic.shared';
+    const result = materializeUserDefinedDynamicModule(
+      {
+        ...draft,
+        ports: draft.ports.map((port) => ({
+          ...port,
+          entity: { ...port.entity, id: sharedEntityId, displayName: 'Shared entity' },
+        })),
+      },
+      createDemoBfnProject(),
+    );
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(
+        result.nextProject.registry.entities.filter((entity) => entity.id === sharedEntityId),
+      ).toHaveLength(1);
+    }
+  });
+
   it('rejects a reported envelope without a tau interval before materializing any sidecar', () => {
     const project = createDemoBfnProject();
     const draft = dynamicDraft({ dynamics: { tau: { value: 2, unit: 'h' }, initialState: 0.1 } });
@@ -255,6 +317,53 @@ describe('user-defined first-order dynamic module materialization', () => {
     }
     expect(project.network.modules).toHaveLength(createDemoBfnProject().network.modules.length);
     expect(project.registry.entities).toEqual(createDemoBfnProject().registry.entities);
+  });
+
+  it('distinguishes malformed optional tau intervals from a missing envelope interval', () => {
+    const uncertaintyStates = [
+      { state: 'none' as const },
+      { state: 'not_recorded' as const },
+      { state: 'reported' as const, method: 'parameter_interval_envelope' as const },
+      { state: 'parameter_interval_envelope' as const },
+    ];
+    const malformedIntervals: readonly unknown[] = [
+      null,
+      [2],
+      [Number.NaN, 3],
+      [0, 3],
+      [3, 2],
+      [1, 1.5],
+    ];
+    for (const uncertainty of uncertaintyStates) {
+      for (const interval of malformedIntervals) {
+        const draft = dynamicDraft({ uncertainty });
+        Object.assign(draft.dynamics.tau, { interval95: interval });
+        const result = materializeUserDefinedDynamicModule(draft, createDemoBfnProject());
+        expect(result.ok).toBe(false);
+        if (!result.ok) {
+          expect(
+            result.issues.some((issue) =>
+              issue.details?.some(
+                (detail) =>
+                  detail.includes('dynamic_tau_interval_invalid') ||
+                  detail.includes('dynamic_tau_interval_estimate_outside'),
+              ),
+            ),
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  it('allows a missing tau interval when uncertainty is not recorded', () => {
+    const result = materializeUserDefinedDynamicModule(
+      dynamicDraft({
+        uncertainty: { state: 'not_recorded' },
+        dynamics: { tau: { value: 2, unit: 'h' }, initialState: 0.1 },
+      }),
+      createDemoBfnProject(),
+    );
+    expect(result.ok).toBe(true);
   });
 
   it('does not add graph artifacts or a Signal Pool/Run sidecar', () => {
@@ -283,17 +392,28 @@ describe('user-defined first-order dynamic module materialization', () => {
 
     const dynamicProject = materializedConnectedProject('dynamic');
     dynamicProject.analysis.durationHours = 8;
-    dynamicProject.analysis.timeStepHours = 1;
+    dynamicProject.analysis.timeStepHours = 0.5;
     const dynamicResult = runBfnSimulation(dynamicProject);
     const outputs = dynamicResult.points.map((point) => point.output);
+    const preStepPoints = dynamicResult.points.filter((point) => (point.timeHours ?? 0) < 1);
+    const postStepPoints = dynamicResult.points.filter((point) => (point.timeHours ?? 0) >= 1);
     expect(dynamicResult.temporalSnapshot?.modules[0]).toMatchObject({
       selectedModelId: 'user.module.dynamic-materialized.model.dynamic.v1',
       executionMode: 'stateful_dynamic',
       evidenceTier: 'not_recorded',
     });
     expect(outputs[0]).toBeCloseTo(0.1, 8);
-    expect(outputs.every((value, index) => index === 0 || value >= outputs[index - 1]!)).toBe(true);
-    expect(outputs.at(-1)).toBeGreaterThan(outputs[0]!);
+    expect(preStepPoints.length).toBeGreaterThan(1);
+    expect(preStepPoints.every((point) => Math.abs(point.output - outputs[0]!) < 1e-8)).toBe(true);
+    expect(preStepPoints.every((point) => point.inputs['source-dynamic-test'] === 0)).toBe(true);
+    expect(preStepPoints.at(-1)?.output).toBeCloseTo(outputs[0]!, 8);
+    expect(postStepPoints[0]?.inputs['source-dynamic-test']).toBe(20);
+    expect(
+      postStepPoints.every(
+        (point, index) => index === 0 || point.output >= postStepPoints[index - 1]!.output,
+      ),
+    ).toBe(true);
+    expect(postStepPoints[0]?.output).toBeGreaterThan(preStepPoints.at(-1)?.output ?? 0);
     expect(outputs.at(-1)).toBeCloseTo(staticResult.points[0]!.output, 1);
   });
 
