@@ -7,7 +7,6 @@ import type {
   UserModuleModelDraft,
   UserModuleParameterDraft,
   UserModulePortDraft,
-  UserModuleUncertaintyDraft,
   UserModuleValidityDomainDraft,
 } from './userModuleContract';
 
@@ -23,15 +22,9 @@ export interface UserDefinedDynamicFunctionalModuleDraft {
   readonly name: string;
   readonly description: string | null;
   readonly ports: readonly UserModulePortDraft[];
-  /** Canonical steady-state response field. */
-  readonly steadyStateResponse?: UserModuleModelDraft;
-  /** Compatibility alias for callers that use the static draft's model key. */
-  readonly model?: UserModuleModelDraft;
+  readonly steadyStateResponse: UserModuleModelDraft;
   readonly validityDomains: readonly UserModuleValidityDomainDraft[];
-  readonly dynamics?: UserModuleDynamicParametersDraft;
-  /** Compatibility aliases for the BFN-IR dynamic model's top-level fields. */
-  readonly tau?: UserModuleParameterDraft;
-  readonly initialState?: number;
+  readonly dynamics: UserModuleDynamicParametersDraft;
   readonly timeRangeHours?: readonly [number, number];
   readonly context: UserModuleContextDraft;
   readonly uncertainty: UserModuleDynamicUncertaintyDraft;
@@ -50,10 +43,10 @@ export interface UserModuleDynamicParametersDraft {
  * convenience and normalized to the static contract's reported/method form.
  */
 export type UserModuleDynamicUncertaintyDraft =
-  UserModuleUncertaintyDraft | { readonly state: 'parameter_interval_envelope' };
-
-export type UserDefinedFirstOrderFunctionalModuleDraft = UserDefinedDynamicFunctionalModuleDraft;
-export type UserModuleDynamicDraft = UserDefinedDynamicFunctionalModuleDraft;
+  | { readonly state: 'not_recorded' }
+  | { readonly state: 'none' }
+  | { readonly state: 'reported'; readonly method: 'parameter_interval_envelope' }
+  | { readonly state: 'parameter_interval_envelope' };
 
 export type UserModuleDynamicContractIssueCode =
   | UserModuleContractIssue['code']

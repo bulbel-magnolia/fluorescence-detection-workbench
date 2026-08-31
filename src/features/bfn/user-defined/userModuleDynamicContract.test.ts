@@ -1,8 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  UserDefinedDynamicFunctionalModuleDraft,
-  UserModuleDynamicDraft,
-} from './userModuleDynamicContract';
+import type { UserDefinedDynamicFunctionalModuleDraft } from './userModuleDynamicContract';
 import { assessUserDefinedDynamicFunctionalModule } from './userModuleDynamicValidation';
 
 describe('user-defined first-order dynamic module authoring contract', () => {
@@ -11,7 +8,7 @@ describe('user-defined first-order dynamic module authoring contract', () => {
       createDynamicDraft(),
       createDynamicDraft({
         steadyStateResponse: {
-          ...createDynamicDraft().steadyStateResponse!,
+          ...createDynamicDraft().steadyStateResponse,
           family: 'hill_repression',
         },
       }),
@@ -122,7 +119,7 @@ describe('user-defined first-order dynamic module authoring contract', () => {
         initialState: 0,
       },
       steadyStateResponse: {
-        ...createDynamicDraft().steadyStateResponse!,
+        ...createDynamicDraft().steadyStateResponse,
         parameters: {
           k: { value: 10, unit: 'nM', interval95: [8, 12] },
           n: { value: 2, unit: 'dimensionless' },
@@ -141,7 +138,7 @@ describe('user-defined first-order dynamic module authoring contract', () => {
       const assessment = assessUserDefinedDynamicFunctionalModule(
         createDynamicDraft({
           steadyStateResponse: {
-            ...createDynamicDraft().steadyStateResponse!,
+            ...createDynamicDraft().steadyStateResponse,
             family,
           },
         }),
@@ -153,13 +150,26 @@ describe('user-defined first-order dynamic module authoring contract', () => {
     const expression = assessUserDefinedDynamicFunctionalModule(
       createDynamicDraft({
         steadyStateResponse: {
-          ...createDynamicDraft().steadyStateResponse!,
+          ...createDynamicDraft().steadyStateResponse,
           expression: 'sin(x)',
         },
       }),
     );
     expect(expression.semantic.state).toBe('invalid');
     expect(issueCodes(expression)).toContain('dynamic_steady_state_expression_unsupported');
+
+    for (const explicitExpression of ['', '  \t  ']) {
+      const assessment = assessUserDefinedDynamicFunctionalModule(
+        createDynamicDraft({
+          steadyStateResponse: {
+            ...createDynamicDraft().steadyStateResponse,
+            expression: explicitExpression,
+          },
+        }),
+      );
+      expect(assessment.semantic.state).toBe('invalid');
+      expect(issueCodes(assessment)).toContain('dynamic_steady_state_expression_unsupported');
+    }
   });
 
   it('retains static Context, Evidence, provenance, Implementation, and uncertainty semantics', () => {
@@ -183,7 +193,15 @@ describe('user-defined first-order dynamic module authoring contract', () => {
 
     for (const method of ['posterior_samples', 'bootstrap', 'covariance']) {
       const assessment = assessUserDefinedDynamicFunctionalModule(
-        createDynamicDraft({ uncertainty: { state: 'reported', method } }),
+        createDynamicDraft({ uncertainty: { state: 'reported', method } as never }),
+      );
+      expect(assessment.semantic.state).toBe('invalid');
+      expect(issueCodes(assessment)).toContain('dynamic_uncertainty_method_invalid');
+    }
+
+    for (const malformed of [null, undefined, {}, { state: 'posterior_samples' }]) {
+      const assessment = assessUserDefinedDynamicFunctionalModule(
+        createDynamicDraft({ uncertainty: malformed as never }),
       );
       expect(assessment.semantic.state).toBe('invalid');
       expect(issueCodes(assessment)).toContain('dynamic_uncertainty_method_invalid');
@@ -347,6 +365,3 @@ function issueCodes(assessment: {
     ...assessment.implementation.issues,
   ].map((issue) => issue.code);
 }
-
-const _typeAliasSmoke: UserModuleDynamicDraft | null = null;
-void _typeAliasSmoke;

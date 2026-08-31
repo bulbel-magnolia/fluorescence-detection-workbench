@@ -26,7 +26,7 @@ export function assessUserDefinedDynamicFunctionalModule(
 ): UserDefinedDynamicFunctionalModuleAssessment {
   const staticAssessment = assessUserDefinedFunctionalModule(toStaticDraft(draft));
   const dynamicIssues: UserModuleDynamicContractIssue[] = [];
-  const steadyStateResponse = resolveSteadyStateResponse(draft);
+  const steadyStateResponse = draft.steadyStateResponse;
 
   validateSteadyStateExpression(steadyStateResponse, dynamicIssues);
   validateDynamics(draft, dynamicIssues);
@@ -72,10 +72,6 @@ export function assessUserDefinedDynamicFunctionalModule(
   });
 }
 
-/** Alias kept short for callers that use the dynamic draft terminology. */
-export const assessUserDefinedDynamicModule = assessUserDefinedDynamicFunctionalModule;
-export const validateUserDefinedDynamicFunctionalModule = assessUserDefinedDynamicFunctionalModule;
-
 function toStaticDraft(
   draft: UserDefinedDynamicFunctionalModuleDraft,
 ): UserDefinedFunctionalModuleDraft {
@@ -85,7 +81,7 @@ function toStaticDraft(
     name: draft.name,
     description: draft.description,
     ports: draft.ports,
-    model: resolveSteadyStateResponse(draft) ?? emptyModel(),
+    model: draft.steadyStateResponse,
     validityDomains: draft.validityDomains,
     context: draft.context,
     uncertainty: normalizeUncertainty(draft.uncertainty),
@@ -94,39 +90,27 @@ function toStaticDraft(
   };
 }
 
-function resolveSteadyStateResponse(
-  draft: UserDefinedDynamicFunctionalModuleDraft,
-): UserModuleModelDraft | undefined {
-  return draft.steadyStateResponse ?? draft.model;
-}
-
-function emptyModel(): UserModuleModelDraft {
-  return {
-    family: '',
-    inputPortIds: [],
-    outputPortIds: [],
-    parameters: {},
-  };
-}
-
 function normalizeUncertainty(
   uncertainty: UserModuleDynamicUncertaintyDraft | undefined,
 ): UserModuleUncertaintyDraft {
   if (!uncertainty || typeof uncertainty !== 'object') return { state: 'not_recorded' };
-  if (uncertainty.state === 'parameter_interval_envelope') {
+  if (
+    uncertainty.state === 'parameter_interval_envelope' ||
+    (uncertainty.state === 'reported' && uncertainty.method === 'parameter_interval_envelope')
+  ) {
     return { state: 'reported', method: 'parameter_interval_envelope' };
   }
-  return uncertainty;
+  if (uncertainty.state === 'none' || uncertainty.state === 'not_recorded') {
+    return uncertainty;
+  }
+  return { state: 'not_recorded' };
 }
 
 function validateSteadyStateExpression(
   model: UserModuleModelDraft | undefined,
   issues: UserModuleDynamicContractIssue[],
 ): void {
-  if (
-    model?.expression !== undefined &&
-    (typeof model.expression !== 'string' || model.expression.trim().length > 0)
-  ) {
+  if (model && Object.prototype.hasOwnProperty.call(model, 'expression')) {
     issues.push(
       issue(
         'semantic',
@@ -141,7 +125,7 @@ function validateDynamics(
   draft: UserDefinedDynamicFunctionalModuleDraft,
   issues: UserModuleDynamicContractIssue[],
 ): void {
-  const tau = draft.dynamics?.tau ?? draft.tau;
+  const tau = draft.dynamics.tau;
   if (!isRecord(tau)) {
     issues.push(issue('semantic', 'dynamic_tau_missing', 'dynamics.tau'));
   } else {
@@ -159,7 +143,7 @@ function validateDynamics(
     }
   }
 
-  const initialState = draft.dynamics?.initialState ?? draft.initialState;
+  const initialState = draft.dynamics.initialState;
   if (!isFiniteNumber(initialState)) {
     issues.push(issue('semantic', 'dynamic_initial_state_non_finite', 'dynamics.initialState'));
   }
@@ -292,7 +276,8 @@ function validateCompleteInterval(
   }
 }
 
-function isEnvelopeUncertainty(uncertainty: UserModuleDynamicUncertaintyDraft): boolean {
+function isEnvelopeUncertainty(uncertainty: unknown): boolean {
+  if (!isRecord(uncertainty)) return false;
   return (
     uncertainty.state === 'parameter_interval_envelope' ||
     (uncertainty.state === 'reported' && uncertainty.method === 'parameter_interval_envelope')
