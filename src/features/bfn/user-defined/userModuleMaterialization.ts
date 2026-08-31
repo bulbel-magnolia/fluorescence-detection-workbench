@@ -36,7 +36,9 @@ export type UserModuleMaterializationIssueCode =
   | 'implementation_reference_missing'
   | 'defined_context_empty'
   | 'parameter_interval_incomplete'
+  | 'uncertainty_method_not_authorable'
   | 'entity_display_name_conflict'
+  | 'provenance_record_conflict'
   | 'generated_id_collision';
 
 export interface UserModuleMaterializationIssue {
@@ -63,12 +65,17 @@ interface MaterializationIds {
   readonly model: string;
   readonly domain: string;
   readonly context: string;
-  readonly provenance: readonly string[];
 }
 
 interface EntityAudit {
   readonly issues: readonly UserModuleMaterializationIssue[];
   readonly additions: readonly BfnEntityDefinition[];
+}
+
+interface ProvenanceAudit {
+  readonly issues: readonly UserModuleMaterializationIssue[];
+  readonly additions: readonly BfnProvenanceRecord[];
+  readonly references: readonly string[];
 }
 
 const provenanceKinds = new Set<string>([
@@ -120,6 +127,16 @@ export function materializeUserDefinedStaticModule(
       details: assessment.implementation.issues.map((item) => `${item.path}:${item.code}`),
     });
   }
+  if (
+    draft.uncertainty.state === 'reported' &&
+    draft.uncertainty.method !== 'parameter_interval_envelope'
+  ) {
+    gateIssues.push({
+      code: 'uncertainty_method_not_authorable',
+      path: 'uncertainty.method',
+      details: [draft.uncertainty.method],
+    });
+  }
   if (gateIssues.length > 0) return failure(gateIssues);
 
   if (draft.context.state === 'defined' && !hasDefinedContextFact(draft.context.facts)) {
@@ -157,6 +174,9 @@ export function materializeUserDefinedStaticModule(
     ]);
   }
 
+  const provenanceAudit = auditProvenance(draft, project);
+  if (provenanceAudit.issues.length > 0) return failure(provenanceAudit.issues);
+
   const ids = deriveIds(draft);
   const proposedIds = [
     draft.id,
@@ -164,7 +184,7 @@ export function materializeUserDefinedStaticModule(
     ids.model,
     ids.domain,
     ...(draft.context.state === 'defined' ? [ids.context] : []),
-    ...ids.provenance,
+    ...provenanceAudit.additions.map((record) => record.id),
   ];
   const existingIds = collectDefinedIds(project);
   const duplicateProposedIds = proposedIds.filter((id, index) => proposedIds.indexOf(id) !== index);
@@ -196,7 +216,6 @@ export function materializeUserDefinedStaticModule(
 
   const context = materializeContext(draft, ids.context);
   const contextId = context?.id ?? null;
-  const provenanceRecords = materializeProvenance(draft, ids.provenance);
   const inputRanges = draft.validityDomains.flatMap((domain) =>
     isUnit(domain.unit)
       ? [
@@ -240,7 +259,7 @@ export function materializeUserDefinedStaticModule(
         contextId,
         validityDomainId: ids.domain,
         sourceDatasetIds: [],
-        provenanceIds: provenanceRecords.map((record) => record.id),
+        provenanceIds: [...provenanceAudit.references],
         evidenceGrade,
         uncertaintyMethod,
         isDemo: false,
@@ -264,7 +283,7 @@ export function materializeUserDefinedStaticModule(
   nextProject.registry.entities.push(...entityAudit.additions);
   nextProject.registry.validityDomains.push(validityDomain);
   if (context) nextProject.registry.contexts.push(context);
-  nextProject.registry.provenanceRecords.push(...provenanceRecords);
+  nextProject.registry.provenanceRecords.push(...provenanceAudit.additions);
 
   return { ok: true, nextProject, addedModuleId: draft.id };
 }
@@ -274,9 +293,6 @@ function deriveIds(draft: UserDefinedFunctionalModuleDraft): MaterializationIds 
     model: `${draft.id}.model.static.v1`,
     domain: `${draft.id}.domain.v1`,
     context: `${draft.id}.context.v1`,
-    provenance: draft.evidence.provenance.map(
-      (_record, index) => `${draft.id}.provenance.${index + 1}`,
-    ),
   };
 }
 
@@ -426,15 +442,50 @@ function materializeContext(
   };
 }
 
-function materializeProvenance(
+function auditProvenance(
   draft: UserDefinedFunctionalModuleDraft,
-  ids: readonly string[],
-): BfnProvenanceRecord[] {
-  return draft.evidence.provenance.flatMap((record, index) => {
-    const id = ids[index];
-    if (!id || !isProvenanceKind(record.kind)) return [];
-    return [{ id, kind: record.kind, reference: record.reference }];
-  });
+  project: BfnProject,
+): ProvenanceAudit {
+  const existingById = new Map(
+    project.registry.provenanceRecords.map((record) => [record.id, record] as const),
+  );
+  const proposedById = new Map<string, BfnProvenanceRecord>();
+  const issues: UserModuleMaterializationIssue[] = [];
+  const additions: BfnProvenanceRecord[] = [];
+  const references: string[] = [];
+
+  for (const [index, record] of draft.evidence.provenance.entries()) {
+    if (!isProvenanceKind(record.kind)) continue;
+    const proposedRecord: BfnProvenanceRecord = {
+      id: record.id,
+      kind: record.kind,
+      reference: record.reference,
+    };
+    const existing = existingById.get(proposedRecord.id);
+    const proposed = proposedById.get(proposedRecord.id);
+    if (
+      (existing && !sameProvenanceRecord(existing, proposedRecord)) ||
+      (proposed && !sameProvenanceRecord(proposed, proposedRecord))
+    ) {
+      issues.push({
+        code: 'provenance_record_conflict',
+        path: `evidence.provenance[${index}]`,
+        details: [proposedRecord.id],
+      });
+      continue;
+    }
+    if (!proposed) {
+      proposedById.set(proposedRecord.id, proposedRecord);
+      if (!existing) additions.push(proposedRecord);
+    }
+    if (!references.includes(proposedRecord.id)) references.push(proposedRecord.id);
+  }
+
+  return { issues, additions, references };
+}
+
+function sameProvenanceRecord(left: BfnProvenanceRecord, right: BfnProvenanceRecord): boolean {
+  return left.kind === right.kind && left.reference === right.reference;
 }
 
 function auditEntities(draft: UserDefinedFunctionalModuleDraft, project: BfnProject): EntityAudit {
@@ -536,9 +587,6 @@ function toUncertaintyMethod(draft: UserDefinedFunctionalModuleDraft): BfnUncert
   if (draft.uncertainty.state === 'none') return 'none';
   const method = draft.uncertainty.method;
   if (method === 'parameter_interval_envelope') return method;
-  if (method === 'posterior_samples') return method;
-  if (method === 'bootstrap') return method;
-  if (method === 'covariance') return method;
   return null;
 }
 

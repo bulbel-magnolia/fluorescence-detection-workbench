@@ -1,6 +1,43 @@
 import { describe, expect, it } from 'vitest';
-import { createDemoBfnProject } from './fixtures';
+import { createCatalogModule, createDemoBfnProject } from './fixtures';
 import { runBfnSimulation } from './simulation';
+import type { BfnFunctionalModule, BfnProject } from './types';
+import { validateBfnProject } from './validation';
+
+function markAsUserDefined(module: BfnFunctionalModule, name: string): void {
+  module.authoring = { origin: 'user_defined', name, description: null };
+}
+
+function addSecondaryAuthoredPathWithMissingInput(project: BfnProject): BfnFunctionalModule {
+  const module = createCatalogModule('ahl-sensor', 'secondary-authored');
+  markAsUserDefined(module, 'Secondary authored module');
+  const outputPort = module.outputPorts[0]!;
+  project.network.modules.push(module);
+  project.network.outputMonitors.push({
+    kind: 'output_monitor',
+    id: 'monitor-secondary-authored',
+    labelKey: 'bfn.monitors.reporter',
+    inputPort: {
+      id: 'monitor-secondary-authored-in',
+      entity: outputPort.entity,
+      quantityType: outputPort.quantityType,
+      unit: outputPort.unit,
+      direction: 'input',
+    },
+    position: { x: 806, y: 320 },
+  });
+  project.network.edges.push({
+    id: 'edge-secondary-authored-monitor',
+    source: { nodeId: module.id, portId: outputPort.id },
+    target: {
+      nodeId: 'monitor-secondary-authored',
+      portId: 'monitor-secondary-authored-in',
+    },
+    mapping: 'identity',
+    enabled: true,
+  });
+  return module;
+}
 
 describe('BFN-IR complete-model simulation', () => {
   it('scans a static working range with uncertainty and an accepted local ANN approximation', () => {
@@ -159,5 +196,78 @@ describe('BFN-IR complete-model simulation', () => {
 
     expect(result.dynamicMetrics?.frequencyGain?.magnitude).toBeGreaterThan(0);
     expect(result.dynamicMetrics?.dcGain).toBeNull();
+  });
+});
+
+describe('target-monitor authored required-input safety', () => {
+  it('blocks simulation when the primary monitor path has an authored missing input', () => {
+    const project = createDemoBfnProject();
+    const primaryModule = project.network.modules[0]!;
+    markAsUserDefined(primaryModule, 'Primary authored module');
+    project.network.edges = project.network.edges.filter(
+      (edge) => edge.target.nodeId !== primaryModule.id,
+    );
+
+    expect(() => runBfnSimulation(project)).toThrow(
+      /BFN_VALIDATION_FAILED:.*missing_required_input/u,
+    );
+  });
+
+  it('runs the valid primary path when a second monitor path has an authored missing input', () => {
+    const project = createDemoBfnProject();
+    const secondaryModule = addSecondaryAuthoredPathWithMissingInput(project);
+    expect(validateBfnProject(project)).toContainEqual(
+      expect.objectContaining({
+        code: 'missing_required_input',
+        severity: 'error',
+        subjectId: secondaryModule.inputPorts[0]!.id,
+      }),
+    );
+
+    const result = runBfnSimulation(project);
+
+    expect(result.outputMonitorId).toBe(project.network.outputMonitors[0]!.id);
+    expect(result.points.every((point) => Number.isFinite(point.output))).toBe(true);
+    expect(result.validationIssues).toContainEqual(
+      expect.objectContaining({
+        code: 'missing_required_input',
+        severity: 'warning',
+        subjectId: secondaryModule.inputPorts[0]!.id,
+      }),
+    );
+  });
+
+  it('accepts an explicitly connected zero on the primary authored path', () => {
+    const project = createDemoBfnProject();
+    markAsUserDefined(project.network.modules[0]!, 'Primary authored module');
+    project.network.inputSources[0]!.staticSpecification = {
+      type: 'fixed_value',
+      value: 0,
+      unit: 'nM',
+    };
+
+    const result = runBfnSimulation(project);
+
+    expect(result.points).toHaveLength(1);
+    expect(result.points[0]?.inputs[project.network.inputSources[0]!.id]).toBe(0);
+    expect(Number.isFinite(result.points[0]!.output)).toBe(true);
+  });
+
+  it('does not let a completely unreachable authored module block the primary run', () => {
+    const project = createDemoBfnProject();
+    const unreachable = createCatalogModule('ahl-sensor', 'unreachable-authored');
+    markAsUserDefined(unreachable, 'Unreachable authored module');
+    project.network.modules.push(unreachable);
+
+    const result = runBfnSimulation(project);
+
+    expect(result.outputMonitorId).toBe(project.network.outputMonitors[0]!.id);
+    expect(result.validationIssues).toContainEqual(
+      expect.objectContaining({
+        code: 'missing_required_input',
+        severity: 'warning',
+        subjectId: unreachable.inputPorts[0]!.id,
+      }),
+    );
   });
 });

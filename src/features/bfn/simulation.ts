@@ -447,14 +447,14 @@ export function runBfnSimulation(
   project: BfnProject,
   completedAt = new Date().toISOString(),
 ): BfnSimulationResultV21 {
-  const baseIssues = validateBfnProject(project);
+  const monitor = project.network.outputMonitors[0];
+  const primarySource = project.network.inputSources[0];
+  if (!monitor || !primarySource) throw new Error('BFN_NETWORK_ENDPOINT_MISSING');
+  const baseIssues = validateBfnProject(project, { targetMonitorId: monitor.id });
   const fatal = baseIssues.filter((issue) => issue.severity === 'error');
   if (fatal.length > 0) {
     throw new Error(`BFN_VALIDATION_FAILED:${fatal.map((issue) => issue.code).join(',')}`);
   }
-  const monitor = project.network.outputMonitors[0];
-  const primarySource = project.network.inputSources[0];
-  if (!monitor || !primarySource) throw new Error('BFN_NETWORK_ENDPOINT_MISSING');
   const uncertaintySnapshot = createBfnRunUncertaintySnapshot(project, monitor.id);
   const intervalExecutable = uncertaintySnapshot.status === 'available';
   const simulation =

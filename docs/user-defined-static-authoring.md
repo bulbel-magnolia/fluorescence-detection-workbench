@@ -37,7 +37,8 @@ Batch 12.1 将冻结的用户模块科学合同接入生产建模路径，当前
 - `none`：作者明确声明没有提供不确定性模型；点估计可运行，定量区间不可用。
 - `not_recorded`：不确定性信息未记录；点估计可运行，定量区间不可用。
 - `parameter_interval_envelope`：Hill 的 `ymin/ymax/k/n`、线性的 `scale/intercept`，或独立作用模型的 `basal/outputMaximum` 与每个 term 的 `k/n/contribution` 均须提供有限、包围估计值的区间；完整时计算包络，不完整时只运行点估计。
-- `posterior_samples`、`bootstrap`、`covariance`：BFN-IR 2.2 可保存方法名称，当前没有足够的执行载荷；点估计可运行，区间标记为 `method_not_executable`。
+- 既有 BFN-IR 2.2 项目中的 `posterior_samples`、`bootstrap`、`covariance` 继续保持运行兼容：当前没有足够的执行载荷，点估计可运行，区间标记为 `method_not_executable`。
+- Batch 12.1 新建物化只接受 `not_recorded`、`none` 和已报告的 `parameter_interval_envelope`。草稿使用上述三种不可创作方法时返回 `uncertainty_method_not_authorable`，不会生成新模型。
 - 混合网络：任一输出可达模型缺少可执行区间，整条输出路径的定量区间不可用，不展示局部区间为完整网络区间。
 
 图表、Tooltip、结果 Dock、运行详情和导出都读取同一可用性合同。区间不可用时不渲染 ribbon；结果界面区分“未提供不确定性模型”和“未记录”。ANN 的 R²、NRMSE 与最大绝对误差继续基于点预测计算，`predictionIntervalCoverage` 只在有效参考区间存在时计算，否则为 `null`。
@@ -46,9 +47,9 @@ Batch 12.1 将冻结的用户模块科学合同接入生产建模路径，当前
 
 ## 必需输入安全
 
-当 `module.authoring.origin === 'user_defined'` 时，输出可达 active model 建模使用的每个输入端口都必须具有启用的 incoming Ideal Edge。缺少连接会产生 `user_module_required_input_unconnected` 错误并阻止该输出路径运行，缺失输入不会被解释为数值零。
+当 `module.authoring.origin === 'user_defined'` 时，实际运行目标 Output Monitor 可达的 active model 建模使用的每个输入端口都必须具有启用的 incoming Ideal Edge。缺少连接会产生 `missing_required_input`、severity `error`，并阻止该目标路径运行；目标路径上的缺失输入不会被解释为数值零。
 
-已连接 Input Source 的值为 `0` 是明确的科学输入，可以正常计算。验证只遍历当前输出可达路径；画布中与目标输出无关的断开用户模块不会阻止其他有效网络运行。
+已连接 Input Source 的值为 `0` 是明确的科学输入，可以正常计算。普通项目校验可以继续汇总全部 Output Monitor 路径；仿真先确定实际使用的首个 Output Monitor，再把 user-defined modeled-input 的 error 升级范围限定到该目标。第二 Monitor 路径中的 authored modeled-input 缺失，以及画布中与目标输出无关的断开用户模块，不会阻止有效主路径运行；Catalog required input、Port Compatibility 和主目标 Monitor 的必需输入安全没有放宽。
 
 ## BFN-IR 2.2 物化
 
@@ -67,12 +68,12 @@ Batch 12.1 将冻结的用户模块科学合同接入生产建模路径，当前
 | input ranges                              | 一个引用各输入 Port 的 validity domain                                            |
 | Context                                   | 全空映射为 `contextId = null`；有事实时创建一个 context registry 记录             |
 | uncertainty                               | 映射到 model 的 `uncertaintyMethod`，完整参数区间保留在参数 `interval95`          |
-| evidence / provenance                     | 证据等级映射到模块和 model；需要来源的强声明必须保留结构化 provenance             |
+| evidence / provenance                     | 证据等级映射到模块和 model；provenance ID、kind、reference 原样保留               |
 | implementation                            | 默认保留 `unspecified` 与空 implementation IDs；不虚构生物实现                    |
 
 作者输入的 Port 角色名与 Entity 身份彼此独立。角色名只描述该模块中端口承担的功能；Entity ID 指向网络交换的科学对象。既有 Entity 的权威显示名发生冲突时返回 `entity_display_name_conflict`，不会静默覆盖或创建第二身份。同 ID 的新 Entity 定义不一致时失败，不自动改名。
 
-模块、model、domain、context、port 和 provenance ID 均由 draft 的稳定 ID 确定性派生。与 Project 内任何现有 ID 冲突时返回结构化错误。输入相同且 Project 相同的物化结果保持确定，输入对象不会被修改。
+模块和 Port 使用 draft 提供的稳定 ID；model、domain 与可选 context ID 由模块 ID 确定性派生。每条 provenance 使用 draft 提供的 ID，不会被改写或放入 `sourceDatasetIds`。Project 中同 ID、同 kind、同 reference 的记录会被复用；同 ID 的 kind 或 reference 冲突时返回 `provenance_record_conflict`。其他 ID 碰撞继续返回结构化错误。输入相同且 Project 相同的物化结果保持确定，输入对象不会被修改。
 
 ## 创作界面
 

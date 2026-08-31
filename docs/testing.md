@@ -1072,3 +1072,13 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 从精确冻结基线 `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` 复核：Sender V1.2 source/loader/validator/admission、Receiver V1.1 data/whitelist/formulas、Inverse Design、Ontology assignment、Port Compatibility policy、Temporal policy、BFN-IR schema/migration、Workspace IndexedDB store/index、`package.json` 与 lockfile 均为零差异；
 - 当前代码与通过的硬回归再次确认 20 个 trusted runnable Receiver、53 条 Sender evidence、0 admitted Sender，以及 `production_rate → concentration` hard incompatibility；
 - BFN-IR 保持 `2.2`，Workspace IndexedDB 保持 v1；Batch 12.1 状态为 `ACTIVE`，等待 Master Control review，不自我声明冻结。以上结论为 local full validation passed，不声明 CI passed。
+
+### Master Review narrow fix
+
+- Materializer provenance 回归覆盖 draft ID 原样保存、同 ID/同 kind/同 reference 复用，以及 kind/reference 冲突返回 `provenance_record_conflict`；model 的 `sourceDatasetIds` 继续为空；
+- 新建 materialization 只接受 `not_recorded`、`none` 与完整 `parameter_interval_envelope`；`posterior_samples`、`bootstrap`、`covariance` 分别返回 `uncertainty_method_not_authorable`。既有项目的三种方法继续通过 BFN-SIM 兼容测试生成点估计与 `lower/upper = null`；
+- Target-monitor 回归覆盖四种情况：主路径 authored input 缺失时阻止运行、第二 Monitor 路径缺失时主路径成功、主路径显式连接零成功、完全不可达 authored module 不阻塞。生产 issue 保持 `missing_required_input`；目标路径为 `error`，目标外 authored input 为 `warning`；
+- provenance、uncertainty、target-monitor、历史 BFN-SIM repository 与 authoring UI 定向门共 8 个测试文件、86 项测试全部通过；
+- Receiver/Sender 数量、admission、Port Compatibility、BFN-IR migration、BFN-SIM repository 与 Workspace IndexedDB 专项门共 8 个测试文件、107 项测试全部通过，再次固定 20/53/0 与版本边界；
+- `npm run typecheck`、`npm run lint`、完整 Vitest 137 个测试文件/1111 项测试、`npm run build` 全部通过；Vite 7.3.6 转换 297 个模块，主 JavaScript chunk 为 3,300.79 kB、gzip 452.59 kB，保留既有大于 500 kB chunk 提示；
+- Batch 12.1 继续为 `ACTIVE`。以上结论为 local full validation passed，不声明 CI passed。

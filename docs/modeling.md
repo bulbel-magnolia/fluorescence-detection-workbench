@@ -91,9 +91,9 @@ Batch 12.0 将用户定义模块拆成相互独立的科学维度：
 
 数学可执行的用户模型可以使用 `proposed_unbuilt_design` 并保持 `implementation = unspecified`。User-defined model 不等于 experimentally validated model；空 implementation list 不阻止数学计算，强证据也不自动补齐缺失的可执行函数。
 
-Batch 12.1 的生产创作范围包含 static Hill activation、Hill repression、同单位 linear transfer 和显式 `independent_unverified` 的多输入独立作用模型，且每个模型只有一个 output。表单把 Port 角色名与 Entity 身份分开采集，支持复用既有 Entity 或创建 Project-defined Entity，并保存 Context、适用范围、Evidence、结构化 provenance、`unspecified` implementation 与三种首版不确定性状态。
+Batch 12.1 的生产创作范围包含 static Hill activation、Hill repression、同单位 linear transfer 和显式 `independent_unverified` 的多输入独立作用模型，且每个模型只有一个 output。表单把 Port 角色名与 Entity 身份分开采集，支持复用既有 Entity 或创建 Project-defined Entity，并保存 Context、适用范围、Evidence、结构化 provenance、`unspecified` implementation 与 `not_recorded`、`none`、`parameter_interval_envelope` 三种首版不确定性状态。
 
-纯 materializer 在 semantic、runtime、evidence 与 implementation 四个当前门通过后生成一个 `BfnFunctionalModule` 和必要 registry 记录；历史 BFN-IR 2.0 representation audit 不参与 2.2 物化判断。Add to Network 不创建 Edge、Input Source、Output Monitor，也不自动运行。该编辑作为一个现有 Undo/Redo transaction 保存，并通过 Workspace Current Draft、Version 与导入导出沿用 BFN-IR 2.2。
+纯 materializer 在 semantic、runtime、evidence 与 implementation 四个当前门通过后生成一个 `BfnFunctionalModule` 和必要 registry 记录；历史 BFN-IR 2.0 representation audit 不参与 2.2 物化判断。新建模型拒绝 `posterior_samples`、`bootstrap` 与 `covariance`，既有项目仍以点估计方式兼容运行。Provenance 的 draft ID、kind 与 reference 原样写入；同一 Project 中完全相同的 ID 记录复用，语义冲突返回结构化失败，且不重载 `sourceDatasetIds`。Add to Network 不创建 Edge、Input Source、Output Monitor，也不自动运行。该编辑作为一个现有 Undo/Redo transaction 保存，并通过 Workspace Current Draft、Version 与导入导出沿用 BFN-IR 2.2。
 
 Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Designed Sender、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 

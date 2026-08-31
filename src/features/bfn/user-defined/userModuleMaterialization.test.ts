@@ -288,7 +288,6 @@ describe('user-defined static module materialization', () => {
       { state: 'reported', method: 'parameter_interval_envelope' } as const,
       'parameter_interval_envelope',
     ],
-    [{ state: 'reported', method: 'posterior_samples' } as const, 'posterior_samples'],
   ])('maps uncertainty %o to %s without changing parameter estimates', (uncertainty, method) => {
     const baseDraft = createHillDraft({ uncertainty });
     const draft =
@@ -317,6 +316,27 @@ describe('user-defined static module materialization', () => {
     });
   });
 
+  it.each(['posterior_samples', 'bootstrap', 'covariance'] as const)(
+    'rejects %s as unavailable for new user-authored materialization',
+    (method) => {
+      const result = materializeUserDefinedStaticModule(
+        createHillDraft({ uncertainty: { state: 'reported', method } }),
+        createDemoBfnProject(),
+      );
+
+      expect(result).toMatchObject({
+        ok: false,
+        issues: [
+          expect.objectContaining({
+            code: 'uncertainty_method_not_authorable',
+            path: 'uncertainty.method',
+            details: [method],
+          }),
+        ],
+      });
+    },
+  );
+
   it('requires complete valid intervals for a reported parameter envelope', () => {
     const baseDraft = createHillDraft({
       uncertainty: { state: 'reported', method: 'parameter_interval_envelope' },
@@ -340,7 +360,7 @@ describe('user-defined static module materialization', () => {
     });
   });
 
-  it('gates strong evidence on valid provenance and preserves generated provenance links', () => {
+  it('gates strong evidence on valid provenance and preserves draft provenance identity', () => {
     const missing = materializeUserDefinedStaticModule(
       createHillDraft({
         evidence: { basis: 'measured_single_context', provenance: [] },
@@ -369,18 +389,97 @@ describe('user-defined static module materialization', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.nextProject.registry.provenanceRecords.at(-1)).toEqual({
-      id: `${draft.id}.provenance.1`,
+      id: 'draft-source-id',
       kind: 'publication',
       reference: 'Example et al. 2026, doi:10.0000/example',
     });
     expect(result.nextProject.network.modules.at(-1)!.modelVariants[0]).toMatchObject({
-      provenanceIds: [`${draft.id}.provenance.1`],
+      provenanceIds: ['draft-source-id'],
       evidenceGrade: 'fitted_from_published_data',
       sourceDatasetIds: [],
     });
     expect(result.nextProject.network.modules.at(-1)!.evidenceGrade).toBe(
       'fitted_from_published_data',
     );
+    expect(
+      parseBfnProject(JSON.stringify(result.nextProject)).registry.provenanceRecords.at(-1),
+    ).toEqual({
+      id: 'draft-source-id',
+      kind: 'publication',
+      reference: 'Example et al. 2026, doi:10.0000/example',
+    });
+  });
+
+  it('reuses an identical existing provenance record without duplicating it', () => {
+    const project = createDemoBfnProject();
+    project.registry.provenanceRecords.push({
+      id: 'draft-source-id',
+      kind: 'publication',
+      reference: 'Example et al. 2026, doi:10.0000/example',
+    });
+    const draft = createHillDraft({
+      evidence: {
+        basis: 'fitted_from_published_data',
+        provenance: [
+          {
+            id: 'draft-source-id',
+            kind: 'publication',
+            reference: 'Example et al. 2026, doi:10.0000/example',
+          },
+        ],
+      },
+    });
+
+    const result = materializeUserDefinedStaticModule(draft, project);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(
+      result.nextProject.registry.provenanceRecords.filter(
+        (record) => record.id === 'draft-source-id',
+      ),
+    ).toEqual([
+      {
+        id: 'draft-source-id',
+        kind: 'publication',
+        reference: 'Example et al. 2026, doi:10.0000/example',
+      },
+    ]);
+    expect(result.nextProject.network.modules.at(-1)!.modelVariants[0]).toMatchObject({
+      provenanceIds: ['draft-source-id'],
+      sourceDatasetIds: [],
+    });
+  });
+
+  it.each([
+    ['kind', { kind: 'repository_record', reference: 'Example et al. 2026, doi:10.0000/example' }],
+    ['reference', { kind: 'publication', reference: 'Different reference' }],
+  ] as const)('rejects an existing provenance ID with conflicting %s', (_field, existing) => {
+    const project = createDemoBfnProject();
+    project.registry.provenanceRecords.push({ id: 'draft-source-id', ...existing });
+    const draft = createHillDraft({
+      evidence: {
+        basis: 'fitted_from_published_data',
+        provenance: [
+          {
+            id: 'draft-source-id',
+            kind: 'publication',
+            reference: 'Example et al. 2026, doi:10.0000/example',
+          },
+        ],
+      },
+    });
+
+    expect(materializeUserDefinedStaticModule(draft, project)).toMatchObject({
+      ok: false,
+      issues: [
+        expect.objectContaining({
+          code: 'provenance_record_conflict',
+          path: 'evidence.provenance[0]',
+          details: ['draft-source-id'],
+        }),
+      ],
+    });
   });
 
   it('accepts only existing implementation IDs when implementation is specified', () => {

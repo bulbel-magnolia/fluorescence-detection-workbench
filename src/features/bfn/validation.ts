@@ -27,6 +27,10 @@ export interface BfnResolvedPort {
   port: BfnPort;
 }
 
+export interface BfnProjectValidationOptions {
+  readonly targetMonitorId?: string;
+}
+
 export function resolveBfnPort(
   project: BfnProject,
   endpoint: BfnIdealEdgeEndpoint,
@@ -265,7 +269,10 @@ function modeledInputPortIds(model: BfnModelVariant | null): ReadonlySet<string>
   );
 }
 
-export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
+export function validateBfnProject(
+  project: BfnProject,
+  options: BfnProjectValidationOptions = {},
+): BfnValidationIssue[] {
   const issues: BfnValidationIssue[] = [...validateInputSpecification(project)];
   for (const edge of project.network.edges) {
     if (!edge.enabled) continue;
@@ -284,6 +291,13 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
       outputReachableModuleIds.add(moduleId);
     }
   }
+  const targetMonitorId = project.network.outputMonitors.find(
+    (monitor) => monitor.id === options.targetMonitorId,
+  )?.id;
+  const authoredRuntimeReachableModuleIds =
+    targetMonitorId === undefined
+      ? outputReachableModuleIds
+      : findBfnOutputReachableModuleIds(project, targetMonitorId);
   for (const module of project.network.modules) {
     const model = resolveEffectiveBfnModel(project, module);
     const catalogBacked = model !== null && bfnCatalogReferencePresence(model).present;
@@ -308,7 +322,7 @@ export function validateBfnProject(project: BfnProject): BfnValidationIssue[] {
       if (!hasResolvedEnabledIncomingSignal(project, module.id, port.id)) {
         const authoredRuntimeRequired =
           module.authoring?.origin === 'user_defined' &&
-          outputReachableModuleIds.has(module.id) &&
+          authoredRuntimeReachableModuleIds.has(module.id) &&
           modeledInputs.has(port.id);
         issues.push(
           catalogBacked
