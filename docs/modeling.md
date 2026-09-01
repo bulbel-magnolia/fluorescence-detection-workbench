@@ -58,7 +58,11 @@ P = (E, Q, U)
 
 当前演示注册表提供 Hill 激活模块、线性报告传递模块和双输入独立作用模块。全部内置数值标记为 Demo 和未验证数据。
 
-2.3 增加独立的 dynamic accumulator representation：model 保存 input/output Port 引用、有限 initial state 和既有 uncertainty method，不保存 tau、steady-state response 或 static response。FunctionalModule 的 active model invariant 接受 static-only、paired 和 dynamic-only 三种结构，并拒绝空引用或 mode 不匹配。该能力当前只用于 JSON/Workspace 表示；BFN-SIM 2.1 对目标路径中的 accumulator 返回 `dynamic_process_runtime_unsupported`，不执行累积。
+2.3 增加独立的 dynamic accumulator representation：model 保存 input/output Port 引用、有限 initial state 和既有 uncertainty method，不保存 tau、steady-state response 或 static response。FunctionalModule 的 active model invariant 接受 static-only、paired 和 dynamic-only 三种结构，并拒绝空引用或 mode 不匹配。BFN-SIM 2.2 对满足窄运行合同的 target-reachable accumulator 执行 `dC/dt = r(t)`；不满足 scientific admission 的可表示对象以 `accumulator_model_contract_invalid` fail closed。
+
+Accumulator v1 固定为一个 exact-Entity `production_rate` 输入和一个 `concentration` 输出，只接受 `nM/h -> nM` 与 `uM/h -> uM`。`initialState` 是非负初始浓度，运行时 rate 必须 finite 且非负。离散执行采用 left-endpoint sample-and-hold 与 deferred state commit：当前时刻先暴露已完成上一区间累积的状态，当前 rate 只进入未来区间。普通 Ideal Edge 继续只处理同 Quantity 的表示单位换算，不执行积分。
+
+SIM 2.2 把 accumulator 记录为 deterministic uncertainty transform。它传播上游可执行 parameter scenarios，不创建自身 parameter interval，也不扰动 initialState；整条输出可达路径至少包含一个真实 parameter-envelope source 时才生成网络区间。含 accumulator 的路径只报告 terminal value，不把有限窗口末值命名为 steady state。完整合同见 [BFN-SIM 2.2 Accumulator Runtime](bfn-sim-2.2-accumulator-runtime.md)。
 
 ### Context 与 ValidityDomain
 
@@ -99,13 +103,13 @@ Batch 12.1 的生产创作范围包含 static Hill activation、Hill repression�
 
 ### Designed Sender authoring
 
-Batch 12.2 在通用创作能力上增加一个受限的 Designed Sender 工作流。首版固定为一个 `concentration` 控制输入（`M | mM | uM | nM | pM`）、一个 `production_rate` 输出（`nM/h | uM/h`）以及 Hill activation/repression。它没有新的 BFN node type 或 schema marker；draft 通过冻结的通用验证和 materializer 生成普通 `BfnFunctionalModule`，运行继续使用 BFN-SIM 2.1。
+Batch 12.2 在通用创作能力上增加一个受限的 Designed Sender 工作流。首版固定为一个 `concentration` 控制输入（`M | mM | uM | nM | pM`）、一个 `production_rate` 输出（`nM/h | uM/h`）以及 Hill activation/repression。它没有新的 BFN node type 或 schema marker；draft 通过冻结的通用验证和 materializer 生成普通 `BfnFunctionalModule`，在 dynamic network 中继续作为 quasi-static rate producer 使用通用 evaluator。BFN-SIM 2.2 没有修改其模型、证据或输出合同。
 
 已知 AHL/HSL 选择只从可信 V1.1 signal identity 投影精确 canonical name。该 Entity 身份可以作为外部权威身份复用而不写入 Project-defined Entity registry；身份复用不代表 evidence、参数、实现或 Runtime Admission 复用。自定义信号继续创建普通 `origin = user_defined` Entity。默认 Evidence 为 `proposed_unbuilt_design`，Implementation 为 `unspecified`，Uncertainty 为 `not_recorded`。
 
 Add to Network 是一个原子编辑，不自动创建 Edge、Input Source、Output Monitor、Run 或隐藏转换。`production_rate → concentration` 继续硬拒绝；当前求解器不进行隐式积分。完整合同见 [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)。
 
-Identity no-op、zero-input constant、lookup table、任意公式、多输出、Signal Pool authoring/runtime 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，当前 2.3 schema 见 [BFN-IR 2.3 Dynamic Process 表示扩展](bfn-ir-2.3.md)，2.2 与 2.1 保留为版本历史；运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+Identity no-op、zero-input constant、lookup table、任意公式、多输出、Signal Pool authoring 和 reusable template 分别延期。Batch 12.4.1 仅提供 programmatic/imported accumulator runtime，不创建 Signal Pool UI、form 或 materializer。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，当前 2.3 schema 见 [BFN-IR 2.3 Dynamic Process 表示扩展](bfn-ir-2.3.md)，2.2 与 2.1 保留为版本历史；运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 
 ## Semantic classification layer
 
@@ -304,7 +308,7 @@ Batch 4 将分析结果区扩展为可交互、可追溯、可复现的科学图
 - CSV 保存求解器原始点值、运行角色、输入、模块中间值、输出区间和域外标记，不把界面格式化值写回数据；
 - 复制图像、复制数据和复制图注与下载使用同一当前结果及可选历史对比。
 
-运行结果保存运行 ID、完成时间、引擎版本、模式、网络 ID、主输入源 ID、输出监视器 ID、求解点、模型版本、上下文 ID、不确定性方法、ANN 或动态派生指标，以及 Demo 与实验有效性标记。BFN-SIM-2.1 另外保存 `output_reachable` 不确定性快照；定量区间不可用时求解点的 `lower/upper` 为 `null`，图表与导出不生成零宽区间。Batch 4.1 的轻量信号语义快照继续保存稳定 ID、翻译键、entity、quantity type 和 unit；快照不保存本地化后的中文或英文文本，也不复制完整项目、参数或适用域。
+运行结果保存运行 ID、完成时间、引擎版本、模式、网络 ID、主输入源 ID、输出监视器 ID、求解点、模型版本、上下文 ID、不确定性方法、ANN 或动态派生指标，以及 Demo 与实验有效性标记。BFN-SIM-2.2 保存 versioned `output_reachable` uncertainty snapshot，显式区分 parameter interval、deterministic transform 与 unavailable；定量区间不可用时求解点的 `lower/upper` 为 `null`，图表与导出不生成零宽区间。动态指标区分 terminal value 与 steady-state availability。Batch 4.1 的轻量信号语义快照继续保存稳定 ID、翻译键、entity、quantity type 和 unit；快照不保存本地化后的中文或英文文本，也不复制完整项目、参数或适用域。
 
 结果展示统一由运行自身的信号语义快照解析坐标轴、Tooltip、结果摘要、图注、SVG/PNG 和溯源字段。没有快照的旧运行继续加载，并显示运行 ID 与“未知单位”，不会借用当前项目中的标签或单位。历史对比先满足 networkId、mode、primaryInputSourceId 与 outputMonitorId；两条运行都含快照时，还要求输入和输出的 entity、quantity type 与 unit 分别完全一致。旧运行沿用四项 ID 兼容规则，界面明确提示语义未记录，一次仍只叠加一条历史曲线。
 
@@ -399,7 +403,7 @@ Current Draft 使用 320 ms 防抖自动保存。Autosave 防止编辑丢失，�
 
 Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实。不同 context ID 本身不构成冲突；reported text 的不同表述为未确认，明确 canonical 数值差异为已知不同。Catalog 来源只读取 trusted presentation 的 exact parameter context，自由文本温度不转换为 Celsius。上下文 uncertain、mismatched 或 unavailable 都不自动修改模型、插入模块或阻止运行。
 
-成功运行在 BFN-SIM-2.1 中保存 output-reachable uncertainty snapshot，并可选保存 temporal snapshot 和 module-edge context-applicability snapshot。Dynamic Result、Run Provenance、JSON 与 provenance rows 都消费运行自身快照。历史 BFN-SIM-2.0 运行继续读取；缺少快照时显示未记录，不从当前网络推断历史。完整合同见 [时间语义、端口兼容性与实验适用性](temporal-and-compatibility.md)。
+成功运行在 BFN-SIM-2.2 中保存 output-reachable uncertainty snapshot，并可选保存 temporal snapshot 和 module-edge context-applicability snapshot。Dynamic Result、Run Provenance、JSON 与 provenance rows 都消费运行自身快照。历史 BFN-SIM-2.0 与 BFN-SIM-2.1 运行按各自合同继续读取；缺少快照时显示未记录，不从当前网络推断历史。完整合同见 [时间语义、端口兼容性与实验适用性](temporal-and-compatibility.md) 与 [BFN-SIM 2.2 Accumulator Runtime](bfn-sim-2.2-accumulator-runtime.md)。
 
 ## 代码边界
 
@@ -410,7 +414,8 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 - `src/features/bfn/temporal/`：时间执行能力解析与输出可达运行快照；
 - `src/features/bfn/compatibility/`：端口合同、逐字段上下文适用性与 Validation adapter；
 - `src/features/bfn/user-defined/`：冻结的用户 draft 合同与科学校验、历史 BFN-IR 2.0 表示审计、当前 BFN-IR 2.3 对象图上的纯物化和静态创作界面；
-- `simulationUncertainty.ts`：输出可达模型的不确定性执行审计与 BFN-SIM-2.1 网络区间可用性；
+- `accumulatorRuntimeContract.ts`：narrow accumulator scientific admission 与运行时 rate fail-closed 合同；
+- `simulationUncertainty.ts`：输出可达模型的 BFN-SIM-2.2 propagation mode 审计与网络区间可用性；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
 - `validation.ts`：端口、连接、DAG、输入和上下文检查；

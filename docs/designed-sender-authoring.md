@@ -53,13 +53,13 @@ Designed Sender 是面向信号产生场景的创作工作流和受限预设。�
 
 Implementation 保持 `unspecified`，`implementationIds` 为空。Designed Sender 不根据名称推断启动子、RBS、酶、宿主构建或其他生物实现。
 
-默认 Uncertainty 为 `not_recorded`。选择参数区间时，K、n、基础产生速率和最大产生速率都必须具有完整上下界，随后沿用 BFN-SIM 2.1 的通用参数包络执行。
+默认 Uncertainty 为 `not_recorded`。选择参数区间时，K、n、基础产生速率和最大产生速率都必须具有完整上下界，随后沿用通用 parameter scenarios 执行。BFN-SIM 2.2 继续使用相同 Sender 参数包络，并可经显式 deterministic accumulator 传播。
 
 ## 物化与运行
 
 Designed Sender draft 先映射到冻结的通用用户模块合同，再调用同一个纯 `materializeUserDefinedStaticModule`。成功结果包含一个 `BfnFunctionalModule` 和必要的 validity/context/provenance sidecar，不包含专用 evaluator。
 
-运行沿用 BFN-SIM 2.1：
+新运行记录为 BFN-SIM 2.2；Designed Sender 的通用求值语义保持冻结：
 
 - 静态 Hill 方程由通用模型解析与求解路径执行；
 - 输出可达的 Designed Sender 缺少 enabled incoming Edge 时产生 `missing_required_input` 并阻止目标运行；

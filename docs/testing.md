@@ -1187,3 +1187,23 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - Vite 7.3.6 生产构建通过，303 个模块完成转换；主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,353.31 kB、gzip 463.91 kB；保留既有大于 500 kB chunk 提示；
 - changed-file Prettier 与 `git diff --check` 通过；Windows checkout 的 Sender immutable source 仅在完整测试期间按冻结 manifest 临时恢复物理字节，Git blob/hash/diff 保持不变，测试后恢复默认检出态；
 - Correction 相对 pre-fix head `68dcc00339667d4ea6fa52238074985fda459021` 仅涉及 parser、simulation、两个回归文件和本节/状态账本；BFN-IR 保持 2.3，BFN-SIM 保持 2.1，Workspace DB 保持 1，package dependencies 与其他冻结科学区域无变化；Batch 12.4.0 保持 `ACTIVE`，等待 Master Control Correction Review。
+
+## 2026-09-01 Batch 12.4.1 BFN-SIM 2.2 Accumulator Runtime
+
+### Scientific contract and causal execution
+
+- 唯一合法 base 为 `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；Batch 12.4.0 是 Implementation Review 与 Correction Review 均通过、bookkeeping deferred 的 reviewed predecessor；Batch 12.4.1 保持 `ACTIVE` implementation candidate；
+- central accumulator admission 覆盖 exact input/output arity 与 bindings、same Entity、`production_rate -> concentration`、`nM/h -> nM | uM/h -> uM`、非负 initialState 和 `none | not_recorded` uncertainty；每个失败原因使用稳定 `accumulator_model_contract_invalid/details.reason`；
+- runtime regression 固定 `C(k+1) = C(k) + r(k) * deltaT` 的 left-endpoint sample-and-hold / deferred commit，包括 t0 初值、zero/constant/step rate、实际 partial final step、两组 exact unit pair、负值与非有限 rate fail-closed、validity domain；
+- real Designed Sender -> explicit Accumulator -> trusted Catalog Receiver fixture 使用 IPTG step 得到 Sender rate `[0, 0, 5, 5, 5]` 和 concentration `[2, 2, 2, 4.5, 7]`；Receiver 在 t0/t1 读取当前 Ck，不提前读取未来 state；移除 accumulator 后直接 rate-to-concentration edge 继续返回 quantity/unit mismatch；
+- accumulator feedback、accumulator-to-first-order mixed ordering fail closed；first-order-to-accumulator regression 把 current first-order output sample 用于未来积分区间；accumulator-free first-order point values、moduleOutputs、sample count 与 input samples保持冻结 expected values。
+
+### Uncertainty, metrics, persistence, and local gates
+
+- BFN-SIM 2.2 uncertainty snapshot 区分 `parameter_interval`、`deterministic_transform` 与 `unavailable`；上游 envelope 经 accumulator 及 downstream static Receiver 保持 interval，deterministic-only 路径不伪造零宽区间，off-target bad branch 不影响 selected Monitor；
+- output-reachable accumulator result 记录 terminal value，并把 steady state、rise time、overshoot、DC gain 与 frequency gain 标为 unavailable；accumulator-free dynamic result保持既有数值并同时提供 terminal/steady availability metadata；
+- repository 与 Workspace regression 同时读取 BFN-SIM 2.0、2.1、2.2 payload，不重写历史结果；BFN-IR 保持 2.3，Workspace IndexedDB structural version 保持 1；
+- accumulator contract/runtime、simulation、uncertainty、repository、validation、feedback、temporal、Workspace、Designed Sender、Catalog Receiver、Port Compatibility 与 first-order dynamic 联合定向门为 27 个测试文件、323 项测试全部通过；Phase C integration/uncertainty 窄门为 2 个文件、19 项测试全部通过；
+- `npm test -- --maxWorkers=4` 完整回归为 152 个测试文件、1263 项测试全部通过；Windows checkout 的 12 个 Sender immutable source 文件仅在测试期间按冻结 manifest 恢复物理字节，finally 后 source diff 为零；
+- `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 production build 转换 304 个模块，主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,359.28 kB、gzip 465.24 kB；保留既有大于 500 kB chunk 提示；
+- changed-file Prettier 与 `git diff --check` 通过。以上只声明 local validation；GitHub workflow/check/status context 由 push 后实际查询结果单独回传；不声明 CI、PASS、FROZEN 或 Master Review completed。

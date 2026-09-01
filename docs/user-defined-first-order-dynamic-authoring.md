@@ -2,7 +2,7 @@
 
 ## 状态与固定版本
 
-Batch 12.3 已经 Master Control 最终复核并正式 `FROZEN`。正式 reviewed implementation 为 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`，其后的 `ec8c177afdf34b4f21ef9f9014de140a41f31e32` 仅记录 correction validation 与待冻结状态；本次 freeze bookkeeping 只更新正式文档状态，不修改生产代码。项目结构保持 `BFN-IR 2.2`，Workspace IndexedDB structural version 保持 `1`，新运行继续使用 `BFN-SIM-2.1`。本冻结状态表示软件合同与实现已通过 Master Review，不表示任何用户定义模型获得实验验证。
+Batch 12.3 已经 Master Control 最终复核并正式 `FROZEN`。正式 reviewed implementation 为 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`，其后的 `ec8c177afdf34b4f21ef9f9014de140a41f31e32` 仅记录 correction validation 与待冻结状态；freeze bookkeeping 只更新正式文档状态，不修改生产代码。Batch 12.3 的边界是 `BFN-IR 2.2` 与 `BFN-SIM-2.1`；当前项目 representation 为 BFN-IR 2.3，新运行由 Batch 12.4.1 记录为 BFN-SIM-2.2，下面的一阶方程、采样时序和数值轨迹保持零差异。Workspace IndexedDB structural version 继续为 `1`。本冻结状态表示软件合同与实现已通过 Master Review，不表示任何用户定义模型获得实验验证。
 
 本批只开放受限的一阶松弛模型：
 
@@ -35,7 +35,7 @@ $$
 
 ## 运行与反馈边界
 
-动态执行复用 BFN-SIM-2.1 已有的精确离散更新：
+动态执行继续复用 BFN-SIM-2.1 冻结的精确离散更新；BFN-SIM-2.2 未改变该 update：
 
 $$
 y_{t+\Delta t}=y_t+\left(1-e^{-\Delta t/\tau}\right)\left(f(\mathbf{x}_t)-y_t\right)

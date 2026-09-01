@@ -1,6 +1,6 @@
 # BFN-IR 2.3 Dynamic Process Representation Extension
 
-Batch 12.4.0 is an ACTIVE implementation candidate. This document records the representation boundary implemented for review. It does not declare the batch PASS, FROZEN, or Master Review complete.
+Batch 12.4.0 is the reviewed predecessor for Batch 12.4.1. Its implementation review and correction review passed; Master Control deferred separate freeze bookkeeping. This document records the fixed representation input and does not declare Batch 12.4.0 or 12.4.1 FROZEN.
 
 ## Current representation
 
@@ -24,7 +24,7 @@ uncertaintyMethod
 
 inputPortId references the module input whose value will eventually be integrated. outputPortId references the module state/output Port. initialState inherits the scientific unit of that output Port. The representation contains no tau, steadyStateResponse, or response.
 
-This schema capability is generic. It does not require the input to be production_rate, the output to be concentration, or the two Ports to share an Entity. Those scientific admission rules belong to the later Signal Pool/runtime batch.
+This schema capability remains generic. It does not require the input to be production_rate, the output to be concentration, or the two Ports to share an Entity. BFN-SIM 2.2 now applies those requirements as a central, target-scoped runtime admission contract without changing or migrating the serialized BFN-IR representation.
 
 ## Active model invariant
 
@@ -66,24 +66,17 @@ When an accumulator is the effective model, its model identity, version, mode, f
 
 ## Runtime boundary
 
-BFN-SIM remains 2.1. An output-reachable effective accumulator produces:
+New runs use BFN-SIM 2.2. A target-reachable effective accumulator executes only when it satisfies the narrow scientific contract documented in [BFN-SIM 2.2 Accumulator Runtime](bfn-sim-2.2-accumulator-runtime.md). Representable accumulators outside that contract fail closed with `accumulator_model_contract_invalid` and a stable `details.reason`.
 
-```text
-dynamic_process_runtime_unsupported
-severity = error
-```
-
-The gate is scoped to the selected output Monitor. An accumulator on another Monitor path does not block the selected run. A paired accumulator is dormant in static mode when the active static model is effective. A dynamic-only module in static mode continues through the existing temporal_execution_unsupported path.
-
-Accumulator uncertainty assessment is non-executable under BFN-SIM 2.1, and evaluator/solver entry points fail closed if called directly. This batch contains no accumulation equation, integration step, deferred state commit, deterministic uncertainty propagation, dynamic metrics extension, feedback solver, or BFN-SIM 2.2 implementation.
+Runtime admission remains scoped to the selected output Monitor. An accumulator on another Monitor path does not block the selected run. A paired accumulator is dormant in static mode when the active static model is effective. A dynamic-only module in static mode continues through the existing `temporal_execution_unsupported` path. BFN-IR stays 2.3; no runtime-only result field is added to the Project schema.
 
 ## Roadmap state
 
 ```text
 Batch 12.3 = FROZEN
-Batch 12.4.0 = ACTIVE
-Batch 12.4.1 = PLANNED
-Batch 12.4 = PLANNED
+Batch 12.4.0 = reviewed predecessor; bookkeeping deferred
+Batch 12.4.1 = ACTIVE implementation candidate
+Batch 12.4 = PLANNED / NOT AUTHORIZED
 ```
 
-Batch 12.4.1 owns accumulator execution semantics. Signal Pool materialization, authoring UI, signal selection, degradation, dilution, clearance, amount/volume conversion, multi-rate integration, and feedback ODE solving remain outside this implementation candidate.
+Batch 12.4.1 implements the narrow accumulator execution semantics. Signal Pool materialization, authoring UI, signal selection, degradation, dilution, clearance, amount/volume conversion, multi-rate integration, initial-state uncertainty, and feedback ODE solving remain outside this implementation candidate.
