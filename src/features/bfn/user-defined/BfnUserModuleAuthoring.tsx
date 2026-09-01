@@ -4,9 +4,11 @@ import { Button } from '../../../components/Button';
 import { Icon } from '../../../components/Icon';
 import { bfnEntityLabel, bfnUnitLabel } from '../presentation';
 import type { BfnEvidenceGrade, BfnProject, BfnQuantityType, BfnUnit } from '../types';
+import type { UserDefinedDynamicFunctionalModuleDraft } from './userModuleDynamicContract';
 import type { UserDefinedFunctionalModuleDraft } from './userModuleContract';
 import type { UserModuleMaterializationResult } from './userModuleMaterialization';
 import {
+  buildUserDefinedDynamicModuleDraft,
   buildUserDefinedModuleDraft,
   collectExistingEntityIds,
   createInitialUserModuleAuthoringState,
@@ -16,12 +18,16 @@ import {
   type UserModuleAuthoringOutput,
   type UserModuleAuthoringParameter,
   type UserModuleAuthoringState,
+  type UserModuleWorkflowAuthoringState,
 } from './userModuleAuthoringDraft';
+
+type UserModuleAuthoringDraft =
+  UserDefinedFunctionalModuleDraft | UserDefinedDynamicFunctionalModuleDraft;
 
 interface BfnUserModuleAuthoringProps {
   project: BfnProject;
   onBack: () => void;
-  onAdd: (draft: UserDefinedFunctionalModuleDraft) => UserModuleMaterializationResult;
+  onAdd: (draft: UserModuleAuthoringDraft) => UserModuleMaterializationResult;
 }
 
 const quantityTypes: readonly BfnQuantityType[] = [
@@ -71,7 +77,7 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const nameRef = useRef<HTMLInputElement>(null);
-  const [state, setState] = useState<UserModuleAuthoringState>(() =>
+  const [state, setState] = useState<UserModuleWorkflowAuthoringState>(() =>
     createInitialUserModuleAuthoringState(project),
   );
   const [issues, setIssues] = useState<readonly UserModuleAuthoringIssue[]>([]);
@@ -92,7 +98,7 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
     if (submissionError) setSubmissionError(null);
   };
   const updateState = (
-    updater: (current: UserModuleAuthoringState) => UserModuleAuthoringState,
+    updater: (current: UserModuleWorkflowAuthoringState) => UserModuleWorkflowAuthoringState,
   ) => {
     clearValidation();
     setState(updater);
@@ -144,6 +150,14 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
     >,
     updater: (parameter: UserModuleAuthoringParameter) => UserModuleAuthoringParameter,
   ): void => updateState((current) => ({ ...current, [key]: updater(current[key]) }));
+  const updateDynamicParameter = (
+    key: 'tau',
+    updater: (parameter: UserModuleAuthoringParameter) => UserModuleAuthoringParameter,
+  ): void =>
+    updateState((current) => ({
+      ...current,
+      dynamics: { ...current.dynamics, [key]: updater(current.dynamics[key]) },
+    }));
   const addInput = (): void => {
     const nextKey = Math.max(0, ...state.inputs.map((input) => input.key)) + 1;
     const firstEntity = existingEntities[0]?.id ?? '';
@@ -160,7 +174,9 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
     }));
   };
   const submit = (): void => {
-    const built = buildUserDefinedModuleDraft(state, project);
+    const built = isDynamicResponseMode(state.responseMode)
+      ? buildUserDefinedDynamicModuleDraft(state, project)
+      : buildUserDefinedModuleDraft(state, project);
     if (!built.ok) {
       setIssues(built.issues);
       setSubmissionError(null);
@@ -190,7 +206,7 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
           <span aria-hidden="true">←</span>
           {t('bfn.userAuthoring.back')}
         </button>
-        <span>{t('bfn.userAuthoring.staticOnly')}</span>
+        <span>{t('bfn.userAuthoring.modeBoundary')}</span>
       </div>
 
       <AuthoringSection title={t('bfn.userAuthoring.sections.definition')}>
@@ -241,6 +257,33 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
             </select>
           </Field>
         </div>
+        <fieldset className="bfn-user-authoring__choice-group">
+          <legend>{t('bfn.userAuthoring.fields.responseMode')}</legend>
+          <label>
+            <input
+              type="radio"
+              name="bfn-user-response-mode"
+              value="steady_state"
+              checked={!isDynamicResponseMode(state.responseMode)}
+              onChange={() =>
+                updateState((current) => ({ ...current, responseMode: 'steady_state' }))
+              }
+            />
+            <span>{t('bfn.userAuthoring.responseModes.steady_state')}</span>
+          </label>
+          <label>
+            <input
+              type="radio"
+              name="bfn-user-response-mode"
+              value="first_order_dynamic"
+              checked={isDynamicResponseMode(state.responseMode)}
+              onChange={() =>
+                updateState((current) => ({ ...current, responseMode: 'first_order_dynamic' }))
+              }
+            />
+            <span>{t('bfn.userAuthoring.responseModes.first_order_dynamic')}</span>
+          </label>
+        </fieldset>
         <Field id="bfn-user-module-description" label={t('bfn.userAuthoring.fields.description')}>
           <textarea
             id="bfn-user-module-description"
@@ -421,6 +464,116 @@ export function BfnUserModuleAuthoring({ project, onBack, onAdd }: BfnUserModule
           </>
         ) : null}
       </AuthoringSection>
+
+      {isDynamicResponseMode(state.responseMode) ? (
+        <AuthoringSection title={t('bfn.userAuthoring.sections.dynamics')}>
+          <p className="bfn-user-authoring__assumption">{t('bfn.userAuthoring.dynamicHint')}</p>
+          <div className="bfn-user-authoring__parameter-grid">
+            <ParameterEditor
+              id="dynamics-tau"
+              label={t('bfn.userAuthoring.fields.timeConstant')}
+              unit="h"
+              value={state.dynamics.tau}
+              showIntervals={showIntervals}
+              error={validationText('dynamics.tau') ?? validationText('dynamics.tau.interval95')}
+              onChange={(updater) => updateDynamicParameter('tau', updater)}
+            />
+            <Field
+              id="bfn-user-dynamics-initial-state"
+              label={t('bfn.userAuthoring.fields.initialState')}
+              error={validationText('dynamics.initialState')}
+            >
+              <div className="bfn-user-authoring__number-with-unit">
+                <input
+                  id="bfn-user-dynamics-initial-state"
+                  type="number"
+                  step="any"
+                  value={state.dynamics.initialState}
+                  aria-invalid={Boolean(issueFor('dynamics.initialState'))}
+                  onChange={(event) =>
+                    updateState((current) => ({
+                      ...current,
+                      dynamics: { ...current.dynamics, initialState: event.target.value },
+                    }))
+                  }
+                />
+                <span>{bfnUnitLabel(state.output.unit, t)}</span>
+              </div>
+            </Field>
+          </div>
+          <Field
+            id="bfn-user-dynamics-time-validity"
+            label={t('bfn.userAuthoring.fields.timeValidity')}
+          >
+            <select
+              id="bfn-user-dynamics-time-validity"
+              value={state.dynamics.timeValidity}
+              onChange={(event) => {
+                const timeValidity = event.target.value;
+                if (timeValidity === 'not_recorded' || timeValidity === 'defined') {
+                  updateState((current) => ({
+                    ...current,
+                    dynamics: { ...current.dynamics, timeValidity },
+                  }));
+                }
+              }}
+            >
+              <option value="not_recorded">
+                {t('bfn.userAuthoring.timeValidity.not_recorded')}
+              </option>
+              <option value="defined">{t('bfn.userAuthoring.timeValidity.defined')}</option>
+            </select>
+          </Field>
+          {state.dynamics.timeValidity === 'defined' ? (
+            <div className="bfn-user-authoring__grid bfn-user-authoring__grid--two">
+              <Field
+                id="bfn-user-dynamics-time-start"
+                label={t('bfn.userAuthoring.fields.timeStart')}
+                error={validationText('dynamics.timeRangeHours')}
+              >
+                <div className="bfn-user-authoring__number-with-unit">
+                  <input
+                    id="bfn-user-dynamics-time-start"
+                    type="number"
+                    step="any"
+                    value={state.dynamics.timeStartHours}
+                    aria-invalid={Boolean(issueFor('dynamics.timeRangeHours'))}
+                    onChange={(event) =>
+                      updateState((current) => ({
+                        ...current,
+                        dynamics: { ...current.dynamics, timeStartHours: event.target.value },
+                      }))
+                    }
+                  />
+                  <span>h</span>
+                </div>
+              </Field>
+              <Field
+                id="bfn-user-dynamics-time-end"
+                label={t('bfn.userAuthoring.fields.timeEnd')}
+                error={validationText('dynamics.timeRangeHours')}
+              >
+                <div className="bfn-user-authoring__number-with-unit">
+                  <input
+                    id="bfn-user-dynamics-time-end"
+                    type="number"
+                    step="any"
+                    value={state.dynamics.timeEndHours}
+                    aria-invalid={Boolean(issueFor('dynamics.timeRangeHours'))}
+                    onChange={(event) =>
+                      updateState((current) => ({
+                        ...current,
+                        dynamics: { ...current.dynamics, timeEndHours: event.target.value },
+                      }))
+                    }
+                  />
+                  <span>h</span>
+                </div>
+              </Field>
+            </div>
+          ) : null}
+        </AuthoringSection>
+      ) : null}
 
       <AuthoringSection title={t('bfn.userAuthoring.sections.context')}>
         <div className="bfn-user-authoring__grid bfn-user-authoring__grid--context">
@@ -935,7 +1088,7 @@ function ParameterEditor({
 }: {
   id: string;
   label: string;
-  unit: BfnUnit;
+  unit: BfnUnit | 'h';
   value: UserModuleAuthoringParameter;
   showIntervals: boolean;
   error: string | null;
@@ -1078,4 +1231,8 @@ function existingEntityDisplayName(
   const displayName = ports.find((port) => port.entity === entityId)?.displayName;
   if (!displayName) return fallback;
   return language.toLowerCase().startsWith('zh') ? displayName.zh : displayName.en;
+}
+
+function isDynamicResponseMode(mode: UserModuleWorkflowAuthoringState['responseMode']): boolean {
+  return mode === 'first_order_dynamic';
 }

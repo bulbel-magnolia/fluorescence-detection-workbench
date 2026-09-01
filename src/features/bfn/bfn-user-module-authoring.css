@@ -133,6 +133,37 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.bfn-user-authoring__choice-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px 14px;
+  margin: 10px 0 0;
+  padding: 8px 9px;
+  background: var(--ui-bg-pane);
+  border: 1px solid var(--ui-border-subtle);
+  border-radius: var(--ui-radius-sm);
+}
+
+.bfn-user-authoring__choice-group legend {
+  padding: 0 4px;
+  color: var(--ui-text-muted);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.bfn-user-authoring__choice-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ui-text-secondary);
+  font-size: 10.5px;
+}
+
+.bfn-user-authoring__choice-group input {
+  accent-color: var(--ui-accent);
+}
+
 .bfn-user-authoring__field {
   display: grid;
   min-width: 0;

@@ -72,12 +72,14 @@ import {
 import { runBfnSimulation } from './simulation';
 import { resolveBfnModuleTemporalCapability } from './temporal/temporalCapability';
 import type { BfnTemporalCapability } from './temporal/temporalTypes';
+import type { UserDefinedDynamicFunctionalModuleDraft } from './user-defined/userModuleDynamicContract';
 import type { UserDefinedFunctionalModuleDraft } from './user-defined/userModuleContract';
 import type { DesignedSenderSignalIdentity } from './user-defined/designed-sender/designedSenderSignalCatalog';
 import {
   materializeUserDefinedStaticModule,
   type UserModuleMaterializationResult,
 } from './user-defined/userModuleMaterialization';
+import { materializeUserDefinedDynamicModule } from './user-defined/userModuleDynamicMaterialization';
 import type {
   BfnDynamicInputSpecification,
   BfnCanvasPosition,
@@ -284,6 +286,12 @@ function simulationNoticeKey(project: BfnProject): string {
   )
     ? 'bfn.notices.workingDomainCompleted'
     : 'bfn.notices.staticCompleted';
+}
+
+function isDynamicUserModuleDraft(
+  draft: UserDefinedFunctionalModuleDraft | UserDefinedDynamicFunctionalModuleDraft,
+): draft is UserDefinedDynamicFunctionalModuleDraft {
+  return 'steadyStateResponse' in draft && 'dynamics' in draft;
 }
 
 function configuredInputSummary(project: BfnProject, t: TFunction, language: string): string {
@@ -817,9 +825,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   };
 
   const addUserDefinedModule = (
-    draft: UserDefinedFunctionalModuleDraft,
+    draft: UserDefinedFunctionalModuleDraft | UserDefinedDynamicFunctionalModuleDraft,
   ): UserModuleMaterializationResult => {
-    const outcome = materializeUserDefinedStaticModule(draft, projectRef.current);
+    const outcome = isDynamicUserModuleDraft(draft)
+      ? materializeUserDefinedDynamicModule(draft, projectRef.current)
+      : materializeUserDefinedStaticModule(draft, projectRef.current);
     if (!outcome.ok) return outcome;
     const changed = performProjectEdit(() => outcome.nextProject);
     if (!changed) {

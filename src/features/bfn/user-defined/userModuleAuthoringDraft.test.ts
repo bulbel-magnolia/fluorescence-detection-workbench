@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from '../fixtures';
 import {
+  buildUserDefinedDynamicModuleDraft,
   buildUserDefinedModuleDraft,
   createInitialUserModuleAuthoringState,
   type UserModuleAuthoringParameter,
   type UserModuleAuthoringState,
+  type UserModuleWorkflowAuthoringState,
 } from './userModuleAuthoringDraft';
 
 describe('user-defined static module draft builder', () => {
@@ -134,6 +136,136 @@ describe('user-defined static module draft builder', () => {
           (item) => item.field === 'model.linear.units' && item.code === 'linear_unit_mismatch',
         ),
       ).toBe(true);
+    }
+  });
+});
+
+describe('user-defined first-order dynamic module draft builder', () => {
+  it('reuses the static response source and maps dynamic fields with a bounded time range', () => {
+    const project = createDemoBfnProject();
+    const initial = createInitialUserModuleAuthoringState(project);
+    const state: UserModuleWorkflowAuthoringState = {
+      ...initial,
+      responseMode: 'first_order_dynamic',
+      name: 'Dynamic response module',
+      inputs: initial.inputs.map((input) => ({
+        ...input,
+        name: 'Inducer input',
+        existingEntityId: '3OC6-HSL',
+      })),
+      output: {
+        ...initial.output,
+        name: 'Production output',
+        newEntityName: 'Product X',
+        quantityType: 'production_rate',
+        unit: 'nM/h',
+      },
+      dynamics: {
+        ...initial.dynamics,
+        tau: { value: '2', lower: '1.5', upper: '2.5' },
+        initialState: '0.15',
+        timeValidity: 'defined',
+        timeStartHours: '1',
+        timeEndHours: '8',
+      },
+      uncertainty: 'parameter_interval_envelope',
+      hillK: interval(initial.hillK, '8', '12'),
+      hillN: interval(initial.hillN, '1.5', '2.5'),
+      minimumOutput: interval(initial.minimumOutput, '-0.1', '0.1'),
+      maximumOutput: interval(initial.maximumOutput, '0.8', '1.2'),
+    };
+
+    const built = buildUserDefinedDynamicModuleDraft(state, project);
+
+    expect(built).toMatchObject({ ok: true });
+    if (!built.ok) return;
+    expect(built.draft.steadyStateResponse).toEqual(
+      (buildUserDefinedModuleDraft(state, project) as { ok: true; draft: { model: unknown } }).draft
+        .model,
+    );
+    expect(built.draft.dynamics).toEqual({
+      tau: { value: 2, unit: 'h', interval95: [1.5, 2.5] },
+      initialState: 0.15,
+    });
+    expect(built.draft.timeRangeHours).toEqual([1, 8]);
+  });
+
+  it.each(['linear_transfer', 'independent_inputs'] as const)(
+    'reuses the %s steady response model source',
+    (family) => {
+      const project = createDemoBfnProject();
+      const initial = createInitialUserModuleAuthoringState(project);
+      const inputs = initial.inputs.map((input) => ({
+        ...input,
+        name: 'Input',
+        existingEntityId: '3OC6-HSL',
+        unit: 'nM' as const,
+      }));
+      const dynamicInputs =
+        family === 'independent_inputs'
+          ? [...inputs, { ...inputs[0]!, key: 2, name: 'Input 2', existingEntityId: '3OC6-HSL' }]
+          : inputs;
+      const state: UserModuleWorkflowAuthoringState = {
+        ...initial,
+        responseMode: 'first_order_dynamic',
+        family,
+        name: `${family} dynamic module`,
+        inputs: dynamicInputs,
+        output: {
+          ...initial.output,
+          name: 'Output',
+          newEntityName: 'Output entity',
+          quantityType: 'concentration',
+          unit: family === 'linear_transfer' ? 'nM' : 'nM/h',
+        },
+        dynamics: {
+          ...initial.dynamics,
+          tau: { value: '1', lower: '', upper: '' },
+          initialState: '0',
+          timeValidity: 'not_recorded',
+          timeStartHours: '',
+          timeEndHours: '',
+        },
+      };
+      const built = buildUserDefinedDynamicModuleDraft(state, project);
+      expect(built).toMatchObject({ ok: true });
+      if (!built.ok) return;
+      expect(built.draft.steadyStateResponse.family).toBe(family);
+    },
+  );
+
+  it('rejects invalid tau, initial state, and defined time bounds before materialization', () => {
+    const project = createDemoBfnProject();
+    const initial = createInitialUserModuleAuthoringState(project);
+    const state: UserModuleWorkflowAuthoringState = {
+      ...initial,
+      responseMode: 'first_order_dynamic',
+      name: 'Invalid dynamic module',
+      inputs: initial.inputs.map((input) => ({
+        ...input,
+        name: 'Input',
+        existingEntityId: '3OC6-HSL',
+      })),
+      output: { ...initial.output, name: 'Output', newEntityName: 'Output entity' },
+      dynamics: {
+        ...initial.dynamics,
+        tau: { value: '0', lower: '', upper: '' },
+        initialState: 'not-a-number',
+        timeValidity: 'defined',
+        timeStartHours: '4',
+        timeEndHours: '2',
+      },
+    };
+    const built = buildUserDefinedDynamicModuleDraft(state, project);
+    expect(built.ok).toBe(false);
+    if (!built.ok) {
+      expect(built.issues.map((issue) => issue.code)).toEqual(
+        expect.arrayContaining([
+          'dynamic_tau_non_positive',
+          'dynamic_initial_state_non_finite',
+          'dynamic_time_range_invalid',
+        ]),
+      );
     }
   });
 });

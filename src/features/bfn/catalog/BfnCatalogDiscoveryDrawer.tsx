@@ -26,6 +26,7 @@ import {
   type BfnSemanticPresentationAdapter,
 } from '../semantic/semanticPresentation';
 import type { BfnProject } from '../types';
+import type { UserDefinedDynamicFunctionalModuleDraft } from '../user-defined/userModuleDynamicContract';
 import type { UserDefinedFunctionalModuleDraft } from '../user-defined/userModuleContract';
 import { BfnUserModuleAuthoring } from '../user-defined/BfnUserModuleAuthoring';
 import { BfnDesignedSenderAuthoring } from '../user-defined/designed-sender/BfnDesignedSenderAuthoring';
@@ -56,7 +57,7 @@ interface BfnCatalogDiscoveryDrawerProps {
   onClose: () => void;
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
   onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
-  onAddUserModule: (draft: UserDefinedFunctionalModuleDraft) => UserModuleMaterializationResult;
+  onAddUserModule: UserModuleAuthoringOnAdd;
   onAddDesignedSender: (
     draft: UserDefinedFunctionalModuleDraft,
     authoritativeSignal: DesignedSenderSignalIdentity | null,
@@ -75,6 +76,12 @@ type SelectedEntry =
   | { kind: 'component'; groupId: string };
 
 type AuthoringMode = 'generic' | 'designed_sender';
+
+type UserModuleAuthoringDraft =
+  UserDefinedFunctionalModuleDraft | UserDefinedDynamicFunctionalModuleDraft;
+type UserModuleAuthoringOnAdd = (
+  draft: UserModuleAuthoringDraft,
+) => UserModuleMaterializationResult;
 
 export function BfnCatalogDiscoveryDrawer({
   project,
@@ -283,7 +290,7 @@ interface DiscoveryDrawerSurfaceProps {
   onClose: () => void;
   onAddBuiltInModule: (catalogId: BfnCatalogModuleId) => void;
   onInstantiateCatalogResponse: (responseId: string, createInputSource: boolean) => void;
-  onAddUserModule: (draft: UserDefinedFunctionalModuleDraft) => UserModuleMaterializationResult;
+  onAddUserModule: UserModuleAuthoringOnAdd;
   onAddDesignedSender: (
     draft: UserDefinedFunctionalModuleDraft,
     authoritativeSignal: DesignedSenderSignalIdentity | null,

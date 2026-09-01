@@ -4,10 +4,13 @@ import type {
   UserModuleAuthorableModelFamily,
   UserModuleParameterDraft,
 } from './userModuleContract';
+import type { UserDefinedDynamicFunctionalModuleDraft } from './userModuleDynamicContract';
 
 export type UserModuleAuthoringEntityMode = 'existing' | 'new';
 export type UserModuleAuthoringUncertainty =
   'not_recorded' | 'none' | 'parameter_interval_envelope';
+export type UserModuleAuthoringResponseMode = 'steady_state' | 'first_order_dynamic';
+export type UserModuleAuthoringTimeValidity = 'not_recorded' | 'defined';
 
 export interface UserModuleAuthoringParameter {
   readonly value: string;
@@ -48,6 +51,14 @@ export interface UserModuleAuthoringContext {
   readonly ph: string;
 }
 
+export interface UserModuleAuthoringDynamics {
+  readonly tau: UserModuleAuthoringParameter;
+  readonly initialState: string;
+  readonly timeValidity: UserModuleAuthoringTimeValidity;
+  readonly timeStartHours: string;
+  readonly timeEndHours: string;
+}
+
 export interface UserModuleAuthoringState {
   readonly name: string;
   readonly description: string;
@@ -70,6 +81,11 @@ export interface UserModuleAuthoringState {
   readonly uncertainty: UserModuleAuthoringUncertainty;
 }
 
+export interface UserModuleWorkflowAuthoringState extends UserModuleAuthoringState {
+  readonly responseMode: UserModuleAuthoringResponseMode;
+  readonly dynamics: UserModuleAuthoringDynamics;
+}
+
 export type UserModuleAuthoringIssueCode =
   | 'module_name_required'
   | 'port_name_required'
@@ -84,7 +100,14 @@ export type UserModuleAuthoringIssueCode =
   | 'context_number_invalid'
   | 'context_ph_invalid'
   | 'provenance_required'
-  | 'parameter_interval_required';
+  | 'parameter_interval_required'
+  | 'dynamic_tau_non_finite'
+  | 'dynamic_tau_non_positive'
+  | 'dynamic_tau_interval_missing'
+  | 'dynamic_tau_interval_invalid'
+  | 'dynamic_tau_interval_estimate_outside'
+  | 'dynamic_initial_state_non_finite'
+  | 'dynamic_time_range_invalid';
 
 export interface UserModuleAuthoringIssue {
   readonly field: string;
@@ -93,6 +116,10 @@ export interface UserModuleAuthoringIssue {
 
 export type BuildUserModuleDraftResult =
   | { readonly ok: true; readonly draft: UserDefinedFunctionalModuleDraft }
+  | { readonly ok: false; readonly issues: readonly UserModuleAuthoringIssue[] };
+
+export type BuildUserDynamicModuleDraftResult =
+  | { readonly ok: true; readonly draft: UserDefinedDynamicFunctionalModuleDraft }
   | { readonly ok: false; readonly issues: readonly UserModuleAuthoringIssue[] };
 
 const provenanceRequired = new Set<BfnEvidenceGrade>([
@@ -106,11 +133,12 @@ const contextPlaceholders = new Set(['unknown', 'n/a', 'not recorded', 'unspecif
 
 export function createInitialUserModuleAuthoringState(
   project: BfnProject,
-): UserModuleAuthoringState {
+): UserModuleWorkflowAuthoringState {
   const existingEntityId = collectExistingEntityIds(project)[0] ?? '';
   return {
     name: '',
     description: '',
+    responseMode: 'steady_state',
     family: 'hill_activation',
     inputs: [createUserModuleAuthoringInput(1, existingEntityId)],
     output: {
@@ -141,6 +169,13 @@ export function createInitialUserModuleAuthoringState(
     provenanceKind: 'publication',
     provenanceReference: '',
     uncertainty: 'not_recorded',
+    dynamics: {
+      tau: parameter('1'),
+      initialState: '0',
+      timeValidity: 'not_recorded',
+      timeStartHours: '',
+      timeEndHours: '',
+    },
   };
 }
 
@@ -316,6 +351,96 @@ export function buildUserDefinedModuleDraft(
           : { state: state.uncertainty },
       evidence: { basis: state.evidenceBasis, provenance },
       implementation: { state: 'unspecified', implementationIds: [] },
+    },
+  };
+}
+
+/**
+ * Builds the first-order dynamic authoring draft from the same static response
+ * source used by the steady-state workflow. Dynamic fields are validated here
+ * so an invalid definition never reaches a materializer or project edit.
+ */
+export function buildUserDefinedDynamicModuleDraft(
+  state: UserModuleWorkflowAuthoringState,
+  project: BfnProject,
+): BuildUserDynamicModuleDraftResult {
+  const steady = buildUserDefinedModuleDraft(state, project);
+
+  const issues: UserModuleAuthoringIssue[] = [];
+  const dynamics = isRecord(state.dynamics) ? state.dynamics : null;
+  const tauSource = dynamics && isRecord(dynamics.tau) ? dynamics.tau : null;
+  const tauValue = optionalFiniteNumber(tauSource?.value ?? '');
+  if (tauValue === null) {
+    issues.push(issue('dynamics.tau', 'dynamic_tau_non_finite'));
+  } else if (tauValue <= 0) {
+    issues.push(issue('dynamics.tau', 'dynamic_tau_non_positive'));
+  }
+
+  const initialState = optionalFiniteNumber(dynamics?.initialState ?? '');
+  if (initialState === null) {
+    issues.push(issue('dynamics.initialState', 'dynamic_initial_state_non_finite'));
+  }
+
+  const intervalRequired = state.uncertainty === 'parameter_interval_envelope';
+  let tauInterval: readonly [number, number] | undefined;
+  if (intervalRequired) {
+    const lower = optionalFiniteNumber(tauSource?.lower ?? '');
+    const upper = optionalFiniteNumber(tauSource?.upper ?? '');
+    if (lower === null || upper === null) {
+      issues.push(issue('dynamics.tau.interval95', 'dynamic_tau_interval_missing'));
+    } else if (lower <= 0 || lower > upper) {
+      issues.push(issue('dynamics.tau.interval95', 'dynamic_tau_interval_invalid'));
+    } else if (tauValue !== null && (tauValue < lower || tauValue > upper)) {
+      issues.push(issue('dynamics.tau.interval95', 'dynamic_tau_interval_estimate_outside'));
+    } else {
+      tauInterval = [lower, upper];
+    }
+  }
+
+  let timeRangeHours: readonly [number, number] | undefined;
+  if (dynamics?.timeValidity === 'defined') {
+    const start = optionalFiniteNumber(dynamics.timeStartHours ?? '');
+    const end = optionalFiniteNumber(dynamics.timeEndHours ?? '');
+    if (start === null || end === null || start < 0 || end <= start) {
+      issues.push(issue('dynamics.timeRangeHours', 'dynamic_time_range_invalid'));
+    } else {
+      timeRangeHours = [start, end];
+    }
+  }
+
+  if (!steady.ok || issues.length > 0 || tauValue === null || initialState === null) {
+    return {
+      ok: false,
+      issues: uniqueIssues([...(!steady.ok ? steady.issues : []), ...issues]),
+    };
+  }
+
+  return {
+    ok: true,
+    draft: {
+      id: steady.draft.id,
+      origin: steady.draft.origin,
+      name: steady.draft.name,
+      description: steady.draft.description,
+      ports: steady.draft.ports,
+      steadyStateResponse: steady.draft.model,
+      validityDomains: steady.draft.validityDomains,
+      ...(timeRangeHours ? { timeRangeHours } : {}),
+      context: steady.draft.context,
+      uncertainty:
+        steady.draft.uncertainty.state === 'reported'
+          ? { state: 'reported', method: 'parameter_interval_envelope' }
+          : steady.draft.uncertainty,
+      evidence: steady.draft.evidence,
+      implementation: steady.draft.implementation,
+      dynamics: {
+        tau: {
+          value: tauValue,
+          unit: 'h',
+          ...(tauInterval ? { interval95: tauInterval } : {}),
+        },
+        initialState,
+      },
     },
   };
 }
