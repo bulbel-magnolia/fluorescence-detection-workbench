@@ -4,9 +4,17 @@ import {
   isBfnProjectV20,
   isBfnProjectV21,
   isBfnProjectV22,
+  isBfnProjectV23,
   upgradeBfnProjectToCurrent,
 } from './bfnIrMigration';
 import { parseBfnProject } from './repository';
+import {
+  ACCUMULATOR_INPUT_PORT_ID,
+  ACCUMULATOR_MODEL_ID,
+  ACCUMULATOR_OUTPUT_PORT_ID,
+  createAccumulatorBfnProject,
+  getAccumulatorModule,
+} from './testing/accumulatorFixtures';
 
 function record(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -18,6 +26,10 @@ function record(value: unknown): Record<string, unknown> {
 function records(value: unknown): Array<Record<string, unknown>> {
   if (!Array.isArray(value)) throw new Error('Expected a record array fixture.');
   return value.map(record);
+}
+
+function accumulatorModelRecord(project: ReturnType<typeof createAccumulatorBfnProject>) {
+  return record(getAccumulatorModule(project).modelVariants[0]);
 }
 
 function asLegacyV20Fixture(): Record<string, unknown> {
@@ -47,6 +59,12 @@ function asLegacyV21Fixture(): Record<string, unknown> {
   return project;
 }
 
+function asLegacyV22Fixture(): Record<string, unknown> {
+  const project = record(structuredClone(createDemoBfnProject()));
+  project.schemaVersion = '2.2';
+  return project;
+}
+
 function projectPorts(project: Record<string, unknown>): Array<Record<string, unknown>> {
   const network = record(project.network);
   return [
@@ -61,7 +79,7 @@ function projectPorts(project: Record<string, unknown>): Array<Record<string, un
 
 function expectedMigration(legacy: Record<string, unknown>): Record<string, unknown> {
   const expected = structuredClone(legacy);
-  expected.schemaVersion = '2.2';
+  expected.schemaVersion = '2.3';
   const registry = record(expected.registry);
   registry.entities = [];
   registry.provenanceRecords = [];
@@ -79,7 +97,7 @@ function expectedMigration(legacy: Record<string, unknown>): Record<string, unkn
   return expected;
 }
 
-describe('BFN-IR migration to 2.2', () => {
+describe('BFN-IR migration to 2.3', () => {
   it('migrates a pristine 2.0 project using the exact conservative defaults', () => {
     const legacy = asLegacyV20Fixture();
 
@@ -145,11 +163,11 @@ describe('BFN-IR migration to 2.2', () => {
     expect(migrated.network.modules[0]).not.toHaveProperty('authoring');
   });
 
-  it('accepts 2.0 import and always returns 2.2', () => {
+  it('accepts 2.0 import and always returns 2.3', () => {
     const parsed = parseBfnProject(JSON.stringify(asLegacyV20Fixture()));
 
-    expect(parsed.schemaVersion).toBe('2.2');
-    expect(isBfnProjectV22(parsed)).toBe(true);
+    expect(parsed.schemaVersion).toBe('2.3');
+    expect(isBfnProjectV23(parsed)).toBe(true);
   });
 
   it('upgrades a valid 2.1 project by version only and invents no Port authoring metadata', () => {
@@ -161,14 +179,24 @@ describe('BFN-IR migration to 2.2', () => {
     const first = upgradeBfnProjectToCurrent(legacy);
     const second = upgradeBfnProjectToCurrent(legacy);
 
-    expect(first.schemaVersion).toBe('2.2');
-    expect(isBfnProjectV22(first)).toBe(true);
+    expect(first.schemaVersion).toBe('2.3');
+    expect(isBfnProjectV23(first)).toBe(true);
     expect(projectPorts(record(first)).every((port) => !('authoring' in port))).toBe(true);
     expect(legacy).toEqual(untouched);
     expect(first).toEqual(second);
   });
 
-  it.each(['2.3', '3.0'])('fails closed for unknown future schema version %s', (schemaVersion) => {
+  it('upgrades a valid 2.2 project by version only', () => {
+    const legacy = asLegacyV22Fixture();
+    const untouched = structuredClone(legacy);
+    const expected = { ...structuredClone(legacy), schemaVersion: '2.3' };
+
+    expect(isBfnProjectV22(legacy)).toBe(true);
+    expect(upgradeBfnProjectToCurrent(legacy)).toEqual(expected);
+    expect(legacy).toEqual(untouched);
+  });
+
+  it.each(['2.4', '3.0'])('fails closed for unknown future schema version %s', (schemaVersion) => {
     const future = asLegacyV20Fixture();
     future.schemaVersion = schemaVersion;
 
@@ -177,7 +205,140 @@ describe('BFN-IR migration to 2.2', () => {
   });
 });
 
-describe('BFN-IR 2.2 representation contract', () => {
+describe('BFN-IR 2.3 representation contract', () => {
+  it('round-trips a dynamic-only accumulator without fake static or first-order fields', () => {
+    const project = createAccumulatorBfnProject();
+    const parsed = parseBfnProject(JSON.stringify(project));
+    const model = getAccumulatorModule(parsed).modelVariants[0];
+
+    expect(isBfnProjectV23(project)).toBe(true);
+    expect(parsed).toEqual(project);
+    expect(getAccumulatorModule(parsed).activeModelIds).toEqual({
+      dynamic: ACCUMULATOR_MODEL_ID,
+    });
+    expect(model).toMatchObject({
+      id: ACCUMULATOR_MODEL_ID,
+      version: '2.3-test.1',
+      mode: 'dynamic',
+      family: 'accumulator',
+      inputPortId: ACCUMULATOR_INPUT_PORT_ID,
+      outputPortId: ACCUMULATOR_OUTPUT_PORT_ID,
+      initialState: 2.5,
+      contextId: project.registry.contexts[0]?.id,
+      validityDomainId: 'domain-accumulator-test',
+      sourceDatasetIds: project.registry.datasets[0]?.id ? [project.registry.datasets[0].id] : [],
+      provenanceIds: ['provenance-accumulator-test'],
+      evidenceGrade: 'independent_assumption',
+      uncertaintyMethod: 'not_recorded',
+      isDemo: true,
+    });
+    expect(model).not.toHaveProperty('tau');
+    expect(model).not.toHaveProperty('steadyStateResponse');
+    expect(model).not.toHaveProperty('response');
+  });
+
+  it('accepts static-only, paired, and dynamic-only active model references', () => {
+    const staticOnly = createDemoBfnProject();
+    const staticOnlyModule = staticOnly.network.modules[0]!;
+    const staticModel = staticOnlyModule.modelVariants.find(({ mode }) => mode === 'static')!;
+    staticOnlyModule.modelVariants = [staticModel];
+    staticOnlyModule.activeModelIds = { static: staticModel.id };
+
+    expect(isBfnProjectV23(staticOnly)).toBe(true);
+    expect(isBfnProjectV23(createDemoBfnProject())).toBe(true);
+    expect(isBfnProjectV23(createAccumulatorBfnProject())).toBe(true);
+  });
+
+  it('rejects empty, missing, and mode-mismatched active model references', () => {
+    const malformedProjects = [
+      (() => {
+        const project = createAccumulatorBfnProject();
+        record(getAccumulatorModule(project)).activeModelIds = {};
+        return project;
+      })(),
+      (() => {
+        const project = createDemoBfnProject();
+        record(project.network.modules[0]).activeModelIds = { static: 'missing-model' };
+        return project;
+      })(),
+      (() => {
+        const project = createAccumulatorBfnProject();
+        record(getAccumulatorModule(project)).activeModelIds = { dynamic: 'missing-model' };
+        return project;
+      })(),
+      (() => {
+        const project = createAccumulatorBfnProject();
+        record(getAccumulatorModule(project)).activeModelIds = {
+          static: ACCUMULATOR_MODEL_ID,
+        };
+        return project;
+      })(),
+      (() => {
+        const project = createDemoBfnProject();
+        const staticModelId = project.network.modules[0]!.activeModelIds.static!;
+        record(project.network.modules[0]).activeModelIds = { dynamic: staticModelId };
+        return project;
+      })(),
+    ];
+
+    for (const malformed of malformedProjects) {
+      expect(isBfnProjectV23(malformed)).toBe(false);
+      expect(() => parseBfnProject(JSON.stringify(malformed))).toThrow('BFN_IMPORT_SCHEMA_INVALID');
+    }
+  });
+
+  it('rejects malformed accumulator fields and Port references at the runtime import boundary', () => {
+    const mutations: Array<(project: ReturnType<typeof createAccumulatorBfnProject>) => void> = [
+      (project) => {
+        delete accumulatorModelRecord(project).inputPortId;
+      },
+      (project) => {
+        delete accumulatorModelRecord(project).outputPortId;
+      },
+      (project) => {
+        accumulatorModelRecord(project).inputPortId = 'missing-port';
+      },
+      (project) => {
+        accumulatorModelRecord(project).inputPortId = ACCUMULATOR_OUTPUT_PORT_ID;
+      },
+      (project) => {
+        accumulatorModelRecord(project).outputPortId = ACCUMULATOR_INPUT_PORT_ID;
+      },
+      (project) => {
+        accumulatorModelRecord(project).initialState = Number.NaN;
+      },
+      (project) => {
+        accumulatorModelRecord(project).initialState = null;
+      },
+      (project) => {
+        accumulatorModelRecord(project).family = 'future-process';
+      },
+      (project) => {
+        accumulatorModelRecord(project).tau = { value: 1, unit: 'h' };
+      },
+      (project) => {
+        accumulatorModelRecord(project).steadyStateResponse = {
+          family: 'identity',
+          inputPortId: ACCUMULATOR_INPUT_PORT_ID,
+        };
+      },
+      (project) => {
+        accumulatorModelRecord(project).response = {
+          family: 'identity',
+          inputPortId: ACCUMULATOR_INPUT_PORT_ID,
+        };
+      },
+    ];
+
+    for (const mutate of mutations) {
+      const malformed = createAccumulatorBfnProject();
+      mutate(malformed);
+      expect(isBfnProjectV23(malformed)).toBe(false);
+      expect(() => upgradeBfnProjectToCurrent(malformed)).toThrow('BFN_IMPORT_SCHEMA_INVALID');
+      expect(() => parseBfnProject(JSON.stringify(malformed))).toThrow('BFN_IMPORT_SCHEMA_INVALID');
+    }
+  });
+
   it('round-trips user metadata, custom entities, partial contexts, provenance, and maturity', () => {
     const project = createDemoBfnProject();
     const module = project.network.modules[0]!;
@@ -271,15 +432,15 @@ describe('BFN-IR 2.2 representation contract', () => {
 
     const parsed = parseBfnProject(JSON.stringify(project));
 
-    expect(isBfnProjectV22(parsed)).toBe(true);
+    expect(isBfnProjectV23(parsed)).toBe(true);
     expect(projectPorts(record(parsed)).every((port) => !('authoring' in port))).toBe(true);
   });
 
-  it('returns a validated deep clone for an already-current 2.2 project', () => {
+  it('returns a validated deep clone for an already-current 2.3 project', () => {
     const project = createDemoBfnProject();
     const upgraded = upgradeBfnProjectToCurrent(project);
 
-    expect(isBfnProjectV22(project)).toBe(true);
+    expect(isBfnProjectV23(project)).toBe(true);
     expect(upgraded).toEqual(project);
     expect(upgraded).not.toBe(project);
   });

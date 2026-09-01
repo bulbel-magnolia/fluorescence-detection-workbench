@@ -24,7 +24,7 @@ describe('workspace BFN project factories', () => {
 
     expect(project).toMatchObject({
       schema: 'BFN-IR',
-      schemaVersion: '2.2',
+      schemaVersion: '2.3',
       id: 'blank-bfn',
       createdAt: now,
       updatedAt: now,

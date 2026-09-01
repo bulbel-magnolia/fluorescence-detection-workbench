@@ -7,6 +7,12 @@ import {
 import { upgradeBfnProjectToCurrent } from './bfnIrMigration';
 import { createBfnComputationSignature } from './computationSignature';
 import { createDemoBfnProject } from './fixtures';
+import {
+  ACCUMULATOR_INPUT_PORT_ID,
+  ACCUMULATOR_OUTPUT_PORT_ID,
+  createAccumulatorBfnProject,
+  getAccumulatorModule,
+} from './testing/accumulatorFixtures';
 import type { BfnProject, BfnStaticModel } from './types';
 
 function record(value: unknown): Record<string, unknown> {
@@ -217,7 +223,7 @@ describe('BFN computation signature', () => {
     const dynamicModel = changed.network.modules[0]!.modelVariants.find(
       (model) => model.mode === 'dynamic',
     );
-    if (!dynamicModel || dynamicModel.mode !== 'dynamic')
+    if (!dynamicModel || dynamicModel.mode !== 'dynamic' || dynamicModel.family !== 'first_order')
       throw new Error('dynamic fixture missing');
     dynamicModel.tau.value += 1;
 
@@ -229,6 +235,86 @@ describe('BFN computation signature', () => {
         network: { ...project.network, mode: 'dynamic' },
       }),
     );
+  });
+
+  it('tracks accumulator initial state, Port references, and active dynamic model identity', () => {
+    const project = createAccumulatorBfnProject();
+    const module = getAccumulatorModule(project);
+    module.inputPorts.push({
+      id: 'port-accumulator-rate-alternate',
+      entity: 'entity.accumulator.test-signal',
+      quantityType: 'production_rate',
+      unit: 'nM/h',
+      direction: 'input',
+    });
+    module.outputPorts.push({
+      id: 'port-accumulator-state-alternate',
+      entity: 'entity.accumulator.test-signal',
+      quantityType: 'concentration',
+      unit: 'nM',
+      direction: 'output',
+    });
+    const baseline = createBfnComputationSignature(project);
+    const mutations: Array<(candidate: typeof project) => void> = [
+      (candidate) => {
+        const model = getAccumulatorModule(candidate).modelVariants[0]!;
+        if (model.mode === 'dynamic' && model.family === 'accumulator') {
+          model.initialState += 1;
+        }
+      },
+      (candidate) => {
+        const model = getAccumulatorModule(candidate).modelVariants[0]!;
+        if (model.mode === 'dynamic' && model.family === 'accumulator') {
+          model.inputPortId = 'port-accumulator-rate-alternate';
+        }
+      },
+      (candidate) => {
+        const model = getAccumulatorModule(candidate).modelVariants[0]!;
+        if (model.mode === 'dynamic' && model.family === 'accumulator') {
+          model.outputPortId = 'port-accumulator-state-alternate';
+        }
+      },
+      (candidate) => {
+        const candidateModule = getAccumulatorModule(candidate);
+        const active = candidateModule.modelVariants[0]!;
+        if (active.mode !== 'dynamic' || active.family !== 'accumulator') return;
+        const alternate = {
+          ...structuredClone(active),
+          id: 'model-accumulator-test-v2',
+          initialState: active.initialState + 2,
+        };
+        candidateModule.modelVariants.push(alternate);
+        candidateModule.activeModelIds = { dynamic: alternate.id };
+      },
+    ];
+
+    for (const mutate of mutations) {
+      const candidate = structuredClone(project);
+      mutate(candidate);
+      expect(createBfnComputationSignature(candidate)).not.toBe(baseline);
+    }
+
+    const model = module.modelVariants[0]!;
+    expect(model).toMatchObject({
+      inputPortId: ACCUMULATOR_INPUT_PORT_ID,
+      outputPortId: ACCUMULATOR_OUTPUT_PORT_ID,
+    });
+  });
+
+  it('excludes accumulator module authoring, description, display name, and position', () => {
+    const project = createAccumulatorBfnProject();
+    const described = structuredClone(project);
+    const module = getAccumulatorModule(described);
+    module.authoring = {
+      origin: 'user_defined',
+      name: 'Accumulator display name',
+      description: 'Descriptive text only.',
+    };
+    module.displayName = { en: 'Display name', zh: '显示名称' };
+    module.descriptionKey = 'bfn.testing.changedDescription';
+    module.position = { x: 999, y: 777 };
+
+    expect(createBfnComputationSignature(described)).toBe(createBfnComputationSignature(project));
   });
 
   it('tracks the active Catalog scientific identity and copied source contract', () => {

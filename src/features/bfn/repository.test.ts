@@ -17,6 +17,7 @@ import {
   saveBfnProject,
 } from './repository';
 import { runBfnSimulation } from './simulation';
+import { createAccumulatorBfnProject } from './testing/accumulatorFixtures';
 import { validateBfnProject } from './validation';
 
 function projectWithCatalogReference() {
@@ -34,10 +35,18 @@ function projectWithCatalogReference() {
 describe('BFN-IR repository', () => {
   beforeEach(() => localStorage.clear());
 
-  it('round-trips a versioned BFN-IR 2.2 project', () => {
+  it('round-trips a versioned BFN-IR 2.3 project', () => {
     const project = createDemoBfnProject();
     saveBfnProject(project);
     expect(localStorage.getItem(BFN_PROJECT_STORAGE_KEY)).not.toBeNull();
+    expect(loadBfnProject()).toEqual(project);
+  });
+
+  it('round-trips a dynamic-only accumulator through JSON and localStorage losslessly', () => {
+    const project = createAccumulatorBfnProject();
+
+    expect(parseBfnProject(JSON.stringify(project))).toEqual(project);
+    saveBfnProject(project);
     expect(loadBfnProject()).toEqual(project);
   });
 

@@ -16,7 +16,6 @@ import type {
   BfnSimulationPoint,
   BfnSimulationResultV21,
   BfnStaticInputSpecification,
-  BfnStaticModel,
   BfnValidationIssue,
 } from './types';
 import { convertUnit } from './unitSystem';
@@ -258,10 +257,16 @@ function simulateDynamicScenario(
   const stepCount = Math.ceil(duration / step);
   const valuesByPort = new Map<string, number>();
   const stateByModule = new Map<string, number>();
-  const modules = dynamicModuleOrder(project);
+  const targetMonitor = project.network.outputMonitors[0];
+  if (!targetMonitor) throw new Error('BFN_OUTPUT_MONITOR_MISSING');
+  const reachableModuleIds = findBfnOutputReachableModuleIds(project, targetMonitor.id);
+  const modules = dynamicModuleOrder(project).filter((module) => reachableModuleIds.has(module.id));
   for (const module of modules) {
     const model = resolveEffectiveBfnModel(project, module);
     if (model?.mode === 'dynamic') {
+      if (model.family !== 'first_order') {
+        throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+      }
       stateByModule.set(module.id, model.initialState);
       module.outputPorts.forEach((port) => valuesByPort.set(port.id, model.initialState));
     }
@@ -282,6 +287,9 @@ function simulateDynamicScenario(
     for (const module of modules) {
       const model = resolveEffectiveBfnModel(project, module);
       if (!model) continue;
+      if (model.mode === 'dynamic' && model.family !== 'first_order') {
+        throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+      }
       const inputs = resolveModuleInputs(project, module, model, valuesByPort);
       const target = evaluateBfnModuleModel(project, module, model, inputs, scenario);
       const output =
@@ -530,7 +538,7 @@ export function runBfnSimulation(
 export function selectedModel(
   project: BfnProject,
   module: BfnFunctionalModule,
-): BfnStaticModel | BfnDynamicModel | null {
+): BfnModelVariant | null {
   const model = resolveEffectiveBfnModel(project, module);
-  return model?.mode === 'static' || model?.mode === 'dynamic' ? model : null;
+  return model;
 }

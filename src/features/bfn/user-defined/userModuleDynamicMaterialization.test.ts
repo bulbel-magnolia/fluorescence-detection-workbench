@@ -202,8 +202,16 @@ describe('user-defined first-order dynamic module materialization', () => {
     });
     expect(staticModel).toBeDefined();
     expect(dynamicModel).toBeDefined();
-    expect(dynamicModel?.steadyStateResponse).toEqual(staticModel?.response);
-    expect(dynamicModel?.steadyStateResponse).not.toBe(staticModel?.response);
+    expect(
+      dynamicModel?.mode === 'dynamic' && dynamicModel.family === 'first_order'
+        ? dynamicModel.steadyStateResponse
+        : undefined,
+    ).toEqual(staticModel?.response);
+    expect(
+      dynamicModel?.mode === 'dynamic' && dynamicModel.family === 'first_order'
+        ? dynamicModel.steadyStateResponse
+        : undefined,
+    ).not.toBe(staticModel?.response);
     expect(dynamicModel).toMatchObject({
       mode: 'dynamic',
       family: 'first_order',
@@ -417,7 +425,7 @@ describe('user-defined first-order dynamic module materialization', () => {
     expect(outputs.at(-1)).toBeCloseTo(staticResult.points[0]!.output, 1);
   });
 
-  it('round-trips dynamic authoring metadata through JSON/BFN-IR 2.2 and Workspace v1', async () => {
+  it('round-trips dynamic authoring metadata through JSON/BFN-IR 2.3 and Workspace v1', async () => {
     const project = createDemoBfnProject();
     const result = materializeUserDefinedDynamicModule(dynamicDraft(), project);
     expect(result.ok).toBe(true);

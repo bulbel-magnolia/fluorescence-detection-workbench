@@ -58,6 +58,13 @@ function hasExecutableInterval(parameter: BfnParameterEstimate | undefined): boo
 export function assessBfnModelUncertainty(
   model: BfnModelVariant,
 ): Omit<BfnRunModuleUncertaintySnapshot, 'moduleId' | 'selectedModelId'> {
+  if (model.mode === 'dynamic' && model.family === 'accumulator') {
+    return {
+      method: model.uncertaintyMethod,
+      intervalExecutable: false,
+      reason: 'method_not_executable',
+    };
+  }
   if (model.uncertaintyMethod === 'none') {
     return {
       method: model.uncertaintyMethod,

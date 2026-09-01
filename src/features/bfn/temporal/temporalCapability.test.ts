@@ -51,7 +51,9 @@ describe('BFN temporal capability', () => {
     project.network.mode = 'dynamic';
     const module = moduleById(project);
     module.modelVariants = module.modelVariants.filter((model) => model.mode === 'static');
-    module.activeModelIds = { static: module.activeModelIds.static };
+    const staticModelId = module.activeModelIds.static;
+    if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+    module.activeModelIds = { static: staticModelId };
 
     expect(resolveBfnModuleTemporalCapability(project, module)).toEqual({
       executionMode: 'quasi_static',

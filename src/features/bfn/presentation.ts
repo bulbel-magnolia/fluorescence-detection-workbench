@@ -140,6 +140,7 @@ export function bfnParameterPresentations(
   language?: string,
 ): BfnParameterPresentation[] {
   if (!model) return [];
+  if (model.mode === 'dynamic' && model.family === 'accumulator') return [];
   const response = model.mode === 'static' ? model.response : model.steadyStateResponse;
   const input = module.inputPorts[0]
     ? bfnPortPrimaryLabel(module.inputPorts[0], t, language)

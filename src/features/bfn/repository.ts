@@ -1,5 +1,5 @@
 import type { BfnProject, BfnQuantityType, BfnSimulationResult, BfnUnit } from './types';
-import { isBfnProjectV22, upgradeBfnProjectToCurrent } from './bfnIrMigration';
+import { isBfnProjectV23, upgradeBfnProjectToCurrent } from './bfnIrMigration';
 
 export const BFN_PROJECT_STORAGE_KEY = 'fluorescence-desktop.bfn-ir-project.v2';
 export const BFN_RUN_STORAGE_KEY = 'fluorescence-desktop.bfn-ir-runs.v2';
@@ -211,7 +211,7 @@ function hasValidSimulationPoints(
 }
 
 export function isBfnProject(value: unknown): value is BfnProject {
-  return isBfnProjectV22(value);
+  return isBfnProjectV23(value);
 }
 
 function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
@@ -267,7 +267,7 @@ export function loadBfnProject(): BfnProject | null {
 }
 
 export function saveBfnProject(project: BfnProject): void {
-  if (!isBfnProjectV22(project)) throw new Error('BFN_EXPORT_SCHEMA_INVALID');
+  if (!isBfnProjectV23(project)) throw new Error('BFN_EXPORT_SCHEMA_INVALID');
   localStorage.setItem(BFN_PROJECT_STORAGE_KEY, JSON.stringify(project));
 }
 

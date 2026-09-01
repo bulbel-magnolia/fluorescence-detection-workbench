@@ -175,7 +175,12 @@ describe('BFN Platform user-defined module authoring workflow', () => {
     expect(addedModule.activeModelIds.dynamic).toBeDefined();
     const staticModel = addedModule.modelVariants.find((model) => model.mode === 'static');
     const dynamicModel = addedModule.modelVariants.find((model) => model.mode === 'dynamic');
-    if (!staticModel || !dynamicModel || dynamicModel.mode !== 'dynamic') {
+    if (
+      !staticModel ||
+      !dynamicModel ||
+      dynamicModel.mode !== 'dynamic' ||
+      dynamicModel.family !== 'first_order'
+    ) {
       throw new Error('Paired static/dynamic models were not materialized.');
     }
     expect(dynamicModel.steadyStateResponse).toEqual(staticModel.response);

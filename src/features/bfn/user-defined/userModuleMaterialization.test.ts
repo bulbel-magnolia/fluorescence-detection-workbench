@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { beforeEach, describe, expect, it } from 'vitest';
-import { isBfnProjectV22 } from '../bfnIrMigration';
+import { isBfnProjectV23 } from '../bfnIrMigration';
 import { createDemoBfnProject } from '../fixtures';
 import { parseBfnProject } from '../repository';
 import type { BfnStaticModel } from '../types';
@@ -689,7 +689,7 @@ describe('user-defined static module materialization', () => {
     expect(localStorage.getItem('batch-12-1-materialization-sentinel')).toBe('unchanged');
     expect(first.ok).toBe(true);
     if (!first.ok) return;
-    expect(isBfnProjectV22(first.nextProject)).toBe(true);
+    expect(isBfnProjectV23(first.nextProject)).toBe(true);
     expect(parseBfnProject(JSON.stringify(first.nextProject))).toEqual(first.nextProject);
     expect(first.nextProject.createdAt).toBe(project.createdAt);
     expect(first.nextProject.updatedAt).toBe(project.updatedAt);

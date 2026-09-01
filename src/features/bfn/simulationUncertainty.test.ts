@@ -22,7 +22,9 @@ function selectedDynamicModel(project = createDemoBfnProject()): BfnDynamicModel
   const model = module.modelVariants.find(
     (candidate) => candidate.id === module.activeModelIds.dynamic,
   );
-  if (model?.mode !== 'dynamic') throw new Error('Expected selected dynamic model');
+  if (model?.mode !== 'dynamic' || model.family !== 'first_order') {
+    throw new Error('Expected selected dynamic model');
+  }
   return model;
 }
 

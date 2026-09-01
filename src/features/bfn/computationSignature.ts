@@ -33,14 +33,21 @@ function modelBasis(model: BfnModelVariant | null) {
     catalogReference: bfnCatalogReferencePresence(model).value,
     uncertaintyMethod: model.uncertaintyMethod,
   };
-  return model.mode === 'static'
-    ? { ...shared, response: model.response }
-    : {
-        ...shared,
-        steadyStateResponse: model.steadyStateResponse,
-        tau: model.tau,
-        initialState: model.initialState,
-      };
+  if (model.mode === 'static') return { ...shared, response: model.response };
+  if (model.family === 'first_order') {
+    return {
+      ...shared,
+      steadyStateResponse: model.steadyStateResponse,
+      tau: model.tau,
+      initialState: model.initialState,
+    };
+  }
+  return {
+    ...shared,
+    inputPortId: model.inputPortId,
+    outputPortId: model.outputPortId,
+    initialState: model.initialState,
+  };
 }
 
 export function createBfnComputationSignature(project: BfnProject): string {

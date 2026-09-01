@@ -12,11 +12,15 @@ function dynamicProject(kind: 'quasi' | 'mixed' | 'stateful') {
   project.network.mode = 'dynamic';
   if (kind === 'quasi') {
     for (const module of project.network.modules) {
-      module.activeModelIds = { static: module.activeModelIds.static };
+      const staticModelId = module.activeModelIds.static;
+      if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+      module.activeModelIds = { static: staticModelId };
     }
   } else if (kind === 'mixed') {
     const reporter = project.network.modules[1]!;
-    reporter.activeModelIds = { static: reporter.activeModelIds.static };
+    const staticModelId = reporter.activeModelIds.static;
+    if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+    reporter.activeModelIds = { static: staticModelId };
   }
   return project;
 }

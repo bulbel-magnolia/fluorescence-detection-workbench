@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isBfnProjectV22 } from '../../bfnIrMigration';
+import { isBfnProjectV23 } from '../../bfnIrMigration';
 import {
   buildBfnCatalogRuntimeCandidate,
   instantiateCatalogResponseInBfnProject,
@@ -91,7 +91,7 @@ describe('Designed Sender generic BFN materialization', () => {
       expect(result.nextProject.network.edges).toEqual(project.network.edges);
       expect(result.nextProject.network.outputMonitors).toEqual(project.network.outputMonitors);
       expect(result.nextProject).not.toHaveProperty('runs');
-      expect(isBfnProjectV22(result.nextProject)).toBe(true);
+      expect(isBfnProjectV23(result.nextProject)).toBe(true);
       expect(parseBfnProject(JSON.stringify(result.nextProject))).toEqual(result.nextProject);
     },
   );

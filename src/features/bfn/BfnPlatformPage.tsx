@@ -161,6 +161,7 @@ function displayNumber(value: number, digits = 3): string {
 
 function formulaForModel(model: BfnModelVariant | null): string {
   if (!model) return '—';
+  if (model.mode === 'dynamic' && model.family === 'accumulator') return '—';
   const response = model.mode === 'static' ? model.response : model.steadyStateResponse;
   const base = (() => {
     switch (response.family) {

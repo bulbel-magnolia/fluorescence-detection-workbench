@@ -346,6 +346,7 @@ describe('first-order dynamic user-defined module authoring', () => {
       dynamicModel &&
         staticModel &&
         dynamicModel.mode === 'dynamic' &&
+        dynamicModel.family === 'first_order' &&
         staticModel.mode === 'static'
         ? dynamicModel.steadyStateResponse
         : null,

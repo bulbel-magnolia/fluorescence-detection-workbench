@@ -49,7 +49,8 @@ export type BfnModelFamily =
   | 'linear_transfer'
   | 'identity'
   | 'independent_inputs'
-  | 'first_order';
+  | 'first_order'
+  | 'accumulator';
 
 export type BfnUncertaintyMethod =
   | 'parameter_interval_envelope'
@@ -165,7 +166,7 @@ export interface BfnModelVariantBase {
 export interface BfnStaticModel extends BfnModelVariantBase {
   mode: 'static';
   catalogReference?: BfnCatalogModelReference;
-  family: Exclude<BfnModelFamily, 'first_order'>;
+  family: Exclude<BfnModelFamily, 'first_order' | 'accumulator'>;
   response: BfnStaticResponse;
   uncertaintyMethod: BfnUncertaintyMethod;
 }
@@ -179,7 +180,18 @@ export interface BfnDynamicModel extends BfnModelVariantBase {
   uncertaintyMethod: BfnUncertaintyMethod;
 }
 
-export type BfnModelVariant = BfnStaticModel | BfnDynamicModel;
+export interface BfnAccumulatorDynamicModel extends BfnModelVariantBase {
+  mode: 'dynamic';
+  family: 'accumulator';
+  inputPortId: string;
+  outputPortId: string;
+  initialState: number;
+  uncertaintyMethod: BfnUncertaintyMethod;
+}
+
+export type BfnDynamicModelVariant = BfnDynamicModel | BfnAccumulatorDynamicModel;
+
+export type BfnModelVariant = BfnStaticModel | BfnDynamicModelVariant;
 
 export type BfnImplementationMaturity =
   'not_recorded' | 'designed' | 'candidate' | 'reported' | 'validated';
@@ -219,6 +231,16 @@ export interface BfnUserAuthoredModuleMetadata {
   description: string | null;
 }
 
+export type BfnActiveModelIds =
+  | {
+      static: string;
+      dynamic?: string;
+    }
+  | {
+      static?: never;
+      dynamic: string;
+    };
+
 export interface BfnFunctionalModule {
   kind: 'functional_module';
   id: string;
@@ -229,10 +251,7 @@ export interface BfnFunctionalModule {
   inputPorts: BfnPort[];
   outputPorts: BfnPort[];
   modelVariants: BfnModelVariant[];
-  activeModelIds: {
-    static: string;
-    dynamic?: string;
-  };
+  activeModelIds: BfnActiveModelIds;
   implementationIds: string[];
   implementationState: BfnModuleImplementationState;
   evidenceGrade: BfnEvidenceGrade;
@@ -468,7 +487,7 @@ export interface BfnNetwork {
 
 export interface BfnProject {
   schema: 'BFN-IR';
-  schemaVersion: '2.2';
+  schemaVersion: '2.3';
   id: string;
   labelKey: string;
   network: BfnNetwork;
@@ -510,6 +529,7 @@ export type BfnValidationCode =
   | 'catalog_input_out_of_range'
   | 'catalog_execution_unavailable'
   | 'dynamic_model_contract_invalid'
+  | 'dynamic_process_runtime_unsupported'
   | 'dynamic_feedback_unsupported';
 
 export interface BfnValidationIssue {

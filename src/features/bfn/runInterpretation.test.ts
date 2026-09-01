@@ -12,7 +12,9 @@ describe('BFN run snapshot interpretation', () => {
     const allQuasiProject = createDemoBfnProject();
     allQuasiProject.network.mode = 'dynamic';
     for (const module of allQuasiProject.network.modules) {
-      module.activeModelIds = { static: module.activeModelIds.static };
+      const staticModelId = module.activeModelIds.static;
+      if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+      module.activeModelIds = { static: staticModelId };
     }
     const allQuasi = runBfnSimulation(allQuasiProject);
     expect(interpretBfnDynamicTimeHandling(allQuasi)).toBe('all_quasi_static');
@@ -20,7 +22,9 @@ describe('BFN run snapshot interpretation', () => {
     const mixedProject = createDemoBfnProject();
     mixedProject.network.mode = 'dynamic';
     const reporter = mixedProject.network.modules[1]!;
-    reporter.activeModelIds = { static: reporter.activeModelIds.static };
+    const reporterStaticModelId = reporter.activeModelIds.static;
+    if (reporterStaticModelId === undefined) throw new Error('Expected paired demo model.');
+    reporter.activeModelIds = { static: reporterStaticModelId };
     expect(interpretBfnDynamicTimeHandling(runBfnSimulation(mixedProject))).toBe(
       'mixed_quasi_static',
     );
@@ -74,7 +78,9 @@ describe('BFN run snapshot interpretation', () => {
     const comparisonProject = createDemoBfnProject();
     comparisonProject.network.mode = 'dynamic';
     for (const module of comparisonProject.network.modules) {
-      module.activeModelIds = { static: module.activeModelIds.static };
+      const staticModelId = module.activeModelIds.static;
+      if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+      module.activeModelIds = { static: staticModelId };
     }
     const comparison = runBfnSimulation(comparisonProject);
 

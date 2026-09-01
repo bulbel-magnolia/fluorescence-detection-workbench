@@ -79,7 +79,9 @@ describe('BFN temporal runtime integration', () => {
     const project = createDemoBfnProject();
     project.network.mode = 'dynamic';
     const reporter = project.network.modules[1]!;
-    reporter.activeModelIds = { static: reporter.activeModelIds.static };
+    const staticModelId = reporter.activeModelIds.static;
+    if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+    reporter.activeModelIds = { static: staticModelId };
     const isolated = createCatalogModule('ahl-sensor', 'isolated-snapshot');
     project.network.modules.push(isolated);
 

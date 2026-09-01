@@ -20,6 +20,9 @@ export function evaluateBfnModuleModel(
   inputs: Readonly<Record<string, number>>,
   scenario: BfnParameterScenario = 'estimate',
 ): number {
+  if (model.mode === 'dynamic' && model.family === 'accumulator') {
+    throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+  }
   const presence = bfnCatalogReferencePresence(model);
   if (!presence.present) {
     const response = model.mode === 'static' ? model.response : model.steadyStateResponse;

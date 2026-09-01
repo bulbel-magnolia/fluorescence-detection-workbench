@@ -262,6 +262,9 @@ function hasResolvedEnabledIncomingSignal(
 
 function modeledInputPortIds(model: BfnModelVariant | null): ReadonlySet<string> {
   if (!model) return new Set();
+  if (model.mode === 'dynamic' && model.family === 'accumulator') {
+    return new Set([model.inputPortId]);
+  }
   const response = model.mode === 'dynamic' ? model.steadyStateResponse : model.response;
   return new Set(
     response.family === 'independent_inputs'
@@ -313,6 +316,7 @@ function dynamicUserRuntimeContractReason(
   module: BfnFunctionalModule,
   model: Extract<BfnModelVariant, { mode: 'dynamic' }>,
 ): DynamicUserRuntimeContractReason | null {
+  if (model.family === 'accumulator') return null;
   if (model.family !== 'first_order') return 'family_invalid';
 
   const tau: unknown = model.tau;
@@ -532,15 +536,27 @@ export function validateBfnProject(
   for (const monitorId of [...new Set(monitorIds)]) {
     issues.push(...dynamicFeedbackValidationIssues(project, monitorId));
   }
-  const authoredRuntimeReachableModuleIds =
+  const runtimeReachableModuleIds =
     targetMonitorId === undefined
       ? outputReachableModuleIds
       : findBfnOutputReachableModuleIds(project, targetMonitorId);
   for (const module of project.network.modules) {
     const model = resolveEffectiveBfnModel(project, module);
     if (
+      runtimeReachableModuleIds.has(module.id) &&
+      model?.mode === 'dynamic' &&
+      model.family === 'accumulator'
+    ) {
+      issues.push({
+        code: 'dynamic_process_runtime_unsupported',
+        severity: 'error',
+        subjectId: module.id,
+        details: { family: model.family },
+      });
+    }
+    if (
       module.authoring?.origin === 'user_defined' &&
-      authoredRuntimeReachableModuleIds.has(module.id) &&
+      runtimeReachableModuleIds.has(module.id) &&
       model?.mode === 'dynamic'
     ) {
       const reason = dynamicUserRuntimeContractReason(project, module, model);
@@ -575,7 +591,7 @@ export function validateBfnProject(
       if (!hasResolvedEnabledIncomingSignal(project, module.id, port.id)) {
         const authoredRuntimeRequired =
           module.authoring?.origin === 'user_defined' &&
-          authoredRuntimeReachableModuleIds.has(module.id) &&
+          runtimeReachableModuleIds.has(module.id) &&
           modeledInputs.has(port.id);
         issues.push(
           catalogBacked

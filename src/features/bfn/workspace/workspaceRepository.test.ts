@@ -2,6 +2,7 @@ import { IDBFactory } from 'fake-indexeddb';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from '../fixtures';
 import { runBfnSimulation } from '../simulation';
+import { createAccumulatorBfnProject } from '../testing/accumulatorFixtures';
 import { createIndexedDbBfnWorkspaceRepository } from './indexedDbWorkspaceRepository';
 import { createLocalStorageBfnWorkspaceRepository } from './localStorageWorkspaceRepository';
 import { createWorkspaceProjectMetadata } from './workspaceProjectFactory';
@@ -49,6 +50,12 @@ function legacyV20Project(): unknown {
 function legacyV21Project(): unknown {
   const legacy = record(structuredClone(createDemoBfnProject()));
   legacy.schemaVersion = '2.1';
+  return legacy;
+}
+
+function legacyV22Project(): unknown {
+  const legacy = record(structuredClone(createDemoBfnProject()));
+  legacy.schemaVersion = '2.2';
   return legacy;
 }
 
@@ -201,6 +208,24 @@ function repositoryContract(label: string, createRepository: () => BfnWorkspaceR
       expect((await repository.getVersion(versionOne.id))?.snapshot.network.mode).toBe('dynamic');
     });
 
+    it('round-trips a current 2.3 accumulator Draft and Version losslessly', async () => {
+      const project = createAccumulatorBfnProject();
+      const metadata = createWorkspaceProjectMetadata('Accumulator project', {
+        now: firstTime,
+        workspaceProjectId: 'project-accumulator',
+      });
+      await repository.createProject({ metadata, draft: project, makeActive: true });
+
+      expect(await repository.getDraft(metadata.id)).toEqual(project);
+      const version = await repository.createVersion({
+        projectId: metadata.id,
+        snapshot: project,
+        computationSignature: 'accumulator-signature',
+        createdAt: secondTime,
+      });
+      expect((await repository.getVersion(version.id))?.snapshot).toEqual(project);
+    });
+
     it('scopes, caps, clears, and cascades runs while guarding the last project', async () => {
       await repository.createProject(fixture('project-a', 'Project A'));
       await repository.createProject(fixture('project-b', 'Project B'));
@@ -275,6 +300,7 @@ describe('workspace repository contracts', () => {
   it.each([
     ['2.0', legacyV20Project],
     ['2.1', legacyV21Project],
+    ['2.2', legacyV22Project],
   ] as const)(
     'migrates old IndexedDB %s Draft and Version reads without rewriting the immutable snapshot',
     async (storedSchemaVersion, createLegacy) => {
@@ -297,9 +323,9 @@ describe('workspace repository contracts', () => {
       write.objectStore('versions').put(storedVersion);
       await idbTransaction(write);
 
-      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.2');
+      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.3');
       const migratedVersion = await repository.getVersion(version.id);
-      expect(migratedVersion?.snapshot.schemaVersion).toBe('2.2');
+      expect(migratedVersion?.snapshot.schemaVersion).toBe('2.3');
 
       const inspect = database.transaction('versions', 'readonly');
       const untouched = record(await idbRequest(inspect.objectStore('versions').get(version.id)));
@@ -307,7 +333,7 @@ describe('workspace repository contracts', () => {
       await idbTransaction(inspect);
 
       await repository.replaceDraft(input.metadata.id, migratedVersion!.snapshot, secondTime);
-      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.2');
+      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.3');
       const inspectAgain = database.transaction('versions', 'readonly');
       const stillUntouched = record(
         await idbRequest(inspectAgain.objectStore('versions').get(version.id)),
@@ -321,6 +347,7 @@ describe('workspace repository contracts', () => {
   it.each([
     ['2.0', legacyV20Project],
     ['2.1', legacyV21Project],
+    ['2.2', legacyV22Project],
   ] as const)(
     'migrates old localStorage %s Draft and Version reads without rewriting stored history',
     async (storedSchemaVersion, createLegacy) => {
@@ -338,16 +365,16 @@ describe('workspace repository contracts', () => {
       record(record(state.versions)[version.id]).snapshot = createLegacy();
       localStorage.setItem(BFN_WORKSPACE_FALLBACK_KEY, JSON.stringify(state));
 
-      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.2');
+      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.3');
       const migratedVersion = await repository.getVersion(version.id);
-      expect(migratedVersion?.snapshot.schemaVersion).toBe('2.2');
+      expect(migratedVersion?.snapshot.schemaVersion).toBe('2.3');
       const untouched = record(JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!));
       expect(record(record(untouched.versions)[version.id]).snapshot).toMatchObject({
         schemaVersion: storedSchemaVersion,
       });
 
       await repository.replaceDraft(input.metadata.id, migratedVersion!.snapshot, secondTime);
-      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.2');
+      expect((await repository.getDraft(input.metadata.id))?.schemaVersion).toBe('2.3');
       const afterRestore = record(JSON.parse(localStorage.getItem(BFN_WORKSPACE_FALLBACK_KEY)!));
       expect(record(record(afterRestore.versions)[version.id]).snapshot).toMatchObject({
         schemaVersion: storedSchemaVersion,

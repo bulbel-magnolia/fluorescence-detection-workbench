@@ -447,6 +447,7 @@ export const bfnZhCN = {
     catalog_input_out_of_range: '输入不在文献响应的可信工作范围内，已阻止执行。',
     catalog_execution_unavailable: '文献目录响应未获得当前版本的数值执行权限。',
     dynamic_model_contract_invalid: '用户自定义动力学模型的运行时科学合同无效，已阻止执行。',
+    dynamic_process_runtime_unsupported: '该动态过程可以被表示，但当前模拟器尚不执行此过程。',
     dynamic_feedback_unsupported: '当前模拟器不支持包含用户自定义动力学模块的反馈回路。',
   },
   semantic: {

@@ -22,6 +22,23 @@ const IMPLEMENTATION_MATURITIES = new Set([
 ]);
 const MODULE_IMPLEMENTATION_STATES = new Set(['unspecified', ...IMPLEMENTATION_MATURITIES]);
 const SCIENTIFIC_CONTEXT_PLACEHOLDERS = new Set(['unknown', 'n/a', 'not recorded', 'unspecified']);
+const STATIC_MODEL_FAMILIES = new Set([
+  'hill_activation',
+  'hill_repression',
+  'linear_transfer',
+  'identity',
+  'independent_inputs',
+]);
+const EVIDENCE_GRADES = new Set([
+  'measured_single_context',
+  'measured_multiple_contexts',
+  'externally_validated',
+  'fitted_from_published_data',
+  'mechanistic_model_only',
+  'data_driven_prediction',
+  'independent_assumption',
+  'proposed_unbuilt_design',
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -90,7 +107,7 @@ function hasValidNodePortMetadata(value: unknown, allowPortAuthoring: boolean): 
 
 function hasProjectEnvelope(
   value: unknown,
-  version: '2.0' | '2.1' | '2.2',
+  version: '2.0' | '2.1' | '2.2' | '2.3',
 ): value is Record<string, unknown> {
   if (
     !isRecord(value) ||
@@ -107,7 +124,7 @@ function hasProjectEnvelope(
   ) {
     return false;
   }
-  const allowPortAuthoring = version === '2.2';
+  const allowPortAuthoring = version === '2.2' || version === '2.3';
   return (
     (value.network.mode === 'static' || value.network.mode === 'dynamic') &&
     Array.isArray(value.network.inputSources) &&
@@ -214,7 +231,119 @@ function isCurrentContext(value: unknown): boolean {
   return comparableFacts.every((fact) => fact !== null);
 }
 
-function hasValidModel(value: unknown, current: boolean): boolean {
+function hasValidParameterEstimate(value: unknown): boolean {
+  if (
+    !isRecord(value) ||
+    typeof value.value !== 'number' ||
+    !Number.isFinite(value.value) ||
+    !isNonEmptyString(value.unit)
+  ) {
+    return false;
+  }
+  if (!Object.prototype.hasOwnProperty.call(value, 'interval95')) return true;
+  const interval = value.interval95;
+  return (
+    interval === undefined ||
+    (Array.isArray(interval) &&
+      interval.length === 2 &&
+      interval.every((bound) => typeof bound === 'number' && Number.isFinite(bound)))
+  );
+}
+
+function hasValidOptionalFiniteNumber(value: Record<string, unknown>, key: string): boolean {
+  return (
+    !Object.prototype.hasOwnProperty.call(value, key) ||
+    value[key] === undefined ||
+    (typeof value[key] === 'number' && Number.isFinite(value[key]))
+  );
+}
+
+function hasValidStaticResponse(value: unknown): boolean {
+  if (!isRecord(value) || typeof value.family !== 'string') return false;
+  switch (value.family) {
+    case 'hill_activation':
+    case 'hill_repression':
+      return (
+        isNonEmptyString(value.inputPortId) &&
+        hasValidParameterEstimate(value.ymin) &&
+        hasValidParameterEstimate(value.ymax) &&
+        hasValidParameterEstimate(value.k) &&
+        hasValidParameterEstimate(value.n)
+      );
+    case 'linear_transfer':
+      return (
+        isNonEmptyString(value.inputPortId) &&
+        hasValidParameterEstimate(value.scale) &&
+        hasValidParameterEstimate(value.intercept) &&
+        hasValidOptionalFiniteNumber(value, 'outputMinimum') &&
+        hasValidOptionalFiniteNumber(value, 'outputMaximum')
+      );
+    case 'identity':
+      return isNonEmptyString(value.inputPortId);
+    case 'independent_inputs':
+      return (
+        Array.isArray(value.terms) &&
+        value.terms.every(
+          (term) =>
+            isRecord(term) &&
+            isNonEmptyString(term.inputPortId) &&
+            (term.direction === 'activation' || term.direction === 'repression') &&
+            hasValidParameterEstimate(term.k) &&
+            hasValidParameterEstimate(term.n) &&
+            hasValidParameterEstimate(term.contribution),
+        ) &&
+        hasValidParameterEstimate(value.basal) &&
+        hasValidParameterEstimate(value.outputMaximum) &&
+        (value.aggregation === 'bounded_sum' || value.aggregation === 'multiplicative') &&
+        value.interactionAssumption === 'independent_unverified'
+      );
+    default:
+      return false;
+  }
+}
+
+function hasValidV23Model(value: Record<string, unknown>): boolean {
+  if (
+    !isNonEmptyString(value.id) ||
+    !isNonEmptyString(value.version) ||
+    !isNonEmptyString(value.validityDomainId) ||
+    typeof value.evidenceGrade !== 'string' ||
+    !EVIDENCE_GRADES.has(value.evidenceGrade) ||
+    typeof value.isDemo !== 'boolean'
+  ) {
+    return false;
+  }
+  if (value.mode === 'static') {
+    return (
+      typeof value.family === 'string' &&
+      STATIC_MODEL_FAMILIES.has(value.family) &&
+      hasValidStaticResponse(value.response) &&
+      isRecord(value.response) &&
+      value.response.family === value.family
+    );
+  }
+  if (value.mode !== 'dynamic') return false;
+  if (value.family === 'first_order') {
+    return true;
+  }
+  if (value.family !== 'accumulator') {
+    return (
+      Object.prototype.hasOwnProperty.call(value, 'steadyStateResponse') ||
+      Object.prototype.hasOwnProperty.call(value, 'tau')
+    );
+  }
+  return (
+    isNonEmptyString(value.inputPortId) &&
+    isNonEmptyString(value.outputPortId) &&
+    typeof value.initialState === 'number' &&
+    Number.isFinite(value.initialState) &&
+    !Object.prototype.hasOwnProperty.call(value, 'steadyStateResponse') &&
+    !Object.prototype.hasOwnProperty.call(value, 'tau') &&
+    !Object.prototype.hasOwnProperty.call(value, 'response')
+  );
+}
+
+function hasValidModel(value: unknown, current: boolean, strictV23 = false): boolean {
   if (
     !isRecord(value) ||
     (value.mode !== 'static' && value.mode !== 'dynamic') ||
@@ -227,10 +356,10 @@ function hasValidModel(value: unknown, current: boolean): boolean {
     return false;
   }
   if (current) {
-    return (
+    const currentFieldsValid =
       (value.contextId === null || isNonEmptyString(value.contextId)) &&
-      isStringArray(value.provenanceIds)
-    );
+      isStringArray(value.provenanceIds);
+    return currentFieldsValid && (!strictV23 || hasValidV23Model(value));
   }
   return isNonEmptyString(value.contextId);
 }
@@ -244,12 +373,58 @@ function hasValidAuthoring(value: unknown): boolean {
   );
 }
 
-function hasValidModule(value: unknown, current: boolean, allowPortAuthoring: boolean): boolean {
+function hasValidV23ModuleRepresentation(value: Record<string, unknown>): boolean {
+  const activeModelIds = value.activeModelIds;
+  if (
+    !Array.isArray(value.modelVariants) ||
+    !value.modelVariants.every(isRecord) ||
+    !hasUniqueIds(value.modelVariants) ||
+    !isRecord(activeModelIds) ||
+    !Array.isArray(value.inputPorts) ||
+    !Array.isArray(value.outputPorts)
+  ) {
+    return false;
+  }
+  const activeKeys = Object.keys(activeModelIds);
+  if (activeKeys.some((key) => key !== 'static' && key !== 'dynamic')) return false;
+  const hasStatic = Object.prototype.hasOwnProperty.call(activeModelIds, 'static');
+  const hasDynamic = Object.prototype.hasOwnProperty.call(activeModelIds, 'dynamic');
+  if (!hasStatic && !hasDynamic) return false;
+  if (hasStatic) {
+    if (!isNonEmptyString(activeModelIds.static)) return false;
+    const activeStatic = value.modelVariants.find((model) => model.id === activeModelIds.static);
+    if (activeStatic?.mode !== 'static') return false;
+  }
+  if (hasDynamic) {
+    if (!isNonEmptyString(activeModelIds.dynamic)) return false;
+    const activeDynamic = value.modelVariants.find((model) => model.id === activeModelIds.dynamic);
+    if (activeDynamic?.mode !== 'dynamic') return false;
+  }
+
+  const inputPorts = value.inputPorts.filter(isRecord);
+  const outputPorts = value.outputPorts.filter(isRecord);
+  const portIds = [...inputPorts, ...outputPorts].map((port) => port.id);
+  if (!portIds.every(isNonEmptyString) || new Set(portIds).size !== portIds.length) return false;
+  return value.modelVariants.every((model) => {
+    if (model.mode !== 'dynamic' || model.family !== 'accumulator') return true;
+    const inputPort = inputPorts.find((port) => port.id === model.inputPortId);
+    const outputPort = outputPorts.find((port) => port.id === model.outputPortId);
+    return inputPort?.direction === 'input' && outputPort?.direction === 'output';
+  });
+}
+
+function hasValidModule(
+  value: unknown,
+  current: boolean,
+  allowPortAuthoring: boolean,
+  strictV23 = false,
+): boolean {
   if (
     !isRecord(value) ||
     !hasValidNodePortMetadata(value, allowPortAuthoring) ||
     !Array.isArray(value.modelVariants) ||
-    !value.modelVariants.every((model) => hasValidModel(model, current)) ||
+    !value.modelVariants.every((model) => hasValidModel(model, current, strictV23)) ||
+    (strictV23 && !hasValidV23ModuleRepresentation(value)) ||
     !isStringArray(value.implementationIds)
   ) {
     return false;
@@ -353,7 +528,7 @@ export function isBfnProjectV20(value: unknown): boolean {
   );
 }
 
-function isCurrentRepresentation(value: unknown, version: '2.1' | '2.2'): boolean {
+function isCurrentRepresentation(value: unknown, version: '2.1' | '2.2' | '2.3'): boolean {
   if (!hasProjectEnvelope(value, version)) return false;
   const network = value.network;
   const registry = value.registry;
@@ -361,7 +536,9 @@ function isCurrentRepresentation(value: unknown, version: '2.1' | '2.2'): boolea
     !isRecord(network) ||
     !isRecord(registry) ||
     !Array.isArray(network.modules) ||
-    !network.modules.every((module) => hasValidModule(module, true, version === '2.2')) ||
+    !network.modules.every((module) =>
+      hasValidModule(module, true, version !== '2.1', version === '2.3'),
+    ) ||
     !Array.isArray(registry.entities) ||
     !registry.entities.every(isEntityDefinition) ||
     !hasUniqueIds(registry.entities) ||
@@ -384,17 +561,30 @@ export function isBfnProjectV21(value: unknown): boolean {
   return isCurrentRepresentation(value, '2.1');
 }
 
-export function isBfnProjectV22(value: unknown): value is BfnProject {
+export function isBfnProjectV22(value: unknown): boolean {
   return isCurrentRepresentation(value, '2.2');
 }
 
+export function isBfnProjectV23(value: unknown): value is BfnProject {
+  return isCurrentRepresentation(value, '2.3');
+}
+
 export function upgradeBfnProjectToCurrent(value: unknown): BfnProject {
-  if (isBfnProjectV22(value)) return structuredClone(value);
+  if (isBfnProjectV23(value)) return structuredClone(value);
+  if (isBfnProjectV22(value)) {
+    const migrated: unknown = structuredClone(value);
+    if (!isRecord(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+    migrated.schemaVersion = '2.3';
+    if (!isBfnProjectV23(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+    return migrated;
+  }
   if (isBfnProjectV21(value)) {
     const migrated: unknown = structuredClone(value);
     if (!isRecord(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
     migrated.schemaVersion = '2.2';
     if (!isBfnProjectV22(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+    migrated.schemaVersion = '2.3';
+    if (!isBfnProjectV23(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
     return migrated;
   }
   if (!isBfnProjectV20(value)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
@@ -426,5 +616,7 @@ export function upgradeBfnProjectToCurrent(value: unknown): BfnProject {
   if (!isBfnProjectV21(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
   migrated.schemaVersion = '2.2';
   if (!isBfnProjectV22(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
+  migrated.schemaVersion = '2.3';
+  if (!isBfnProjectV23(migrated)) throw new Error('BFN_IMPORT_SCHEMA_INVALID');
   return migrated;
 }

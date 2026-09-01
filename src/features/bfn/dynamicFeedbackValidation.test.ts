@@ -76,7 +76,9 @@ describe('user-defined dynamic feedback validation', () => {
       description: null,
     };
     sensor.modelVariants = sensor.modelVariants.filter((model) => model.mode === 'static');
-    sensor.activeModelIds = { static: sensor.activeModelIds.static };
+    const staticModelId = sensor.activeModelIds.static;
+    if (staticModelId === undefined) throw new Error('Expected paired demo model.');
+    sensor.activeModelIds = { static: staticModelId };
     project.network.edges.push({
       id: 'edge-static-fallback-cycle',
       source: {

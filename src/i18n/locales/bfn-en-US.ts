@@ -483,6 +483,8 @@ export const bfnEnUS = {
       'This literature catalog response is not admitted for numerical execution in the current release.',
     dynamic_model_contract_invalid:
       'A user-authored dynamic model has an invalid runtime scientific contract, so execution was blocked.',
+    dynamic_process_runtime_unsupported:
+      'This dynamic process can be represented, but the current simulator does not execute it.',
     dynamic_feedback_unsupported:
       'The current simulator does not support feedback loops containing a user-authored dynamic module.',
   },
