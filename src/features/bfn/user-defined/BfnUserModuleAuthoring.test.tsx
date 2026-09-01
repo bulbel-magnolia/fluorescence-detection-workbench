@@ -295,7 +295,7 @@ describe('first-order dynamic user-defined module authoring', () => {
     await user.click(within(form).getByRole('button', { name: 'Add to network' }));
     expect(within(form).getByText('Time constant τ must be greater than 0 h')).toBeInTheDocument();
     expect(
-      within(form).getAllByText('Enter a finite time range with end greater than start'),
+      within(form).getAllByText('Enter finite times with start ≥ 0 and end > start'),
     ).not.toHaveLength(0);
     expect(onAdd).not.toHaveBeenCalled();
   });

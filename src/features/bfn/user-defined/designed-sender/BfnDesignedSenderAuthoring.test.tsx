@@ -32,6 +32,12 @@ describe('Designed Sender authoring form', () => {
     expect(form).not.toHaveTextContent('多输入独立作用');
     expect(form).not.toHaveTextContent('动态');
     expect(form).not.toHaveTextContent('任意公式');
+    expect(within(form).queryByText('响应模式')).not.toBeInTheDocument();
+    expect(within(form).queryByText('动力学')).not.toBeInTheDocument();
+    expect(within(form).queryByRole('radio', { name: '稳态响应' })).not.toBeInTheDocument();
+    expect(within(form).queryByRole('radio', { name: '一阶动态响应' })).not.toBeInTheDocument();
+    expect(within(form).queryByLabelText('时间常数 τ')).not.toBeInTheDocument();
+    expect(within(form).queryByLabelText('初始输出')).not.toBeInTheDocument();
 
     const controlUnit = within(form).getByRole('combobox', { name: '浓度单位' });
     expect(
@@ -182,6 +188,14 @@ describe('Designed Sender authoring form', () => {
       family: 'hill_repression',
       uncertaintyMethod: 'not_recorded',
     });
+    expect(module.modelVariants).toHaveLength(1);
+    expect(module.activeModelIds.static).toBe(module.modelVariants[0]?.id);
+    expect(module.activeModelIds).not.toHaveProperty('dynamic');
+    expect(module.modelVariants[0]).not.toHaveProperty('tau');
+    expect(module.modelVariants[0]).not.toHaveProperty('initialState');
+    expect(module.modelVariants[0]).not.toHaveProperty('steadyStateResponse');
+    expect(module).not.toHaveProperty('dynamics');
+    expect(module).not.toHaveProperty('timeRangeHours');
     expect(
       outcome.nextProject.registry.entities.some((entity) => entity.id === signal?.entityId),
     ).toBe(false);

@@ -73,6 +73,14 @@ describe('Designed Sender generic BFN materialization', () => {
         evidenceGrade: 'proposed_unbuilt_design',
         uncertaintyMethod: 'not_recorded',
       });
+      expect(module.modelVariants).toHaveLength(1);
+      expect(module.activeModelIds.static).toBe(model.id);
+      expect(module.activeModelIds).not.toHaveProperty('dynamic');
+      expect(model).not.toHaveProperty('tau');
+      expect(model).not.toHaveProperty('initialState');
+      expect(model).not.toHaveProperty('steadyStateResponse');
+      expect(module).not.toHaveProperty('dynamics');
+      expect(module).not.toHaveProperty('timeRangeHours');
       expect(model).not.toHaveProperty('catalogReference');
       expect(
         result.nextProject.registry.entities.some(

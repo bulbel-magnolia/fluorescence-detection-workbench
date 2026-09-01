@@ -179,10 +179,10 @@ describe('user-defined first-order dynamic module draft builder', () => {
 
     expect(built).toMatchObject({ ok: true });
     if (!built.ok) return;
-    expect(built.draft.steadyStateResponse).toEqual(
-      (buildUserDefinedModuleDraft(state, project) as { ok: true; draft: { model: unknown } }).draft
-        .model,
-    );
+    const steady = buildUserDefinedModuleDraft(state, project);
+    expect(steady.ok).toBe(true);
+    if (!steady.ok) return;
+    expect(built.draft.steadyStateResponse).toEqual(steady.draft.model);
     expect(built.draft.dynamics).toEqual({
       tau: { value: 2, unit: 'h', interval95: [1.5, 2.5] },
       initialState: 0.15,

@@ -1844,7 +1844,7 @@ export const bfnEnUS = {
       dynamic_tau_interval_invalid: 'τ bounds must be finite, positive, and ordered',
       dynamic_tau_interval_estimate_outside: 'τ must fall within its interval',
       dynamic_initial_state_non_finite: 'Enter a finite initial output',
-      dynamic_time_range_invalid: 'Enter a finite time range with end greater than start',
+      dynamic_time_range_invalid: 'Enter finite times with start ≥ 0 and end > start',
       materialization: 'This definition cannot be added safely; review its scientific fields.',
     },
     footer:

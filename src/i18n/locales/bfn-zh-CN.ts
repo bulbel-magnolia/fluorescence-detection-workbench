@@ -1726,7 +1726,7 @@ export const bfnZhCN = {
       dynamic_tau_interval_invalid: 'τ 区间必须为有限正数且上下限有序',
       dynamic_tau_interval_estimate_outside: 'τ 必须位于所填区间内',
       dynamic_initial_state_non_finite: '请输入有限的初始输出',
-      dynamic_time_range_invalid: '请输入有限且结束时间大于起始时间的时间范围',
+      dynamic_time_range_invalid: '请输入有限时间：起始时间 ≥ 0 且结束时间 > 起始时间',
       materialization: '当前定义无法安全添加到网络，请检查实体与科学字段。',
     },
     footer: '添加后只创建一个功能模块；连接、输入源和输出监视器由用户另行建立。',
