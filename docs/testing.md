@@ -1134,3 +1134,24 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - Designed Sender 隔离回归明确检查表单无 response-mode/Dynamics/tau/initial-state 控件，物化结果只有一个 static variant 且没有 dynamic active model 或动态字段；Designed Sender 生产代码不改变；
 - 冻结差异审计保持 BFN-IR schema/migration、BFN-SIM equation、Workspace DB structure、Sender/Receiver source/admission、Catalog formulas、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology、Signal Pool、`package.json` 与 lockfile 不变；
 - Batch 12.3 状态保持 `ACTIVE`。完整测试数量与本地 typecheck/lint/build/format/diff 结果以本轮 Handoff Packet 的真实命令输出为准，不声明 CI 或 Master Review 结果。
+
+## 2026-09-01 Batch 12.3 Master Review Runtime-admission Correction
+
+### Central runtime contract
+
+- 修正从 pre-fix Head `ba1f80312796c31c2b0832f085e72e242b7e3e43` 开始，中央实现提交为 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`；
+- `validateBfnProject()` 仅检查目标 Output Monitor 可达路径中的 effective `user_defined + dynamic` 模型。family、tau 值/单位/可选区间、initial state、paired active static model、steady-state response 深值一致性、可选时间范围和 parameter-envelope 完整性在进入 BFN-SIM 前统一 fail closed；
+- 新稳定错误为 `dynamic_model_contract_invalid`，`details.reason` 覆盖 `family_invalid`、`tau_missing`、`tau_non_finite`、`tau_non_positive`、`tau_unit_invalid`、`tau_interval_invalid`、`initial_state_invalid`、`paired_static_missing`、`steady_state_response_mismatch`、`time_range_invalid` 与 `parameter_interval_incomplete`；
+- JSON 导入的负 tau/错误单位/null initial state、Workspace 持久化后的负 tau、直接对象中的 NaN、缺失或非 static 配对模型、steady-state mismatch、逆序时间范围和不完整 envelope 均被中央校验阻止，`runBfnSimulation()` 返回既有 `BFN_VALIDATION_FAILED`；
+- static mode 的 dormant malformed dynamic variant 继续按有效 static model 运行；selected Monitor 之外的 malformed dynamic 路径不阻断当前目标；结构深比较不依赖对象属性插入顺序；
+- `dynamic_feedback_unsupported` 范围保持不变，Designed Sender 继续 static-only；`simulation.ts`、一阶方程、solver clamp、BFN-SIM 2.1、BFN-IR 2.2 与 Workspace DB v1 均未修改。
+
+### TDD、完整门禁与冻结审计
+
+- TDD RED 首次运行新增文件的 15 项测试时得到 13 项预期失败、2 项既有边界通过；最小中央闸门完成后 15/15 通过，补入 Workspace 持久化路径后该文件为 16/16；
+- dynamic runtime、dynamic materialization/contract、Batch 12.1 static materialization/contract、uncertainty、feedback、simulation 与 Designed Sender 联合定向回归为 11 个文件、133 项测试全部通过；
+- `npm ci` 按 lockfile 成功安装 288 个包；`npm test -- --maxWorkers=4` 完整回归为 146 个测试文件、1198 项测试全部通过；
+- `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 生产构建转换 303 个模块，主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,348.45 kB、gzip 462.80 kB，保留既有大 chunk 提示；
+- 5 个代码/测试/i18n 变更文件通过 Prettier check，`git diff --check` 通过；Windows checkout 的 Sender raw source 仅在全量测试期间临时恢复 canonical bytes，测试后立即恢复工作树，未进入 correction diff；
+- 相对 `ba1f80312796c31c2b0832f085e72e242b7e3e43`，修正只涉及中央 validation/type、单个 runtime regression 文件和中英文 validation message；相对 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 的扩展审计确认 BFN-IR migration、BFN-SIM equation、static materializer、Designed Sender production、Sender/Receiver、Compatibility、Temporal、Inverse Design、Ontology、Workspace production、`package.json` 与 lockfile 无生产差异；
+- Batch 12.3 保持 `ACTIVE`，等待 Master Control 复核；本轮未检查 GitHub checks，不声明 CI、PASS、FROZEN 或 Master Review completed。

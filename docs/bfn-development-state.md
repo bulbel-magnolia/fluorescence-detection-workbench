@@ -1,6 +1,6 @@
 # BFN Development State Ledger
 
-- 最后核查日期：2026-08-31
+- 最后核查日期：2026-09-01
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
 - 当前冻结起点（Batch 12.2 freeze bookkeeping）：`b76945246e56ed1fb494dc6f59c972a9f3999eda`
 
@@ -16,38 +16,39 @@
 
 以下 SHA 均由 GitHub / Git 重新核实：
 
-| Delivery                               | Verified commit                            | Commit message                                               |
-| -------------------------------------- | ------------------------------------------ | ------------------------------------------------------------ |
-| Batch 10.0 contract                    | `73f29f39d446b4eb16603f2a8ccd61dc4509790f` | `feat(bfn): define temporal and compatibility contracts`     |
-| Batch 10.1 runtime integration         | `cb3d8a470d02b445580e501abb5bff90e75b7aee` | `feat(bfn): integrate temporal and compatibility runtime`    |
-| Batch 10.1.1 presentation fix          | `cca73311de398a68902d1f5af354f346e781c32f` | `fix(bfn): prioritize blocking validation issues`            |
-| Batch 11 Sender V1.2 integration       | `68d90cbbd71997babdb1a63c6fc00e7aa6f1a2cd` | `feat(bfn): integrate sender evidence extension v1.2`        |
-| Batch 11 final presentation checkpoint | `099294b018d1a6c4644156a9e083edde87570a43` | `fix(bfn): preserve sender evidence presentation semantics`  |
-| Batch 12.0 initial contract            | `2d84acdf52933706632fd1684b418a0fbcde9103` | `feat(bfn): define user module authoring contract`           |
-| Batch 12.0 reviewed implementation     | `2a33365c40d4852d2270252560e148b7dc247aaf` | `fix(bfn): preserve user module evidence independence`       |
-| Batch 12.0 freeze bookkeeping          | `42e4cf6770c2986c950c89efc724a981e9ccf5d9` | `docs(bfn): freeze batch 12.0 contract`                      |
-| Batch 12.0.1 schema implementation     | `9773b1d030c867d396e91671985f1c31532e2a6e` | `feat(bfn): extend ir for user module representation`        |
-| Batch 12.0.1 reviewed implementation   | `d22918712ca9affe1edf4da077e1f51696f8d426` | `fix(bfn): preserve missing context semantics`               |
-| Batch 12.0.1 freeze bookkeeping        | `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2` | `docs(bfn): freeze batch 12.0.1 schema`                      |
-| Batch 12.0.2 reviewed implementation   | `9fd60049145ccc21237623a9b657d2a84fecb325` | `feat(bfn): preserve user port labels in ir`                 |
-| Batch 12.0.2 freeze bookkeeping        | `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` | `docs(bfn): freeze batch 12.0.2 schema`                      |
-| Batch 12.1 runtime phase               | `1f106c833d6f99b780e4e8dc896b8103e9573d6b` | `feat(bfn): add uncertainty-aware static runtime`            |
-| Batch 12.1 materialization phase       | `ff0db81fe0e226f810af0c349b0ebabb7056117e` | `feat(bfn): materialize user-defined static modules`         |
-| Batch 12.1 authoring phase             | `48ade9de119bec96d3fe133ca33ee11168424d3c` | `feat(bfn): add static functional module authoring`          |
-| Batch 12.1 reviewed implementation     | `ae7fa56197386571973198e87e9b8b68c7869f7c` | `fix(bfn): preserve static authoring contracts`              |
-| Batch 12.1 freeze bookkeeping          | `1fa9c11909817b3e3b4873e7bf85a1a158b68338` | `docs(bfn): freeze batch 12.1 authoring`                     |
-| Batch 12.2 contract                    | `222291a4a44941bb7593cad0fd60eca012a20543` | `feat(bfn): define designed sender authoring contract`       |
-| Batch 12.2 materialization             | `84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678` | `feat(bfn): materialize designed sender signal production`   |
-| Batch 12.2 authoring workflow          | `d138c61606b3e5cd260257fd5b48f14124df9516` | `feat(bfn): add designed sender authoring workflow`          |
-| Batch 12.2 reviewed implementation     | `b93a3524004fb4556211328a5fbcf01bd732ede8` | `docs(bfn): correct designed sender control units`           |
-| Batch 12.2 freeze bookkeeping          | `b76945246e56ed1fb494dc6f59c972a9f3999eda` | `docs(bfn): freeze batch 12.2 designed sender`               |
-| Batch 12.3 dynamic contract            | `ce72c95abf642ebcf46c58658a6c932b77aa6963` | `feat(bfn): define first-order dynamic user module contract` |
-| Batch 12.3 contract hardening          | `9f1436e69a91487bc94003ab39e82a56c2882989` | `fix(bfn): tighten first-order dynamic user module contract` |
-| Batch 12.3 malformed-draft guard       | `4a0d09aa515e6ef585ce07584c70cf7485dcb6ac` | `fix(bfn): guard malformed dynamic drafts`                   |
-| Batch 12.3 materialization             | `057a79a43fca4950c02d4830e9bfd8eb919524ec` | `feat(bfn): materialize first-order dynamic user modules`    |
-| Batch 12.3 materialization hardening   | `a171878405123f91e69a62cb02ec7463e463294d` | `fix(bfn): harden dynamic module materialization`            |
-| Batch 12.3 authoring workflow          | `e7a7369aee9677254fbeb89d1412584d0adb30eb` | `feat(bfn): add first-order dynamic module authoring`        |
-| Batch 12.3 Sender isolation regression | `1d5a550f1122d500d1e341e4d864dddf4baf27f0` | `test(bfn): lock designed sender static isolation`           |
+| Delivery                                | Verified commit                            | Commit message                                               |
+| --------------------------------------- | ------------------------------------------ | ------------------------------------------------------------ |
+| Batch 10.0 contract                     | `73f29f39d446b4eb16603f2a8ccd61dc4509790f` | `feat(bfn): define temporal and compatibility contracts`     |
+| Batch 10.1 runtime integration          | `cb3d8a470d02b445580e501abb5bff90e75b7aee` | `feat(bfn): integrate temporal and compatibility runtime`    |
+| Batch 10.1.1 presentation fix           | `cca73311de398a68902d1f5af354f346e781c32f` | `fix(bfn): prioritize blocking validation issues`            |
+| Batch 11 Sender V1.2 integration        | `68d90cbbd71997babdb1a63c6fc00e7aa6f1a2cd` | `feat(bfn): integrate sender evidence extension v1.2`        |
+| Batch 11 final presentation checkpoint  | `099294b018d1a6c4644156a9e083edde87570a43` | `fix(bfn): preserve sender evidence presentation semantics`  |
+| Batch 12.0 initial contract             | `2d84acdf52933706632fd1684b418a0fbcde9103` | `feat(bfn): define user module authoring contract`           |
+| Batch 12.0 reviewed implementation      | `2a33365c40d4852d2270252560e148b7dc247aaf` | `fix(bfn): preserve user module evidence independence`       |
+| Batch 12.0 freeze bookkeeping           | `42e4cf6770c2986c950c89efc724a981e9ccf5d9` | `docs(bfn): freeze batch 12.0 contract`                      |
+| Batch 12.0.1 schema implementation      | `9773b1d030c867d396e91671985f1c31532e2a6e` | `feat(bfn): extend ir for user module representation`        |
+| Batch 12.0.1 reviewed implementation    | `d22918712ca9affe1edf4da077e1f51696f8d426` | `fix(bfn): preserve missing context semantics`               |
+| Batch 12.0.1 freeze bookkeeping         | `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2` | `docs(bfn): freeze batch 12.0.1 schema`                      |
+| Batch 12.0.2 reviewed implementation    | `9fd60049145ccc21237623a9b657d2a84fecb325` | `feat(bfn): preserve user port labels in ir`                 |
+| Batch 12.0.2 freeze bookkeeping         | `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` | `docs(bfn): freeze batch 12.0.2 schema`                      |
+| Batch 12.1 runtime phase                | `1f106c833d6f99b780e4e8dc896b8103e9573d6b` | `feat(bfn): add uncertainty-aware static runtime`            |
+| Batch 12.1 materialization phase        | `ff0db81fe0e226f810af0c349b0ebabb7056117e` | `feat(bfn): materialize user-defined static modules`         |
+| Batch 12.1 authoring phase              | `48ade9de119bec96d3fe133ca33ee11168424d3c` | `feat(bfn): add static functional module authoring`          |
+| Batch 12.1 reviewed implementation      | `ae7fa56197386571973198e87e9b8b68c7869f7c` | `fix(bfn): preserve static authoring contracts`              |
+| Batch 12.1 freeze bookkeeping           | `1fa9c11909817b3e3b4873e7bf85a1a158b68338` | `docs(bfn): freeze batch 12.1 authoring`                     |
+| Batch 12.2 contract                     | `222291a4a44941bb7593cad0fd60eca012a20543` | `feat(bfn): define designed sender authoring contract`       |
+| Batch 12.2 materialization              | `84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678` | `feat(bfn): materialize designed sender signal production`   |
+| Batch 12.2 authoring workflow           | `d138c61606b3e5cd260257fd5b48f14124df9516` | `feat(bfn): add designed sender authoring workflow`          |
+| Batch 12.2 reviewed implementation      | `b93a3524004fb4556211328a5fbcf01bd732ede8` | `docs(bfn): correct designed sender control units`           |
+| Batch 12.2 freeze bookkeeping           | `b76945246e56ed1fb494dc6f59c972a9f3999eda` | `docs(bfn): freeze batch 12.2 designed sender`               |
+| Batch 12.3 dynamic contract             | `ce72c95abf642ebcf46c58658a6c932b77aa6963` | `feat(bfn): define first-order dynamic user module contract` |
+| Batch 12.3 contract hardening           | `9f1436e69a91487bc94003ab39e82a56c2882989` | `fix(bfn): tighten first-order dynamic user module contract` |
+| Batch 12.3 malformed-draft guard        | `4a0d09aa515e6ef585ce07584c70cf7485dcb6ac` | `fix(bfn): guard malformed dynamic drafts`                   |
+| Batch 12.3 materialization              | `057a79a43fca4950c02d4830e9bfd8eb919524ec` | `feat(bfn): materialize first-order dynamic user modules`    |
+| Batch 12.3 materialization hardening    | `a171878405123f91e69a62cb02ec7463e463294d` | `fix(bfn): harden dynamic module materialization`            |
+| Batch 12.3 authoring workflow           | `e7a7369aee9677254fbeb89d1412584d0adb30eb` | `feat(bfn): add first-order dynamic module authoring`        |
+| Batch 12.3 Sender isolation regression  | `1d5a550f1122d500d1e341e4d864dddf4baf27f0` | `test(bfn): lock designed sender static isolation`           |
+| Batch 12.3 runtime admission correction | `7520623c3f75c8ae5ee6173d4a507f7b7825227f` | `fix(bfn): enforce dynamic user runtime contract`            |
 
 Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master Control 完成实现审核与窄修正复核。`2a33365c40d4852d2270252560e148b7dc247aaf` 是正式审定的 Batch 12.0 实现 Head，`42e4cf6770c2986c950c89efc724a981e9ccf5d9` 是其 freeze bookkeeping commit。
 
@@ -59,7 +60,7 @@ Batch 12.1 从精确冻结基线 `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` 重�
 
 Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，并在 `codex/bfn-designed-sender-authoring` 按 contract → materialization → authoring workflow 顺序实施。`222291a4a44941bb7593cad0fd60eca012a20543`、`84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678`、`d138c61606b3e5cd260257fd5b48f14124df9516` 分别对应三阶段实现，`b93a3524004fb4556211328a5fbcf01bd732ede8` 修正文档中的控制输入单位记录并作为 Master Review 审定实现 Head。
 
-Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创建，并在 `codex/bfn-first-order-dynamic-user-module-authoring` 按 contract/validation → pure materialization/runtime guard → authoring workflow 顺序实施。当前状态为 `ACTIVE` implementation candidate；上述提交是本轮本地实施记录，不代表 Master Review、PASS 或 FROZEN。
+Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创建，并在 `codex/bfn-first-order-dynamic-user-module-authoring` 按 contract/validation → pure materialization/runtime guard → authoring workflow 顺序实施。Master Review 指定的中央 runtime-admission 修正落在 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`。当前状态为 `ACTIVE` implementation candidate；上述提交是本轮本地实施记录，不代表 Master Review、PASS 或 FROZEN。
 
 ## 当前状态
 
@@ -75,7 +76,7 @@ Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创�
 | Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                                                                  | blocked pending experimental data                                                        |
 | Batch 12.1 — Static Functional Module Authoring | FROZEN  | `codex/bfn-static-user-module-authoring`；base `499f44e8a57e8e80a678aaf29e14cba7da99cd2a`；reviewed implementation `ae7fa56197386571973198e87e9b8b68c7869f7c`            | BFN-SIM-2.1、纯 BFN-IR 2.2 物化与 static single-output authoring 冻结                    |
 | Batch 12.2 — Designed Sender                    | FROZEN  | `codex/bfn-designed-sender-authoring`；base `1fa9c11909817b3e3b4873e7bf85a1a158b68338`；reviewed implementation `b93a3524004fb4556211328a5fbcf01bd732ede8`               | 单控制输入 Hill Designed Sender、canonical signal identity 与 `production_rate` 输出冻结 |
-| Batch 12.3 — First-order Dynamic User Modules   | ACTIVE  | `codex/bfn-first-order-dynamic-user-module-authoring`；base `b76945246e56ed1fb494dc6f59c972a9f3999eda`；latest implementation `1d5a550f1122d500d1e341e4d864dddf4baf27f0` | 受限一阶动态 authoring、成对模型、反馈运行硬门；等待 Master Control review               |
+| Batch 12.3 — First-order Dynamic User Modules   | ACTIVE  | `codex/bfn-first-order-dynamic-user-module-authoring`；base `b76945246e56ed1fb494dc6f59c972a9f3999eda`；latest implementation `7520623c3f75c8ae5ee6173d4a507f7b7825227f` | 受限一阶动态 authoring、成对模型、中央运行合同与反馈硬门；等待 Master Control review     |
 | Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                                                                  | 负责显式 rate-to-amount/concentration 过程                                               |
 | Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                                                                  | 等待稳定 template/version contract                                                       |
 | Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                                                                      | 不在当前授权范围                                                                         |
@@ -155,6 +156,8 @@ Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创�
 - 一个草稿只保存一份 steady-state response source；纯物化器生成一个普通 `BfnFunctionalModule` 的 static 与 first-order dynamic variants，并设置 `activeModelIds.static` 和 `activeModelIds.dynamic`；两份 response 按值一致；
 - `tau` 必须为有限正数且单位固定为 `h`；`initialState` 为继承输出单位的有限标量；可选 `timeRangeHours` 满足有限、起点不小于零且终点大于起点；
 - authorable uncertainty 仍限于 `not_recorded | none | parameter_interval_envelope`；参数包络要求完整 steady-state 参数区间和 tau 区间，不为 initial state 创建区间；
+- 中央 `validateBfnProject()` 只对目标 Output Monitor 可达路径中的 effective `user_defined + dynamic` 模型执行运行合同准入；它重新核对 first-order family、tau、initial state、paired static response、time validity 与 parameter envelope，并以 `dynamic_model_contract_invalid` 阻止非法导入、Workspace 持久化或外部构造对象进入 BFN-SIM；
+- static mode 的 dormant dynamic variant 与目标外 malformed module 不触发该错误；Catalog、内置模型和 Designed Sender 不纳入该闸门；
 - 目标 Output Monitor 可执行路径中的有向环若包含有效动态用户模块，校验返回稳定的 `dynamic_feedback_unsupported` error 并阻止运行；本批不实现耦合反馈 solver；
 - Add to Network 仍是一个 Project edit / Undo unit，只创建模块与必要 registry sidecar，不创建 Edge、Input Source、Output Monitor、Run 或 Signal Pool，不切换 network mode；
 - Designed Sender 生产合同与创作界面保持 static-only；Sender/Receiver evidence、Catalog runtime、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology、Signal Pool 与 package dependencies 不在本批扩展范围内。
