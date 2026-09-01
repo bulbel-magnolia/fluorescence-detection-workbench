@@ -1155,3 +1155,24 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 5 个代码/测试/i18n 变更文件通过 Prettier check，`git diff --check` 通过；Windows checkout 的 Sender raw source 仅在全量测试期间临时恢复 canonical bytes，测试后立即恢复工作树，未进入 correction diff；
 - 相对 `ba1f80312796c31c2b0832f085e72e242b7e3e43`，修正只涉及中央 validation/type、单个 runtime regression 文件和中英文 validation message；相对 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 的扩展审计确认 BFN-IR migration、BFN-SIM equation、static materializer、Designed Sender production、Sender/Receiver、Compatibility、Temporal、Inverse Design、Ontology、Workspace production、`package.json` 与 lockfile 无生产差异；
 - Batch 12.3 保持 `ACTIVE`，等待 Master Control 复核；本轮未检查 GitHub checks，不声明 CI、PASS、FROZEN 或 Master Review completed。
+
+## 2026-09-01 Batch 12.4.0 BFN-IR 2.3 Dynamic Process Representation Extension
+
+### Representation、migration 与 persistence gates
+
+- BFN-IR current representation 升级为 2.3；2.0、2.1、2.2 项目通过中央 migration 保守升级至 2.3，current 2.3 走 validate + deep clone，未知 2.4/3.0 继续 fail closed；
+- accumulator 作为独立 dynamic family 保存 `inputPortId`、`outputPortId` 与 finite `initialState`，不包含 `tau`、`steadyStateResponse` 或 static `response`；module-level validator 同时验证 Port 存在性与 input/output direction；
+- `activeModelIds` 支持 static-only、paired static/dynamic 与 dynamic-only，并拒绝空对象、缺失引用和 mode 错配；static network 对 dynamic-only module 解析为 null，dynamic network 保持 dynamic-first/static-fallback 语义；
+- JSON、localStorage、Workspace IndexedDB Draft 与 Version 对 current 2.3 accumulator representation 无损往返；读取历史 2.0/2.1/2.2 snapshot 返回 2.3 copy，底层 immutable Version snapshot 保留原始版本；Workspace DB version、store、index 与 storage key 均未改变；
+- computation signature 纳入 accumulator 的 active model、Port references、initial state 与既有 scientific metadata；descriptive authoring metadata 与 position 继续不影响 signature。
+
+### Runtime boundary 与 complete gates
+
+- target-reachable effective accumulator 产生稳定 severity-error `dynamic_process_runtime_unsupported`，并在任何 accumulation calculation 前由既有 `BFN_VALIDATION_FAILED` 路径阻止；off-target accumulator 不阻断当前 Monitor，static mode 的 dormant accumulator 不阻断 static run；
+- BFN-SIM 保持 2.1；`simulation.ts` 只增加 family narrowing、fail-closed guard 与 target-reachable module filtering，一阶 update equation、timestep semantics 和 dynamic metrics 保持不变；没有 accumulator equation、SIM 2.2 或 uncertainty propagation；
+- 迁移、repository、model resolution、signature、Workspace、Temporal、validation、uncertainty、first-order、feedback、Designed Sender、Catalog Receiver、Port Compatibility 与 simulation 联合定向门为 20 个测试文件、252 项测试全部通过；
+- 第一次完整回归定位到一个遗漏的 current schema 2.2 测试断言，以及 Windows `core.autocrlf` 下 Sender V1.2 immutable source 清单的混合换行检出形态；修正断言并仅在测试期间按清单恢复物理字节后，失败文件定向复跑为 2 个文件、14 项测试全部通过；冻结 Sender Git blob 与基线哈希一致且 diff 为零；
+- 最终 `npm test -- --maxWorkers=4` 为 148 个测试文件、1220 项测试全部通过；`npm run typecheck` 与 `npm run lint` 全部通过；
+- Vite 7.3.6 生产构建通过，303 个模块完成转换；主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,353.39 kB、gzip 463.92 kB；保留既有大于 500 kB chunk 提示；
+- 本批变更文件通过 Prettier check 与 `git diff --check`；相对精确基线 `f444433ee13acbc2a69602550c1163c263b313a5`，package dependencies、Sender V1.2、Receiver V1.1、Designed Sender scientific contract、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology production、Workspace DB structure 与 first-order scientific semantics保持不变；
+- Batch 12.3 为 `FROZEN`；Batch 12.4.0 为 `ACTIVE` implementation candidate；Batch 12.4.1 与 Batch 12.4 为 `PLANNED`。本节不声明 CI、PASS、FROZEN 或 Master Review completed。

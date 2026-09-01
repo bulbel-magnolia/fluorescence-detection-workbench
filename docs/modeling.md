@@ -2,7 +2,7 @@
 
 ## 平台定位
 
-BIO-NET V2.0 使用 BFN-IR 2.2 作为当前规范内核。平台把实验剂量—响应、多输入观测和时间序列组织为可组合的功能模块，再完成正向仿真、条件化 ANN 解释和双参数空间反向设计。
+BIO-NET V2.0 使用 BFN-IR 2.3 作为当前规范内核。平台把实验剂量—响应、多输入观测和时间序列组织为可组合的功能模块，再完成正向仿真、条件化 ANN 解释和双参数空间反向设计。
 
 平台的核心计算关系为：
 
@@ -21,7 +21,7 @@ Input Source → Functional Module → Ideal Edge → Functional Module → Outp
 
 旧版 `baseline / gain / sensitivity` 项目仍保存在原本的本地存储键中，V2 不自动把这些参数改名为完整模型。旧代码保留用于历史项目诊断和显式迁移，不再是“网络设计”页面的默认运行路径。
 
-## BFN-IR 2.2 对象
+## BFN-IR 2.3 对象
 
 ### Port
 
@@ -58,13 +58,15 @@ P = (E, Q, U)
 
 当前演示注册表提供 Hill 激活模块、线性报告传递模块和双输入独立作用模块。全部内置数值标记为 Demo 和未验证数据。
 
+2.3 增加独立的 dynamic accumulator representation：model 保存 input/output Port 引用、有限 initial state 和既有 uncertainty method，不保存 tau、steady-state response 或 static response。FunctionalModule 的 active model invariant 接受 static-only、paired 和 dynamic-only 三种结构，并拒绝空引用或 mode 不匹配。该能力当前只用于 JSON/Workspace 表示；BFN-SIM 2.1 对目标路径中的 accumulator 返回 `dynamic_process_runtime_unsupported`，不执行累积。
+
 ### Context 与 ValidityDomain
 
 上下文记录宿主、菌株、培养基、温度、pH、供氧、增长阶段、质粒骨架、拷贝数范围、诱导协议、测量时间和批次。2.1 使用 `recorded | partial | not_recorded` 显式描述文档状态，缺失事实以 `null` 保存；model 与 ValidityDomain 的 Context 引用也可以为 `null`。上下文用于选择模型版本和解释迁移范围，不作为普通输入端口。
 
 适用域保存每个模型得到数据支持的输入范围和时间范围。仿真会在运行前和逐点计算时检查适用域。域外结果继续计算，并明确标记为 extrapolated。
 
-缺失 Context 产生 uncertain applicability，不产生伪造 mismatch。Catalog-backed Receiver 继续从可信 Catalog reference 解析精确参数 Context。2.1 引入的字段、Context invariant 与 2.0 migration 保留在 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)；当前版本升级与端口标签合同见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)。
+缺失 Context 产生 uncertain applicability，不产生伪造 mismatch。Catalog-backed Receiver 继续从可信 Catalog reference 解析精确参数 Context。当前 dynamic process 表示见 [BFN-IR 2.3 Dynamic Process 表示扩展](bfn-ir-2.3.md)；2.2 端口标签与 2.1 通用字段分别保留在 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md) 和 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)。
 
 ### Evidence grade
 
@@ -93,7 +95,7 @@ Batch 12.0 将用户定义模块拆成相互独立的科学维度：
 
 Batch 12.1 的生产创作范围包含 static Hill activation、Hill repression、同单位 linear transfer 和显式 `independent_unverified` 的多输入独立作用模型，且每个模型只有一个 output。表单把 Port 角色名与 Entity 身份分开采集，支持复用既有 Entity 或创建 Project-defined Entity，并保存 Context、适用范围、Evidence、结构化 provenance、`unspecified` implementation 与 `not_recorded`、`none`、`parameter_interval_envelope` 三种首版不确定性状态。
 
-纯 materializer 在 semantic、runtime、evidence 与 implementation 四个当前门通过后生成一个 `BfnFunctionalModule` 和必要 registry 记录；历史 BFN-IR 2.0 representation audit 不参与 2.2 物化判断。新建模型拒绝 `posterior_samples`、`bootstrap` 与 `covariance`，既有项目仍以点估计方式兼容运行。Provenance 的 draft ID、kind 与 reference 原样写入；同一 Project 中完全相同的 ID 记录复用，语义冲突返回结构化失败，且不重载 `sourceDatasetIds`。Add to Network 不创建 Edge、Input Source、Output Monitor，也不自动运行。该编辑作为一个现有 Undo/Redo transaction 保存，并通过 Workspace Current Draft、Version 与导入导出沿用 BFN-IR 2.2。
+纯 materializer 在 semantic、runtime、evidence 与 implementation 四个当前门通过后生成一个 `BfnFunctionalModule` 和必要 registry 记录；历史 BFN-IR 2.0 representation audit 不参与当前物化判断。新建模型拒绝 `posterior_samples`、`bootstrap` 与 `covariance`，既有项目仍以点估计方式兼容运行。Provenance 的 draft ID、kind 与 reference 原样写入；同一 Project 中完全相同的 ID 记录复用，语义冲突返回结构化失败，且不重载 `sourceDatasetIds`。Add to Network 不创建 Edge、Input Source、Output Monitor，也不自动运行。该编辑作为一个现有 Undo/Redo transaction 保存，并通过 Workspace Current Draft、Version 与导入导出沿用 BFN-IR 2.3。
 
 ### Designed Sender authoring
 
@@ -103,7 +105,7 @@ Batch 12.2 在通用创作能力上增加一个受限的 Designed Sender 工作�
 
 Add to Network 是一个原子编辑，不自动创建 Edge、Input Source、Output Monitor、Run 或隐藏转换。`production_rate → concentration` 继续硬拒绝；当前求解器不进行隐式积分。完整合同见 [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)。
 
-Identity no-op、zero-input constant、lookup table、任意公式、多输出、有状态动力学、Signal Pool 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，2.1 历史扩展见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，当前 2.2 schema 见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+Identity no-op、zero-input constant、lookup table、任意公式、多输出、Signal Pool authoring/runtime 和 reusable template 分别延期。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，当前 2.3 schema 见 [BFN-IR 2.3 Dynamic Process 表示扩展](bfn-ir-2.3.md)，2.2 与 2.1 保留为版本历史；运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 
 ## Semantic classification layer
 
@@ -217,7 +219,7 @@ NRMSE ≤ 10%
 
 ### Catalog-backed inverse design 查询层
 
-上述双参数空间流程作为 legacy demonstration candidate search 代码保留，不再是生产可见的“按目标设计”界面。当前可见工作区使用 Catalog-backed inverse design：它是 BFN-IR 2.2 外部的纯查询层，从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑不混接；可见工作区合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
+上述双参数空间流程作为 legacy demonstration candidate search 代码保留，不再是生产可见的“按目标设计”界面。当前可见工作区使用 Catalog-backed inverse design：它是 BFN-IR 2.3 外部的纯查询层，从冻结 AHL/HSL release fresh rebuild 单个 trusted Receiver Response，按 exact Signal、Context 和工作范围执行可信数值匹配，不读取 calibration map，也不修改 Project、Workspace 或 computation signature。两套逻辑不混接；可见工作区合同与延期边界见 [Catalog-backed inverse design](inverse-design.md)。
 
 生产交互链为 `Target → Match → Evidence → Explicit Add → Network Design`。Candidate 与既有 Catalog Full Detail 只通过 exact `responseId` 连接；证据浏览保持 Target Draft、结果新鲜度、候选选择、比较集合和 Project 不变。匹配分组不授予运行资格，只有 fresh Full Detail 中仍为 runnable 的 Response 才能进入既有 Add Panel。显式添加复用可信实例化路径，形成一次可撤销的原子编辑；默认策略不会自动连线、创建 Output Monitor 或运行模型。
 
@@ -230,7 +232,7 @@ NRMSE ≤ 10%
 → 参数不确定性 → 适用域 → 模块注册
 ```
 
-界面“模块与证据库”展示功能模块、实验数据集、上下文和适用域。内部交换格式为 BFN-IR 2.2。SBOL 3 和 SBML Level 3 作为后续标准适配方向展示，当前版本不声明已经完成双向转换。
+界面“模块与证据库”展示功能模块、实验数据集、上下文和适用域。内部交换格式为 BFN-IR 2.3。SBOL 3 和 SBML Level 3 作为后续标准适配方向展示，当前版本不声明已经完成双向转换。
 
 原有 AHL/HSL V1.1 文献目录继续保留在 `features/modeling/catalog` 中，用于来源追溯和历史项目兼容。V2 模块只有在完成端口、完整模型、上下文、适用域与证据等级登记后才进入 BFN-IR 运行路径。
 
@@ -401,13 +403,13 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 
 ## 代码边界
 
-- `src/features/bfn/types.ts`：当前 BFN-IR 2.2 类型；
+- `src/features/bfn/types.ts`：当前 BFN-IR 2.3 类型；
 - `src/features/bfn/bfnIrMigration.ts`：BFN-IR 2.0/2.1 结构校验与唯一中央升级入口；
 - `src/features/modeling/ontology/v1/`：BFN-ONTOLOGY-1.0 术语、可信 assignment、纯读取 resolver 与 fail-closed validation；
 - `src/features/bfn/catalog/`：Catalog Discovery 投影与 Drawer、运行候选、来源合同、输入解析、可信验证与统一执行边界；
 - `src/features/bfn/temporal/`：时间执行能力解析与输出可达运行快照；
 - `src/features/bfn/compatibility/`：端口合同、逐字段上下文适用性与 Validation adapter；
-- `src/features/bfn/user-defined/`：冻结的用户 draft 合同与科学校验、历史 BFN-IR 2.0 表示审计、当前 BFN-IR 2.2 纯物化和静态创作界面；
+- `src/features/bfn/user-defined/`：冻结的用户 draft 合同与科学校验、历史 BFN-IR 2.0 表示审计、当前 BFN-IR 2.3 对象图上的纯物化和静态创作界面；
 - `simulationUncertainty.ts`：输出可达模型的不确定性执行审计与 BFN-SIM-2.1 网络区间可用性；
 - `modelResolution.ts`：静态、动态及 dynamic-to-static 无记忆模型解析；
 - `unitSystem.ts`：量纲兼容与单位换算；
@@ -444,8 +446,8 @@ Module → Module 连接比较 Host、Strain、Medium 与 Temperature 的事实�
 - 一阶阶跃响应、DC gain 与周期频率增益；
 - 功能参数和生物设计变量分离；
 - 多目标候选排序与 `proposed_unbuilt_design` 标记；
-- BFN-IR 2.0/2.1/2.2 JSON 往返、中央迁移、Workspace Draft/Version read migration 与旧项目隔离；
-- 用户静态模块的合同到 2.2 物化、必需输入连接安全、点估计/区间分离、Add to Network 与 Undo/Redo；
+- BFN-IR 2.0/2.1/2.2/2.3 JSON 往返、中央迁移、Workspace Draft/Version read migration 与旧项目隔离；
+- 用户静态模块的合同到当前 2.3 对象图物化、必需输入连接安全、点估计/区间分离、Add to Network 与 Undo/Redo；
 - 中英文工作台、非法连接说明、模块注册和反向设计交互。
 
 当前演示模型不支持实验效能结论、构建成功率结论或生物安全结论。后续实验数据通过标准注册流程进入新模型版本，并保留原始数据、上下文和证据等级。
