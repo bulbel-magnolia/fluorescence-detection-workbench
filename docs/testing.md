@@ -1115,3 +1115,22 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 仅对相对冻结基线的 23 个文本变更文件执行 Prettier write/check，没有全仓格式重排；`git diff --check` 通过；
 - 相对精确冻结基线 `1fa9c11909817b3e3b4873e7bf85a1a158b68338`，Sender V1.2 source/hash/loader/validator/admission、Receiver V1.1 source/whitelist/formulas、Catalog Receiver parameter binding、Inverse Design、Ontology assignment、Port Compatibility、Temporal、BFN-IR schema/migration、BFN-SIM result contract/equations、Workspace DB 结构、`package.json` 与 lockfile 均为零差异；
 - Batch 12.2 状态保持 `ACTIVE`，等待 Master Control review，不自我声明冻结。以上为本地完整验证结果；GitHub check 状态在正常 push 后单独记录。
+
+## 2026-08-31 Batch 12.3 First-order Dynamic User Module Authoring
+
+### Contract、materialization 与 runtime gates
+
+- dynamic authoring contract 覆盖 Hill activation/repression、linear transfer 与 independent inputs，拒绝 identity、任意 expression、非法或非 `h` 的 tau、非有限 initial state、非法时间范围和不完整 tau interval；
+- pure materialization 为同一普通 `BfnFunctionalModule` 创建 paired static/dynamic variants，逐值核对 `static.response` 与 `dynamic.steadyStateResponse`，并保持 static materializer 默认行为不变；
+- 一阶 step fixture 核对初值、单调趋近与长时间稳态；运行继续使用 BFN-SIM-2.1 既有方程，不通过 runtime clamp 接受非法 authoring tau；
+- parameter interval envelope 同时要求全部 steady-state 参数区间和 tau 区间；缺失或畸形区间形成 unavailable uncertainty snapshot，不伪造零宽区间；
+- output-reachable feedback cycle 含有效动态用户模块时产生 `dynamic_feedback_unsupported` severity-error，项目拓扑仍可保存，`runBfnSimulation()` 被阻止。
+
+### Authoring、persistence 与隔离回归
+
+- generic authoring 默认保持 Steady-state；选择 First-order dynamic 后显示独立 Dynamics 区域，采集 tau、继承输出单位的 initial output、可选 time validity 和 tau interval；全部可见文案提供中英文翻译；
+- Add to Network 覆盖 paired model、一次 Project edit、原子 Undo/Redo，以及不自动创建 Edge、Input Source、Output Monitor、Run、Signal Pool 或 network mode switch；
+- BFN-IR 2.2 JSON 与 Workspace v1 roundtrip 覆盖 model IDs、Port metadata、tau、initial state、time range、Context、provenance、Implementation 和 uncertainty；
+- Designed Sender 隔离回归明确检查表单无 response-mode/Dynamics/tau/initial-state 控件，物化结果只有一个 static variant 且没有 dynamic active model 或动态字段；Designed Sender 生产代码不改变；
+- 冻结差异审计保持 BFN-IR schema/migration、BFN-SIM equation、Workspace DB structure、Sender/Receiver source/admission、Catalog formulas、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology、Signal Pool、`package.json` 与 lockfile 不变；
+- Batch 12.3 状态保持 `ACTIVE`。完整测试数量与本地 typecheck/lint/build/format/diff 结果以本轮 Handoff Packet 的真实命令输出为准，不声明 CI 或 Master Review 结果。

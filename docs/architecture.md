@@ -146,7 +146,7 @@ flowchart LR
 
 `features/modeling/catalog/sender/v1_2` 保存源文件、无损 evidence types、CSV/JSON loader、发布与引用校验、展示范围和 runtime admission。`features/bfn/catalog` 只把验证后的扩展投影为 Catalog Search、Preview 与 Full Detail。Composite presentation 不成为 runtime authority；V1.2 presence 不改变 20 条 Receiver whitelist，0-admitted Sender 不生成 Module、Add 操作、Evaluator、自动连线或 inverse candidate。完整合同见 [Sender Evidence Extension V1.2](sender-evidence-v1.2.md)。
 
-Batch 12.0 在 `features/bfn/user-defined` 增加纯 authoring contract 与只读 representation assessment。Batch 12.1 和 12.2 共用的生产路径为：
+Batch 12.0 在 `features/bfn/user-defined` 增加纯 authoring contract 与只读 representation assessment。Batch 12.1、12.2 和 12.3 共用的生产路径为：
 
 > User-defined Authoring
 >
@@ -164,7 +164,9 @@ Batch 12.0 在 `features/bfn/user-defined` 增加纯 authoring contract 与只�
 
 Batch 12.0 authoring contract 检查保持冻结。Batch 12.0.1 将审定的通用表示缺口落实为 BFN-IR 2.1；Batch 12.0.2 将当前 schema 提升为 BFN-IR 2.2，仅增加用户端口角色标签的无损表示。Batch 12.1 在该冻结基础上增加纯 2.2 物化、静态创作界面、输出可达的必需输入校验和 BFN-SIM-2.1 不确定性合同。Batch 12.2 的 Designed Sender 是独立的受限创作入口：它把单浓度控制、Hill activation/repression 和单 `production_rate` 输出映射到同一通用 draft/materializer，最终仍保存普通 `BfnFunctionalModule`。已知 AHL/HSL 只通过只读 identity helper 投影 canonical Entity；该路径不读取 Sender evidence 或 Runtime Admission。
 
-一次 Add to Network 只创建一个 `BfnFunctionalModule` 及必要 registry sidecar；Edge、Input Source、Output Monitor 与运行均由用户显式操作。Catalog registration、Ontology assignment 与 reusable library 继续延期，`production_rate → concentration` 仍由 Port Compatibility 硬拒绝，显式 Signal Pool / Accumulation 属于 Batch 12.4。Designed Sender 边界见 [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)，通用工作流见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，当前扩展见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，2.1 历史见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，authoring 科学合同见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
+Batch 12.3 在通用用户模块入口增加受限的一阶动态创作。动态草稿只保存一份 Batch 12.1 稳态响应源，纯物化器据此生成 deep-equal 的 static response 与 dynamic steady-state response，并设置成对 active model ID。动态模型继续使用 BFN-SIM-2.1 已有的 `tau * dy/dt = f(x) - y` 数值路径；`tau` 固定使用小时，初始输出继承唯一输出端口单位，可选 `timeRangeHours` 继续使用既有适用域表示。输出可达反馈环路中含有效动态用户模块时，运行前校验返回 `dynamic_feedback_unsupported` error，不把顺序更新解释为耦合反馈求解。
+
+一次 Add to Network 只创建一个 `BfnFunctionalModule` 及必要 registry sidecar；Edge、Input Source、Output Monitor 与运行均由用户显式操作。Catalog registration、Ontology assignment 与 reusable library 继续延期，`production_rate → concentration` 仍由 Port Compatibility 硬拒绝，显式 Signal Pool / Accumulation 属于 Batch 12.4。Designed Sender 边界见 [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)，静态工作流见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，动态工作流见 [用户定义一阶动态模块创作与运行](user-defined-first-order-dynamic-authoring.md)，当前表示扩展见 [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)，2.1 历史见 [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)，authoring 科学合同见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，开发阶段见 [BFN Development State Ledger](bfn-development-state.md)。
 
 `ANNApproximation` 只在静态工作域存在时拟合。它保存有效权重、有效截距、R²、NRMSE、最大绝对误差、覆盖率以及 accepted/rejected 状态。固定点不生成 ANN 参数；近似被拒绝时继续使用完整非线性模型。
 
