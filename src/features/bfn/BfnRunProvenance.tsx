@@ -172,7 +172,7 @@ export function BfnRunProvenance({ result }: BfnRunProvenanceProps) {
           </table>
         </details>
       ) : null}
-      {result.engineVersion === 'BFN-SIM-2.1' ? (
+      {result.engineVersion !== 'BFN-SIM-2.0' ? (
         <details className="bfn-run-provenance__uncertainty-modules">
           <summary>{t('bfn.results.provenance.uncertaintyModuleDetails')}</summary>
           <table>

@@ -79,6 +79,12 @@ const BFN_UNCERTAINTY_UNAVAILABLE_REASONS: ReadonlySet<string> = new Set([
   'method_not_executable',
 ]);
 
+const BFN_UNCERTAINTY_PROPAGATION_MODES: ReadonlySet<string> = new Set([
+  'parameter_interval',
+  'deterministic_transform',
+  'unavailable',
+]);
+
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
@@ -159,7 +165,7 @@ function hasValidContextApplicabilitySnapshot(value: Record<string, unknown>): b
   );
 }
 
-function hasValidUncertaintySnapshot(value: Record<string, unknown>): boolean {
+function hasValidUncertaintySnapshotV21(value: Record<string, unknown>): boolean {
   const snapshot = value.uncertaintySnapshot;
   if (
     !isRecord(snapshot) ||
@@ -196,6 +202,100 @@ function hasValidUncertaintySnapshot(value: Record<string, unknown>): boolean {
     : !available && snapshot.method === null;
 }
 
+function hasValidUncertaintySnapshotV22(value: Record<string, unknown>): boolean {
+  const snapshot = value.uncertaintySnapshot;
+  if (
+    !isRecord(snapshot) ||
+    snapshot.scope !== 'output_reachable' ||
+    (snapshot.status !== 'available' && snapshot.status !== 'unavailable') ||
+    !Array.isArray(snapshot.modules)
+  ) {
+    return false;
+  }
+  const validModules = snapshot.modules.every((module) => {
+    if (
+      !isRecord(module) ||
+      !isNonEmptyString(module.moduleId) ||
+      (module.selectedModelId !== null && !isNonEmptyString(module.selectedModelId)) ||
+      (module.method !== null &&
+        (typeof module.method !== 'string' || !BFN_UNCERTAINTY_METHODS.has(module.method))) ||
+      typeof module.intervalExecutable !== 'boolean' ||
+      (module.reason !== null &&
+        (typeof module.reason !== 'string' ||
+          !BFN_UNCERTAINTY_UNAVAILABLE_REASONS.has(module.reason))) ||
+      typeof module.propagationMode !== 'string' ||
+      !BFN_UNCERTAINTY_PROPAGATION_MODES.has(module.propagationMode)
+    ) {
+      return false;
+    }
+    if (module.propagationMode === 'parameter_interval') {
+      return (
+        module.method === 'parameter_interval_envelope' &&
+        module.intervalExecutable === true &&
+        module.reason === null
+      );
+    }
+    if (module.propagationMode === 'deterministic_transform') {
+      return (
+        (module.method === 'none' || module.method === 'not_recorded') &&
+        module.intervalExecutable === true &&
+        module.reason === null
+      );
+    }
+    return module.intervalExecutable === false && module.reason !== null;
+  });
+  if (!validModules) return false;
+  const propagationAvailable =
+    snapshot.modules.length > 0 &&
+    snapshot.modules.every(
+      (module) => isRecord(module) && module.propagationMode !== 'unavailable',
+    ) &&
+    snapshot.modules.some(
+      (module) => isRecord(module) && module.propagationMode === 'parameter_interval',
+    );
+  return snapshot.status === 'available'
+    ? propagationAvailable && snapshot.method === 'parameter_interval_envelope'
+    : !propagationAvailable && snapshot.method === null;
+}
+
+function isFiniteNumberOrNull(value: unknown): boolean {
+  return value === null || (typeof value === 'number' && Number.isFinite(value));
+}
+
+function hasValidFrequencyGain(value: unknown): boolean {
+  return (
+    value === null ||
+    (isRecord(value) && Number.isFinite(value.magnitude) && Number.isFinite(value.phaseDegrees))
+  );
+}
+
+function hasValidDynamicMetricsV22(value: Record<string, unknown>): boolean {
+  if (value.mode === 'static') return value.dynamicMetrics === null;
+  const metrics = value.dynamicMetrics;
+  if (
+    !isRecord(metrics) ||
+    !Number.isFinite(metrics.terminalValue) ||
+    typeof metrics.steadyStateAvailable !== 'boolean' ||
+    !isFiniteNumberOrNull(metrics.steadyValue) ||
+    !isFiniteNumberOrNull(metrics.riseTimeHours) ||
+    !Number.isFinite(metrics.peakValue) ||
+    !Number.isFinite(metrics.peakTimeHours) ||
+    !isFiniteNumberOrNull(metrics.overshootFraction) ||
+    typeof metrics.oscillatory !== 'boolean' ||
+    !isFiniteNumberOrNull(metrics.dcGain) ||
+    !hasValidFrequencyGain(metrics.frequencyGain)
+  ) {
+    return false;
+  }
+  return metrics.steadyStateAvailable
+    ? typeof metrics.steadyValue === 'number' && typeof metrics.overshootFraction === 'number'
+    : metrics.steadyValue === null &&
+        metrics.riseTimeHours === null &&
+        metrics.overshootFraction === null &&
+        metrics.dcGain === null &&
+        metrics.frequencyGain === null;
+}
+
 function hasValidSimulationPoints(
   value: Record<string, unknown>,
   intervalsAvailable: boolean,
@@ -217,7 +317,9 @@ export function isBfnProject(value: unknown): value is BfnProject {
 function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
   if (
     !isRecord(value) ||
-    (value.engineVersion !== 'BFN-SIM-2.0' && value.engineVersion !== 'BFN-SIM-2.1') ||
+    (value.engineVersion !== 'BFN-SIM-2.0' &&
+      value.engineVersion !== 'BFN-SIM-2.1' &&
+      value.engineVersion !== 'BFN-SIM-2.2') ||
     !isNonEmptyString(value.id)
   ) {
     return false;
@@ -241,7 +343,11 @@ function isBfnSimulationResult(value: unknown): value is BfnSimulationResult {
       hasValidSimulationPoints(value, true)
     );
   }
-  if (!hasValidUncertaintySnapshot(value)) return false;
+  const versionedSnapshotValid =
+    value.engineVersion === 'BFN-SIM-2.1'
+      ? hasValidUncertaintySnapshotV21(value)
+      : hasValidUncertaintySnapshotV22(value) && hasValidDynamicMetricsV22(value);
+  if (!versionedSnapshotValid) return false;
   const snapshot = value.uncertaintySnapshot;
   if (!isRecord(snapshot)) return false;
   const intervalsAvailable = snapshot.status === 'available';

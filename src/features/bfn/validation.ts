@@ -8,6 +8,7 @@ import type {
   BfnValidationIssue,
 } from './types';
 import { BfnCatalogContractError, bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
+import { assessBfnAccumulatorRuntimeContract } from './accumulatorRuntimeContract';
 import { verifyBfnCatalogModel } from './catalog/catalogBfnVerification';
 import { assessBfnConnectionContextApplicability } from './compatibility/contextIntegration';
 import {
@@ -547,6 +548,15 @@ export function validateBfnProject(
       model?.mode === 'dynamic' &&
       model.family === 'accumulator'
     ) {
+      const reason = assessBfnAccumulatorRuntimeContract(module, model);
+      if (reason) {
+        issues.push({
+          code: 'accumulator_model_contract_invalid',
+          severity: 'error',
+          subjectId: module.id,
+          details: { reason },
+        });
+      }
       issues.push({
         code: 'dynamic_process_runtime_unsupported',
         severity: 'error',

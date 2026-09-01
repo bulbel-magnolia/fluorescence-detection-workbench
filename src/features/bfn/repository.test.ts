@@ -176,6 +176,68 @@ describe('BFN-IR repository', () => {
     expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(JSON.stringify([historical, current]));
   });
 
+  it('distinguishes frozen BFN-SIM 2.0/2.1 records from the versioned 2.2 contract', () => {
+    const v21 = runBfnSimulation(createDemoBfnProject());
+    const v20 = structuredClone(v21) as unknown as Record<string, unknown>;
+    v20.id = 'historical-bfn-sim-2.0';
+    v20.engineVersion = 'BFN-SIM-2.0';
+    delete v20.uncertaintySnapshot;
+    const v22 = structuredClone(v21) as unknown as Record<string, unknown>;
+    v22.id = 'candidate-bfn-sim-2.2';
+    v22.engineVersion = 'BFN-SIM-2.2';
+    const snapshot = v22.uncertaintySnapshot as {
+      modules: Array<Record<string, unknown>>;
+    };
+    snapshot.modules = snapshot.modules.map((module) => ({
+      ...module,
+      propagationMode: 'parameter_interval',
+    }));
+    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([v20, v21, v22]));
+
+    const loaded = loadBfnRuns();
+
+    expect(loaded.map((run) => run.engineVersion)).toEqual([
+      'BFN-SIM-2.0',
+      'BFN-SIM-2.1',
+      'BFN-SIM-2.2',
+    ]);
+    expect(loaded[1]).not.toHaveProperty('uncertaintySnapshot.modules.0.propagationMode');
+    expect(loaded[2]).toHaveProperty(
+      'uncertaintySnapshot.modules.0.propagationMode',
+      'parameter_interval',
+    );
+  });
+
+  it('requires SIM 2.2 uncertainty propagation and dynamic metrics fields only from 2.2', () => {
+    const staticV21 = runBfnSimulation(createDemoBfnProject());
+    const malformedSnapshot = structuredClone(staticV21) as unknown as Record<string, unknown>;
+    malformedSnapshot.id = 'malformed-sim-2.2-snapshot';
+    malformedSnapshot.engineVersion = 'BFN-SIM-2.2';
+
+    const dynamicProject = createDemoBfnProject();
+    dynamicProject.network.mode = 'dynamic';
+    const malformedMetrics = structuredClone(runBfnSimulation(dynamicProject)) as unknown as Record<
+      string,
+      unknown
+    >;
+    malformedMetrics.id = 'malformed-sim-2.2-metrics';
+    malformedMetrics.engineVersion = 'BFN-SIM-2.2';
+    const dynamicSnapshot = malformedMetrics.uncertaintySnapshot as {
+      modules: Array<Record<string, unknown>>;
+    };
+    dynamicSnapshot.modules = dynamicSnapshot.modules.map((module) => ({
+      ...module,
+      propagationMode: 'parameter_interval',
+    }));
+
+    localStorage.setItem(
+      BFN_RUN_STORAGE_KEY,
+      JSON.stringify([staticV21, malformedSnapshot, malformedMetrics]),
+    );
+
+    expect(loadBfnRuns()).toEqual([staticV21]);
+  });
+
   it('accepts legacy runs without a signal snapshot', () => {
     const legacy = runBfnSimulation(createDemoBfnProject());
     delete legacy.signalSnapshot;

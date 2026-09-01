@@ -493,7 +493,7 @@ function AnnResultCard({ result }: { result: BfnSimulationResult }) {
 
 function UncertaintyResultNotice({ result }: { result: BfnSimulationResult }) {
   const { t } = useTranslation();
-  if (result.engineVersion !== 'BFN-SIM-2.1' || result.uncertaintySnapshot.status === 'available') {
+  if (result.engineVersion === 'BFN-SIM-2.0' || result.uncertaintySnapshot.status === 'available') {
     return null;
   }
   const reasons = [
@@ -530,9 +530,15 @@ function DynamicMetricsCard({ result }: { result: BfnSimulationResult }) {
       </header>
       {quasiStaticOnly ? <p>{t('bfn.dynamic.quasiStaticBoundary')}</p> : null}
       <dl>
+        {'terminalValue' in metrics ? (
+          <div>
+            <dt>{t('bfn.dynamic.terminal')}</dt>
+            <dd>{metrics.terminalValue.toFixed(3)}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>{t('bfn.dynamic.steady')}</dt>
-          <dd>{metrics.steadyValue.toFixed(3)}</dd>
+          <dd>{metrics.steadyValue === null ? '—' : metrics.steadyValue.toFixed(3)}</dd>
         </div>
         <div>
           <dt>{t('bfn.dynamic.riseTime')}</dt>
@@ -544,7 +550,11 @@ function DynamicMetricsCard({ result }: { result: BfnSimulationResult }) {
         </div>
         <div>
           <dt>{t('bfn.dynamic.overshoot')}</dt>
-          <dd>{(metrics.overshootFraction * 100).toFixed(1)}%</dd>
+          <dd>
+            {metrics.overshootFraction === null
+              ? '—'
+              : `${(metrics.overshootFraction * 100).toFixed(1)}%`}
+          </dd>
         </div>
         <div>
           <dt>DC gain</dt>

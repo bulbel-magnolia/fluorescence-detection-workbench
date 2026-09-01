@@ -170,7 +170,7 @@ export function createBfnRunUncertaintySnapshot(
 }
 
 export function hasBfnExecutableResultInterval(result: BfnSimulationResult): boolean {
-  if (result.engineVersion === 'BFN-SIM-2.1') {
+  if (result.engineVersion === 'BFN-SIM-2.1' || result.engineVersion === 'BFN-SIM-2.2') {
     return result.uncertaintySnapshot.status === 'available';
   }
   return result.points.every(

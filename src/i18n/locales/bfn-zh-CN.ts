@@ -447,8 +447,11 @@ export const bfnZhCN = {
     catalog_input_out_of_range: '输入不在文献响应的可信工作范围内，已阻止执行。',
     catalog_execution_unavailable: '文献目录响应未获得当前版本的数值执行权限。',
     dynamic_model_contract_invalid: '用户自定义动力学模型的运行时科学合同无效，已阻止执行。',
+    accumulator_model_contract_invalid: '累积器的运行时科学合同无效，已阻止执行。',
     dynamic_process_runtime_unsupported: '该动态过程可以被表示，但当前模拟器尚不执行此过程。',
-    dynamic_feedback_unsupported: '当前模拟器不支持包含用户自定义动力学模块的反馈回路。',
+    dynamic_feedback_unsupported: '当前模拟器不支持包含有状态动态过程的反馈回路。',
+    mixed_dynamic_process_ordering_unsupported:
+      '该混合动态过程顺序没有明确的因果执行语义，已阻止执行。',
   },
   semantic: {
     functionFilter: '功能',
@@ -779,6 +782,7 @@ export const bfnZhCN = {
     title: '动态响应指标',
     trajectoryTitle: '时间轨迹描述',
     quasiStaticBoundary: '这些指标来自随时间变化的瞬时稳态轨迹，不是模块动力学参数。',
+    terminal: '时间窗终值',
     steady: '稳态值',
     riseTime: '上升时间',
     peak: '峰值',

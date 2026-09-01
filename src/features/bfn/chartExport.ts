@@ -447,7 +447,7 @@ export function createBfnProvenanceRows({
         : 'Not available',
     },
   ];
-  if (result.engineVersion === 'BFN-SIM-2.1') {
+  if (result.engineVersion !== 'BFN-SIM-2.0') {
     rows.push(
       { key: 'uncertainty_status', value: result.uncertaintySnapshot.status },
       {

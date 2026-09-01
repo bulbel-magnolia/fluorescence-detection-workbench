@@ -8,7 +8,7 @@ import { createBfnRunUncertaintySnapshot } from './simulationUncertainty';
 import type { BfnParameterScenario } from './responseMath';
 import type {
   BfnDynamicInputSpecification,
-  BfnDynamicMetrics,
+  BfnDynamicMetricsV20V21,
   BfnDynamicModel,
   BfnFunctionalModule,
   BfnModelVariant,
@@ -345,7 +345,7 @@ function simulateDynamicScenario(
 function dynamicMetrics(
   project: BfnProject,
   points: readonly BfnSimulationPoint[],
-): BfnDynamicMetrics {
+): BfnDynamicMetricsV20V21 {
   const outputs = points.map((point) => point.output);
   const initial = outputs[0] ?? 0;
   const steadyValue = outputs.at(-1) ?? 0;
@@ -367,7 +367,7 @@ function dynamicMetrics(
   const source = project.network.inputSources[0];
   const specification = source?.dynamicSpecification;
   let dcGain: number | null = null;
-  let frequencyGain: BfnDynamicMetrics['frequencyGain'] = null;
+  let frequencyGain: BfnDynamicMetricsV20V21['frequencyGain'] = null;
   if (specification?.type === 'step') {
     const beforePoint = [...points]
       .reverse()

@@ -529,8 +529,10 @@ export type BfnValidationCode =
   | 'catalog_input_out_of_range'
   | 'catalog_execution_unavailable'
   | 'dynamic_model_contract_invalid'
+  | 'accumulator_model_contract_invalid'
   | 'dynamic_process_runtime_unsupported'
-  | 'dynamic_feedback_unsupported';
+  | 'dynamic_feedback_unsupported'
+  | 'mixed_dynamic_process_ordering_unsupported';
 
 export interface BfnValidationIssue {
   code: BfnValidationCode;
@@ -571,7 +573,7 @@ export interface BfnAnnApproximation {
   representation: 'ann_affine_approximation' | 'full_nonlinear_model';
 }
 
-export interface BfnDynamicMetrics {
+export interface BfnDynamicMetricsV20V21 {
   steadyValue: number;
   riseTimeHours: number | null;
   peakValue: number;
@@ -584,6 +586,24 @@ export interface BfnDynamicMetrics {
     phaseDegrees: number;
   } | null;
 }
+
+export interface BfnDynamicMetricsV22 {
+  terminalValue: number;
+  steadyStateAvailable: boolean;
+  steadyValue: number | null;
+  riseTimeHours: number | null;
+  peakValue: number;
+  peakTimeHours: number;
+  overshootFraction: number | null;
+  oscillatory: boolean;
+  dcGain: number | null;
+  frequencyGain: {
+    magnitude: number;
+    phaseDegrees: number;
+  } | null;
+}
+
+export type BfnDynamicMetrics = BfnDynamicMetricsV20V21 | BfnDynamicMetricsV22;
 
 export type BfnUncertaintyUnavailableReason =
   'none_declared' | 'not_recorded' | 'parameter_interval_incomplete' | 'method_not_executable';
@@ -603,7 +623,21 @@ export interface BfnRunUncertaintySnapshot {
   modules: BfnRunModuleUncertaintySnapshot[];
 }
 
-interface BfnSimulationResultBase {
+export type BfnUncertaintyPropagationMode =
+  'parameter_interval' | 'deterministic_transform' | 'unavailable';
+
+export interface BfnRunModuleUncertaintySnapshotV22 extends BfnRunModuleUncertaintySnapshot {
+  propagationMode: BfnUncertaintyPropagationMode;
+}
+
+export interface BfnRunUncertaintySnapshotV22 {
+  scope: 'output_reachable';
+  status: 'available' | 'unavailable';
+  method: 'parameter_interval_envelope' | null;
+  modules: BfnRunModuleUncertaintySnapshotV22[];
+}
+
+interface BfnSimulationResultBase<TDynamicMetrics extends BfnDynamicMetrics> {
   id: string;
   networkId: string;
   mode: BfnNetworkMode;
@@ -614,7 +648,7 @@ interface BfnSimulationResultBase {
   temporalSnapshot?: BfnRunTemporalSnapshot;
   contextApplicabilitySnapshot?: BfnRunContextApplicabilitySnapshot;
   annApproximation: BfnAnnApproximation | null;
-  dynamicMetrics: BfnDynamicMetrics | null;
+  dynamicMetrics: TDynamicMetrics | null;
   validationIssues: BfnValidationIssue[];
   modelVersions: string[];
   contextIds: string[];
@@ -624,19 +658,26 @@ interface BfnSimulationResultBase {
   experimentalValidity: 'not_validated';
 }
 
-export interface BfnSimulationResultV20 extends BfnSimulationResultBase {
+export interface BfnSimulationResultV20 extends BfnSimulationResultBase<BfnDynamicMetricsV20V21> {
   engineVersion: 'BFN-SIM-2.0';
   uncertaintyMethod: 'parameter_interval_envelope';
   uncertaintySnapshot?: never;
 }
 
-export interface BfnSimulationResultV21 extends BfnSimulationResultBase {
+export interface BfnSimulationResultV21 extends BfnSimulationResultBase<BfnDynamicMetricsV20V21> {
   engineVersion: 'BFN-SIM-2.1';
   uncertaintyMethod: 'parameter_interval_envelope' | null;
   uncertaintySnapshot: BfnRunUncertaintySnapshot;
 }
 
-export type BfnSimulationResult = BfnSimulationResultV20 | BfnSimulationResultV21;
+export interface BfnSimulationResultV22 extends BfnSimulationResultBase<BfnDynamicMetricsV22> {
+  engineVersion: 'BFN-SIM-2.2';
+  uncertaintyMethod: 'parameter_interval_envelope' | null;
+  uncertaintySnapshot: BfnRunUncertaintySnapshotV22;
+}
+
+export type BfnSimulationResult =
+  BfnSimulationResultV20 | BfnSimulationResultV21 | BfnSimulationResultV22;
 
 export interface BfnRunInputSignalSnapshot {
   sourceId: string;
