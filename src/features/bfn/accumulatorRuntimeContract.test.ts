@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { assertBfnAccumulatorRate, BfnAccumulatorRateError } from './accumulatorRuntimeContract';
 import {
   ACCUMULATOR_MODEL_ID,
   createAccumulatorBfnProject,
@@ -119,4 +120,16 @@ describe('BFN-SIM 2.2 accumulator central runtime contract', () => {
 
     expect(accumulatorContractReason(project)).toBeUndefined();
   });
+
+  it.each([-1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+    'fails closed with a typed runtime error for rate %s',
+    (rate) => {
+      expect(() => assertBfnAccumulatorRate(rate)).toThrow(BfnAccumulatorRateError);
+      try {
+        assertBfnAccumulatorRate(rate);
+      } catch (error) {
+        expect(error).toMatchObject({ code: 'BFN_ACCUMULATOR_RATE_INVALID' });
+      }
+    },
+  );
 });

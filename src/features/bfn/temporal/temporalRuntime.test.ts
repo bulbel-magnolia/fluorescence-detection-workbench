@@ -274,6 +274,8 @@ describe('BFN temporal runtime integration', () => {
         },
       ],
       dynamicMetrics: {
+        terminalValue: 0.06358368132578643,
+        steadyStateAvailable: true,
         steadyValue: 0.06358368132578643,
         riseTimeHours: 0.2,
         peakValue: 0.06358368132578643,

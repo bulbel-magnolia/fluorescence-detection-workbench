@@ -4,8 +4,8 @@ import type {
   BfnModelVariant,
   BfnParameterEstimate,
   BfnProject,
-  BfnRunModuleUncertaintySnapshot,
-  BfnRunUncertaintySnapshot,
+  BfnRunModuleUncertaintySnapshotV22,
+  BfnRunUncertaintySnapshotV22,
   BfnSimulationResult,
   BfnStaticResponse,
 } from './types';
@@ -57,12 +57,21 @@ function hasExecutableInterval(parameter: BfnParameterEstimate | undefined): boo
 
 export function assessBfnModelUncertainty(
   model: BfnModelVariant,
-): Omit<BfnRunModuleUncertaintySnapshot, 'moduleId' | 'selectedModelId'> {
+): Omit<BfnRunModuleUncertaintySnapshotV22, 'moduleId' | 'selectedModelId'> {
   if (model.mode === 'dynamic' && model.family === 'accumulator') {
+    if (model.uncertaintyMethod === 'none' || model.uncertaintyMethod === 'not_recorded') {
+      return {
+        method: model.uncertaintyMethod,
+        intervalExecutable: true,
+        reason: null,
+        propagationMode: 'deterministic_transform',
+      };
+    }
     return {
       method: model.uncertaintyMethod,
       intervalExecutable: false,
       reason: 'method_not_executable',
+      propagationMode: 'unavailable',
     };
   }
   if (model.uncertaintyMethod === 'none') {
@@ -70,6 +79,7 @@ export function assessBfnModelUncertainty(
       method: model.uncertaintyMethod,
       intervalExecutable: false,
       reason: 'none_declared',
+      propagationMode: 'unavailable',
     };
   }
   if (model.uncertaintyMethod === 'not_recorded') {
@@ -77,6 +87,7 @@ export function assessBfnModelUncertainty(
       method: model.uncertaintyMethod,
       intervalExecutable: false,
       reason: 'not_recorded',
+      propagationMode: 'unavailable',
     };
   }
   if (model.uncertaintyMethod !== 'parameter_interval_envelope') {
@@ -84,6 +95,7 @@ export function assessBfnModelUncertainty(
       method: model.uncertaintyMethod,
       intervalExecutable: false,
       reason: 'method_not_executable',
+      propagationMode: 'unavailable',
     };
   }
   const response = model.mode === 'dynamic' ? model.steadyStateResponse : model.response;
@@ -95,6 +107,7 @@ export function assessBfnModelUncertainty(
       method: model.uncertaintyMethod,
       intervalExecutable: false,
       reason: 'parameter_interval_incomplete',
+      propagationMode: 'unavailable',
     };
   }
   const responseParameterValues = responseParameters(response);
@@ -103,6 +116,7 @@ export function assessBfnModelUncertainty(
       method: model.uncertaintyMethod,
       intervalExecutable: false,
       reason: 'parameter_interval_incomplete',
+      propagationMode: 'unavailable',
     };
   }
   const parameters = [...responseParameterValues, ...(model.mode === 'dynamic' ? [model.tau] : [])];
@@ -111,6 +125,7 @@ export function assessBfnModelUncertainty(
     method: model.uncertaintyMethod,
     intervalExecutable,
     reason: intervalExecutable ? null : 'parameter_interval_incomplete',
+    propagationMode: intervalExecutable ? 'parameter_interval' : 'unavailable',
   };
 }
 
@@ -137,9 +152,9 @@ function isPositiveDynamicTau(parameter: BfnParameterEstimate | undefined): bool
 export function createBfnRunUncertaintySnapshot(
   project: BfnProject,
   monitorId: string,
-): BfnRunUncertaintySnapshot {
+): BfnRunUncertaintySnapshotV22 {
   const reachable = findBfnOutputReachableModuleIds(project, monitorId);
-  const modules: BfnRunModuleUncertaintySnapshot[] = [];
+  const modules: BfnRunModuleUncertaintySnapshotV22[] = [];
   for (const module of project.network.modules) {
     if (!reachable.has(module.id)) continue;
     const model = resolveEffectiveBfnModel(project, module);
@@ -150,6 +165,7 @@ export function createBfnRunUncertaintySnapshot(
         method: null,
         intervalExecutable: false,
         reason: 'not_recorded',
+        propagationMode: 'unavailable',
       });
       continue;
     }
@@ -160,7 +176,9 @@ export function createBfnRunUncertaintySnapshot(
     });
   }
   const available =
-    modules.length > 0 && modules.every((module) => module.intervalExecutable === true);
+    modules.length > 0 &&
+    modules.every((module) => module.propagationMode !== 'unavailable') &&
+    modules.some((module) => module.propagationMode === 'parameter_interval');
   return {
     scope: 'output_reachable',
     status: available ? 'available' : 'unavailable',

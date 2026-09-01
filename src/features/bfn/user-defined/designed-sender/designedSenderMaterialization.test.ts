@@ -208,12 +208,12 @@ describe('Designed Sender generic BFN materialization', () => {
   });
 });
 
-describe('Designed Sender generic BFN-SIM-2.1 execution', () => {
+describe('Designed Sender generic BFN-SIM-2.2 execution', () => {
   it('executes the ordinary Hill point estimate with a connected control input', () => {
     const project = createRunnableProject(12);
     const result = runBfnSimulation(project, '2026-08-31T06:00:00.000Z');
 
-    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.engineVersion).toBe('BFN-SIM-2.2');
     expect(result.points).toHaveLength(1);
     expect(result.points[0]?.output).toBeCloseTo((0.1 + 4.2) / 2, 12);
     expect(result.points[0]?.lower).toBeNull();

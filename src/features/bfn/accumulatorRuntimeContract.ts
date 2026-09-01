@@ -1,5 +1,20 @@
 import type { BfnAccumulatorDynamicModel, BfnFunctionalModule } from './types';
 
+export class BfnAccumulatorRateError extends Error {
+  readonly code = 'BFN_ACCUMULATOR_RATE_INVALID' as const;
+
+  constructor(readonly rate: unknown) {
+    super('BFN_ACCUMULATOR_RATE_INVALID');
+    this.name = 'BfnAccumulatorRateError';
+  }
+}
+
+export function assertBfnAccumulatorRate(rate: unknown): asserts rate is number {
+  if (typeof rate !== 'number' || !Number.isFinite(rate) || rate < 0) {
+    throw new BfnAccumulatorRateError(rate);
+  }
+}
+
 export type BfnAccumulatorRuntimeContractReason =
   | 'input_arity_invalid'
   | 'output_arity_invalid'

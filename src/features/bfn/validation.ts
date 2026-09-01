@@ -393,9 +393,9 @@ function dynamicUserRuntimeContractReason(
 
 /**
  * Finds directed cycles on one selected monitor's executable module path.
- * Dynamic user-authored first-order models are stateful and the current
- * runtime has no feedback solver, so those cycles are rejected at run time
- * admission while the graph itself remains persistable.
+ * Effective accumulators and user-authored first-order models are stateful.
+ * The current runtime has no feedback solver, so those cycles are rejected at
+ * run-time admission while the graph itself remains persistable.
  */
 function dynamicFeedbackValidationIssues(
   project: BfnProject,
@@ -433,8 +433,8 @@ function dynamicFeedbackValidationIssues(
 
   // Condense the executable graph into strongly connected components. A
   // back-edge DFS can miss a dynamic node when an SCC has already-visited
-  // cross edges (for example A<->B plus A->C->B->A), so every dynamic user
-  // module in a cyclic SCC is reported explicitly.
+  // cross edges (for example A<->B plus A->C->B->A), so every unsupported
+  // stateful module in a cyclic SCC is reported explicitly.
   let nextIndex = 0;
   const indices = new Map<string, number>();
   const lowLinks = new Map<string, number>();
@@ -481,16 +481,21 @@ function dynamicFeedbackValidationIssues(
         candidate.length > 1 || adjacency.get(candidate[0]!)?.includes(candidate[0]!) === true,
     )
     .sort((left, right) => left[0]!.localeCompare(right[0]!))) {
-    const dynamicUserModules = component
+    const unsupportedStatefulModules = component
       .map((moduleId) => modulesById.get(moduleId))
       .filter((module): module is BfnFunctionalModule => module !== undefined)
       .filter((module) => {
         const model = resolveEffectiveBfnModel(project, module);
-        return module.authoring?.origin === 'user_defined' && model?.mode === 'dynamic';
+        return (
+          (model?.mode === 'dynamic' && model.family === 'accumulator') ||
+          (module.authoring?.origin === 'user_defined' &&
+            model?.mode === 'dynamic' &&
+            model.family === 'first_order')
+        );
       })
       .map((module) => module.id)
       .sort();
-    for (const subjectId of dynamicUserModules) {
+    for (const subjectId of unsupportedStatefulModules) {
       issues.push({
         code: 'dynamic_feedback_unsupported',
         severity: 'error',
@@ -500,6 +505,60 @@ function dynamicFeedbackValidationIssues(
           cycle: component.join(','),
         },
       });
+    }
+  }
+  return issues;
+}
+
+function mixedDynamicOrderingValidationIssues(
+  project: BfnProject,
+  monitorId: string,
+): BfnValidationIssue[] {
+  const reachable = findBfnOutputReachableModuleIds(project, monitorId);
+  const modulesById = new Map(
+    project.network.modules.map((module) => [module.id, module] as const),
+  );
+  const adjacency = new Map<string, string[]>();
+  for (const edge of project.network.edges) {
+    if (!edge.enabled || !reachable.has(edge.source.nodeId) || !reachable.has(edge.target.nodeId)) {
+      continue;
+    }
+    const targets = adjacency.get(edge.source.nodeId) ?? [];
+    if (!targets.includes(edge.target.nodeId)) targets.push(edge.target.nodeId);
+    adjacency.set(edge.source.nodeId, targets);
+  }
+
+  const issues: BfnValidationIssue[] = [];
+  const accumulators = [...reachable]
+    .map((moduleId) => modulesById.get(moduleId))
+    .filter((module): module is BfnFunctionalModule => module !== undefined)
+    .filter((module) => {
+      const model = resolveEffectiveBfnModel(project, module);
+      return model?.mode === 'dynamic' && model.family === 'accumulator';
+    })
+    .sort((left, right) => left.id.localeCompare(right.id));
+  for (const accumulator of accumulators) {
+    const visited = new Set<string>([accumulator.id]);
+    const queue = [...(adjacency.get(accumulator.id) ?? [])].sort();
+    while (queue.length > 0) {
+      const moduleId = queue.shift();
+      if (moduleId === undefined || visited.has(moduleId)) continue;
+      visited.add(moduleId);
+      const downstream = modulesById.get(moduleId);
+      if (downstream) {
+        const model = resolveEffectiveBfnModel(project, downstream);
+        if (model?.mode === 'dynamic' && model.family === 'first_order') {
+          issues.push({
+            code: 'mixed_dynamic_process_ordering_unsupported',
+            severity: 'error',
+            subjectId: accumulator.id,
+            details: { monitorId, downstreamModuleId: downstream.id },
+          });
+        }
+      }
+      for (const targetId of [...(adjacency.get(moduleId) ?? [])].sort()) {
+        if (!visited.has(targetId)) queue.push(targetId);
+      }
     }
   }
   return issues;
@@ -536,6 +595,7 @@ export function validateBfnProject(
       : [targetMonitorId];
   for (const monitorId of [...new Set(monitorIds)]) {
     issues.push(...dynamicFeedbackValidationIssues(project, monitorId));
+    issues.push(...mixedDynamicOrderingValidationIssues(project, monitorId));
   }
   const runtimeReachableModuleIds =
     targetMonitorId === undefined
@@ -557,12 +617,6 @@ export function validateBfnProject(
           details: { reason },
         });
       }
-      issues.push({
-        code: 'dynamic_process_runtime_unsupported',
-        severity: 'error',
-        subjectId: module.id,
-        details: { family: model.family },
-      });
     }
     if (
       module.authoring?.origin === 'user_defined' &&
@@ -599,10 +653,11 @@ export function validateBfnProject(
     }
     for (const port of module.inputPorts) {
       if (!hasResolvedEnabledIncomingSignal(project, module.id, port.id)) {
-        const authoredRuntimeRequired =
-          module.authoring?.origin === 'user_defined' &&
+        const modeledRuntimeRequired =
           runtimeReachableModuleIds.has(module.id) &&
-          modeledInputs.has(port.id);
+          modeledInputs.has(port.id) &&
+          (module.authoring?.origin === 'user_defined' ||
+            (model?.mode === 'dynamic' && model.family === 'accumulator'));
         issues.push(
           catalogBacked
             ? {
@@ -612,7 +667,7 @@ export function validateBfnProject(
               }
             : {
                 code: 'missing_required_input',
-                severity: authoredRuntimeRequired ? 'error' : 'warning',
+                severity: modeledRuntimeRequired ? 'error' : 'warning',
                 subjectId: port.id,
               },
         );

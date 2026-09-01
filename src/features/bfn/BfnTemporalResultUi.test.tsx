@@ -64,9 +64,11 @@ describe('BFN temporal result presentation', () => {
 
     expect(screen.getByText('部分模块使用瞬时稳态近似')).toBeInTheDocument();
     expect(screen.getByText('动态响应指标')).toBeInTheDocument();
-    expect(
-      screen.getAllByText(result.dynamicMetrics!.steadyValue.toFixed(3)).length,
-    ).toBeGreaterThan(0);
+    const steadyValue = result.dynamicMetrics?.steadyValue;
+    if (steadyValue === null || steadyValue === undefined) {
+      throw new Error('Expected a finite steady value for an accumulator-free dynamic path.');
+    }
+    expect(screen.getAllByText(steadyValue.toFixed(3)).length).toBeGreaterThan(0);
   });
 
   it('renders legacy time handling as unrecorded without inferring from the current project', () => {

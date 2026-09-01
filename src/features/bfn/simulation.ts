@@ -1,4 +1,5 @@
 import { buildAnnApproximation } from './annApproximation';
+import { assertBfnAccumulatorRate } from './accumulatorRuntimeContract';
 import { evaluateBfnModuleModel } from './catalog/catalogBfnEvaluation';
 import { bfnCatalogReferencePresence } from './catalog/catalogBfnTypes';
 import { createBfnRunContextApplicabilitySnapshot } from './compatibility/contextIntegration';
@@ -8,13 +9,13 @@ import { createBfnRunUncertaintySnapshot } from './simulationUncertainty';
 import type { BfnParameterScenario } from './responseMath';
 import type {
   BfnDynamicInputSpecification,
-  BfnDynamicMetricsV20V21,
+  BfnDynamicMetricsV22,
   BfnDynamicModel,
   BfnFunctionalModule,
   BfnModelVariant,
   BfnProject,
   BfnSimulationPoint,
-  BfnSimulationResultV21,
+  BfnSimulationResultV22,
   BfnStaticInputSpecification,
   BfnValidationIssue,
 } from './types';
@@ -257,6 +258,7 @@ function simulateDynamicScenario(
   const stepCount = Math.ceil(duration / step);
   const valuesByPort = new Map<string, number>();
   const stateByModule = new Map<string, number>();
+  const pendingRateByModule = new Map<string, number>();
   const targetMonitor = project.network.outputMonitors[0];
   if (!targetMonitor) throw new Error('BFN_OUTPUT_MONITOR_MISSING');
   const reachableModuleIds = findBfnOutputReachableModuleIds(project, targetMonitor.id);
@@ -266,7 +268,8 @@ function simulateDynamicScenario(
     if (model?.mode === 'dynamic') {
       if (model.family === 'accumulator') {
         if (reachableModuleIds.has(module.id)) {
-          throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+          stateByModule.set(module.id, model.initialState);
+          module.outputPorts.forEach((port) => valuesByPort.set(port.id, model.initialState));
         }
         continue;
       }
@@ -291,8 +294,23 @@ function simulateDynamicScenario(
       const model = resolveEffectiveBfnModel(project, module);
       if (!model) continue;
       if (model.mode === 'dynamic' && model.family === 'accumulator') {
-        if (reachableModuleIds.has(module.id)) {
-          throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+        if (!reachableModuleIds.has(module.id)) continue;
+        const previous = stateByModule.get(module.id) ?? model.initialState;
+        const storedRate = pendingRateByModule.get(module.id) ?? 0;
+        const current = previous + storedRate * integrationStep;
+        if (!Number.isFinite(current)) throw new Error('BFN_ACCUMULATOR_STATE_INVALID');
+        stateByModule.set(module.id, current);
+        moduleOutputs[module.id] = current;
+        module.outputPorts.forEach((port) => valuesByPort.set(port.id, current));
+        const inputs = resolveModuleInputs(project, module, model, valuesByPort);
+        const currentRate = inputs[model.inputPortId];
+        assertBfnAccumulatorRate(currentRate);
+        pendingRateByModule.set(module.id, currentRate);
+        if (
+          scenario === 'estimate' &&
+          domainExtrapolation(project, module, model, inputs, timeHours)
+        ) {
+          extrapolatedSubjects.push(module.id);
         }
         continue;
       }
@@ -345,16 +363,17 @@ function simulateDynamicScenario(
 function dynamicMetrics(
   project: BfnProject,
   points: readonly BfnSimulationPoint[],
-): BfnDynamicMetricsV20V21 {
+  steadyStateAvailable: boolean,
+): BfnDynamicMetricsV22 {
   const outputs = points.map((point) => point.output);
   const initial = outputs[0] ?? 0;
-  const steadyValue = outputs.at(-1) ?? 0;
+  const terminalValue = outputs.at(-1) ?? 0;
   const peakValue = Math.max(...outputs);
   const peakIndex = outputs.indexOf(peakValue);
   const peakTimeHours = points[peakIndex]?.timeHours ?? 0;
-  const target90 = initial + 0.9 * (steadyValue - initial);
+  const target90 = initial + 0.9 * (terminalValue - initial);
   const risePoint = points.find((point) =>
-    steadyValue >= initial ? point.output >= target90 : point.output <= target90,
+    terminalValue >= initial ? point.output >= target90 : point.output <= target90,
   );
   let signChanges = 0;
   let previousSign = 0;
@@ -367,17 +386,17 @@ function dynamicMetrics(
   const source = project.network.inputSources[0];
   const specification = source?.dynamicSpecification;
   let dcGain: number | null = null;
-  let frequencyGain: BfnDynamicMetricsV20V21['frequencyGain'] = null;
-  if (specification?.type === 'step') {
+  let frequencyGain: BfnDynamicMetricsV22['frequencyGain'] = null;
+  if (steadyStateAvailable && specification?.type === 'step') {
     const beforePoint = [...points]
       .reverse()
       .find((point) => (point.timeHours ?? 0) < specification.atHours);
     const denominator = specification.after - specification.before;
     if (beforePoint && Math.abs(denominator) > Number.EPSILON) {
-      dcGain = (steadyValue - beforePoint.output) / denominator;
+      dcGain = (terminalValue - beforePoint.output) / denominator;
     }
   }
-  if (specification?.type === 'periodic' && specification.amplitude > 0) {
+  if (steadyStateAvailable && specification?.type === 'periodic' && specification.amplitude > 0) {
     const tail = points.slice(Math.floor(points.length / 2));
     const tailOutputs = tail.map((point) => point.output);
     const outputAmplitude = (Math.max(...tailOutputs) - Math.min(...tailOutputs)) / 2;
@@ -399,14 +418,17 @@ function dynamicMetrics(
     };
   }
   return {
-    steadyValue,
-    riseTimeHours: risePoint?.timeHours ?? null,
+    terminalValue,
+    steadyStateAvailable,
+    steadyValue: steadyStateAvailable ? terminalValue : null,
+    riseTimeHours: steadyStateAvailable ? (risePoint?.timeHours ?? null) : null,
     peakValue,
     peakTimeHours,
-    overshootFraction:
-      Math.abs(steadyValue) <= Number.EPSILON
+    overshootFraction: steadyStateAvailable
+      ? Math.abs(terminalValue) <= Number.EPSILON
         ? 0
-        : Math.max(0, (peakValue - steadyValue) / Math.abs(steadyValue)),
+        : Math.max(0, (peakValue - terminalValue) / Math.abs(terminalValue))
+      : null,
     oscillatory: signChanges >= 3,
     dcGain,
     frequencyGain,
@@ -460,7 +482,7 @@ function provenance(project: BfnProject): { modelVersions: string[]; contextIds:
 export function runBfnSimulation(
   project: BfnProject,
   completedAt = new Date().toISOString(),
-): BfnSimulationResultV21 {
+): BfnSimulationResultV22 {
   const monitor = project.network.outputMonitors[0];
   const primarySource = project.network.inputSources[0];
   if (!monitor || !primarySource) throw new Error('BFN_NETWORK_ENDPOINT_MISSING');
@@ -489,6 +511,11 @@ export function runBfnSimulation(
   if (!source) throw new Error('BFN_PRIMARY_INPUT_PORT_MISSING');
   const trace = provenance(project);
   const reachableModuleIds = findBfnOutputReachableModuleIds(project, monitor.id);
+  const steadyStateAvailable = !project.network.modules.some((module) => {
+    if (!reachableModuleIds.has(module.id)) return false;
+    const model = resolveEffectiveBfnModel(project, module);
+    return model?.mode === 'dynamic' && model.family === 'accumulator';
+  });
   const temporalSnapshot = createBfnRunTemporalSnapshot(project, monitor.id);
   const contextApplicabilitySnapshot = createBfnRunContextApplicabilitySnapshot(
     project,
@@ -496,7 +523,7 @@ export function runBfnSimulation(
   );
   return {
     id: createId('bfn-run'),
-    engineVersion: 'BFN-SIM-2.1',
+    engineVersion: 'BFN-SIM-2.2',
     networkId: project.network.id,
     mode: project.network.mode,
     points: simulation.points,
@@ -522,7 +549,9 @@ export function runBfnSimulation(
     contextApplicabilitySnapshot,
     annApproximation,
     dynamicMetrics:
-      project.network.mode === 'dynamic' ? dynamicMetrics(project, simulation.points) : null,
+      project.network.mode === 'dynamic'
+        ? dynamicMetrics(project, simulation.points, steadyStateAvailable)
+        : null,
     validationIssues: [...baseIssues, ...outsideIssues],
     modelVersions: trace.modelVersions,
     contextIds: trace.contextIds,

@@ -70,20 +70,15 @@ function createDormantAccumulatorProject(): BfnProject {
 }
 
 describe('BFN-IR 2.3 accumulator runtime boundary', () => {
-  it('reports a stable hard error and rejects before BFN-SIM 2.1 calculation', () => {
+  it('admits a valid narrow accumulator into BFN-SIM 2.2 execution', () => {
     const project = createAccumulatorBfnProject();
     const issues = validateBfnProject(project);
 
-    expect(issues).toContainEqual({
-      code: 'dynamic_process_runtime_unsupported',
-      severity: 'error',
-      subjectId: 'module-accumulator-test',
-      details: { family: 'accumulator' },
-    });
-    expect(issues.map(({ code }) => code)).not.toContain('dynamic_model_contract_invalid');
-    expect(() => runBfnSimulation(project)).toThrow(
-      /BFN_VALIDATION_FAILED:.*dynamic_process_runtime_unsupported/u,
-    );
+    expect(issues.map(({ code }) => code)).not.toContain('dynamic_process_runtime_unsupported');
+    expect(issues.map(({ code }) => code)).not.toContain('accumulator_model_contract_invalid');
+    const result = runBfnSimulation(project);
+    expect(result.engineVersion).toBe('BFN-SIM-2.2');
+    expect(result.points.every((point) => Number.isFinite(point.output))).toBe(true);
   });
 
   it('does not block a selected monitor when the accumulator branch is off-target', () => {
@@ -94,19 +89,19 @@ describe('BFN-IR 2.3 accumulator runtime boundary', () => {
 
     expect(
       validateBfnProject(project, { targetMonitorId: selectedMonitorId }).map(({ code }) => code),
-    ).not.toContain('dynamic_process_runtime_unsupported');
-    expect(validateBfnProject(project).map(({ code }) => code)).toContain(
+    ).not.toContain('accumulator_model_contract_invalid');
+    expect(validateBfnProject(project).map(({ code }) => code)).not.toContain(
       'dynamic_process_runtime_unsupported',
     );
     const result = runBfnSimulation(project);
 
-    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.engineVersion).toBe('BFN-SIM-2.2');
     expect(result.points.every((point) => !(ACCUMULATOR_MODULE_ID in point.moduleOutputs))).toBe(
       true,
     );
   });
 
-  it('keeps an off-target existing first-order module in the frozen SIM-2.1 scope', () => {
+  it('keeps an off-target existing first-order module in the frozen numerical scope', () => {
     const project = createDemoBfnProject();
     const offTargetModule = createCatalogModule('ahl-sensor', 'off-target-existing');
     project.network.mode = 'dynamic';
@@ -114,7 +109,7 @@ describe('BFN-IR 2.3 accumulator runtime boundary', () => {
 
     const result = runBfnSimulation(project);
 
-    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.engineVersion).toBe('BFN-SIM-2.2');
     expect(result.points.every((point) => Number.isFinite(point.output))).toBe(true);
     expect(
       result.points.every((point) => {
@@ -135,7 +130,7 @@ describe('BFN-IR 2.3 accumulator runtime boundary', () => {
     expect(validateBfnProject(project).map(({ code }) => code)).not.toContain(
       'dynamic_process_runtime_unsupported',
     );
-    expect(runBfnSimulation(project).engineVersion).toBe('BFN-SIM-2.1');
+    expect(runBfnSimulation(project).engineVersion).toBe('BFN-SIM-2.2');
   });
 
   it('uses the existing temporal hard stop for dynamic-only modules in a static network', () => {
@@ -157,8 +152,9 @@ describe('BFN-IR 2.3 accumulator runtime boundary', () => {
 
     expect(assessBfnModelUncertainty(model)).toEqual({
       method: 'not_recorded',
-      intervalExecutable: false,
-      reason: 'method_not_executable',
+      intervalExecutable: true,
+      reason: null,
+      propagationMode: 'deterministic_transform',
     });
     expect(() =>
       evaluateBfnModuleModel(project, module, model, {

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { createCatalogModule, createDemoBfnProject } from './fixtures';
 import { runBfnSimulation } from './simulation';
+import {
+  ACCUMULATOR_INPUT_PORT_ID,
+  ACCUMULATOR_MODULE_ID,
+  ACCUMULATOR_OUTPUT_PORT_ID,
+  createAccumulatorBfnProject,
+  getAccumulatorModule,
+} from './testing/accumulatorFixtures';
+import type { BfnStaticModel } from './types';
 import { validateBfnProject } from './validation';
 
 function addDynamicFeedbackCycle(project: ReturnType<typeof createDemoBfnProject>): void {
@@ -20,6 +28,99 @@ function addDynamicFeedbackCycle(project: ReturnType<typeof createDemoBfnProject
 }
 
 describe('user-defined dynamic feedback validation', () => {
+  it('rejects a target-reachable cycle containing an effective accumulator regardless of origin', () => {
+    const project = createAccumulatorBfnProject();
+    const inputPortId = 'port-feedback-rate-converter-in';
+    const outputPortId = 'port-feedback-rate-converter-out';
+    const model: BfnStaticModel = {
+      id: 'model-feedback-rate-converter',
+      version: 'test.1',
+      mode: 'static',
+      family: 'linear_transfer',
+      response: {
+        family: 'linear_transfer',
+        inputPortId,
+        scale: { value: 1, unit: 'dimensionless' },
+        intercept: { value: 0, unit: 'nM/h' },
+      },
+      contextId: null,
+      validityDomainId: 'domain-feedback-rate-converter',
+      sourceDatasetIds: [],
+      provenanceIds: [],
+      evidenceGrade: 'independent_assumption',
+      uncertaintyMethod: 'none',
+      isDemo: true,
+    };
+    project.network.modules.push({
+      kind: 'functional_module',
+      id: 'module-feedback-rate-converter',
+      labelKey: 'bfn.testing.feedbackRateConverter',
+      descriptionKey: 'bfn.testing.feedbackRateConverterDescription',
+      inputPorts: [
+        {
+          id: inputPortId,
+          entity: getAccumulatorModule(project).outputPorts[0]!.entity,
+          quantityType: 'concentration',
+          unit: 'nM',
+          direction: 'input',
+        },
+      ],
+      outputPorts: [
+        {
+          id: outputPortId,
+          entity: getAccumulatorModule(project).inputPorts[0]!.entity,
+          quantityType: 'production_rate',
+          unit: 'nM/h',
+          direction: 'output',
+        },
+      ],
+      modelVariants: [model],
+      activeModelIds: { static: model.id },
+      implementationIds: [],
+      implementationState: 'unspecified',
+      evidenceGrade: 'independent_assumption',
+      position: { x: 160, y: 320 },
+      isDemo: true,
+    });
+    project.registry.validityDomains.push({
+      id: model.validityDomainId,
+      labelKey: 'bfn.testing.feedbackRateConverterDomain',
+      inputRanges: [{ portId: inputPortId, minimum: 0, maximum: 10, unit: 'nM' }],
+      contextId: null,
+    });
+    project.network.edges = project.network.edges.filter(
+      (edge) => edge.id !== 'edge-accumulator-rate',
+    );
+    project.network.edges.push(
+      {
+        id: 'edge-accumulator-feedback-converter',
+        source: { nodeId: ACCUMULATOR_MODULE_ID, portId: ACCUMULATOR_OUTPUT_PORT_ID },
+        target: { nodeId: 'module-feedback-rate-converter', portId: inputPortId },
+        mapping: 'identity',
+        enabled: true,
+      },
+      {
+        id: 'edge-feedback-converter-accumulator',
+        source: { nodeId: 'module-feedback-rate-converter', portId: outputPortId },
+        target: { nodeId: ACCUMULATOR_MODULE_ID, portId: ACCUMULATOR_INPUT_PORT_ID },
+        mapping: 'identity',
+        enabled: true,
+      },
+    );
+
+    expect(getAccumulatorModule(project).authoring).toBeUndefined();
+    expect(validateBfnProject(project)).toContainEqual(
+      expect.objectContaining({
+        code: 'dynamic_feedback_unsupported',
+        severity: 'error',
+        subjectId: ACCUMULATOR_MODULE_ID,
+      }),
+    );
+    expect(() => runBfnSimulation(project)).toThrow(
+      /BFN_VALIDATION_FAILED:.*dynamic_feedback_unsupported/u,
+    );
+  });
+
   it('rejects a dynamic user-authored cycle on the selected output monitor path', () => {
     const project = createDemoBfnProject();
     addDynamicFeedbackCycle(project);

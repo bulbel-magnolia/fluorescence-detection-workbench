@@ -32,6 +32,28 @@ function projectWithCatalogReference() {
   return result.nextProject;
 }
 
+function asHistoricalV21(result: ReturnType<typeof runBfnSimulation>): Record<string, unknown> {
+  const historical = structuredClone(result) as unknown as Record<string, unknown>;
+  historical.engineVersion = 'BFN-SIM-2.1';
+  const snapshot = historical.uncertaintySnapshot as {
+    modules: Array<Record<string, unknown>>;
+  };
+  for (const module of snapshot.modules) delete module.propagationMode;
+  const metrics = historical.dynamicMetrics;
+  if (metrics !== null && typeof metrics === 'object' && !Array.isArray(metrics)) {
+    delete (metrics as Record<string, unknown>).terminalValue;
+    delete (metrics as Record<string, unknown>).steadyStateAvailable;
+  }
+  return historical;
+}
+
+function asHistoricalV20(result: ReturnType<typeof runBfnSimulation>): Record<string, unknown> {
+  const historical = asHistoricalV21(result);
+  historical.engineVersion = 'BFN-SIM-2.0';
+  delete historical.uncertaintySnapshot;
+  return historical;
+}
+
 describe('BFN-IR repository', () => {
   beforeEach(() => localStorage.clear());
 
@@ -159,39 +181,33 @@ describe('BFN-IR repository', () => {
     expect(loaded[0]?.contextApplicabilitySnapshot).not.toBe(result.contextApplicabilitySnapshot);
   });
 
-  it('writes BFN-SIM 2.1 runs and keeps frozen BFN-SIM 2.0 records readable and immutable', () => {
+  it('writes BFN-SIM 2.2 runs and keeps frozen BFN-SIM 2.0/2.1 records readable and immutable', () => {
     const current = runBfnSimulation(createDemoBfnProject());
-    const historical = structuredClone(current) as unknown as Record<string, unknown>;
-    historical.id = 'historical-bfn-sim-2.0';
-    historical.engineVersion = 'BFN-SIM-2.0';
-    delete historical.uncertaintySnapshot;
-    const historicalJson = JSON.stringify(historical);
-    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([historical, current]));
+    const v20 = asHistoricalV20(current);
+    v20.id = 'historical-bfn-sim-2.0';
+    const v21 = asHistoricalV21(current);
+    v21.id = 'historical-bfn-sim-2.1';
+    const historicalJson = JSON.stringify([v20, v21]);
+    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([v20, v21, current]));
 
     const loaded = loadBfnRuns();
 
-    expect(current.engineVersion).toBe('BFN-SIM-2.1');
-    expect(loaded.map((run) => run.engineVersion)).toEqual(['BFN-SIM-2.0', 'BFN-SIM-2.1']);
-    expect(JSON.stringify(loaded[0])).toBe(historicalJson);
-    expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(JSON.stringify([historical, current]));
+    expect(current.engineVersion).toBe('BFN-SIM-2.2');
+    expect(loaded.map((run) => run.engineVersion)).toEqual([
+      'BFN-SIM-2.0',
+      'BFN-SIM-2.1',
+      'BFN-SIM-2.2',
+    ]);
+    expect(JSON.stringify(loaded.slice(0, 2))).toBe(historicalJson);
+    expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(JSON.stringify([v20, v21, current]));
   });
 
   it('distinguishes frozen BFN-SIM 2.0/2.1 records from the versioned 2.2 contract', () => {
-    const v21 = runBfnSimulation(createDemoBfnProject());
-    const v20 = structuredClone(v21) as unknown as Record<string, unknown>;
+    const v22 = runBfnSimulation(createDemoBfnProject());
+    const v21 = asHistoricalV21(v22);
+    v21.id = 'historical-bfn-sim-2.1';
+    const v20 = asHistoricalV20(v22);
     v20.id = 'historical-bfn-sim-2.0';
-    v20.engineVersion = 'BFN-SIM-2.0';
-    delete v20.uncertaintySnapshot;
-    const v22 = structuredClone(v21) as unknown as Record<string, unknown>;
-    v22.id = 'candidate-bfn-sim-2.2';
-    v22.engineVersion = 'BFN-SIM-2.2';
-    const snapshot = v22.uncertaintySnapshot as {
-      modules: Array<Record<string, unknown>>;
-    };
-    snapshot.modules = snapshot.modules.map((module) => ({
-      ...module,
-      propagationMode: 'parameter_interval',
-    }));
     localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([v20, v21, v22]));
 
     const loaded = loadBfnRuns();
@@ -209,10 +225,13 @@ describe('BFN-IR repository', () => {
   });
 
   it('requires SIM 2.2 uncertainty propagation and dynamic metrics fields only from 2.2', () => {
-    const staticV21 = runBfnSimulation(createDemoBfnProject());
-    const malformedSnapshot = structuredClone(staticV21) as unknown as Record<string, unknown>;
+    const valid = runBfnSimulation(createDemoBfnProject());
+    const malformedSnapshot = structuredClone(valid) as unknown as Record<string, unknown>;
     malformedSnapshot.id = 'malformed-sim-2.2-snapshot';
-    malformedSnapshot.engineVersion = 'BFN-SIM-2.2';
+    const malformedSnapshotModules = malformedSnapshot.uncertaintySnapshot as {
+      modules: Array<Record<string, unknown>>;
+    };
+    delete malformedSnapshotModules.modules[0]!.propagationMode;
 
     const dynamicProject = createDemoBfnProject();
     dynamicProject.network.mode = 'dynamic';
@@ -221,21 +240,14 @@ describe('BFN-IR repository', () => {
       unknown
     >;
     malformedMetrics.id = 'malformed-sim-2.2-metrics';
-    malformedMetrics.engineVersion = 'BFN-SIM-2.2';
-    const dynamicSnapshot = malformedMetrics.uncertaintySnapshot as {
-      modules: Array<Record<string, unknown>>;
-    };
-    dynamicSnapshot.modules = dynamicSnapshot.modules.map((module) => ({
-      ...module,
-      propagationMode: 'parameter_interval',
-    }));
+    delete (malformedMetrics.dynamicMetrics as Record<string, unknown>).terminalValue;
 
     localStorage.setItem(
       BFN_RUN_STORAGE_KEY,
-      JSON.stringify([staticV21, malformedSnapshot, malformedMetrics]),
+      JSON.stringify([valid, malformedSnapshot, malformedMetrics]),
     );
 
-    expect(loadBfnRuns()).toEqual([staticV21]);
+    expect(loadBfnRuns()).toEqual([valid]);
   });
 
   it('accepts legacy runs without a signal snapshot', () => {
@@ -265,7 +277,7 @@ describe('BFN-IR repository', () => {
     });
     localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([malformed]));
 
-    expect(malformed.engineVersion).toBe('BFN-SIM-2.1');
+    expect(malformed.engineVersion).toBe('BFN-SIM-2.2');
     expect(loadBfnRuns()).toEqual([]);
   });
 

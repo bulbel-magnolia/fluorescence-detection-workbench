@@ -28,12 +28,12 @@ function selectedDynamicModel(project = createDemoBfnProject()): BfnDynamicModel
   return model;
 }
 
-describe('BFN-SIM 2.1 uncertainty execution contract', () => {
+describe('BFN-SIM 2.2 uncertainty execution contract', () => {
   it('records an executable output-reachable parameter envelope for a new run', () => {
     const project = createDemoBfnProject();
     const result = runBfnSimulation(project, '2026-08-30T00:00:00.000Z');
 
-    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.engineVersion).toBe('BFN-SIM-2.2');
     expect(result.uncertaintyMethod).toBe('parameter_interval_envelope');
     expect(result.uncertaintySnapshot).toEqual({
       scope: 'output_reachable',
@@ -45,6 +45,7 @@ describe('BFN-SIM 2.1 uncertainty execution contract', () => {
         method: 'parameter_interval_envelope',
         intervalExecutable: true,
         reason: null,
+        propagationMode: 'parameter_interval',
       })),
     });
     expect(result.points.every((point) => typeof point.lower === 'number')).toBe(true);
@@ -170,7 +171,7 @@ describe('BFN-SIM 2.1 uncertainty execution contract', () => {
 
     const result = runBfnSimulation(project);
 
-    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.engineVersion).toBe('BFN-SIM-2.2');
     expect(result.uncertaintySnapshot.status).toBe('unavailable');
     expect(result.uncertaintySnapshot.modules[0]).toMatchObject({
       intervalExecutable: false,
