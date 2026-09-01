@@ -120,6 +120,14 @@ export function assessBfnModelUncertainty(
     };
   }
   const parameters = [...responseParameterValues, ...(model.mode === 'dynamic' ? [model.tau] : [])];
+  if (parameters.length === 0) {
+    return {
+      method: model.uncertaintyMethod,
+      intervalExecutable: true,
+      reason: null,
+      propagationMode: 'deterministic_transform',
+    };
+  }
   const intervalExecutable = parameters.every(hasExecutableInterval);
   return {
     method: model.uncertaintyMethod,

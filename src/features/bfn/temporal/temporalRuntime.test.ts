@@ -7,6 +7,7 @@ import {
 import { addIdealConnection, validateBfnProject } from '../validation';
 import { createCatalogModule, createDemoBfnProject } from '../fixtures';
 import { runBfnSimulation } from '../simulation';
+import { ACCUMULATOR_MODULE_ID, createAccumulatorBfnProject } from '../testing/accumulatorFixtures';
 import type { BfnProject } from '../types';
 
 const RESPONSE_ID = AHL_HSL_RUNTIME_DEMO_RESPONSE_WHITELIST[0]!.id;
@@ -48,6 +49,20 @@ function connectedCatalogProject(): BfnProject {
   );
 }
 
+function appendOffTargetAccumulatorPath(project: BfnProject): void {
+  const branch = createAccumulatorBfnProject();
+  project.network.inputSources.push(...structuredClone(branch.network.inputSources));
+  project.network.modules.push(...structuredClone(branch.network.modules));
+  project.network.outputMonitors.push(...structuredClone(branch.network.outputMonitors));
+  project.network.edges.push(...structuredClone(branch.network.edges));
+  project.registry.validityDomains.push(...structuredClone(branch.registry.validityDomains));
+  for (const provenance of branch.registry.provenanceRecords) {
+    if (!project.registry.provenanceRecords.some(({ id }) => id === provenance.id)) {
+      project.registry.provenanceRecords.push(structuredClone(provenance));
+    }
+  }
+}
+
 describe('BFN temporal runtime integration', () => {
   it('blocks an output-reachable unsupported module', () => {
     const project = createDemoBfnProject();
@@ -73,6 +88,24 @@ describe('BFN temporal runtime integration', () => {
           issue.code === 'temporal_execution_unsupported' && issue.subjectId === isolated.id,
       ),
     ).toEqual([]);
+  });
+
+  it('scopes the temporal hard gate to the selected monitor while retaining whole-project audit coverage', () => {
+    const project = createDemoBfnProject();
+    project.network.mode = 'static';
+    const selectedMonitor = project.network.outputMonitors[0]!;
+    appendOffTargetAccumulatorPath(project);
+    const unsupportedIssue = {
+      code: 'temporal_execution_unsupported',
+      severity: 'error',
+      subjectId: ACCUMULATOR_MODULE_ID,
+    } as const;
+
+    expect(validateBfnProject(project, { targetMonitorId: selectedMonitor.id })).not.toContainEqual(
+      unsupportedIssue,
+    );
+    expect(runBfnSimulation(project).outputMonitorId).toBe(selectedMonitor.id);
+    expect(validateBfnProject(project)).toContainEqual(unsupportedIssue);
   });
 
   it('runs a mixed dynamic path and records exact output-reachable temporal/context snapshots', () => {

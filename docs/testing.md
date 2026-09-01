@@ -1207,3 +1207,12 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `npm test -- --maxWorkers=4` 完整回归为 152 个测试文件、1263 项测试全部通过；Windows checkout 的 12 个 Sender immutable source 文件仅在测试期间按冻结 manifest 恢复物理字节，finally 后 source diff 为零；
 - `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 production build 转换 304 个模块，主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,359.28 kB、gzip 465.24 kB；保留既有大于 500 kB chunk 提示；
 - changed-file Prettier 与 `git diff --check` 通过。以上只声明 local validation；GitHub workflow/check/status context 由 push 后实际查询结果单独回传；不声明 CI、PASS、FROZEN 或 Master Review completed。
+
+### Master Review correction — target scope 与真实 uncertainty source
+
+- correction 从 pre-fix Head `8e43a17ac6072721c2c269aef94405f64e1dd4e1` 线性追加；Batch 12.4.1 保持 `ACTIVE`、not `FROZEN`，等待 Master Control re-review；
+- 双 Monitor static regression 固定 selected Monitor 的 temporal hard gate：Monitor A 的有效静态路径可运行，off-target Monitor B 的 dynamic-only accumulator 不产生 run-scoped `temporal_execution_unsupported`；无 target 的 whole-project validation 仍报告 Monitor B；
+- zero-parameter identity regression 固定 `parameter_interval_envelope` 声明不构成真实参数源：identity 记录为 `deterministic_transform`，deterministic-only path 的 snapshot 为 unavailable 且全部 `lower/upper = null`；真实 producer interval 经 identity 与 accumulator 后保持可用上下界；
+- correction 定向门为 2 个测试文件、27 项测试全部通过；完整回归为 152 个测试文件、1266 项测试全部通过。12 个 Sender immutable source 文件按逐文件 length/SHA-256 清单临时物化混合 LF/CRLF 字节，finally 后 source diff 为零；
+- `npm run typecheck`、`npm run lint` 与 Vite 7.3.6 production build 全部通过；build 转换 304 个模块，主 CSS 为 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 为 3,359.41 kB（gzip 465.26 kB），保留既有大于 500 kB chunk 提示；
+- BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace IndexedDB structural version 保持 1；accumulator equation、first-order equation、mixed ordering、feedback、Sender/Receiver/Compatibility、metrics schema 与 repository persistence 均未修改。

@@ -220,6 +220,90 @@ function attachStaticReceiver(project: BfnProject): string {
   return moduleId;
 }
 
+function insertIdentityBeforeAccumulator(project: BfnProject, suffix: string): string {
+  const accumulator = getAccumulatorModule(project);
+  const incomingEdge = project.network.edges.find(
+    (edge) =>
+      edge.enabled &&
+      edge.target.nodeId === ACCUMULATOR_MODULE_ID &&
+      edge.target.portId === ACCUMULATOR_INPUT_PORT_ID,
+  );
+  if (incomingEdge === undefined) throw new Error('Expected an accumulator input edge.');
+  const moduleId = `module-uncertainty-identity-${suffix}`;
+  const inputPortId = `port-uncertainty-identity-${suffix}-in`;
+  const outputPortId = `port-uncertainty-identity-${suffix}-out`;
+  const validityDomainId = `domain-uncertainty-identity-${suffix}`;
+  const model: BfnStaticModel = {
+    id: `model-uncertainty-identity-${suffix}`,
+    version: 'test.1',
+    mode: 'static',
+    family: 'identity',
+    response: { family: 'identity', inputPortId },
+    contextId: null,
+    validityDomainId,
+    sourceDatasetIds: [],
+    provenanceIds: [],
+    evidenceGrade: 'independent_assumption',
+    uncertaintyMethod: 'parameter_interval_envelope',
+    isDemo: true,
+  };
+  project.network.modules.push({
+    kind: 'functional_module',
+    id: moduleId,
+    labelKey: 'bfn.testing.uncertaintyIdentity',
+    descriptionKey: 'bfn.testing.uncertaintyIdentityDescription',
+    inputPorts: [
+      {
+        id: inputPortId,
+        entity: accumulator.inputPorts[0]!.entity,
+        quantityType: 'production_rate',
+        unit: 'nM/h',
+        direction: 'input',
+      },
+    ],
+    outputPorts: [
+      {
+        id: outputPortId,
+        entity: accumulator.inputPorts[0]!.entity,
+        quantityType: 'production_rate',
+        unit: 'nM/h',
+        direction: 'output',
+      },
+    ],
+    modelVariants: [model],
+    activeModelIds: { static: model.id },
+    implementationIds: [],
+    implementationState: 'unspecified',
+    evidenceGrade: 'independent_assumption',
+    position: { x: 260, y: 160 },
+    isDemo: true,
+  });
+  project.registry.validityDomains.push({
+    id: validityDomainId,
+    labelKey: 'bfn.testing.uncertaintyIdentityDomain',
+    inputRanges: [{ portId: inputPortId, minimum: 0, maximum: 100, unit: 'nM/h' }],
+    contextId: null,
+  });
+  project.network.edges = project.network.edges.filter((edge) => edge.id !== incomingEdge.id);
+  project.network.edges.push(
+    {
+      id: `edge-uncertainty-identity-${suffix}-input`,
+      source: structuredClone(incomingEdge.source),
+      target: { nodeId: moduleId, portId: inputPortId },
+      mapping: 'identity',
+      enabled: true,
+    },
+    {
+      id: `edge-uncertainty-identity-${suffix}-accumulator`,
+      source: { nodeId: moduleId, portId: outputPortId },
+      target: { nodeId: ACCUMULATOR_MODULE_ID, portId: ACCUMULATOR_INPUT_PORT_ID },
+      mapping: 'identity',
+      enabled: true,
+    },
+  );
+  return moduleId;
+}
+
 function appendBranch(project: BfnProject, branch: BfnProject): void {
   project.network.inputSources.push(...structuredClone(branch.network.inputSources));
   project.network.modules.push(...structuredClone(branch.network.modules));
@@ -405,6 +489,63 @@ describe('BFN-SIM 2.2 uncertainty execution contract', () => {
 });
 
 describe('BFN-SIM 2.2 deterministic accumulator uncertainty propagation', () => {
+  it('does not treat a zero-parameter identity declaration as a parameter source', () => {
+    const project = createAccumulatorBfnProject();
+    const identityId = insertIdentityBeforeAccumulator(project, 'without-source');
+
+    const result = runBfnSimulation(project);
+
+    expect(result.uncertaintySnapshot).toMatchObject({ status: 'unavailable', method: null });
+    expect(
+      result.uncertaintySnapshot.modules.find(({ moduleId }) => moduleId === identityId),
+    ).toMatchObject({
+      method: 'parameter_interval_envelope',
+      intervalExecutable: true,
+      reason: null,
+      propagationMode: 'deterministic_transform',
+    });
+    expect(result.points.every((point) => point.lower === null && point.upper === null)).toBe(true);
+  });
+
+  it('propagates a real parameter envelope through identity and accumulator transforms', () => {
+    const project = createAccumulatorBfnProject();
+    const producerId = attachRateProducer(project, 'parameter_interval_envelope');
+    const identityId = insertIdentityBeforeAccumulator(project, 'with-source');
+    project.analysis.durationHours = 1;
+    project.analysis.timeStepHours = 0.5;
+
+    const result = runBfnSimulation(project);
+
+    expect(result.uncertaintySnapshot).toMatchObject({
+      status: 'available',
+      method: 'parameter_interval_envelope',
+    });
+    expect(result.uncertaintySnapshot.modules).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          moduleId: producerId,
+          propagationMode: 'parameter_interval',
+        }),
+        expect.objectContaining({
+          moduleId: identityId,
+          intervalExecutable: true,
+          reason: null,
+          propagationMode: 'deterministic_transform',
+        }),
+        expect.objectContaining({
+          moduleId: ACCUMULATOR_MODULE_ID,
+          propagationMode: 'deterministic_transform',
+        }),
+      ]),
+    );
+    for (const [index, expected] of [2.5, 5, 7.5].entries()) {
+      expect(result.points[index]!.lower).toBeCloseTo(expected);
+    }
+    for (const [index, expected] of [2.5, 10, 17.5].entries()) {
+      expect(result.points[index]!.upper).toBeCloseTo(expected);
+    }
+  });
+
   it('propagates an upstream parameter envelope through the accumulator', () => {
     const project = createAccumulatorBfnProject();
     const producerId = attachRateProducer(project, 'parameter_interval_envelope');

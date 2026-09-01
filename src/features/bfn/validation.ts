@@ -676,7 +676,7 @@ export function validateBfnProject(
   }
   for (const module of project.network.modules) {
     if (
-      outputReachableModuleIds.has(module.id) &&
+      runtimeReachableModuleIds.has(module.id) &&
       resolveBfnModuleTemporalCapability(project, module).executionMode === 'unsupported'
     ) {
       issues.push({
