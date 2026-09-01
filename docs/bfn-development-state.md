@@ -2,7 +2,7 @@
 
 - 最后核查日期：2026-09-01
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
-- 当前冻结起点（Batch 12.2 freeze bookkeeping）：`b76945246e56ed1fb494dc6f59c972a9f3999eda`
+- 当前正式冻结交付：Batch 12.3；reviewed implementation：`7520623c3f75c8ae5ee6173d4a507f7b7825227f`；freeze-bookkeeping parent：`ec8c177afdf34b4f21ef9f9014de140a41f31e32`
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -49,6 +49,7 @@
 | Batch 12.3 authoring workflow           | `e7a7369aee9677254fbeb89d1412584d0adb30eb` | `feat(bfn): add first-order dynamic module authoring`        |
 | Batch 12.3 Sender isolation regression  | `1d5a550f1122d500d1e341e4d864dddf4baf27f0` | `test(bfn): lock designed sender static isolation`           |
 | Batch 12.3 runtime admission correction | `7520623c3f75c8ae5ee6173d4a507f7b7825227f` | `fix(bfn): enforce dynamic user runtime contract`            |
+| Batch 12.3 correction documentation     | `ec8c177afdf34b4f21ef9f9014de140a41f31e32` | `docs(bfn): record dynamic runtime correction`               |
 
 Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master Control 完成实现审核与窄修正复核。`2a33365c40d4852d2270252560e148b7dc247aaf` 是正式审定的 Batch 12.0 实现 Head，`42e4cf6770c2986c950c89efc724a981e9ccf5d9` 是其 freeze bookkeeping commit。
 
@@ -58,28 +59,28 @@ Batch 12.1 首次 preflight 在 `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2` 上�
 
 Batch 12.1 从精确冻结基线 `499f44e8a57e8e80a678aaf29e14cba7da99cd2a` 重新授权，并在 `codex/bfn-static-user-module-authoring` 按 runtime uncertainty → pure materialization → authoring UI 顺序实施。Phase A、B、C 分别落在 `1f106c833d6f99b780e4e8dc896b8103e9573d6b`、`ff0db81fe0e226f810af0c349b0ebabb7056117e`、`48ade9de119bec96d3fe133ca33ee11168424d3c`；Master Review narrow fix `ae7fa56197386571973198e87e9b8b68c7869f7c` 修正 provenance identity、authorable uncertainty 边界与 target-monitor authored-input validation，并作为正式审定实现 Head。`1fa9c11909817b3e3b4873e7bf85a1a158b68338` 是 Batch 12.1 freeze bookkeeping commit，也是 Batch 12.2 的精确冻结基线。
 
-Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，并在 `codex/bfn-designed-sender-authoring` 按 contract → materialization → authoring workflow 顺序实施。`222291a4a44941bb7593cad0fd60eca012a20543`、`84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678`、`d138c61606b3e5cd260257fd5b48f14124df9516` 分别对应三阶段实现，`b93a3524004fb4556211328a5fbcf01bd732ede8` 修正文档中的控制输入单位记录并作为 Master Review 审定实现 Head。
+Batch 12.2 从 `1fa9c11909817b3e3b4873e7bf85a1a158b68338` 创建，并在 `codex/bfn-designed-sender-authoring` 按 contract → materialization → authoring workflow 顺序实施。`222291a4a44941bb7593cad0fd60eca012a20543`、`84d5cfda8d4c6ff393b4bb0bd47bb8ec189a4678`、`d138c61606b3e5cd260257fd5b48f14124df9516` 分别对应三阶段实现，`b93a3524004fb4556211328a5fbcf01bd732ede8` 修正文档中的控制输入单位记录并作为 Master Review 审定实现 Head；`b76945246e56ed1fb494dc6f59c972a9f3999eda` 是 Batch 12.2 freeze bookkeeping commit。
 
-Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创建，并在 `codex/bfn-first-order-dynamic-user-module-authoring` 按 contract/validation → pure materialization/runtime guard → authoring workflow 顺序实施。Master Review 指定的中央 runtime-admission 修正落在 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`。当前状态为 `ACTIVE` implementation candidate；上述提交是本轮本地实施记录，不代表 Master Review、PASS 或 FROZEN。
+Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创建，并在 `codex/bfn-first-order-dynamic-user-module-authoring` 按 contract/validation → pure materialization/runtime guard → authoring workflow 顺序实施。Master Review 首轮要求补齐 imported / persisted user-defined dynamic model 的中央 runtime admission；修正落在 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`，随后 `ec8c177afdf34b4f21ef9f9014de140a41f31e32` 记录 correction validation。Master Control 最终复核结论为 Implementation Review PASS、Correction Pass PASS、Further FIX not required，Batch 12.3 正式 `FROZEN`。本次 freeze bookkeeping 仅写入该正式状态，不修改生产代码；本次 bookkeeping commit 完成后即成为 Batch 12.4 preflight / implementation 的唯一合法开发基线。
 
 ## 当前状态
 
-| Workstream                                      | State   | Branch / commit verification                                                                                                                                             | Current boundary                                                                         |
-| ----------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| Batch 10 — Temporal Semantics & Compatibility   | FROZEN  | 最终修复 `cca73311de398a68902d1f5af354f346e781c32f`；合同与集成 SHA 见上表                                                                                               | Port Compatibility、Temporal semantics 和 Context Applicability 冻结                     |
-| Batch 11 — Sender Evidence & Runtime Admission  | FROZEN  | 最终 checkpoint `099294b018d1a6c4644156a9e083edde87570a43`                                                                                                               | Sender V1.2 source、loader、validator、admission 与 presentation 冻结                    |
-| Batch 12.0 — User-defined Module Contract       | FROZEN  | `codex/bfn-user-defined-module-contract`；reviewed implementation `2a33365c40d4852d2270252560e148b7dc247aaf`                                                             | Authoring contract、representation audit 与测试冻结；无 schema/UI/runtime integration    |
-| Batch 12.0.1 — BFN-IR Representation Extension  | FROZEN  | `codex/bfn-ir-2-1-user-module-representation`；base `42e4cf6770c2986c950c89efc724a981e9ccf5d9`；reviewed implementation `d22918712ca9affe1edf4da077e1f51696f8d426`       | BFN-IR 2.1 schema、中央 migration 与表示语义冻结；不包含 authoring UI/materialization    |
-| Batch 12.0.2 — BFN-IR Port Label Representation | FROZEN  | `codex/bfn-ir-2-2-port-authoring-label`；base `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2`；reviewed implementation `9fd60049145ccc21237623a9b657d2a84fecb325`             | BFN-IR 2.2 Port authoring label 表示与迁移冻结；无 UI/runtime/materialization            |
-| Sender Public Evidence Research                 | FROZEN  | Master Control formal boundary；不据此声明新的 production commit                                                                                                         | public evidence retrieval phase complete；runtime candidate outputs found: 0             |
-| Batch 11.2                                      | FUTURE  | NOT AUTHORIZED；无实施 commit                                                                                                                                            | 不进入 Sender production runtime                                                         |
-| Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                                                                  | blocked pending experimental data                                                        |
-| Batch 12.1 — Static Functional Module Authoring | FROZEN  | `codex/bfn-static-user-module-authoring`；base `499f44e8a57e8e80a678aaf29e14cba7da99cd2a`；reviewed implementation `ae7fa56197386571973198e87e9b8b68c7869f7c`            | BFN-SIM-2.1、纯 BFN-IR 2.2 物化与 static single-output authoring 冻结                    |
-| Batch 12.2 — Designed Sender                    | FROZEN  | `codex/bfn-designed-sender-authoring`；base `1fa9c11909817b3e3b4873e7bf85a1a158b68338`；reviewed implementation `b93a3524004fb4556211328a5fbcf01bd732ede8`               | 单控制输入 Hill Designed Sender、canonical signal identity 与 `production_rate` 输出冻结 |
-| Batch 12.3 — First-order Dynamic User Modules   | ACTIVE  | `codex/bfn-first-order-dynamic-user-module-authoring`；base `b76945246e56ed1fb494dc6f59c972a9f3999eda`；latest implementation `7520623c3f75c8ae5ee6173d4a507f7b7825227f` | 受限一阶动态 authoring、成对模型、中央运行合同与反馈硬门；等待 Master Control review     |
-| Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                                                                  | 负责显式 rate-to-amount/concentration 过程                                               |
-| Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                                                                  | 等待稳定 template/version contract                                                       |
-| Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                                                                      | 不在当前授权范围                                                                         |
+| Workstream                                      | State   | Branch / commit verification                                                                                                                                                                                   | Current boundary                                                                                     |
+| ----------------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Batch 10 — Temporal Semantics & Compatibility   | FROZEN  | 最终修复 `cca73311de398a68902d1f5af354f346e781c32f`；合同与集成 SHA 见上表                                                                                                                                     | Port Compatibility、Temporal semantics 和 Context Applicability 冻结                                 |
+| Batch 11 — Sender Evidence & Runtime Admission  | FROZEN  | 最终 checkpoint `099294b018d1a6c4644156a9e083edde87570a43`                                                                                                                                                     | Sender V1.2 source、loader、validator、admission 与 presentation 冻结                                |
+| Batch 12.0 — User-defined Module Contract       | FROZEN  | `codex/bfn-user-defined-module-contract`；reviewed implementation `2a33365c40d4852d2270252560e148b7dc247aaf`                                                                                                   | Authoring contract、representation audit 与测试冻结；无 schema/UI/runtime integration                |
+| Batch 12.0.1 — BFN-IR Representation Extension  | FROZEN  | `codex/bfn-ir-2-1-user-module-representation`；base `42e4cf6770c2986c950c89efc724a981e9ccf5d9`；reviewed implementation `d22918712ca9affe1edf4da077e1f51696f8d426`                                             | BFN-IR 2.1 schema、中央 migration 与表示语义冻结；不包含 authoring UI/materialization                |
+| Batch 12.0.2 — BFN-IR Port Label Representation | FROZEN  | `codex/bfn-ir-2-2-port-authoring-label`；base `8d51bfdfcffca2cd8c91112714bd8b4d89b5fda2`；reviewed implementation `9fd60049145ccc21237623a9b657d2a84fecb325`                                                   | BFN-IR 2.2 Port authoring label 表示与迁移冻结；无 UI/runtime/materialization                        |
+| Sender Public Evidence Research                 | FROZEN  | Master Control formal boundary；不据此声明新的 production commit                                                                                                                                               | public evidence retrieval phase complete；runtime candidate outputs found: 0                         |
+| Batch 11.2                                      | FUTURE  | NOT AUTHORIZED；无实施 commit                                                                                                                                                                                   | 不进入 Sender production runtime                                                                     |
+| Batch 7 — Calibration                           | PLANNED | 尚未启动；无实施 commit                                                                                                                                                                                        | blocked pending experimental data                                                                    |
+| Batch 12.1 — Static Functional Module Authoring | FROZEN  | `codex/bfn-static-user-module-authoring`；base `499f44e8a57e8e80a678aaf29e14cba7da99cd2a`；reviewed implementation `ae7fa56197386571973198e87e9b8b68c7869f7c`                                                  | BFN-SIM-2.1、纯 BFN-IR 2.2 物化与 static single-output authoring 冻结                                |
+| Batch 12.2 — Designed Sender                    | FROZEN  | `codex/bfn-designed-sender-authoring`；base `1fa9c11909817b3e3b4873e7bf85a1a158b68338`；reviewed implementation `b93a3524004fb4556211328a5fbcf01bd732ede8`                                                     | 单控制输入 Hill Designed Sender、canonical signal identity 与 `production_rate` 输出冻结             |
+| Batch 12.3 — First-order Dynamic User Modules   | FROZEN  | `codex/bfn-first-order-dynamic-user-module-authoring`；base `b76945246e56ed1fb494dc6f59c972a9f3999eda`；reviewed implementation `7520623c3f75c8ae5ee6173d4a507f7b7825227f`；pre-freeze docs `ec8c177afdf34b4f21ef9f9014de140a41f31e32` | 受限一阶动态 authoring、成对模型、中央运行合同、target scope 与反馈硬门正式冻结                       |
+| Batch 12.4 — Signal Pool / Accumulation         | PLANNED | 尚未启动；无实施 commit                                                                                                                                                                                        | 计划负责显式 rate-to-concentration / accumulation；进入 ACTIVE 前必须从本次 12.3 freeze-bookkeeping HEAD 重新核验 |
+| Batch 12.5 — Reusable User Module Library       | PLANNED | 尚未启动；无实施 commit                                                                                                                                                                                        | 等待稳定 template/version contract                                                                   |
+| Batch 13                                        | FUTURE  | 范围与 SHA 均未建立                                                                                                                                                                                            | 不在当前授权范围                                                                                     |
 
 ## Batch 12.0 frozen boundary
 
@@ -148,9 +149,11 @@ Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创�
 - Sender V1.2 source/hash/loader/validator/admission、Receiver V1.1 source/whitelist/formulas、Catalog Receiver parameter binding、Inverse Design、Ontology、Port Compatibility、Temporal、BFN-IR schema/migration、BFN-SIM result contract/equations、Workspace DB structure、`package.json` 与 lockfile 相对冻结基线保持零差异；Sender release 继续 53 evidence / 0 admitted，trusted runnable Receiver 继续 20；
 - 本批定向门为 8 个文件 / 79 项测试，冻结科学边界定向回归为 17 个文件 / 197 项测试；完整 142 个测试文件 / 1141 项测试在 `--maxWorkers=4` 下全部通过，TypeScript、ESLint、Vite build、changed-file Prettier 与 `git diff --check` 通过；默认高并发 `npm test` 曾在两个既有 UI 测试上出现 5 秒资源型 timeout，单文件复跑全部通过且未修改 timeout/断言，此执行差异记录为测试环境并发稳定性事项，不改变本批科学冻结结论；GitHub 无 status checks/workflow runs，因此不声明 CI passed。
 
-## Batch 12.3 active implementation boundary
+## Batch 12.3 frozen boundary
 
-- Batch 12.3：`ACTIVE` implementation candidate；最终 PASS / FIX / FROZEN 由 Master Control 决定；
+- Batch 12.3：`FROZEN`；
+- reviewed implementation head：`7520623c3f75c8ae5ee6173d4a507f7b7825227f`；pre-freeze documentation head：`ec8c177afdf34b4f21ef9f9014de140a41f31e32`；
+- Master Control 最终复核：Implementation Review `PASS`、Correction Pass `PASS`、Further FIX `not required`；
 - BFN-IR 保持 `2.2`，Workspace IndexedDB structural version 保持 `1`，storage keys 与迁移合同不变；BFN-SIM 保持 `2.1`，既有一阶数值方程不变；
 - 独立 dynamic authoring contract 只接受 `hill_activation`、`hill_repression`、`linear_transfer` 与 `independent_inputs` 的稳态响应，不接受 identity、任意表达式、lookup table 或通用 ODE；
 - 一个草稿只保存一份 steady-state response source；纯物化器生成一个普通 `BfnFunctionalModule` 的 static 与 first-order dynamic variants，并设置 `activeModelIds.static` 和 `activeModelIds.dynamic`；两份 response 按值一致；
@@ -160,7 +163,9 @@ Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创�
 - static mode 的 dormant dynamic variant 与目标外 malformed module 不触发该错误；Catalog、内置模型和 Designed Sender 不纳入该闸门；
 - 目标 Output Monitor 可执行路径中的有向环若包含有效动态用户模块，校验返回稳定的 `dynamic_feedback_unsupported` error 并阻止运行；本批不实现耦合反馈 solver；
 - Add to Network 仍是一个 Project edit / Undo unit，只创建模块与必要 registry sidecar，不创建 Edge、Input Source、Output Monitor、Run 或 Signal Pool，不切换 network mode；
-- Designed Sender 生产合同与创作界面保持 static-only；Sender/Receiver evidence、Catalog runtime、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology、Signal Pool 与 package dependencies 不在本批扩展范围内。
+- Designed Sender 生产合同与创作界面保持 static-only；Sender/Receiver evidence、Catalog runtime、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology、Signal Pool 与 package dependencies 不在本批扩展范围内；
+- correction 定向回归为 11 个文件 / 133 项测试，其中中央 runtime 文件 16/16；完整本地回归为 146 个测试文件 / 1198 项测试全部通过，TypeScript、ESLint、Vite build（303 modules）、changed-file Prettier 与 `git diff --check` 通过；GitHub 当前无 check runs/status contexts/workflow runs，因此只声明 local validation passed，不声明 CI passed；
+- 本次 freeze bookkeeping 仅更新正式文档状态，不改变任何生产合同；其新 HEAD 是后续 Batch 12.4 preflight / implementation 的唯一合法 development base。
 
 ## Sender Public Evidence Research formal boundary
 
@@ -181,11 +186,13 @@ Batch 12.3 从精确冻结起点 `b76945246e56ed1fb494dc6f59c972a9f3999eda` 创�
 4. 已冻结 Batch 的科学或生产边界发生变化时，必须记录新的授权任务和真实 commit。
 5. 当前 Sender 统计只描述冻结 V1.2 release：53 evidence、0 admitted Sender、20 trusted runnable Receiver。
 6. Freeze bookkeeping commit 可以更新正式状态账本，但不替代对应 Batch 的 reviewed implementation head。
+7. Batch 12.4 在 Master Control 正式授权前保持 `PLANNED`；任何 12.4 preflight / implementation 都必须从本次 Batch 12.3 freeze-bookkeeping HEAD 开始，并重新核验 exact SHA。
 
 相关合同：
 
 - [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)
 - [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)
+- [用户定义一阶动态模块创作与运行](user-defined-first-order-dynamic-authoring.md)
 - [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)
 - [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)
 - [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)

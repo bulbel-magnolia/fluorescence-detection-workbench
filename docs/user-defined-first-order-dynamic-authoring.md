@@ -2,7 +2,7 @@
 
 ## 状态与固定版本
 
-Batch 12.3 是 `ACTIVE` implementation candidate，等待 Master Control review。项目结构保持 `BFN-IR 2.2`，Workspace IndexedDB structural version 保持 `1`，新运行继续使用 `BFN-SIM-2.1`。本实现不代表 Batch 已 PASS 或 FROZEN，也不表示模型经过实验验证。
+Batch 12.3 已经 Master Control 最终复核并正式 `FROZEN`。正式 reviewed implementation 为 `7520623c3f75c8ae5ee6173d4a507f7b7825227f`，其后的 `ec8c177afdf34b4f21ef9f9014de140a41f31e32` 仅记录 correction validation 与待冻结状态；本次 freeze bookkeeping 只更新正式文档状态，不修改生产代码。项目结构保持 `BFN-IR 2.2`，Workspace IndexedDB structural version 保持 `1`，新运行继续使用 `BFN-SIM-2.1`。本冻结状态表示软件合同与实现已通过 Master Review，不表示任何用户定义模型获得实验验证。
 
 本批只开放受限的一阶松弛模型：
 
@@ -40,6 +40,8 @@ $$
 $$
 y_{t+\Delta t}=y_t+\left(1-e^{-\Delta t/\tau}\right)\left(f(\mathbf{x}_t)-y_t\right)
 $$
+
+中央 `validateBfnProject()` 对目标 Output Monitor 可达路径中的 effective `user_defined + dynamic` 模型重新核验 first-order family、tau、initial state、paired static response、time validity 与 parameter envelope；非法 imported、Workspace-persisted 或直接构造对象以 machine-readable `dynamic_model_contract_invalid` error 在进入 BFN-SIM 前 fail closed。Static mode 的 dormant dynamic variant 与目标外 malformed module 不触发该错误。
 
 本批没有新增 evaluator、通用 ODE integrator 或第二套 solver。目标 Output Monitor 的可执行路径中存在有向环，且该环包含 effective dynamic user-authored module 时，运行前校验返回 machine-readable `dynamic_feedback_unsupported` error 并阻止仿真。图对象仍可保存该拓扑。
 
