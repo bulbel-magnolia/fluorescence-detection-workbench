@@ -184,8 +184,10 @@ Batch 12.4.0 从 freeze-bookkeeping SHA `f444433ee13acbc2a69602550c1163c263b313a
 - accumulator 的 inputPortId、outputPortId、initialState 与 active model identity 进入 computation signature；authoring/display/description/position 继续不参与；
 - output-reachable effective accumulator 产生稳定 `dynamic_process_runtime_unsupported` error；闸门遵守 target Monitor scope，static-mode dormant accumulator 不触发；
 - BFN-SIM 保持 `2.1`；一阶方程、tau semantics、dynamic feedback gate、Temporal evidence、Port Compatibility、Designed Sender、Sender V1.2、Receiver V1.1、Inverse Design 与 Ontology 保持冻结边界；
+- Master Control Correction Pass 从 pre-fix head `68dcc00339667d4ea6fa52238074985fda459021` 线性追加：BFN-IR 2.3 现在只接受 `dynamic:first_order` 与 `dynamic:accumulator`，first-order-shaped 和 accumulator-shaped unknown family 均在 parser/import boundary fail closed；
+- BFN-SIM-2.1 恢复冻结的全模块 evaluation scope；所有既有 static fallback 与 first-order module 继续进入 `moduleOutputs`，target reachability 只用于新增 accumulator family。off-target accumulator 被跳过且不初始化、不求值、不写输出，target-reachable accumulator 继续由中央 hard gate 阻止；
 - 本批没有 accumulator equation、state integration、deferred commit、SIM 2.2、deterministic uncertainty propagation、Signal Pool materializer/UI、feedback solver、degradation/dilution/clearance 或 amount/volume conversion；
-- Batch 12.4.1 与 Batch 12.4 保持 `PLANNED`；Master Review claim：none。
+- Batch 12.4.0 Correction Pass 已形成 implementation candidate，状态保持 `ACTIVE` 并等待 Master Control Correction Review；Batch 12.4.1 与 Batch 12.4 保持 `PLANNED`；Master Review claim：none。
 
 ## Sender Public Evidence Research formal boundary
 

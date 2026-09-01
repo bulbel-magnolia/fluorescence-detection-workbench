@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { evaluateBfnModuleModel } from './catalog/catalogBfnEvaluation';
-import { createDemoBfnProject } from './fixtures';
+import { createCatalogModule, createDemoBfnProject } from './fixtures';
 import { resolveEffectiveBfnModel } from './modelResolution';
 import { runBfnSimulation } from './simulation';
 import { assessBfnModelUncertainty } from './simulationUncertainty';
 import {
   ACCUMULATOR_INPUT_PORT_ID,
   ACCUMULATOR_MODEL_ID,
+  ACCUMULATOR_MODULE_ID,
   createAccumulatorBfnProject,
   getAccumulatorModule,
 } from './testing/accumulatorFixtures';
@@ -97,7 +98,30 @@ describe('BFN-IR 2.3 accumulator runtime boundary', () => {
     expect(validateBfnProject(project).map(({ code }) => code)).toContain(
       'dynamic_process_runtime_unsupported',
     );
-    expect(runBfnSimulation(project).engineVersion).toBe('BFN-SIM-2.1');
+    const result = runBfnSimulation(project);
+
+    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.points.every((point) => !(ACCUMULATOR_MODULE_ID in point.moduleOutputs))).toBe(
+      true,
+    );
+  });
+
+  it('keeps an off-target existing first-order module in the frozen SIM-2.1 scope', () => {
+    const project = createDemoBfnProject();
+    const offTargetModule = createCatalogModule('ahl-sensor', 'off-target-existing');
+    project.network.mode = 'dynamic';
+    project.network.modules.push(offTargetModule);
+
+    const result = runBfnSimulation(project);
+
+    expect(result.engineVersion).toBe('BFN-SIM-2.1');
+    expect(result.points.every((point) => Number.isFinite(point.output))).toBe(true);
+    expect(
+      result.points.every((point) => {
+        const output = point.moduleOutputs[offTargetModule.id];
+        return output !== undefined && Number.isFinite(output);
+      }),
+    ).toBe(true);
   });
 
   it('keeps a paired accumulator dormant when the static model is effective', () => {

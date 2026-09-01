@@ -326,12 +326,7 @@ function hasValidV23Model(value: Record<string, unknown>): boolean {
   if (value.family === 'first_order') {
     return true;
   }
-  if (value.family !== 'accumulator') {
-    return (
-      Object.prototype.hasOwnProperty.call(value, 'steadyStateResponse') ||
-      Object.prototype.hasOwnProperty.call(value, 'tau')
-    );
-  }
+  if (value.family !== 'accumulator') return false;
   return (
     isNonEmptyString(value.inputPortId) &&
     isNonEmptyString(value.outputPortId) &&

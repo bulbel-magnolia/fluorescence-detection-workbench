@@ -249,6 +249,20 @@ describe('BFN-IR 2.3 representation contract', () => {
     expect(isBfnProjectV23(createAccumulatorBfnProject())).toBe(true);
   });
 
+  it('rejects a first-order-shaped unknown dynamic family at every import boundary', () => {
+    const project = createDemoBfnProject();
+    const dynamicModel = project.network.modules[0]!.modelVariants.find(
+      ({ mode }) => mode === 'dynamic',
+    );
+
+    expect(isBfnProjectV23(project)).toBe(true);
+    record(dynamicModel).family = 'future_process';
+
+    expect(isBfnProjectV23(project)).toBe(false);
+    expect(() => upgradeBfnProjectToCurrent(project)).toThrow('BFN_IMPORT_SCHEMA_INVALID');
+    expect(() => parseBfnProject(JSON.stringify(project))).toThrow('BFN_IMPORT_SCHEMA_INVALID');
+  });
+
   it('rejects empty, missing, and mode-mismatched active model references', () => {
     const malformedProjects = [
       (() => {

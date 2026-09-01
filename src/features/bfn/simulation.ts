@@ -260,12 +260,15 @@ function simulateDynamicScenario(
   const targetMonitor = project.network.outputMonitors[0];
   if (!targetMonitor) throw new Error('BFN_OUTPUT_MONITOR_MISSING');
   const reachableModuleIds = findBfnOutputReachableModuleIds(project, targetMonitor.id);
-  const modules = dynamicModuleOrder(project).filter((module) => reachableModuleIds.has(module.id));
+  const modules = dynamicModuleOrder(project);
   for (const module of modules) {
     const model = resolveEffectiveBfnModel(project, module);
     if (model?.mode === 'dynamic') {
-      if (model.family !== 'first_order') {
-        throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+      if (model.family === 'accumulator') {
+        if (reachableModuleIds.has(module.id)) {
+          throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+        }
+        continue;
       }
       stateByModule.set(module.id, model.initialState);
       module.outputPorts.forEach((port) => valuesByPort.set(port.id, model.initialState));
@@ -287,8 +290,11 @@ function simulateDynamicScenario(
     for (const module of modules) {
       const model = resolveEffectiveBfnModel(project, module);
       if (!model) continue;
-      if (model.mode === 'dynamic' && model.family !== 'first_order') {
-        throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+      if (model.mode === 'dynamic' && model.family === 'accumulator') {
+        if (reachableModuleIds.has(module.id)) {
+          throw new Error('BFN_DYNAMIC_PROCESS_RUNTIME_UNSUPPORTED');
+        }
+        continue;
       }
       const inputs = resolveModuleInputs(project, module, model, valuesByPort);
       const target = evaluateBfnModuleModel(project, module, model, inputs, scenario);

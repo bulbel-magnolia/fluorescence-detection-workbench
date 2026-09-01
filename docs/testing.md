@@ -1176,3 +1176,14 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - Vite 7.3.6 生产构建通过，303 个模块完成转换；主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,353.39 kB、gzip 463.92 kB；保留既有大于 500 kB chunk 提示；
 - 本批变更文件通过 Prettier check 与 `git diff --check`；相对精确基线 `f444433ee13acbc2a69602550c1163c263b313a5`，package dependencies、Sender V1.2、Receiver V1.1、Designed Sender scientific contract、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology production、Workspace DB structure 与 first-order scientific semantics保持不变；
 - Batch 12.3 为 `FROZEN`；Batch 12.4.0 为 `ACTIVE` implementation candidate；Batch 12.4.1 与 Batch 12.4 为 `PLANNED`。本节不声明 CI、PASS、FROZEN 或 Master Review completed。
+
+### Master Control Correction Pass — IR fail-closed 与 SIM-2.1 zero-diff
+
+- TDD RED 在只加入 mandatory regressions、未修改生产代码时得到 2 个文件 / 40 项测试中的 2 项预期失败：first-order-shaped unknown family 被 BFN-IR 2.3 接受，以及 off-target existing first-order module 未出现在 dynamic `moduleOutputs`；最小修正后同组为 2/2 文件、40/40 测试通过；
+- BFN-IR 2.3 dynamic discriminator 只接受 `first_order` 与 `accumulator`；已有 accumulator-shaped unknown-family 回归保留，并新增 first-order-shaped unknown-family 对 `isBfnProjectV23()`、`upgradeBfnProjectToCurrent()` 与 `parseBfnProject()` 的联合拒绝；
+- `simulateDynamicScenario()` 恢复 `dynamicModuleOrder(project)` 全模块 evaluation scope。一阶与 static fallback 的初始化、求值、`moduleOutputs`、domain 与 timestep 语义保持冻结；target reachability 只区分 accumulator：off-target skip，target-reachable defense-in-depth hard stop；
+- Master Control 指定的 migration、accumulator boundary、simulation、resolution、validation、uncertainty、feedback、dynamic runtime、Designed Sender、Catalog integration、Port Compatibility 与 Workspace 联合门为 12 个文件 / 148 项测试全部通过；
+- 本次重新运行的 `npm test -- --maxWorkers=4` 为 148 个测试文件 / 1222 项测试全部通过；`npm run typecheck` 与 `npm run lint` 全部通过；
+- Vite 7.3.6 生产构建通过，303 个模块完成转换；主 CSS 为 279.02 kB、gzip 46.50 kB，主 JavaScript chunk 为 3,353.31 kB、gzip 463.91 kB；保留既有大于 500 kB chunk 提示；
+- changed-file Prettier 与 `git diff --check` 通过；Windows checkout 的 Sender immutable source 仅在完整测试期间按冻结 manifest 临时恢复物理字节，Git blob/hash/diff 保持不变，测试后恢复默认检出态；
+- Correction 相对 pre-fix head `68dcc00339667d4ea6fa52238074985fda459021` 仅涉及 parser、simulation、两个回归文件和本节/状态账本；BFN-IR 保持 2.3，BFN-SIM 保持 2.1，Workspace DB 保持 1，package dependencies 与其他冻结科学区域无变化；Batch 12.4.0 保持 `ACTIVE`，等待 Master Control Correction Review。
