@@ -509,6 +509,7 @@ export type BfnValidationCode =
   | 'catalog_required_input_unconnected'
   | 'catalog_input_out_of_range'
   | 'catalog_execution_unavailable'
+  | 'dynamic_model_contract_invalid'
   | 'dynamic_feedback_unsupported';
 
 export interface BfnValidationIssue {

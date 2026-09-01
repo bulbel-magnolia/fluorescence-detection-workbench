@@ -481,6 +481,8 @@ export const bfnEnUS = {
       'The input is outside the trusted literature-response working range, so execution was blocked.',
     catalog_execution_unavailable:
       'This literature catalog response is not admitted for numerical execution in the current release.',
+    dynamic_model_contract_invalid:
+      'A user-authored dynamic model has an invalid runtime scientific contract, so execution was blocked.',
     dynamic_feedback_unsupported:
       'The current simulator does not support feedback loops containing a user-authored dynamic module.',
   },

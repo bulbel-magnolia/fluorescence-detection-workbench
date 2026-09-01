@@ -16,6 +16,7 @@ import {
 } from './compatibility/validationIntegration';
 import { resolveEffectiveBfnModel } from './modelResolution';
 import { findBfnOutputReachableModuleIds } from './outputReachability';
+import { assessBfnModelUncertainty } from './simulationUncertainty';
 import { resolveBfnModuleTemporalCapability } from './temporal/temporalCapability';
 import { convertUnit } from './unitSystem';
 
@@ -269,6 +270,122 @@ function modeledInputPortIds(model: BfnModelVariant | null): ReadonlySet<string>
   );
 }
 
+type DynamicUserRuntimeContractReason =
+  | 'family_invalid'
+  | 'tau_missing'
+  | 'tau_non_finite'
+  | 'tau_non_positive'
+  | 'tau_unit_invalid'
+  | 'tau_interval_invalid'
+  | 'initial_state_invalid'
+  | 'paired_static_missing'
+  | 'steady_state_response_mismatch'
+  | 'time_range_invalid'
+  | 'parameter_interval_incomplete';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function structuredValuesEqual(left: unknown, right: unknown): boolean {
+  if (left === right) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((value, index) => structuredValuesEqual(value, right[index]))
+    );
+  }
+  if (!isRecord(left) || !isRecord(right)) return false;
+  const leftKeys = Object.keys(left).sort();
+  const rightKeys = Object.keys(right).sort();
+  return (
+    leftKeys.length === rightKeys.length &&
+    leftKeys.every(
+      (key, index) => key === rightKeys[index] && structuredValuesEqual(left[key], right[key]),
+    )
+  );
+}
+
+function dynamicUserRuntimeContractReason(
+  project: BfnProject,
+  module: BfnFunctionalModule,
+  model: Extract<BfnModelVariant, { mode: 'dynamic' }>,
+): DynamicUserRuntimeContractReason | null {
+  if (model.family !== 'first_order') return 'family_invalid';
+
+  const tau: unknown = model.tau;
+  if (!isRecord(tau)) return 'tau_missing';
+  if (typeof tau.value !== 'number' || !Number.isFinite(tau.value)) {
+    return 'tau_non_finite';
+  }
+  if (tau.value <= 0) return 'tau_non_positive';
+  if (tau.unit !== 'h') return 'tau_unit_invalid';
+  if (tau.interval95 !== undefined) {
+    const interval = tau.interval95;
+    if (
+      !Array.isArray(interval) ||
+      interval.length !== 2 ||
+      typeof interval[0] !== 'number' ||
+      typeof interval[1] !== 'number' ||
+      !Number.isFinite(interval[0]) ||
+      !Number.isFinite(interval[1]) ||
+      interval[0] <= 0 ||
+      interval[0] > tau.value ||
+      tau.value > interval[1]
+    ) {
+      return 'tau_interval_invalid';
+    }
+  }
+
+  if (typeof model.initialState !== 'number' || !Number.isFinite(model.initialState)) {
+    return 'initial_state_invalid';
+  }
+
+  const staticModelId = isRecord(module.activeModelIds) ? module.activeModelIds.static : undefined;
+  const pairedStatic = Array.isArray(module.modelVariants)
+    ? module.modelVariants.find(
+        (candidate) =>
+          isRecord(candidate) &&
+          typeof staticModelId === 'string' &&
+          candidate.id === staticModelId,
+      )
+    : undefined;
+  if (!isRecord(pairedStatic) || pairedStatic.mode !== 'static') {
+    return 'paired_static_missing';
+  }
+  if (!structuredValuesEqual(pairedStatic.response, model.steadyStateResponse)) {
+    return 'steady_state_response_mismatch';
+  }
+
+  const validityDomain = project.registry.validityDomains.find(
+    (candidate) => isRecord(candidate) && candidate.id === model.validityDomainId,
+  );
+  const timeRange: unknown = validityDomain?.timeRangeHours;
+  if (
+    timeRange !== undefined &&
+    (!Array.isArray(timeRange) ||
+      timeRange.length !== 2 ||
+      typeof timeRange[0] !== 'number' ||
+      typeof timeRange[1] !== 'number' ||
+      !Number.isFinite(timeRange[0]) ||
+      !Number.isFinite(timeRange[1]) ||
+      timeRange[0] < 0 ||
+      timeRange[1] <= timeRange[0])
+  ) {
+    return 'time_range_invalid';
+  }
+
+  if (
+    model.uncertaintyMethod === 'parameter_interval_envelope' &&
+    assessBfnModelUncertainty(model).reason === 'parameter_interval_incomplete'
+  ) {
+    return 'parameter_interval_incomplete';
+  }
+  return null;
+}
+
 /**
  * Finds directed cycles on one selected monitor's executable module path.
  * Dynamic user-authored first-order models are stateful and the current
@@ -421,6 +538,21 @@ export function validateBfnProject(
       : findBfnOutputReachableModuleIds(project, targetMonitorId);
   for (const module of project.network.modules) {
     const model = resolveEffectiveBfnModel(project, module);
+    if (
+      module.authoring?.origin === 'user_defined' &&
+      authoredRuntimeReachableModuleIds.has(module.id) &&
+      model?.mode === 'dynamic'
+    ) {
+      const reason = dynamicUserRuntimeContractReason(project, module, model);
+      if (reason) {
+        issues.push({
+          code: 'dynamic_model_contract_invalid',
+          severity: 'error',
+          subjectId: module.id,
+          details: { reason },
+        });
+      }
+    }
     const catalogBacked = model !== null && bfnCatalogReferencePresence(model).present;
     const modeledInputs = modeledInputPortIds(model);
     if (!model) {
