@@ -18,6 +18,7 @@ import {
   captureStaticFixture,
   createAccumulatorTemplateProject,
   createBlankTemplateProject,
+  createFirstOrderTemplateProject,
   createStaticTemplateProject,
   versionForPayload,
 } from './templateTestFixtures';
@@ -390,6 +391,96 @@ describe('reusable module template instantiation', () => {
     }
   });
 
+  it('rejects two distinct slots that converge on one existing target Entity', () => {
+    const payload = createTwoSlotPayload();
+    const slots = payload.entities.filter((entity) => entity.mode === 'slot');
+    expect(slots).toHaveLength(2);
+    const target = createBlankTemplateProject('project.target.injective-slots');
+    target.registry.entities.push({
+      id: 'target.entity.one',
+      origin: 'user_defined',
+      displayName: 'One concrete identity',
+      description: null,
+    });
+    const bindings = Object.fromEntries(
+      slots.map((slot) => [
+        slot.key,
+        {
+          mode: 'existing_same_entity',
+          targetEntityId: 'target.entity.one',
+          identityConfirmation: 'same_scientific_entity',
+        },
+      ]),
+    ) as BfnTemplateEntityBindingDecisions;
+
+    expect(
+      instantiateReusableModuleTemplate(
+        versionForPayload(payload, 'template.two-slots'),
+        target,
+        bindings,
+        options('instance.two-slots'),
+      ),
+    ).toMatchObject({
+      ok: false,
+      issues: [{ code: 'entity_mapping_non_injective', details: ['target.entity.one'] }],
+    });
+  });
+
+  it('rejects canonical and slot Entity keys that converge on one canonical identity', () => {
+    const payload = createCanonicalAndSlotPayload();
+    const canonical = payload.entities.find((entity) => entity.mode === 'canonical')!;
+    const slot = payload.entities.find((entity) => entity.mode === 'slot')!;
+    if (canonical.mode !== 'canonical') throw new Error('Expected canonical fixture.');
+    const target = createBlankTemplateProject('project.target.canonical-slot');
+    target.network.inputSources.push(sourceNode('canonical.reference', canonical.entityId));
+
+    expect(
+      instantiateReusableModuleTemplate(
+        versionForPayload(payload, 'template.canonical-slot'),
+        target,
+        {
+          [slot.key]: {
+            mode: 'existing_same_entity',
+            targetEntityId: canonical.entityId,
+            identityConfirmation: 'same_scientific_entity',
+          },
+        },
+        options('instance.canonical-slot'),
+      ),
+    ).toMatchObject({
+      ok: false,
+      issues: [{ code: 'entity_mapping_non_injective', details: [canonical.entityId] }],
+    });
+  });
+
+  it('makes instance projection reject a concrete Entity-relation collapse', () => {
+    const payload = captureStaticFixture();
+    const result = instantiateReusableModuleTemplate(
+      versionForPayload(payload),
+      createBlankTemplateProject('project.target.projection-collapse'),
+      {},
+      options('instance.projection-collapse'),
+    );
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const collapsedProject = structuredClone(result.nextProject);
+    const collapsedMap = structuredClone(result.idMap);
+    const [firstEntity, secondEntity] = payload.entities;
+    if (!firstEntity || !secondEntity) throw new Error('Expected two Entity keys.');
+    const concreteId = collapsedMap.entityIds[firstEntity.key]!;
+    (collapsedMap.entityIds as Record<string, string>)[secondEntity.key] = concreteId;
+    collapsedProject.network.modules[0]!.outputPorts[0]!.entity = concreteId;
+
+    expect(
+      createInstantiatedReusableModuleScientificProjection(
+        collapsedProject,
+        result.addedModuleId,
+        payload,
+        collapsedMap,
+      ),
+    ).toBeNull();
+  });
+
   it('fails closed on explicit and derived ID collisions without retrying', () => {
     const payload = captureStaticFixture();
     const target = createBlankTemplateProject('project.target.collision');
@@ -436,6 +527,120 @@ describe('reusable module template instantiation', () => {
     expect(
       instantiateReusableModuleTemplate(version, malformed, {}, options('bad.target')),
     ).toMatchObject({ ok: false, issues: [{ code: 'target_project_schema_invalid' }] });
+  });
+
+  it.each([
+    [
+      'first-order steady-state response',
+      (target: ReturnType<typeof createFirstOrderTemplateProject>) => {
+        const model = target.network.modules[0]!.modelVariants[1]!;
+        delete (model as unknown as { steadyStateResponse?: unknown }).steadyStateResponse;
+      },
+    ],
+    [
+      'ValidityDomain ranges',
+      (target: ReturnType<typeof createFirstOrderTemplateProject>) => {
+        (target.registry.validityDomains[0] as unknown as { inputRanges: unknown }).inputRanges =
+          null;
+      },
+    ],
+    [
+      'Dataset Entity arrays',
+      (target: ReturnType<typeof createFirstOrderTemplateProject>) => {
+        target.registry.datasets.push({
+          id: 'target.dataset',
+          labelKey: 'bfn.template.fixture.dataset',
+          dataType: 'multi_input',
+          inputEntities: [],
+          outputEntities: [],
+          replicates: 1,
+          contextId: target.registry.contexts[0]!.id,
+          rawFile: null,
+          calibrationId: null,
+          evidenceGrade: 'independent_assumption',
+          isDemo: false,
+        });
+        (target.registry.datasets[0] as unknown as { outputEntities: unknown }).outputEntities =
+          null;
+      },
+    ],
+  ])('fails closed without throwing for malformed target %s data', (_label, mutate) => {
+    const target = createFirstOrderTemplateProject('target.existing.malformed');
+    mutate(target);
+    const version = versionForPayload(captureStaticFixture());
+
+    expect(() =>
+      instantiateReusableModuleTemplate(version, target, {}, options('instance.malformed-target')),
+    ).not.toThrow();
+    expect(
+      instantiateReusableModuleTemplate(version, target, {}, options('instance.malformed-target')),
+    ).toMatchObject({ ok: false, issues: [{ code: 'target_project_schema_invalid' }] });
+  });
+
+  it('reserves dangling target references against every generated ID namespace', () => {
+    const payload = captureStaticFixture();
+    const instanceId = 'instance.dangling-guard';
+    const target = createStaticTemplateProject('target.existing.dangling');
+    const existingModule = target.network.modules[0]!;
+    const existingModel = existingModule.modelVariants[0]!;
+    existingModel.contextId = `${instanceId}.context.1`;
+    existingModel.validityDomainId = `${instanceId}.domain.1`;
+    existingModule.implementationIds = [`${instanceId}.implementation.1`];
+    existingModule.implementationState = 'designed';
+    target.registry.validityDomains[0]!.inputRanges[0]!.portId = `${instanceId}.port.input.1`;
+    target.registry.validityDomains[0]!.contextId = `${instanceId}.context.1`;
+    target.network.edges.push({
+      id: 'edge.with.dangling.references',
+      source: {
+        nodeId: instanceId,
+        portId: `${instanceId}.port.input.1`,
+      },
+      target: {
+        nodeId: 'missing.monitor',
+        portId: `${instanceId}.port.output.1`,
+      },
+      mapping: 'identity',
+      enabled: false,
+    });
+    target.registry.calibrationMaps.push({
+      id: 'calibration.with.dangling.references',
+      labelKey: 'bfn.template.fixture.calibration',
+      targetModuleId: instanceId,
+      modelType: 'lookup_table',
+      contextId: `${instanceId}.context.1`,
+      sourceDatasetIds: [],
+      candidates: [],
+      isDemo: false,
+    });
+    const before = structuredClone(target);
+    const result = instantiateReusableModuleTemplate(
+      versionForPayload(payload),
+      target,
+      {},
+      options(instanceId),
+    );
+
+    expect(result).toMatchObject({ ok: false, issues: [{ code: 'generated_id_collision' }] });
+    if (!result.ok) {
+      expect(result.issues[0]?.details).toEqual(
+        expect.arrayContaining([
+          instanceId,
+          `${instanceId}.port.input.1`,
+          `${instanceId}.port.output.1`,
+          `${instanceId}.context.1`,
+          `${instanceId}.domain.1`,
+          `${instanceId}.implementation.1`,
+        ]),
+      );
+    }
+    expect(target).toEqual(before);
+    expect(target.network.modules.some((module) => module.id === instanceId)).toBe(false);
+    expect(
+      target.registry.contexts.some((context) => context.id === `${instanceId}.context.1`),
+    ).toBe(false);
+    expect(
+      target.registry.validityDomains.some((domain) => domain.id === `${instanceId}.domain.1`),
+    ).toBe(false);
   });
 
   it('is copy-on-create in both directions', () => {
@@ -572,6 +777,48 @@ function createAccumulatorSlotPayload(): BfnReusableModulePayloadV1 {
   const result = captureReusableModuleTemplatePayload(project, moduleId, { entityPolicies: {} });
   if (!result.ok) throw new Error(result.issues.map((issue) => issue.code).join(','));
   return result.payload;
+}
+
+function createTwoSlotPayload(): BfnReusableModulePayloadV1 {
+  const project = createStaticTemplateProject('source.module.two-slots');
+  const module = project.network.modules[0]!;
+  project.network.outputMonitors.push(
+    monitorNode('shared.input.monitor', module.inputPorts[0]!.entity),
+    monitorNode('shared.output.monitor', module.outputPorts[0]!.entity),
+  );
+  const result = captureReusableModuleTemplatePayload(project, module.id, {
+    entityPolicies: {},
+  });
+  if (!result.ok) throw new Error(result.issues.map((issue) => issue.code).join(','));
+  return result.payload;
+}
+
+function createCanonicalAndSlotPayload(): BfnReusableModulePayloadV1 {
+  const payload = structuredClone(captureStaticFixture());
+  const entities = [...payload.entities];
+  const canonical = captureAccumulatorFixture().entities[0]!;
+  if (canonical.mode !== 'canonical') throw new Error('Expected canonical fixture.');
+  const slotPort = payload.ports[0]!;
+  entities[0] = {
+    key: entities[0]!.key,
+    mode: 'slot',
+    sourceEntityId: canonical.entityId,
+    displayName: canonical.displayName,
+    description: null,
+    requirements: [
+      {
+        portKey: slotPort.key,
+        direction: slotPort.direction,
+        quantityType: slotPort.quantityType,
+        unit: slotPort.unit,
+      },
+    ],
+  };
+  entities[1] = {
+    ...structuredClone(canonical),
+    key: entities[1]!.key,
+  };
+  return { ...payload, entities };
 }
 
 function options(instanceId: string): BfnTemplateInstantiationOptions {

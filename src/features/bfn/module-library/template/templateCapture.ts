@@ -14,6 +14,7 @@ import type {
 import { captureTemplateDependencyClosure } from './templateDependencyClosure';
 import { captureTemplateEntities } from './templateEntityPolicy';
 import { isPlainDataRecord } from './templateInternals';
+import { isTemplateProjectRuntimeSafe } from './templateProjectValidation';
 import type {
   BfnReusableModulePayloadV1,
   BfnTemplateCaptureOptions,
@@ -31,12 +32,30 @@ export function captureReusableModuleTemplatePayload(
   moduleId: string,
   options: BfnTemplateCaptureOptions,
 ): BfnTemplateCaptureResult {
-  if (!isBfnProjectV23(project)) return failure('project_schema_invalid', 'project');
+  try {
+    return captureReusableModuleTemplatePayloadUnchecked(project, moduleId, options);
+  } catch {
+    return failure('project_schema_invalid', 'project');
+  }
+}
+
+function captureReusableModuleTemplatePayloadUnchecked(
+  project: BfnProject,
+  moduleId: string,
+  options: BfnTemplateCaptureOptions,
+): BfnTemplateCaptureResult {
+  if (!isTemplateProjectRuntimeSafe(project)) {
+    return failure('project_schema_invalid', 'project');
+  }
   if (!isPlainDataRecord(options) || !isPlainDataRecord(options.entityPolicies)) {
     return failure('entity_policy_invalid', 'options.entityPolicies');
   }
-  const module = project.network.modules.find((candidate) => candidate.id === moduleId);
-  if (!module) return failure('module_not_found', 'moduleId', [moduleId]);
+  const selectedModules = project.network.modules.filter((candidate) => candidate.id === moduleId);
+  if (selectedModules.length === 0) return failure('module_not_found', 'moduleId', [moduleId]);
+  if (selectedModules.length > 1) {
+    return failure('dependency_conflict', 'moduleId', [moduleId]);
+  }
+  const module = selectedModules[0]!;
   if (module.authoring?.origin !== 'user_defined') {
     return failure('module_not_user_defined', 'module.authoring');
   }
@@ -59,10 +78,26 @@ export function captureReusableModuleTemplatePayload(
   if (active.models.some((model) => Object.hasOwn(model, 'catalogReference'))) {
     return failure('catalog_reference_unsupported', 'module.modelVariants.catalogReference');
   }
+  if (
+    project.registry.calibrationMaps.some(
+      (calibrationMap) => calibrationMap.targetModuleId === module.id,
+    )
+  ) {
+    return failure('calibration_map_unsupported', 'project.registry.calibrationMaps', [module.id]);
+  }
 
   const sourcePorts = [...module.inputPorts, ...module.outputPorts];
   const portCapture = capturePorts(sourcePorts, module.inputPorts.length);
   if (!portCapture.ok) return portCapture;
+  const closure = captureTemplateDependencyClosure(
+    project,
+    active.models,
+    module.implementationIds,
+    portCapture.portKeyBySourceId,
+  );
+  if (closure.issues.length > 0) return { ok: false, issues: closure.issues };
+  if (!isBfnProjectV23(project)) return failure('project_schema_invalid', 'project');
+
   const entityCapture = captureTemplateEntities(
     project,
     module,
@@ -75,14 +110,6 @@ export function captureReusableModuleTemplatePayload(
     ...port,
     entityKey: entityCapture.entityKeyBySourceId.get(sourcePorts[index]!.entity)!,
   }));
-
-  const closure = captureTemplateDependencyClosure(
-    project,
-    active.models,
-    module.implementationIds,
-    portCapture.portKeyBySourceId,
-  );
-  if (closure.issues.length > 0) return { ok: false, issues: closure.issues };
   const common = {
     ports,
     entities: entityCapture.entities,

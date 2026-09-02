@@ -120,6 +120,49 @@ describe('BFN-MODULE-TEMPLATE 1.0 strict parser', () => {
     expect(isBfnModuleTemplateVersionV1(accumulatorState)).toBe(false);
   });
 
+  it.each([
+    [
+      'dynamic Evidence',
+      (payload: Record<string, unknown>) =>
+        (record(record(payload.models).dynamic).evidenceGrade = 'mechanistic_model_only'),
+    ],
+    [
+      'dynamic uncertainty',
+      (payload: Record<string, unknown>) =>
+        (record(record(payload.models).dynamic).uncertaintyMethod = 'not_recorded'),
+    ],
+    [
+      'module Evidence',
+      (payload: Record<string, unknown>) =>
+        (payload.moduleEvidenceGrade = 'mechanistic_model_only'),
+    ],
+  ])('rejects re-signed accumulator payloads with non-frozen %s semantics', (_label, mutate) => {
+    const candidate: unknown = structuredClone(versionForPayload(captureAccumulatorFixture()));
+    mutate(record(record(candidate).payload));
+    resign(candidate);
+
+    expect(isBfnModuleTemplateVersionV1(candidate)).toBe(false);
+    expect(() => parseBfnModuleTemplateVersion(candidate)).toThrowError(
+      BFN_MODULE_TEMPLATE_SCHEMA_INVALID,
+    );
+  });
+
+  it('rejects duplicate canonical identities in a re-signed imported template', () => {
+    const candidate: unknown = structuredClone(versionForPayload(captureStaticFixture()));
+    const payload = record(record(candidate).payload);
+    const entities = array(payload.entities);
+    const canonical = captureAccumulatorFixture().entities[0]!;
+    if (canonical.mode !== 'canonical') throw new Error('Expected canonical fixture.');
+    entities[0] = { ...structuredClone(canonical), key: 'entity.1' };
+    entities[1] = { ...structuredClone(canonical), key: 'entity.2' };
+    resign(candidate);
+
+    expect(isBfnModuleTemplateVersionV1(candidate)).toBe(false);
+    expect(() => parseBfnModuleTemplateVersion(candidate)).toThrowError(
+      BFN_MODULE_TEMPLATE_SCHEMA_INVALID,
+    );
+  });
+
   it('rejects dataset fields and unknown payload properties', () => {
     const candidate: unknown = structuredClone(versionForPayload(captureStaticFixture()));
     const payload = record(record(candidate).payload);

@@ -43,11 +43,11 @@ This delivery defines and validates these value semantics only. Allocation, stor
 
 `payload.moduleClass` is an exact discriminated union:
 
-| Class         | Active representation                                 | Required model structure                                                                                            |
-| ------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `static`      | one active static model                               | `hill_activation`, `hill_repression`, `linear_transfer`, `identity`, or `independent_inputs`                        |
-| `first_order` | one active static model plus one active dynamic model | the dynamic model is `first_order` and its steady-state response exactly equals the paired static response          |
-| `accumulator` | one active dynamic model and no static model          | the existing BFN-SIM 2.2 accumulator runtime contract, including exact port quantity/unit pairing and initial state |
+| Class         | Active representation                                 | Required model structure                                                                                                                                                                |
+| ------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `static`      | one active static model                               | `hill_activation`, `hill_repression`, `linear_transfer`, `identity`, or `independent_inputs`                                                                                            |
+| `first_order` | one active static model plus one active dynamic model | the dynamic model is `first_order` and its steady-state response exactly equals the paired static response                                                                              |
+| `accumulator` | one active dynamic model and no static model          | the existing BFN-SIM 2.2 accumulator runtime contract, exact port quantity/unit pairing and initial state, model/module Evidence `independent_assumption`, and model uncertainty `none` |
 
 A Designed Sender can be represented only through the generic `static` contract when the concrete project module is user-defined and otherwise passes every capture gate. Batch 12.5.0 does not preserve a specialized Designed Sender authoring draft or provide a specialized editor roundtrip.
 
@@ -90,6 +90,8 @@ Each slot requires one explicit decision at instantiation:
 
 All ports associated with one slot use the same decision. Missing, unexpected, malformed, name-guessed, or arbitrary-substitution decisions are rejected. The API records an explicit scientific identity assertion; it does not infer biological equivalence from names.
 
+The final template-key-to-project-Entity mapping is injective across all modes. Two slot keys cannot bind to one target Entity, a slot cannot converge on a canonical Entity used by another key, and two canonical keys cannot name the same concrete canonical identity. Imported duplicate canonical identities fail parsing even when the payload is re-signed. Instance projection also rejects a collapsed mapping instead of assigning separate scientific ordinals from template keys alone.
+
 ## Dependency closure
 
 Capture computes the smallest complete closure reachable from the active model set and the module's selected implementations:
@@ -99,15 +101,15 @@ Capture computes the smallest complete closure reachable from the active model s
 - complete Provenance records referenced by models or implementations;
 - complete biological Implementations and their shared Provenance references.
 
-Repeated references share one local key. Missing or conflicting definitions fail closed. Extra unrelated registry records are omitted.
+Repeated references share one local key. Every referenced Context, ValidityDomain, Provenance record, and Implementation must resolve to exactly one registry record. Zero matches return `dependency_missing`; multiple matches, including byte-identical duplicate records, return `dependency_conflict`. Extra unrelated registry records are omitted.
 
-An active model with any `sourceDatasetIds` is rejected. Dataset packaging is not part of Template 1.0. Demo modules, demo active models, catalog-backed model references, unresolved dependencies, and dormant model variants are also rejected.
+An active model with any `sourceDatasetIds` is rejected. Dataset packaging is not part of Template 1.0. A Calibration Map targeting the selected module is rejected as `calibration_map_unsupported`; unrelated Calibration Maps remain outside the minimal closure. Demo modules, demo active models, catalog-backed model references, unresolved dependencies, and dormant model variants are also rejected.
 
 ## Strict parsing
 
 `isBfnModuleTemplateVersionV1(value)` is a non-throwing runtime guard. `parseBfnModuleTemplateVersion(value)` returns a deeply frozen structured clone of a valid version and otherwise throws `BfnModuleTemplateSchemaError` with the stable code `BFN_MODULE_TEMPLATE_SCHEMA_INVALID`.
 
-The parser accepts only a plain, acyclic data tree with exact own data properties. It rejects accessors, symbol keys, custom prototypes, sparse arrays, non-finite numbers, unknown or missing fields, unknown schema/version/discriminators, invalid timestamps and revisions, unresolved local references, invalid class-specific contracts, invalid canonical identities, and a signature that does not match the scientific projection. These checks run on runtime `unknown` values and do not rely on TypeScript assertions.
+The parser accepts only a plain, acyclic data tree with exact own data properties. It rejects accessors, symbol keys, custom prototypes, sparse arrays, non-finite numbers, unknown or missing fields, unknown schema/version/discriminators, invalid timestamps and revisions, unresolved local references, invalid class-specific contracts, duplicate canonical identities, invalid canonical identities, and a signature that does not match the scientific projection. Accumulator versions require exact Signal Pool Evidence and uncertainty values even when an imported payload carries a freshly computed signature. These checks run on runtime `unknown` values and do not rely on TypeScript assertions.
 
 Metadata has separate `isBfnModuleTemplateMetadata()` and `parseBfnModuleTemplateMetadata()` entry points with exact-shape validation.
 
@@ -121,7 +123,7 @@ captureReusableModuleTemplatePayload(
 ): BfnTemplateCaptureResult
 ```
 
-Capture first requires a valid BFN-IR 2.3 project and one non-demo module whose `authoring.origin` is `user_defined`. It resolves the exact active static, paired first-order, or accumulator representation; audits datasets, dormant variants, model catalog references, entities, ports, and closure dependencies; normalizes all local references; and runs central payload validation. Private user-defined entities require an explicit `embedded` or `slot` policy. Shared entities are forced to `slot`.
+Capture first applies a template-local, non-throwing runtime preflight to every Project structure it will read, then requires a valid BFN-IR 2.3 project and exactly one selected non-demo module whose `authoring.origin` is `user_defined`. The preflight covers first-order response/tau/initial state, ValidityDomain ranges/time range, Dataset Entity arrays, selected module records, and dependency records without modifying the frozen IR migration. Capture resolves the exact active static, paired first-order, or accumulator representation; audits datasets, Calibration Maps, dormant variants, model catalog references, entities, ports, and closure dependencies; normalizes all local references; and runs central payload validation. Private user-defined entities require an explicit `embedded` or `slot` policy. Shared entities are forced to `slot`.
 
 The operation is pure: it does not edit the source project, browser storage, graph, runtime state, catalog, or ontology.
 
@@ -136,7 +138,9 @@ instantiateReusableModuleTemplate(
 ): BfnTemplateInstantiationResult
 ```
 
-Instantiation reparses the complete template version, validates the target as BFN-IR 2.3, validates exact options and slot decisions, and re-resolves every canonical Entity. One unified map allocates the module, port, model, embedded/created Entity, Context, ValidityDomain, Provenance, and Implementation IDs from the caller-provided nonblank `instanceId`. Any duplicate or target-project collision fails closed; the function does not retry or silently rename IDs.
+Instantiation reparses the complete template version, applies the same non-throwing target Project preflight, validates the target as BFN-IR 2.3, validates exact options and slot decisions, and re-resolves every canonical Entity. One unified map allocates the module, port, model, embedded/created Entity, Context, ValidityDomain, Provenance, and Implementation IDs from the caller-provided nonblank `instanceId`. The resolved Entity mapping must be injective. Any duplicate or target-project collision fails closed; the function does not retry or silently rename IDs.
+
+Collision reservation includes both existing definitions and pre-existing references. Edge node/port references, model Context/ValidityDomain/Provenance/Dataset/Port references, module active-model/Implementation references, ValidityDomain port/Context references, Dataset references, and Calibration Map target/Context/Dataset references cannot be activated by a newly generated ID.
 
 On success it returns a cloned project containing exactly one new module plus the minimum required sidecars. It creates no Edge, Input Source, Output Monitor, Run, template lineage field, graph connection, or network-mode change. Existing canonical and bound Entity IDs are preserved; all other instance-local IDs are fresh.
 
@@ -157,7 +161,7 @@ The projection includes:
 
 It excludes source/template/instance local keys and IDs, template metadata, version note/timestamps, module authoring name/description, port presentation labels, and canvas position. Unordered dependency sets are dereferenced and canonically sorted.
 
-Capture-to-instantiate roundtrips for static, paired first-order, and accumulator modules require exact projection equality.
+Capture-to-instantiate roundtrips for static, paired first-order, and accumulator modules require exact projection equality. A concrete Entity ID used by more than one template Entity key makes instance projection fail, so Entity-relation collapse cannot be hidden by local-key ordinals.
 
 ## Payload signature
 
@@ -169,6 +173,6 @@ This signature is an equality and change-detection aid. It is not cryptographic,
 
 ## Unsupported boundaries
 
-Batch 12.5.0 does not implement persistence, an IndexedDB or localStorage repository, revision allocation, library import/export, cloud sync, team sharing, automatic graph wiring, automatic updates, live instance linkage, dataset packaging, arbitrary Entity substitution, or user-visible module-library UI.
+Batch 12.5.0 does not implement persistence, an IndexedDB or localStorage repository, revision allocation, library import/export, cloud sync, team sharing, automatic graph wiring, automatic updates, live instance linkage, Dataset or Calibration Map packaging, arbitrary Entity substitution, or user-visible module-library UI.
 
 BFN-IR remains 2.3, BFN-SIM remains 2.2, and the Workspace IndexedDB structural version remains 1. No package dependency is added.

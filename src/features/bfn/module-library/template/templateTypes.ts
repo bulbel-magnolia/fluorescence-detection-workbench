@@ -267,6 +267,7 @@ export type BfnTemplateCaptureIssueCode =
   | 'unsupported_model_family'
   | 'unsupported_dormant_model_variant'
   | 'dataset_dependency_unsupported'
+  | 'calibration_map_unsupported'
   | 'catalog_reference_unsupported'
   | 'scientific_contract_invalid'
   | 'dependency_missing'
@@ -322,6 +323,7 @@ export type BfnTemplateInstantiationIssueCode =
   | 'entity_binding_invalid'
   | 'unexpected_entity_binding'
   | 'entity_target_missing'
+  | 'entity_mapping_non_injective'
   | 'canonical_entity_invalid'
   | 'scientific_contract_invalid'
   | 'scientific_projection_mismatch';

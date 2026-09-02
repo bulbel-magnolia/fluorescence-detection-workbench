@@ -222,6 +222,32 @@ describe('reusable module template capture', () => {
     }
   });
 
+  it.each([
+    [
+      'dynamic Evidence grade',
+      (project: BfnProject) =>
+        (project.network.modules[0]!.modelVariants[0]!.evidenceGrade = 'mechanistic_model_only'),
+    ],
+    [
+      'dynamic uncertainty method',
+      (project: BfnProject) =>
+        (project.network.modules[0]!.modelVariants[0]!.uncertaintyMethod = 'not_recorded'),
+    ],
+    [
+      'module Evidence grade',
+      (project: BfnProject) =>
+        (project.network.modules[0]!.evidenceGrade = 'mechanistic_model_only'),
+    ],
+  ])('rejects source accumulators that change the frozen %s contract', (_label, mutate) => {
+    const project = createAccumulatorTemplateProject();
+    const module = project.network.modules[0]!;
+    mutate(project);
+
+    expect(
+      captureReusableModuleTemplatePayload(project, module.id, { entityPolicies: {} }),
+    ).toMatchObject({ ok: false, issues: [{ code: 'scientific_contract_invalid' }] });
+  });
+
   it('captures a production Designed Sender result only as generic static representation', () => {
     const project = createBlankTemplateProject('designed-sender-production-source');
     const initial = createInitialDesignedSenderAuthoringState(project);
@@ -454,6 +480,118 @@ describe('reusable module template capture', () => {
     });
   });
 
+  it('rejects a Calibration Map targeting the selected module while ignoring unrelated maps', () => {
+    const targeted = createStaticTemplateProject('source.module.calibrated');
+    const targetedModule = targeted.network.modules[0]!;
+    targeted.registry.calibrationMaps.push(
+      calibrationMap('calibration.targeted', targetedModule.id, targeted.registry.contexts[0]!.id),
+    );
+    expect(
+      captureReusableModuleTemplatePayload(targeted, targetedModule.id, {
+        entityPolicies: Object.fromEntries(
+          [...targetedModule.inputPorts, ...targetedModule.outputPorts].map((port) => [
+            port.entity,
+            'embedded',
+          ]),
+        ),
+      }),
+    ).toMatchObject({ ok: false, issues: [{ code: 'calibration_map_unsupported' }] });
+
+    const unrelated = createStaticTemplateProject('source.module.uncalibrated');
+    const unrelatedModule = unrelated.network.modules[0]!;
+    unrelated.registry.calibrationMaps.push(
+      calibrationMap('calibration.unrelated', 'another.module', unrelated.registry.contexts[0]!.id),
+    );
+    expect(
+      captureReusableModuleTemplatePayload(unrelated, unrelatedModule.id, {
+        entityPolicies: Object.fromEntries(
+          [...unrelatedModule.inputPorts, ...unrelatedModule.outputPorts].map((port) => [
+            port.entity,
+            'embedded',
+          ]),
+        ),
+      }),
+    ).toMatchObject({ ok: true });
+  });
+
+  it.each([
+    [
+      'first-order steady-state response',
+      (project: BfnProject) => {
+        const model = project.network.modules[0]!.modelVariants[1]!;
+        delete (model as unknown as { steadyStateResponse?: unknown }).steadyStateResponse;
+      },
+    ],
+    [
+      'first-order tau',
+      (project: BfnProject) => {
+        const model = project.network.modules[0]!.modelVariants[1]!;
+        delete (model as unknown as { tau?: unknown }).tau;
+      },
+    ],
+    [
+      'first-order initial state',
+      (project: BfnProject) => {
+        const model = project.network.modules[0]!.modelVariants[1]!;
+        (model as unknown as { initialState: unknown }).initialState = 'invalid';
+      },
+    ],
+    [
+      'ValidityDomain ranges',
+      (project: BfnProject) => {
+        (project.registry.validityDomains[0] as unknown as { inputRanges: unknown }).inputRanges =
+          null;
+      },
+    ],
+    [
+      'ValidityDomain time range',
+      (project: BfnProject) => {
+        (
+          project.registry.validityDomains[0] as unknown as { timeRangeHours: unknown }
+        ).timeRangeHours = [0];
+      },
+    ],
+    [
+      'Dataset Entity arrays',
+      (project: BfnProject) => {
+        const module = project.network.modules[0]!;
+        attachExternalEntityReference(project, module.outputPorts[0]!.entity, 'dataset');
+        (project.registry.datasets[0] as unknown as { inputEntities: unknown }).inputEntities =
+          null;
+      },
+    ],
+    [
+      'selected module shape',
+      (project: BfnProject) => {
+        (project.network.modules[0] as unknown as { modelVariants: unknown }).modelVariants = null;
+      },
+    ],
+    [
+      'dependency record shape',
+      (project: BfnProject) => {
+        (project.registry.contexts[0] as unknown as { host: unknown }).host = {};
+      },
+    ],
+  ])('fails closed without throwing for malformed %s runtime data', (_label, mutate) => {
+    const project = createFirstOrderTemplateProject('source.module.malformed');
+    const module = project.network.modules[0]!;
+    const moduleId = module.id;
+    const entityPolicies = Object.fromEntries(
+      [...module.inputPorts, ...module.outputPorts].map((port) => [
+        port.entity,
+        'embedded' as const,
+      ]),
+    );
+    mutate(project);
+
+    expect(() =>
+      captureReusableModuleTemplatePayload(project, moduleId, { entityPolicies }),
+    ).not.toThrow();
+    expect(
+      captureReusableModuleTemplatePayload(project, moduleId, { entityPolicies }),
+    ).toMatchObject({ ok: false, issues: [{ code: 'project_schema_invalid' }] });
+  });
+
   it.each(['context', 'domain', 'provenance', 'implementation'] as const)(
     'rejects a missing %s dependency',
     (kind) => {
@@ -469,6 +607,46 @@ describe('reusable module template capture', () => {
         ),
       });
       expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues.some((issue) => issue.code === 'dependency_missing')).toBe(true);
+      }
+    },
+  );
+
+  it.each(['module', 'context', 'domain', 'provenance', 'implementation'] as const)(
+    'rejects duplicate identical %s IDs as ambiguous',
+    (kind) => {
+      const project = createStaticTemplateProject('source.module.duplicate-dependency');
+      const module = project.network.modules[0]!;
+      if (kind === 'module') project.network.modules.push(structuredClone(module));
+      if (kind === 'context') {
+        project.registry.contexts.push(structuredClone(project.registry.contexts[0]!));
+      }
+      if (kind === 'domain') {
+        project.registry.validityDomains.push(
+          structuredClone(project.registry.validityDomains[0]!),
+        );
+      }
+      if (kind === 'provenance') {
+        project.registry.provenanceRecords.push(
+          structuredClone(project.registry.provenanceRecords[0]!),
+        );
+      }
+      if (kind === 'implementation') {
+        project.registry.implementations.push(
+          structuredClone(project.registry.implementations[0]!),
+        );
+      }
+
+      const result = captureReusableModuleTemplatePayload(project, module.id, {
+        entityPolicies: Object.fromEntries(
+          [...module.inputPorts, ...module.outputPorts].map((port) => [port.entity, 'embedded']),
+        ),
+      });
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.issues.some((issue) => issue.code === 'dependency_conflict')).toBe(true);
+      }
     },
   );
 
@@ -694,6 +872,19 @@ function captureFixtureWithEmbedded(project: BfnProject) {
 
 function parameter(value: string) {
   return { value, lower: '', upper: '' };
+}
+
+function calibrationMap(id: string, targetModuleId: string, contextId: string) {
+  return {
+    id,
+    labelKey: 'bfn.template.fixture.calibration',
+    targetModuleId,
+    modelType: 'lookup_table' as const,
+    contextId,
+    sourceDatasetIds: [],
+    candidates: [],
+    isDemo: false,
+  };
 }
 
 function attachExternalEntityReference(

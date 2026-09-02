@@ -39,11 +39,8 @@ export function captureTemplateDependencyClosure(
     if (sourceId === null) return null;
     const existingKey = contextKeyBySourceId.get(sourceId);
     if (existingKey) return existingKey;
-    const source = project.registry.contexts.find((context) => context.id === sourceId);
-    if (!source) {
-      issues.push({ code: 'dependency_missing', path, details: [sourceId] });
-      return null;
-    }
+    const source = resolveUniqueDependency(project.registry.contexts, sourceId, path, issues);
+    if (!source) return null;
     const key = `context.${contexts.length + 1}`;
     contextKeyBySourceId.set(sourceId, key);
     contexts.push({
@@ -70,11 +67,13 @@ export function captureTemplateDependencyClosure(
   const addDomain = (sourceId: string, path: string): string | null => {
     const existingKey = domainKeyBySourceId.get(sourceId);
     if (existingKey) return existingKey;
-    const source = project.registry.validityDomains.find((domain) => domain.id === sourceId);
-    if (!source) {
-      issues.push({ code: 'dependency_missing', path, details: [sourceId] });
-      return null;
-    }
+    const source = resolveUniqueDependency(
+      project.registry.validityDomains,
+      sourceId,
+      path,
+      issues,
+    );
+    if (!source) return null;
     const ranges = source.inputRanges.flatMap((range, index) => {
       const portKey = portKeyBySourceId.get(range.portId);
       if (!portKey) {
@@ -113,11 +112,13 @@ export function captureTemplateDependencyClosure(
   const addProvenance = (sourceId: string, path: string): string | null => {
     const existingKey = provenanceKeyBySourceId.get(sourceId);
     if (existingKey) return existingKey;
-    const source = project.registry.provenanceRecords.find((record) => record.id === sourceId);
-    if (!source) {
-      issues.push({ code: 'dependency_missing', path, details: [sourceId] });
-      return null;
-    }
+    const source = resolveUniqueDependency(
+      project.registry.provenanceRecords,
+      sourceId,
+      path,
+      issues,
+    );
+    if (!source) return null;
     const key = `provenance.${provenance.length + 1}`;
     provenanceKeyBySourceId.set(sourceId, key);
     provenance.push({ key, kind: source.kind, reference: source.reference });
@@ -141,17 +142,13 @@ export function captureTemplateDependencyClosure(
       });
       continue;
     }
-    const source = project.registry.implementations.find(
-      (implementation) => implementation.id === sourceId,
+    const source = resolveUniqueDependency(
+      project.registry.implementations,
+      sourceId,
+      `module.implementationIds[${index}]`,
+      issues,
     );
-    if (!source) {
-      issues.push({
-        code: 'dependency_missing',
-        path: `module.implementationIds[${index}]`,
-        details: [sourceId],
-      });
-      continue;
-    }
+    if (!source) continue;
     const provenanceKeys = source.provenanceIds.flatMap((id, provenanceIndex) => {
       const key = addProvenance(
         id,
@@ -193,4 +190,22 @@ export function captureTemplateDependencyClosure(
     provenanceKeyBySourceId,
     issues,
   };
+}
+
+function resolveUniqueDependency<T extends { readonly id: string }>(
+  records: readonly T[],
+  sourceId: string,
+  path: string,
+  issues: BfnTemplateContractIssue[],
+): T | null {
+  const matches = records.filter((record) => record.id === sourceId);
+  if (matches.length === 0) {
+    issues.push({ code: 'dependency_missing', path, details: [sourceId] });
+    return null;
+  }
+  if (matches.length > 1) {
+    issues.push({ code: 'dependency_conflict', path, details: [sourceId] });
+    return null;
+  }
+  return matches[0]!;
 }

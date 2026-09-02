@@ -32,6 +32,10 @@ import {
   createReusableModuleScientificProjection,
   reusableModuleScientificProjectionsEqual,
 } from './templateProjection';
+import {
+  collectTemplateProjectReferenceIds,
+  isTemplateProjectRuntimeSafe,
+} from './templateProjectValidation';
 import type {
   BfnModuleTemplateVersionV1,
   BfnReusableModulePayloadV1,
@@ -52,13 +56,26 @@ export function instantiateReusableModuleTemplate(
   bindings: BfnTemplateEntityBindingDecisions,
   options: BfnTemplateInstantiationOptions,
 ): BfnTemplateInstantiationResult {
+  try {
+    return instantiateReusableModuleTemplateUnchecked(version, targetProject, bindings, options);
+  } catch {
+    return failed('target_project_schema_invalid', 'targetProject');
+  }
+}
+
+function instantiateReusableModuleTemplateUnchecked(
+  version: BfnModuleTemplateVersionV1,
+  targetProject: BfnProject,
+  bindings: BfnTemplateEntityBindingDecisions,
+  options: BfnTemplateInstantiationOptions,
+): BfnTemplateInstantiationResult {
   let parsedVersion: BfnModuleTemplateVersionV1;
   try {
     parsedVersion = parseBfnModuleTemplateVersion(version);
   } catch {
     return failed('template_schema_invalid', 'version');
   }
-  if (!isBfnProjectV23(targetProject)) {
+  if (!isTemplateProjectRuntimeSafe(targetProject) || !isBfnProjectV23(targetProject)) {
     return failed('target_project_schema_invalid', 'targetProject');
   }
   if (!validOptions(options)) return failed('instantiation_options_invalid', 'options');
@@ -73,6 +90,13 @@ export function instantiateReusableModuleTemplate(
     options,
   );
   if (!bindingResult.ok) return bindingResult;
+  const concreteEntityIds = Object.values(bindingResult.entityIds);
+  const convergedEntityIds = concreteEntityIds.filter(
+    (id, index) => concreteEntityIds.indexOf(id) !== index,
+  );
+  if (convergedEntityIds.length > 0) {
+    return failed('entity_mapping_non_injective', 'bindings', [...new Set(convergedEntityIds)]);
+  }
   const idMap = createIdMap(parsedVersion.payload, options.instanceId, bindingResult.entityIds);
 
   const generatedIds = collectGeneratedIds(parsedVersion.payload, idMap, bindings);
@@ -80,6 +104,7 @@ export function instantiateReusableModuleTemplate(
   const existingIds = new Set([
     ...collectDefinedIds(targetProject),
     ...collectProjectEntityIds(targetProject),
+    ...collectTemplateProjectReferenceIds(targetProject),
     ...parsedVersion.payload.entities
       .filter((entity) => entity.mode === 'canonical')
       .map((entity) => entity.entityId),
@@ -124,7 +149,11 @@ export function instantiateReusableModuleTemplate(
   nextProject.registry.provenanceRecords.push(...additions.provenance);
   nextProject.registry.implementations.push(...additions.implementations);
 
-  if (!referencesResolve(nextProject, module) || !isBfnProjectV23(nextProject)) {
+  if (
+    !referencesResolve(nextProject, module) ||
+    !isTemplateProjectRuntimeSafe(nextProject) ||
+    !isBfnProjectV23(nextProject)
+  ) {
     return failed('scientific_contract_invalid', 'nextProject');
   }
   const instanceProjection = createInstantiatedReusableModuleScientificProjection(

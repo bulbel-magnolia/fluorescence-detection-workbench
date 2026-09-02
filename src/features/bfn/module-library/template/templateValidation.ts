@@ -121,6 +121,7 @@ function validateEntities(
   issues: BfnTemplateValidationIssue[],
 ): void {
   const usedEntityKeys = new Set([...index.portByKey.values()].map((port) => port.entityKey));
+  const canonicalIdentityKeys = new Map<string, string>();
   for (const [position, entity] of entities.entries()) {
     const path = `payload.entities[${position}]`;
     if (entity.key !== `entity.${position + 1}`) {
@@ -135,6 +136,12 @@ function validateEntities(
         !isNonEmptyString(entity.displayName)
       ) {
         issues.push(issue(path, 'canonical_invalid'));
+      }
+      const existingKey = canonicalIdentityKeys.get(entity.entityId);
+      if (existingKey !== undefined) {
+        issues.push(issue(`${path}.entityId`, 'concrete_identity_duplicate'));
+      } else {
+        canonicalIdentityKeys.set(entity.entityId, entity.key);
       }
       continue;
     }
@@ -434,10 +441,18 @@ function validateModels(
       (input.unit === 'uM/h' && output.unit === 'uM')
     ) ||
     !isFiniteNumber(payload.models.dynamic.initialState) ||
-    payload.models.dynamic.initialState < 0 ||
-    !['none', 'not_recorded'].includes(payload.models.dynamic.uncertaintyMethod)
+    payload.models.dynamic.initialState < 0
   ) {
     issues.push(issue('payload.models.dynamic', 'accumulator_contract_invalid'));
+  }
+  if (
+    payload.models.dynamic.evidenceGrade !== 'independent_assumption' ||
+    payload.models.dynamic.uncertaintyMethod !== 'none'
+  ) {
+    issues.push(issue('payload.models.dynamic', 'accumulator_evidence_contract_invalid'));
+  }
+  if (payload.moduleEvidenceGrade !== 'independent_assumption') {
+    issues.push(issue('payload.moduleEvidenceGrade', 'accumulator_evidence_contract_invalid'));
   }
 }
 

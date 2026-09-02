@@ -1283,3 +1283,17 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 production build 通过并转换 309 个模块，主 CSS 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 3,378.07 kB（gzip 468.90 kB），保留既有大于 500 kB chunk 提示；
 - 17 个 Template TypeScript 文件与 3 个文档文件通过 changed-file Prettier check 与 `git diff --check`；
 - 本批不修改 BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、冻结 scientific/runtime files、package dependencies、persistence、UI 或 i18n。
+
+### Batch 12.5.0 Correction Pass
+
+- Correction 从远端精确 pre-fix Head `42bafecf908f3ba11d50b840a0b35f495266d919` 在线性历史上追加；分支继续为 `codex/bfn-module-template-representation-contract`，不 rebase、merge、squash 或 reset；
+- Entity regression 覆盖 two-slot convergence、canonical-slot convergence、re-signed duplicate canonical identity 与 instance projection relation collapse；distinct template Entity keys 必须映射到 distinct concrete Project Entity IDs；
+- accumulator parser/capture regressions分别覆盖 dynamic model Evidence、dynamic uncertainty 与 module Evidence。Template 1.0 固定 model/module `independent_assumption` 和 model `none`，冻结 runtime contract 与 Signal Pool materializer 零差异；
+- malformed runtime regression 覆盖 first-order steady-state response、tau、initial state、ValidityDomain ranges/time range、Dataset Entity arrays、selected module、dependency record 及 target Project；capture/instantiate 均 non-throwing、fail closed；
+- duplicate-ID regression 覆盖 selected module、Context、ValidityDomain、Provenance 与 Implementation；零匹配返回 `dependency_missing`，多个匹配返回 `dependency_conflict`。targeting selected module 的 Calibration Map 返回 `calibration_map_unsupported`，unrelated map 不进入 closure；
+- dangling-reference regression 同时占用将生成的 module、input/output Port、Context、ValidityDomain 与 Implementation IDs，引用来自 Edge、existing model、module、ValidityDomain 和 Calibration Map；实例化返回 `generated_id_collision`，输入 target deep-equal 且引用保持 unresolved；
+- 最终 Template 定向结果为 4 个测试文件、112 项测试全部通过；相对首轮 84 项新增 28 项 correction assertions；
+- 默认 checkout 首轮完整测试为 158/162 个文件、1418/1422 项通过；失败为 3 个既有 UI 测试的 5 秒资源竞争 timeout 和冻结 Sender source 换行字节清单。3 个 UI 文件按原断言单独复核为 42/42 项通过；按 manifest 临时物化 12 个 Sender 文件后，最终 `npm test -- --maxWorkers=4` 为 162/162 个文件、1422/1422 项通过，`finally` 后逐字节恢复且 Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 production build 通过并转换 309 个模块，主 CSS 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 3,378.07 kB（gzip 468.90 kB），保留既有大于 500 kB chunk 提示；
+- correction 的 10 个 Template TypeScript 文件与 3 个文档文件进入 changed-file Prettier 和 diff gate；BFN-IR schema/migration、BFN-SIM runtime/equations、accumulator runtime、Signal Pool、Designed Sender、Sender/Receiver、Workspace、Compatibility、unit system、dependencies、UI 与 i18n 均不在 correction diff；
+- 以上只声明 local validation。Batch 12.5.0 为 `CANDIDATE` correction implementation complete、not `FROZEN`；GitHub workflow/check/status context 由 push 后实际查询，不声明 CI 或 Master Review。

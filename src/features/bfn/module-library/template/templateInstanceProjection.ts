@@ -31,6 +31,13 @@ export function createInstantiatedReusableModuleScientificProjection(
   ) {
     return null;
   }
+  const concreteEntityIds = payload.entities.map((entity) => idMap.entityIds[entity.key]);
+  if (
+    concreteEntityIds.some((id) => id === undefined) ||
+    new Set(concreteEntityIds).size !== concreteEntityIds.length
+  ) {
+    return null;
+  }
   const actualPorts = [...module.inputPorts, ...module.outputPorts];
   if (actualPorts.length !== payload.ports.length) return null;
   const portReferenceById = new Map<string, string>();
