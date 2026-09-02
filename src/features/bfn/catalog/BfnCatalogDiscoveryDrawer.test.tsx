@@ -656,6 +656,7 @@ function renderDrawer(
       onInstantiateCatalogResponse={vi.fn()}
       onAddUserModule={vi.fn(() => ({ ok: false as const, issues: [] }))}
       onAddDesignedSender={vi.fn(() => ({ ok: false as const, issues: [] }))}
+      onAddSignalPool={vi.fn(() => ({ ok: false as const, issues: [] }))}
       {...overrides}
     />,
   );

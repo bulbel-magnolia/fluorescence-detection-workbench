@@ -322,6 +322,8 @@ export const bfnEnUS = {
       'The user-defined functional module was added. Connect its required inputs explicitly.',
     designedSenderAdded:
       'The Designed Sender module was added. Connect its control input and downstream production-rate process explicitly.',
+    signalPoolAdded:
+      'The Signal Pool was added. Connect its production-rate input and concentration output explicitly.',
     catalogModuleAdded:
       'The literature response module was added. Connect a compatible upstream signal on the canvas.',
     catalogModuleAndSourceAdded:
@@ -1953,6 +1955,47 @@ export const bfnEnUS = {
     },
     footer:
       'Adding creates one functional module only; no input source, connection, output monitor, or run is created automatically.',
+  },
+  signalPool: {
+    entryTitle: 'Signal Pool',
+    entryDescription: 'Accumulate a signal production rate into its concentration over time.',
+    entryAction: 'Create Signal Pool',
+    title: 'Signal Pool',
+    kicker: 'Explicit signal accumulation',
+    back: 'Back to module library',
+    dynamicOnly: 'Dynamic · one production-rate input · one concentration output',
+    moduleLabel: 'Signal Pool',
+    description: 'Accumulate a signal production rate into its concentration over time.',
+    validityDomain: 'Signal Pool applicability',
+    dynamicHint: 'Signal Pool runs in dynamic mode. Adding it does not change the current mode.',
+    sections: {
+      definition: 'Pool definition',
+      signal: 'Signal identity',
+      state: 'Concentration state',
+    },
+    fields: {
+      name: 'Name',
+      description: 'Description (optional)',
+      signalSource: 'Signal source',
+      unit: 'Concentration unit',
+      initialConcentration: 'Initial concentration',
+    },
+    signal: {
+      known: 'Known AHL/HSL signal',
+      existing: 'Existing project Entity',
+      custom: 'Custom signal',
+      chooseKnown: 'Choose a known signal',
+      chooseExisting: 'Choose an existing Entity',
+    },
+    actions: {
+      cancel: 'Cancel',
+      addToNetwork: 'Add to network',
+    },
+    validation: {
+      materialization: 'This Signal Pool cannot be added safely; review its fields.',
+    },
+    footer:
+      'Adding creates one dynamic Signal Pool only; no connection, mode change, output monitor, or run is created automatically.',
   },
   registry: {
     title: 'Module library',

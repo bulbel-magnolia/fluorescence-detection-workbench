@@ -31,6 +31,9 @@ import type { UserDefinedFunctionalModuleDraft } from '../user-defined/userModul
 import { BfnUserModuleAuthoring } from '../user-defined/BfnUserModuleAuthoring';
 import { BfnDesignedSenderAuthoring } from '../user-defined/designed-sender/BfnDesignedSenderAuthoring';
 import type { DesignedSenderSignalIdentity } from '../user-defined/designed-sender/designedSenderSignalCatalog';
+import { BfnSignalPoolAuthoring } from '../user-defined/signal-pool/BfnSignalPoolAuthoring';
+import type { SignalPoolDraft } from '../user-defined/signal-pool/signalPoolContract';
+import type { SignalPoolMaterializationResult } from '../user-defined/signal-pool/signalPoolMaterialization';
 import type { UserModuleMaterializationResult } from '../user-defined/userModuleMaterialization';
 import { BfnCatalogDetailView } from './BfnCatalogDetailView';
 import {
@@ -62,6 +65,7 @@ interface BfnCatalogDiscoveryDrawerProps {
     draft: UserDefinedFunctionalModuleDraft,
     authoritativeSignal: DesignedSenderSignalIdentity | null,
   ) => UserModuleMaterializationResult;
+  onAddSignalPool: (draft: SignalPoolDraft) => SignalPoolMaterializationResult;
   initialDetailTarget?: BfnCatalogDetailTarget;
   presentationLoader?: () => ReleaseCatalogPresentation;
   runtimeCandidateBuilder?: BfnCatalogRuntimeCandidateBuilder;
@@ -75,7 +79,7 @@ type SelectedEntry =
   | { kind: 'sender'; groupId: string }
   | { kind: 'component'; groupId: string };
 
-type AuthoringMode = 'generic' | 'designed_sender';
+type AuthoringMode = 'generic' | 'designed_sender' | 'signal_pool';
 
 type UserModuleAuthoringDraft =
   UserDefinedFunctionalModuleDraft | UserDefinedDynamicFunctionalModuleDraft;
@@ -90,6 +94,7 @@ export function BfnCatalogDiscoveryDrawer({
   onInstantiateCatalogResponse,
   onAddUserModule,
   onAddDesignedSender,
+  onAddSignalPool,
   initialDetailTarget,
   presentationLoader = loadReleaseCatalogPresentation,
   runtimeCandidateBuilder,
@@ -252,6 +257,7 @@ export function BfnCatalogDiscoveryDrawer({
       onInstantiateCatalogResponse={onInstantiateCatalogResponse}
       onAddUserModule={onAddUserModule}
       onAddDesignedSender={onAddDesignedSender}
+      onAddSignalPool={onAddSignalPool}
       language={language}
       searchRef={searchRef}
       bodyRef={bodyRef}
@@ -295,6 +301,7 @@ interface DiscoveryDrawerSurfaceProps {
     draft: UserDefinedFunctionalModuleDraft,
     authoritativeSignal: DesignedSenderSignalIdentity | null,
   ) => UserModuleMaterializationResult;
+  onAddSignalPool: (draft: SignalPoolDraft) => SignalPoolMaterializationResult;
   language: ReleaseCatalogLanguage;
   searchRef: RefObject<HTMLInputElement | null>;
   bodyRef: RefObject<HTMLDivElement | null>;
@@ -331,7 +338,9 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
   const footerKey = props.authoringMode
     ? props.authoringMode === 'designed_sender'
       ? 'bfn.designedSender.footer'
-      : 'bfn.userAuthoring.footer'
+      : props.authoringMode === 'signal_pool'
+        ? 'bfn.signalPool.footer'
+        : 'bfn.userAuthoring.footer'
     : props.detail?.kind === 'response' && props.detail.canAddToNetwork
       ? 'bfn.catalogDetail.runnableFooter'
       : props.detailOpen
@@ -376,6 +385,12 @@ function DiscoveryDrawerSurface(props: DiscoveryDrawerSurfaceProps) {
               onBack={props.onBackToCatalog}
               onAdd={props.onAddDesignedSender}
             />
+          ) : props.authoringMode === 'signal_pool' ? (
+            <BfnSignalPoolAuthoring
+              project={props.project}
+              onBack={props.onBackToCatalog}
+              onAdd={props.onAddSignalPool}
+            />
           ) : props.detail ? (
             <BfnCatalogDetailView
               detail={props.detail}
@@ -415,15 +430,19 @@ function DiscoveryDrawerHeader({
   const kickerKey =
     authoringMode === 'designed_sender'
       ? 'bfn.designedSender.kicker'
-      : authoringMode === 'generic'
-        ? 'bfn.userAuthoring.kicker'
-        : 'bfn.catalogDiscovery.kicker';
+      : authoringMode === 'signal_pool'
+        ? 'bfn.signalPool.kicker'
+        : authoringMode === 'generic'
+          ? 'bfn.userAuthoring.kicker'
+          : 'bfn.catalogDiscovery.kicker';
   const titleKey =
     authoringMode === 'designed_sender'
       ? 'bfn.designedSender.title'
-      : authoringMode === 'generic'
-        ? 'bfn.userAuthoring.title'
-        : 'bfn.catalogDiscovery.title';
+      : authoringMode === 'signal_pool'
+        ? 'bfn.signalPool.title'
+        : authoringMode === 'generic'
+          ? 'bfn.userAuthoring.title'
+          : 'bfn.catalogDiscovery.title';
   return (
     <header className="bfn-drawer__header bfn-catalog-discovery__header">
       <div>
@@ -459,6 +478,13 @@ function UserModuleAuthoringEntries({ onOpen }: { onOpen: (mode: AuthoringMode) 
         description={t('bfn.designedSender.entryDescription')}
         action={t('bfn.designedSender.entryAction')}
         onOpen={() => onOpen('designed_sender')}
+      />
+      <AuthoringEntry
+        id="bfn-signal-pool-entry"
+        title={t('bfn.signalPool.entryTitle')}
+        description={t('bfn.signalPool.entryDescription')}
+        action={t('bfn.signalPool.entryAction')}
+        onOpen={() => onOpen('signal_pool')}
       />
     </div>
   );

@@ -75,6 +75,11 @@ import type { BfnTemporalCapability } from './temporal/temporalTypes';
 import type { UserDefinedDynamicFunctionalModuleDraft } from './user-defined/userModuleDynamicContract';
 import type { UserDefinedFunctionalModuleDraft } from './user-defined/userModuleContract';
 import type { DesignedSenderSignalIdentity } from './user-defined/designed-sender/designedSenderSignalCatalog';
+import type { SignalPoolDraft } from './user-defined/signal-pool/signalPoolContract';
+import {
+  materializeSignalPool,
+  type SignalPoolMaterializationResult,
+} from './user-defined/signal-pool/signalPoolMaterialization';
 import {
   materializeUserDefinedStaticModule,
   type UserModuleMaterializationResult,
@@ -869,6 +874,24 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setModulePickerOpen(false);
     setCatalogInitialDetailTarget(null);
     setNotice(t('bfn.notices.designedSenderAdded'));
+    return outcome;
+  };
+
+  const addSignalPool = (draft: SignalPoolDraft): SignalPoolMaterializationResult => {
+    const outcome = materializeSignalPool(draft, projectRef.current);
+    if (!outcome.ok) return outcome;
+    const changed = performProjectEdit(() => outcome.nextProject);
+    if (!changed) {
+      return {
+        ok: false,
+        issues: [{ code: 'generated_id_collision', path: 'id' }],
+      };
+    }
+    selectNode(outcome.addedModuleId);
+    setView('design');
+    setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
+    setNotice(t('bfn.notices.signalPoolAdded'));
     return outcome;
   };
 
@@ -2083,6 +2106,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           onInstantiateCatalogResponse={addCatalogResponse}
           onAddUserModule={addUserDefinedModule}
           onAddDesignedSender={addDesignedSender}
+          onAddSignalPool={addSignalPool}
           {...(catalogInitialDetailTarget
             ? { initialDetailTarget: catalogInitialDetailTarget }
             : {})}
