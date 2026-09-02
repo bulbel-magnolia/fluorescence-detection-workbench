@@ -15,7 +15,7 @@ function projectFixture(): BfnProject {
   return createDemoBfnProject();
 }
 
-function validKnownState(project: BfnProject): SignalPoolAuthoringState {
+function validKnownState(): SignalPoolAuthoringState {
   const initial = createInitialSignalPoolAuthoringState();
   const signal = getDesignedSenderSignalCatalog()[0];
   if (!signal) throw new Error('Expected a canonical Designed Sender signal fixture.');
@@ -91,7 +91,7 @@ describe('Signal Pool authoring contract and draft', () => {
     ],
   ] as const)('rejects %s', (_label, mutate, code) => {
     const project = projectFixture();
-    const result = buildSignalPoolDraft(mutate(validKnownState(project)), project);
+    const result = buildSignalPoolDraft(mutate(validKnownState()), project);
 
     expect(result).toMatchObject({ ok: false });
     if (result.ok) throw new Error('Expected invalid Signal Pool authoring state.');
@@ -104,7 +104,7 @@ describe('Signal Pool authoring contract and draft', () => {
   ] as const)('accepts the exact %s concentration and %s rate pair', (concentration, rate) => {
     const project = projectFixture();
     const result = buildSignalPoolDraft(
-      { ...validKnownState(project), concentrationUnit: concentration },
+      { ...validKnownState(), concentrationUnit: concentration },
       project,
     );
 
@@ -120,7 +120,7 @@ describe('Signal Pool authoring contract and draft', () => {
 
   it('accepts zero C0 and preserves exact user module metadata', () => {
     const project = projectFixture();
-    const state = validKnownState(project);
+    const state = validKnownState();
     const result = buildSignalPoolDraft(state, project);
 
     expect(result).toMatchObject({
@@ -136,7 +136,7 @@ describe('Signal Pool authoring contract and draft', () => {
   it('reuses the exact Designed Sender canonical identity', () => {
     const project = projectFixture();
     const signal = getDesignedSenderSignalCatalog()[0]!;
-    const result = buildSignalPoolDraft(validKnownState(project), project);
+    const result = buildSignalPoolDraft(validKnownState(), project);
 
     expect(result).toMatchObject({
       ok: true,
@@ -159,7 +159,7 @@ describe('Signal Pool authoring contract and draft', () => {
     if (!existingEntityId) throw new Error('Expected an existing Entity fixture.');
     const result = buildSignalPoolDraft(
       {
-        ...validKnownState(project),
+        ...validKnownState(),
         signalMode: 'existing',
         knownCatalogSignalId: '',
         existingEntityId,
@@ -181,7 +181,7 @@ describe('Signal Pool authoring contract and draft', () => {
     const project = projectFixture();
     const result = buildSignalPoolDraft(
       {
-        ...validKnownState(project),
+        ...validKnownState(),
         signalMode: 'custom',
         knownCatalogSignalId: '',
         customSignalName: '  New orthogonal signal  ',
@@ -204,7 +204,7 @@ describe('Signal Pool authoring contract and draft', () => {
 
   it('fails closed for a stale existing Entity selection and an unknown canonical selection', () => {
     const project = projectFixture();
-    const base = validKnownState(project);
+    const base = validKnownState();
     const stale = buildSignalPoolDraft(
       {
         ...base,

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../../../i18n';
 import { createDemoBfnProject } from '../../fixtures';
+import type { SignalPoolDraft } from './signalPoolContract';
 import { materializeSignalPool } from './signalPoolMaterialization';
 import { BfnSignalPoolAuthoring } from './BfnSignalPoolAuthoring';
 
@@ -64,7 +65,7 @@ describe('Signal Pool authoring form', () => {
     const user = userEvent.setup();
     const project = createDemoBfnProject();
     const outcomes: ReturnType<typeof materializeSignalPool>[] = [];
-    const onAdd = vi.fn((draft) => {
+    const onAdd = vi.fn((draft: SignalPoolDraft) => {
       const outcome = materializeSignalPool(draft, project);
       outcomes.push(outcome);
       return outcome;
@@ -91,12 +92,15 @@ describe('Signal Pool authoring form', () => {
     expect(outcomes[0]).toMatchObject({ ok: true });
     if (!outcomes[0]?.ok) throw new Error('Expected a materialized Signal Pool.');
     const module = outcomes[0].nextProject.network.modules.at(-1);
+    if (!module) throw new Error('Expected the Signal Pool module.');
     expect(module).toMatchObject({
       authoring: { name: '用户信号池' },
-      inputPorts: [{ entity: expect.any(String), quantityType: 'production_rate', unit: 'uM/h' }],
-      outputPorts: [{ entity: expect.any(String), quantityType: 'concentration', unit: 'uM' }],
-      activeModelIds: { dynamic: expect.any(String) },
+      inputPorts: [{ quantityType: 'production_rate', unit: 'uM/h' }],
+      outputPorts: [{ quantityType: 'concentration', unit: 'uM' }],
     });
+    expect(typeof module.inputPorts[0]?.entity).toBe('string');
+    expect(typeof module.outputPorts[0]?.entity).toBe('string');
+    expect(typeof module.activeModelIds.dynamic).toBe('string');
   });
 
   it('renders the key fields in English and cancels without mutation', async () => {

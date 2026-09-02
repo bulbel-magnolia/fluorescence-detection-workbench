@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { assessBfnAccumulatorRuntimeContract } from '../../accumulatorRuntimeContract';
 import { createDemoBfnProject } from '../../fixtures';
-import type { BfnAccumulatorDynamicModel, BfnProject } from '../../types';
+import type { BfnProject } from '../../types';
 import { collectExistingEntityIds } from '../userModuleAuthoringDraft';
 import { getDesignedSenderSignalCatalog } from '../designed-sender/designedSenderSignalCatalog';
 import {

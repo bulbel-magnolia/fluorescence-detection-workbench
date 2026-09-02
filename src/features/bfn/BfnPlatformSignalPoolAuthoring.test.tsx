@@ -82,10 +82,10 @@ describe('BFN Platform Signal Pool authoring workflow', () => {
     if (!module) throw new Error('Signal Pool was not materialized.');
     expect(module).toMatchObject({
       authoring: { name: '正交信号池', description: '逐字保留的说明' },
-      activeModelIds: { dynamic: expect.any(String) },
       inputPorts: [{ displayName: { zh: '产生速率' }, quantityType: 'production_rate' }],
       outputPorts: [{ displayName: { zh: '浓度' }, quantityType: 'concentration' }],
     });
+    expect(typeof module.activeModelIds.dynamic).toBe('string');
     expect(Object.keys(module.activeModelIds)).toEqual(['dynamic']);
     const customEntity = latestProject.registry.entities.at(-1);
     expect(customEntity).toMatchObject({ displayName: 'Signal Z', origin: 'user_defined' });
