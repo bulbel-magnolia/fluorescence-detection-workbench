@@ -1,11 +1,13 @@
 # Batch 12.4 Signal Pool Authoring & Integration
 
-Batch 12.4 is a **CANDIDATE** implementation on branch
-`codex/bfn-signal-pool-authoring-integration`, based exactly on the Batch 12.4.1
-final-correction commit `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`.
-Batch 12.4.0 remains a reviewed predecessor with freeze bookkeeping deferred;
-Batch 12.4.1 and Batch 12.4 await combined Master Review. None of these three
-batches is FROZEN.
+Batch 12.4 remains a **CANDIDATE** on branch
+`codex/bfn-signal-pool-authoring-integration`. Its identity-boundary Correction
+Pass advances pre-fix candidate `9d45d350abf07ef6034a8ce04f82d3b0d90fd76b`
+to implementation candidate `6150203fe9c75b9acbc308cb782104e80cab22cb`.
+Batch 12.4.0 is a CANDIDATE with Master Review PASS and freeze bookkeeping
+deferred. Batch 12.4.1 is a CANDIDATE with Final Correction Review PASS and
+freeze bookkeeping deferred. Batch 12.4 awaits final combined review; none of
+these three batches is FROZEN.
 
 ## Purpose
 
@@ -52,15 +54,23 @@ Signal identity always comes from one explicit source:
 1. **Known AHL/HSL signal.** The form reuses the Designed Sender canonical
    signal identity source. A known 3OC6-HSL selection therefore produces the
    same exact Entity ID used by a Designed Sender output. It does not create a
-   duplicate project-defined Entity.
-2. **Existing project Entity.** Candidates are deduplicated from module Ports,
-   Input Sources, Output Monitors, and project-defined Entity records. The
-   selected exact ID is preserved; display text is never used to infer a new
-   identity.
+   duplicate project-defined Entity. Catalog availability is independent of
+   the current graph.
+2. **Existing project signal Entity.** An Entity is eligible only when at least
+   one current Input Source, module, or Output Monitor Port uses that exact ID
+   with `quantityType = concentration` or `production_rate`. Activity-only,
+   expression-level-only, and registry-only untyped Entities are excluded. The
+   selected exact ID is preserved; display text, aliases, and name patterns are
+   never used to infer signal semantics.
 3. **Custom signal.** The user explicitly supplies a name and the materializer
    creates one ordinary `BfnEntityDefinition` with `origin = user_defined`.
    The path performs no fuzzy matching, canonical mapping, or experimental
    validation claim. ID or definition conflicts fail closed.
+
+`collectSignalPoolEligibleEntityIds()` is the single existing-signal
+eligibility source for the selector, draft builder, and materializer. The
+materializer re-evaluates the current project, so a draft whose last qualifying
+Port was removed fails with `signal_identity_invalid`.
 
 ## Materialized BFN object
 
@@ -113,6 +123,13 @@ The pure materializer returns a new project and the added module ID. It adds a
 custom Entity sidecar only for an explicitly custom signal. Every result must
 pass the existing accumulator runtime contract; the Signal Pool layer does not
 define a competing scientific validator.
+
+Before constructing any BFN object, runtime identity validation explicitly
+dispatches `known`, `existing`, and `custom`. Any other serialized
+`signal.source` fails closed with `signal_identity_invalid`. Known identities
+still require exact catalog ID, Entity ID, and display name; custom identities
+still require the generated Entity ID, a nonblank display name, and no existing
+Entity conflict.
 
 ## Graph transaction
 

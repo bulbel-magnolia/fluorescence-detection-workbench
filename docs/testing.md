@@ -1244,3 +1244,15 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 production build 转换 308 个模块，主 CSS 为 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 为 3,377.46 kB（gzip 468.79 kB），保留既有大于 500 kB chunk 提示；
 - 全部分支变更文件通过 changed-file Prettier 和 `git diff --check`；相对 Phase 0 base，accumulator/first-order equations、IR migration、runtime contract、uncertainty runtime、repository、Port Compatibility、unit system、Designed Sender/Receiver science、Temporal evidence、Ontology、Inverse Design、Workspace DB 与 dependencies 保持零差异；
 - 以上只声明 local validation。GitHub workflow runs、check runs 与 status contexts 在 push 后按实际查询结果回传；本节不声明 CI、PASS、FROZEN、Master Review passed 或 freeze bookkeeping complete。
+
+### Batch 12.4 Correction Pass — Signal eligibility 与 source identity
+
+- correction 从 pre-fix candidate `9d45d350abf07ef6034a8ce04f82d3b0d90fd76b` 线性追加为 implementation candidate `6150203fe9c75b9acbc308cb782104e80cab22cb`；Batch 12.4 保持 `CANDIDATE`、not `FROZEN`，Correction Pass complete，等待最终联合复核；
+- TDD RED 在 3 个 Signal Pool 测试文件、34 项测试中得到 5 项预期失败：activity-only、expression-level-only 与 registry-only Entity 被 draft 接受，UI 展示 activity Entity，未知 serialized `signal.source` 先落入 `draft_invalid/ports`；最小修正后 34/34 通过；
+- `collectSignalPoolEligibleEntityIds()` 只收集当前 Input Source、module 与 Output Monitor Port 上 `quantityType = concentration | production_rate` 的 exact Entity ID，并由 UI、draft builder、materializer 共用；回归覆盖 concentration-only 与 production-rate-only 接受，`normalized_promoter_activity`、`normalized_reporter_expression`、registry-only untyped Entity 拒绝，以及唯一 eligible Port 删除后的 stale draft 拒绝；
+- materializer 在构造 BFN object 前通过 runtime `switch` 只接纳 `known | existing | custom`。forged `future_signal_mode` 返回 `signal_identity_invalid`，输入 Project 保持 deep-equal；known catalog exact identity、custom generated ID/nonblank label 与 Entity conflict protection保持不变；
+- 指定 Signal Pool、platform、persistence、runtime、Designed Sender→Pool→Receiver、Port Compatibility、uncertainty、Temporal 和既有 authoring 定向门为 18 个测试文件、150 项测试全部通过；
+- 完整 `npm test -- --maxWorkers=4` 为 158 个测试文件、1310 项测试全部通过。Windows 默认检出的首轮完整测试为 157/158 文件、1309/1310 项，唯一失败是冻结 Sender source 的逐字节换行清单；按每个 manifest SHA-256 临时选择 Git raw blob 或 CRLF 工作树字节后，完整性单测为 1 文件、6 项通过，最终全量通过，finally 后 12 个 source 文件逐字节恢复且 source diff 为零；
+- `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 production build 转换 309 个模块，主 CSS 为 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 为 3,378.07 kB（gzip 468.90 kB），保留既有大于 500 kB chunk 提示；
+- 10 个代码、测试与文档变更文件通过 changed-file Prettier，`git diff --check` 通过；相对 pre-fix candidate，diff 只包含 Signal Pool eligibility、source discriminator hardening、regressions 与文档；
+- 相对 Phase 1 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`，BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace DB 保持 1；accumulator equation、first-order equation、uncertainty runtime、repository、Port Compatibility、Designed Sender/Receiver science、Temporal、Ontology、Inverse Design 与 dependencies 均未修改。本节不声明 Batch 12.4 PASS、FROZEN、Master Review completed 或 CI passed。
