@@ -237,7 +237,9 @@ function hasValidUncertaintySnapshotV22(value: Record<string, unknown>): boolean
     }
     if (module.propagationMode === 'deterministic_transform') {
       return (
-        (module.method === 'none' || module.method === 'not_recorded') &&
+        (module.method === 'none' ||
+          module.method === 'not_recorded' ||
+          module.method === 'parameter_interval_envelope') &&
         module.intervalExecutable === true &&
         module.reason === null
       );

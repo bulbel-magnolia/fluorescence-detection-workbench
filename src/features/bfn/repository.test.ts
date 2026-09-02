@@ -17,7 +17,13 @@ import {
   saveBfnProject,
 } from './repository';
 import { runBfnSimulation } from './simulation';
-import { createAccumulatorBfnProject } from './testing/accumulatorFixtures';
+import {
+  ACCUMULATOR_INPUT_PORT_ID,
+  ACCUMULATOR_MODULE_ID,
+  createAccumulatorBfnProject,
+  getAccumulatorModule,
+} from './testing/accumulatorFixtures';
+import type { BfnStaticModel } from './types';
 import { validateBfnProject } from './validation';
 
 function projectWithCatalogReference() {
@@ -52,6 +58,172 @@ function asHistoricalV20(result: ReturnType<typeof runBfnSimulation>): Record<st
   historical.engineVersion = 'BFN-SIM-2.0';
   delete historical.uncertaintySnapshot;
   return historical;
+}
+
+function parameterEnvelopeIdentityAccumulatorProject(): {
+  project: ReturnType<typeof createAccumulatorBfnProject>;
+  identityModuleId: string;
+} {
+  const project = createAccumulatorBfnProject();
+  const source = project.network.inputSources[0]!;
+  const accumulator = getAccumulatorModule(project);
+  const producerModuleId = 'module-repository-rate-producer';
+  const producerInputPortId = 'port-repository-rate-producer-in';
+  const producerOutputPortId = 'port-repository-rate-producer-out';
+  const producerDomainId = 'domain-repository-rate-producer';
+  const identityModuleId = 'module-repository-zero-parameter-identity';
+  const identityInputPortId = 'port-repository-zero-parameter-identity-in';
+  const identityOutputPortId = 'port-repository-zero-parameter-identity-out';
+  const identityDomainId = 'domain-repository-zero-parameter-identity';
+  const producerModel: BfnStaticModel = {
+    id: 'model-repository-rate-producer',
+    version: 'test.1',
+    mode: 'static',
+    family: 'linear_transfer',
+    response: {
+      family: 'linear_transfer',
+      inputPortId: producerInputPortId,
+      scale: { value: 1, unit: 'dimensionless', interval95: [0.5, 1.5] },
+      intercept: { value: 0, unit: 'nM/h', interval95: [0, 0] },
+    },
+    contextId: null,
+    validityDomainId: producerDomainId,
+    sourceDatasetIds: [],
+    provenanceIds: [],
+    evidenceGrade: 'independent_assumption',
+    uncertaintyMethod: 'parameter_interval_envelope',
+    isDemo: true,
+  };
+  const identityModel: BfnStaticModel = {
+    id: 'model-repository-zero-parameter-identity',
+    version: 'test.1',
+    mode: 'static',
+    family: 'identity',
+    response: { family: 'identity', inputPortId: identityInputPortId },
+    contextId: null,
+    validityDomainId: identityDomainId,
+    sourceDatasetIds: [],
+    provenanceIds: [],
+    evidenceGrade: 'independent_assumption',
+    uncertaintyMethod: 'parameter_interval_envelope',
+    isDemo: true,
+  };
+
+  source.outputPort = {
+    ...source.outputPort,
+    entity: 'entity.repository.rate-control',
+    quantityType: 'concentration',
+    unit: 'nM',
+  };
+  source.staticSpecification = { type: 'fixed_value', value: 10, unit: 'nM' };
+  source.dynamicSpecification = { type: 'constant', value: 10, unit: 'nM' };
+  project.analysis.durationHours = 1;
+  project.analysis.timeStepHours = 0.5;
+  project.network.modules.push(
+    {
+      kind: 'functional_module',
+      id: producerModuleId,
+      labelKey: 'bfn.testing.repositoryRateProducer',
+      descriptionKey: 'bfn.testing.repositoryRateProducerDescription',
+      inputPorts: [
+        {
+          id: producerInputPortId,
+          entity: source.outputPort.entity,
+          quantityType: 'concentration',
+          unit: 'nM',
+          direction: 'input',
+        },
+      ],
+      outputPorts: [
+        {
+          id: producerOutputPortId,
+          entity: accumulator.inputPorts[0]!.entity,
+          quantityType: 'production_rate',
+          unit: 'nM/h',
+          direction: 'output',
+        },
+      ],
+      modelVariants: [producerModel],
+      activeModelIds: { static: producerModel.id },
+      implementationIds: [],
+      implementationState: 'unspecified',
+      evidenceGrade: 'independent_assumption',
+      position: { x: 160, y: 160 },
+      isDemo: true,
+    },
+    {
+      kind: 'functional_module',
+      id: identityModuleId,
+      labelKey: 'bfn.testing.repositoryIdentity',
+      descriptionKey: 'bfn.testing.repositoryIdentityDescription',
+      inputPorts: [
+        {
+          id: identityInputPortId,
+          entity: accumulator.inputPorts[0]!.entity,
+          quantityType: 'production_rate',
+          unit: 'nM/h',
+          direction: 'input',
+        },
+      ],
+      outputPorts: [
+        {
+          id: identityOutputPortId,
+          entity: accumulator.inputPorts[0]!.entity,
+          quantityType: 'production_rate',
+          unit: 'nM/h',
+          direction: 'output',
+        },
+      ],
+      modelVariants: [identityModel],
+      activeModelIds: { static: identityModel.id },
+      implementationIds: [],
+      implementationState: 'unspecified',
+      evidenceGrade: 'independent_assumption',
+      position: { x: 260, y: 160 },
+      isDemo: true,
+    },
+  );
+  project.registry.validityDomains.push(
+    {
+      id: producerDomainId,
+      labelKey: 'bfn.testing.repositoryRateProducerDomain',
+      inputRanges: [{ portId: producerInputPortId, minimum: 0, maximum: 20, unit: 'nM' }],
+      contextId: null,
+    },
+    {
+      id: identityDomainId,
+      labelKey: 'bfn.testing.repositoryIdentityDomain',
+      inputRanges: [],
+      contextId: null,
+    },
+  );
+  project.network.edges = project.network.edges.filter(
+    (edge) => edge.id !== 'edge-accumulator-rate',
+  );
+  project.network.edges.push(
+    {
+      id: 'edge-repository-source-producer',
+      source: { nodeId: source.id, portId: source.outputPort.id },
+      target: { nodeId: producerModuleId, portId: producerInputPortId },
+      mapping: 'identity',
+      enabled: true,
+    },
+    {
+      id: 'edge-repository-producer-identity',
+      source: { nodeId: producerModuleId, portId: producerOutputPortId },
+      target: { nodeId: identityModuleId, portId: identityInputPortId },
+      mapping: 'identity',
+      enabled: true,
+    },
+    {
+      id: 'edge-repository-identity-accumulator',
+      source: { nodeId: identityModuleId, portId: identityOutputPortId },
+      target: { nodeId: ACCUMULATOR_MODULE_ID, portId: ACCUMULATOR_INPUT_PORT_ID },
+      mapping: 'identity',
+      enabled: true,
+    },
+  );
+  return { project, identityModuleId };
 }
 
 describe('BFN-IR repository', () => {
@@ -200,6 +372,43 @@ describe('BFN-IR repository', () => {
     ]);
     expect(JSON.stringify(loaded.slice(0, 2))).toBe(historicalJson);
     expect(localStorage.getItem(BFN_RUN_STORAGE_KEY)).toBe(JSON.stringify([v20, v21, current]));
+  });
+
+  it('round-trips a generated zero-parameter identity transform losslessly in SIM 2.2', () => {
+    const { project, identityModuleId } = parameterEnvelopeIdentityAccumulatorProject();
+    const result = runBfnSimulation(project);
+    const identitySnapshot = result.uncertaintySnapshot.modules.find(
+      ({ moduleId }) => moduleId === identityModuleId,
+    );
+
+    expect(identitySnapshot).toMatchObject({
+      method: 'parameter_interval_envelope',
+      intervalExecutable: true,
+      reason: null,
+      propagationMode: 'deterministic_transform',
+    });
+    expect(result.points.every((point) => point.lower !== null && point.upper !== null)).toBe(true);
+
+    const saved = saveBfnRun(result);
+    const loaded = loadBfnRuns();
+
+    expect(saved).toEqual([result]);
+    expect(loaded).toEqual(saved);
+    expect(loaded[0]).toEqual(result);
+    expect(loaded[0]).not.toBe(result);
+  });
+
+  it('rejects an unsupported deterministic-transform method in SIM 2.2 persistence', () => {
+    const { project, identityModuleId } = parameterEnvelopeIdentityAccumulatorProject();
+    const malformed = runBfnSimulation(project);
+    const identitySnapshot = malformed.uncertaintySnapshot.modules.find(
+      ({ moduleId }) => moduleId === identityModuleId,
+    );
+    if (identitySnapshot === undefined) throw new Error('Expected identity uncertainty snapshot.');
+    identitySnapshot.method = 'bootstrap';
+    localStorage.setItem(BFN_RUN_STORAGE_KEY, JSON.stringify([malformed]));
+
+    expect(loadBfnRuns()).toEqual([]);
   });
 
   it('distinguishes frozen BFN-SIM 2.0/2.1 records from the versioned 2.2 contract', () => {
