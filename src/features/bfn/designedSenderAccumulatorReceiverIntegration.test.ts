@@ -10,7 +10,7 @@ import {
 } from './catalog/catalogBfnAdapter';
 import { createDemoBfnProject } from './fixtures';
 import { runBfnSimulation } from './simulation';
-import type { BfnAccumulatorDynamicModel, BfnFunctionalModule, BfnProject } from './types';
+import type { BfnFunctionalModule, BfnProject } from './types';
 import { addIdealConnection, checkIdealConnection } from './validation';
 import { materializeUserDefinedStaticModule } from './user-defined/userModuleMaterialization';
 import type { DesignedSenderAuthoringState } from './user-defined/designed-sender/designedSenderContract';
@@ -19,15 +19,13 @@ import {
   createInitialDesignedSenderAuthoringState,
 } from './user-defined/designed-sender/designedSenderDraft';
 import { getDesignedSenderSignalCatalog } from './user-defined/designed-sender/designedSenderSignalCatalog';
+import { createInitialSignalPoolAuthoringState } from './user-defined/signal-pool/signalPoolContract';
+import { buildSignalPoolDraft } from './user-defined/signal-pool/signalPoolDraft';
+import { materializeSignalPool } from './user-defined/signal-pool/signalPoolMaterialization';
 
 const RECEIVER_RESPONSE_ID = 'resp.kylilis2018.lux.3oc6';
 const CONTROL_SOURCE_ID = 'source-dynamic-iptg';
 const CONTROL_SOURCE_PORT_ID = 'port-dynamic-iptg-output';
-const ACCUMULATOR_MODULE_ID = 'module-explicit-3oc6-accumulator';
-const ACCUMULATOR_INPUT_PORT_ID = 'port-explicit-3oc6-rate-input';
-const ACCUMULATOR_OUTPUT_PORT_ID = 'port-explicit-3oc6-concentration-output';
-const ACCUMULATOR_MODEL_ID = 'model-explicit-3oc6-accumulator';
-const ACCUMULATOR_DOMAIN_ID = 'domain-explicit-3oc6-accumulator';
 const RECEIVER_MODULE_ID = 'module-trusted-lux-receiver';
 const REPORTER_MONITOR_ID = 'monitor-reporter';
 const REPORTER_MONITOR_PORT_ID = 'port-reporter-monitor-input';
@@ -141,14 +139,20 @@ function createIntegrationFixture(): IntegrationFixture {
     },
   );
   if (!receiverResult.ok) throw new Error(receiverResult.error.code);
-  let nextProject = receiverResult.nextProject;
+  const poolBuild = buildSignalPoolDraft(createSignalPoolState(), receiverResult.nextProject);
+  if (!poolBuild.ok) throw new Error('Production Signal Pool draft is invalid.');
+  const poolResult = materializeSignalPool(poolBuild.draft, receiverResult.nextProject);
+  if (!poolResult.ok) throw new Error('Production Signal Pool did not materialize.');
+  let nextProject = poolResult.nextProject;
   const sender = requiredModule(nextProject, senderResult.addedModuleId);
   const receiver = requiredModule(nextProject, receiverResult.addedModuleId);
+  const accumulator = requiredModule(nextProject, poolResult.addedModuleId);
   const senderInput = sender.inputPorts[0]!;
   const senderOutput = sender.outputPorts[0]!;
   const receiverInput = receiver.inputPorts[0]!;
   const receiverOutput = receiver.outputPorts[0]!;
-  const accumulator = createAccumulatorModule(senderOutput.entity, nextProject);
+  const accumulatorInput = accumulator.inputPorts[0]!;
+  const accumulatorOutput = accumulator.outputPorts[0]!;
 
   nextProject.network.mode = 'dynamic';
   nextProject.analysis.durationHours = 2;
@@ -168,7 +172,6 @@ function createIntegrationFixture(): IntegrationFixture {
     dynamicSpecification: { type: 'step', before: 0, after: 1, atHours: 1, unit: 'uM' },
     position: { x: 20, y: 200 },
   });
-  nextProject.network.modules.push(accumulator);
   nextProject.network.outputMonitors.push({
     kind: 'output_monitor',
     id: REPORTER_MONITOR_ID,
@@ -182,20 +185,6 @@ function createIntegrationFixture(): IntegrationFixture {
     },
     position: { x: 980, y: 200 },
   });
-  nextProject.registry.validityDomains.push({
-    id: ACCUMULATOR_DOMAIN_ID,
-    labelKey: 'bfn.testing.accumulatorDomain',
-    inputRanges: [
-      {
-        portId: ACCUMULATOR_INPUT_PORT_ID,
-        minimum: 0,
-        maximum: 10,
-        unit: 'nM/h',
-      },
-    ],
-    contextId: accumulator.modelVariants[0]?.contextId ?? null,
-  });
-
   nextProject = addIdealConnection(
     nextProject,
     { nodeId: CONTROL_SOURCE_ID, portId: CONTROL_SOURCE_PORT_ID },
@@ -205,12 +194,12 @@ function createIntegrationFixture(): IntegrationFixture {
   nextProject = addIdealConnection(
     nextProject,
     { nodeId: sender.id, portId: senderOutput.id },
-    { nodeId: accumulator.id, portId: ACCUMULATOR_INPUT_PORT_ID },
+    { nodeId: accumulator.id, portId: accumulatorInput.id },
     'edge-sender-to-accumulator',
   );
   nextProject = addIdealConnection(
     nextProject,
-    { nodeId: accumulator.id, portId: ACCUMULATOR_OUTPUT_PORT_ID },
+    { nodeId: accumulator.id, portId: accumulatorOutput.id },
     { nodeId: receiver.id, portId: receiverInput.id },
     'edge-accumulator-to-receiver',
   );
@@ -276,53 +265,19 @@ function createSenderState(project: BfnProject): DesignedSenderAuthoringState {
   };
 }
 
-function createAccumulatorModule(entity: string, project: BfnProject): BfnFunctionalModule {
-  const model: BfnAccumulatorDynamicModel = {
-    id: ACCUMULATOR_MODEL_ID,
-    version: 'BFN-IR-2.3-accumulator-integration-fixture',
-    mode: 'dynamic',
-    family: 'accumulator',
-    inputPortId: ACCUMULATOR_INPUT_PORT_ID,
-    outputPortId: ACCUMULATOR_OUTPUT_PORT_ID,
-    initialState: 2,
-    contextId: project.registry.contexts[0]?.id ?? null,
-    validityDomainId: ACCUMULATOR_DOMAIN_ID,
-    sourceDatasetIds: [],
-    provenanceIds: [],
-    evidenceGrade: 'independent_assumption',
-    uncertaintyMethod: 'none',
-    isDemo: true,
-  };
+function createSignalPoolState() {
+  const signal = getDesignedSenderSignalCatalog().find(
+    (identity) => identity.catalogSignalId === 'ahl.3oc6.l',
+  );
+  if (!signal) throw new Error('Trusted 3OC6-HSL signal identity is unavailable.');
   return {
-    kind: 'functional_module',
-    id: ACCUMULATOR_MODULE_ID,
-    labelKey: 'bfn.testing.accumulator',
-    descriptionKey: 'bfn.testing.accumulatorDescription',
-    inputPorts: [
-      {
-        id: ACCUMULATOR_INPUT_PORT_ID,
-        entity,
-        quantityType: 'production_rate',
-        unit: 'nM/h',
-        direction: 'input',
-      },
-    ],
-    outputPorts: [
-      {
-        id: ACCUMULATOR_OUTPUT_PORT_ID,
-        entity,
-        quantityType: 'concentration',
-        unit: 'nM',
-        direction: 'output',
-      },
-    ],
-    modelVariants: [model],
-    activeModelIds: { dynamic: model.id },
-    implementationIds: [],
-    implementationState: 'unspecified',
-    evidenceGrade: 'independent_assumption',
-    position: { x: 480, y: 200 },
-    isDemo: true,
+    ...createInitialSignalPoolAuthoringState(),
+    name: 'Production 3OC6-HSL Signal Pool',
+    description: 'Explicit concentration state for the production integration chain.',
+    signalMode: 'known',
+    knownCatalogSignalId: signal.catalogSignalId,
+    concentrationUnit: 'nM',
+    initialConcentration: '2',
   };
 }
 
