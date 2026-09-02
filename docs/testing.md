@@ -1266,3 +1266,20 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - 引用最终 correction 已经 Master-reviewed 的 LOCAL validation evidence：定向 18 个测试文件 / 150 项测试通过，完整 158 个测试文件 / 1310 项测试通过，typecheck 与 lint 通过，production build 通过并转换 309 个模块，changed-file Prettier 10/10 与 `git diff --check` 通过；
 - candidate 的 GitHub evidence 为 workflow runs 0、check runs 0、status contexts 0。No CI claim；aggregate `pending` 不表示 active CI；
 - Batch 12.5 Reusable User Module Library 保持 `PLANNED / NOT AUTHORIZED`，Batch 13 保持 `FUTURE`。
+
+## 2026-09-02 Batch 12.5.0 Reusable Module Template Representation Contract
+
+### Targeted contract tests
+
+- `src/features/bfn/module-library/template/templateParser.test.ts`：严格 runtime parser、exact shape、plain data tree、unknown schema/version/discriminator、canonical resolver、local-reference 和 payload-signature hard gates；
+- `src/features/bfn/module-library/template/templateCapture.test.ts`：static、paired first-order、accumulator capture，deterministic local keys，complete minimal closure，canonical/embedded/slot policy，shared/external Entity scan，以及 demo/catalog/dataset/dormant/unresolved rejection；
+- `src/features/bfn/module-library/template/templateInstantiation.test.ts`：三类跨 Project roundtrip，existing/create same-entity decisions，fresh unified ID maps，collision and malformed-binding rejection，no graph side effects，copy-on-create 和 input immutability；
+- `src/features/bfn/module-library/template/templateSignature.test.ts`：ID-independent scientific projection equality，property-order/source-ID/instance-ID/presentation stability，以及 scientific-field sensitivity；
+- 最终定向结果：4 个测试文件、84 项测试全部通过；`npm run typecheck` 与模板目录 ESLint 通过。
+
+### Candidate validation boundary
+
+- 最终完整 `npm test -- --maxWorkers=4` 为 162 个测试文件、1394 项测试全部通过。Windows 默认 checkout 的早期候选首轮为 161/162 文件、1380/1381 项，唯一失败是 `senderExtensionLoader.test.ts` 的冻结 source 换行字节清单；按既有 manifest 临时物化 12 个文件后最终全量通过，`finally` 已逐字节恢复且 Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 production build 通过并转换 309 个模块，主 CSS 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 3,378.07 kB（gzip 468.90 kB），保留既有大于 500 kB chunk 提示；
+- 17 个 Template TypeScript 文件与 3 个文档文件通过 changed-file Prettier check 与 `git diff --check`；
+- 本批不修改 BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、冻结 scientific/runtime files、package dependencies、persistence、UI 或 i18n。
