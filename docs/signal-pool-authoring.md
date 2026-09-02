@@ -1,13 +1,16 @@
 # Batch 12.4 Signal Pool Authoring & Integration
 
-Batch 12.4 remains a **CANDIDATE** on branch
-`codex/bfn-signal-pool-authoring-integration`. Its identity-boundary Correction
-Pass advances pre-fix candidate `9d45d350abf07ef6034a8ce04f82d3b0d90fd76b`
-to implementation candidate `6150203fe9c75b9acbc308cb782104e80cab22cb`.
-Batch 12.4.0 is a CANDIDATE with Master Review PASS and freeze bookkeeping
-deferred. Batch 12.4.1 is a CANDIDATE with Final Correction Review PASS and
-freeze bookkeeping deferred. Batch 12.4 awaits final combined review; none of
-these three batches is FROZEN.
+Batch 12.4 is **FROZEN** on branch
+`codex/bfn-signal-pool-authoring-integration`. Its exact base is
+`c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`; its reviewed production correction
+is `6150203fe9c75b9acbc308cb782104e80cab22cb`; and its distinct docs-only
+pre-freeze integrated branch head is
+`29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`. Batch 12.4.0 and Batch 12.4.1
+are also FROZEN at reviewed implementation heads
+`cb41a6e49829249b5b2fbf44206cfb6436a425bf` and
+`c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`, respectively. The unified
+docs-only bookkeeping commit establishes the Batch 12.4 series freeze
+checkpoint.
 
 ## Purpose
 
@@ -152,6 +155,10 @@ switch a static network to dynamic mode, or run a simulation. Direct Designed
 Sender `production_rate → concentration` Receiver wiring remains rejected by
 the unchanged Port Compatibility contract. Users explicitly create and connect
 the intermediate Signal Pool through the existing Ideal Edge workflow.
+
+The frozen Edge principle remains: **Edge = instantaneous, lossless, identity
+propagation only.** An Edge never integrates rate into concentration; the
+explicit Signal Pool Functional Module performs that state transformation.
 
 ## Runtime behavior
 

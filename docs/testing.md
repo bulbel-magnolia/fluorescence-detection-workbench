@@ -1256,3 +1256,13 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 production build 转换 309 个模块，主 CSS 为 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 为 3,378.07 kB（gzip 468.90 kB），保留既有大于 500 kB chunk 提示；
 - 10 个代码、测试与文档变更文件通过 changed-file Prettier，`git diff --check` 通过；相对 pre-fix candidate，diff 只包含 Signal Pool eligibility、source discriminator hardening、regressions 与文档；
 - 相对 Phase 1 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`，BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace DB 保持 1；accumulator equation、first-order equation、uncertainty runtime、repository、Port Compatibility、Designed Sender/Receiver science、Temporal、Ontology、Inverse Design 与 dependencies 均未修改。本节不声明 Batch 12.4 PASS、FROZEN、Master Review completed 或 CI passed。
+
+## 2026-09-02 Batch 12.4 Series Unified Freeze Bookkeeping
+
+- Master Control 最终联合复核结论为：Batch 12.4.0 Final Review PASS / Further FIX NONE，Batch 12.4.1 Final Review PASS / Further FIX NONE，Batch 12.4 Correction Review PASS / Further FIX NONE；三者统一登记为 `FROZEN`；
+- Batch 12.4.0 的 legal predecessor 为 `f444433ee13acbc2a69602550c1163c263b313a5`，reviewed implementation 为 `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；Batch 12.4.1 的 exact base 为 `cb41a6e49829249b5b2fbf44206cfb6436a425bf`，final reviewed implementation 为 `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；
+- Batch 12.4 的 exact base 为 `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`，reviewed production correction 为 `6150203fe9c75b9acbc308cb782104e80cab22cb`，distinct pre-freeze integrated branch Head 为 `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`；docs-only Head 不冒充 production implementation；
+- 本次严格执行 docs-only freeze bookkeeping，不修改或重新物化 production、test、fixture、Sender source、runtime、package 或 lockfile，也不重跑完整软件测试；本次 docs-only bookkeeping commit 建立统一 Batch 12.4 freeze checkpoint，其实际 SHA 由提交后 handoff 记录；
+- 引用最终 correction 已经 Master-reviewed 的 LOCAL validation evidence：定向 18 个测试文件 / 150 项测试通过，完整 158 个测试文件 / 1310 项测试通过，typecheck 与 lint 通过，production build 通过并转换 309 个模块，changed-file Prettier 10/10 与 `git diff --check` 通过；
+- candidate 的 GitHub evidence 为 workflow runs 0、check runs 0、status contexts 0。No CI claim；aggregate `pending` 不表示 active CI；
+- Batch 12.5 Reusable User Module Library 保持 `PLANNED / NOT AUTHORIZED`，Batch 13 保持 `FUTURE`。

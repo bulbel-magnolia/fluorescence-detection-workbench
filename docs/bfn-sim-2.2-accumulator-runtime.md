@@ -1,11 +1,11 @@
 # BFN-SIM 2.2 Accumulator Runtime
 
-Batch 12.4.1 is a **CANDIDATE** whose final persistence correction is complete
-at c1a350f7f3dfa81f985cd84e7b86dd1292fe2111. Its exact original base is
-cb41a6e49829249b5b2fbf44206cfb6436a425bf. Batch 12.4.0 is the reviewed
-predecessor: implementation review and correction review passed, while its
-freeze bookkeeping was deferred by Master Control. Batch 12.4.1 awaits the
-combined Master Review and is not PASS or FROZEN.
+Batch 12.4.1 is **FROZEN** at final reviewed implementation
+c1a350f7f3dfa81f985cd84e7b86dd1292fe2111. Its exact base is
+cb41a6e49829249b5b2fbf44206cfb6436a425bf, the frozen Batch 12.4.0 reviewed
+implementation. Final Review passed and no further fix is required. The
+unified docs-only bookkeeping commit establishes the Batch 12.4 series freeze
+checkpoint.
 
 ## Representation and admission
 
@@ -142,10 +142,10 @@ Compatibility rules.
 
 ## Authoring integration boundary
 
-Batch 12.4 now has a **CANDIDATE** Signal Pool authoring implementation. It
-materializes the existing accumulator representation and delegates all
-execution to this BFN-SIM 2.2 runtime. It does not add another integration
-equation, automatic graph insertion or wiring, a feedback solver, degradation,
-dilution, clearance, amount/volume state, multi-rate summation, or initial-state
-uncertainty. Batch 12.4.0, 12.4.1, and 12.4 await combined Master Review and are
-not FROZEN.
+Batch 12.4 has a **FROZEN** Signal Pool authoring implementation. It materializes
+the existing accumulator representation and delegates all execution to this
+BFN-SIM 2.2 runtime. It does not add another integration equation, automatic
+graph insertion or wiring, a feedback solver, degradation, dilution, clearance,
+amount/volume state, multi-rate summation, or initial-state uncertainty. Batch
+12.4.0, 12.4.1, and 12.4 are FROZEN as separate representation, runtime, and
+authoring/integration deliveries.

@@ -1,6 +1,6 @@
 # BFN-IR 2.3 Dynamic Process Representation Extension
 
-Batch 12.4.0 is the reviewed predecessor for Batch 12.4.1. Its implementation review and correction review passed; Master Control deferred separate freeze bookkeeping. Batch 12.4.1 and Batch 12.4 now have implementation candidates awaiting combined Master Review. This document records the fixed representation input and does not declare Batch 12.4.0, 12.4.1, or 12.4 FROZEN.
+Batch 12.4.0 is **FROZEN** at reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`, with legal predecessor `f444433ee13acbc2a69602550c1163c263b313a5`. Batch 12.4.1 and Batch 12.4 are independently FROZEN at their runtime and authoring/integration boundaries. The unified docs-only bookkeeping commit establishes the Batch 12.4 series freeze checkpoint without moving later runtime semantics into this representation scope.
 
 ## Current representation
 
@@ -74,9 +74,11 @@ Runtime admission remains scoped to the selected output Monitor. An accumulator 
 
 ```text
 Batch 12.3 = FROZEN
-Batch 12.4.0 = reviewed predecessor; bookkeeping deferred
-Batch 12.4.1 = CANDIDATE; final correction complete
-Batch 12.4 = CANDIDATE; Signal Pool implementation complete
+Batch 12.4.0 = FROZEN
+Batch 12.4.1 = FROZEN
+Batch 12.4 = FROZEN
+Batch 12.5 = PLANNED / NOT AUTHORIZED
+Batch 13 = FUTURE
 ```
 
-Batch 12.4.1 implements the narrow accumulator execution semantics. Batch 12.4 materializes an explicit Signal Pool as an ordinary dynamic-only accumulator module without changing this representation. Degradation, dilution, clearance, amount/volume conversion, multi-rate integration, initial-state uncertainty, automatic graph insertion, and feedback ODE solving remain outside these candidates.
+Batch 12.4.1 freezes the narrow accumulator execution semantics. Batch 12.4 freezes an explicit Signal Pool as an ordinary dynamic-only accumulator module without changing this representation. Degradation, dilution, clearance, amount/volume conversion, multi-rate integration, initial-state uncertainty, automatic graph insertion, and feedback ODE solving remain outside the frozen capabilities.
