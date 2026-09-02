@@ -52,7 +52,13 @@ function modelBasis(model: BfnModelVariant | null) {
 
 export function createBfnComputationSignature(project: BfnProject): string {
   const modules = project.network.modules.map((module) => {
-    const model = resolveEffectiveBfnModel(project, module);
+    const model =
+      resolveEffectiveBfnModel(project, module) ??
+      (module.activeModelIds.static === undefined
+        ? (module.modelVariants.find(
+            (candidate) => candidate.id === module.activeModelIds.dynamic,
+          ) ?? null)
+        : null);
     return {
       kind: module.kind,
       id: module.id,
