@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { assessBfnAccumulatorRuntimeContract } from '../../accumulatorRuntimeContract';
 import { createDemoBfnProject } from '../../fixtures';
 import type { BfnProject } from '../../types';
-import { collectExistingEntityIds } from '../userModuleAuthoringDraft';
 import { getDesignedSenderSignalCatalog } from '../designed-sender/designedSenderSignalCatalog';
 import {
   createInitialSignalPoolAuthoringState,
@@ -135,8 +134,7 @@ describe('Signal Pool materialization', () => {
 
   it('reuses known and existing entities without creating user Entity definitions', () => {
     const project = projectFixture();
-    const existingEntityId = collectExistingEntityIds(project)[0];
-    if (!existingEntityId) throw new Error('Expected an existing Entity fixture.');
+    const existingEntityId = '3OC6-HSL';
     const knownDraft = requiredDraft(project);
     const existingDraft = requiredDraft(project, {
       ...knownState(),
@@ -155,6 +153,33 @@ describe('Signal Pool materialization', () => {
       existing.nextProject.network.modules.find(({ id }) => id === existingDraft.id)?.inputPorts[0]
         ?.entity,
     ).toBe(existingEntityId);
+  });
+
+  it('fails closed when an existing Entity loses its only signal-semantic port after drafting', () => {
+    const project = projectFixture();
+    const owner = project.network.modules[0];
+    if (!owner) throw new Error('Expected a project module fixture.');
+    owner.outputPorts.push({
+      id: 'port-production-rate-only',
+      entity: 'entity.production-rate-only',
+      quantityType: 'production_rate',
+      unit: 'nM/h',
+      direction: 'output',
+    });
+    const draft = requiredDraft(project, {
+      ...knownState(),
+      signalMode: 'existing',
+      knownCatalogSignalId: '',
+      existingEntityId: 'entity.production-rate-only',
+    });
+    owner.outputPorts = owner.outputPorts.filter(({ id }) => id !== 'port-production-rate-only');
+    const before = structuredClone(project);
+
+    expect(materializeSignalPool(draft, project)).toMatchObject({
+      ok: false,
+      issues: [{ code: 'signal_identity_invalid', path: 'signal.entityId' }],
+    });
+    expect(project).toEqual(before);
   });
 
   it('adds exactly one ordinary user-defined Entity for an explicit custom signal', () => {
@@ -248,5 +273,25 @@ describe('Signal Pool materialization', () => {
       ok: false,
       issues: [{ code: 'draft_invalid', path: 'initialConcentration' }],
     });
+  });
+
+  it('fails closed on an unknown serialized signal source without mutating the project', () => {
+    const project = projectFixture();
+    const before = structuredClone(project);
+    const draft = requiredDraft(project);
+    const malformed = {
+      ...draft,
+      signal: {
+        source: 'future_signal_mode',
+        entityId: 'entity.arbitrary',
+        displayName: 'Arbitrary signal',
+      },
+    } as unknown as SignalPoolDraft;
+
+    expect(materializeSignalPool(malformed, project)).toMatchObject({
+      ok: false,
+      issues: [{ code: 'signal_identity_invalid', path: 'signal' }],
+    });
+    expect(project).toEqual(before);
   });
 });

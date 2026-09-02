@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createDemoBfnProject } from '../../fixtures';
 import type { BfnProject } from '../../types';
-import { collectExistingEntityIds } from '../userModuleAuthoringDraft';
 import { getDesignedSenderSignalCatalog } from '../designed-sender/designedSenderSignalCatalog';
 import {
   SIGNAL_POOL_CONCENTRATION_UNITS,
@@ -26,6 +25,15 @@ function validKnownState(): SignalPoolAuthoringState {
     signalMode: 'known',
     knownCatalogSignalId: signal.catalogSignalId,
     initialConcentration: '0',
+  };
+}
+
+function existingState(entityId: string): SignalPoolAuthoringState {
+  return {
+    ...validKnownState(),
+    signalMode: 'existing',
+    knownCatalogSignalId: '',
+    existingEntityId: entityId,
   };
 }
 
@@ -153,19 +161,10 @@ describe('Signal Pool authoring contract and draft', () => {
     });
   });
 
-  it('preserves an explicitly selected existing project Entity ID', () => {
+  it('accepts and preserves a concentration-only existing project Entity ID', () => {
     const project = projectFixture();
-    const existingEntityId = collectExistingEntityIds(project)[0];
-    if (!existingEntityId) throw new Error('Expected an existing Entity fixture.');
-    const result = buildSignalPoolDraft(
-      {
-        ...validKnownState(),
-        signalMode: 'existing',
-        knownCatalogSignalId: '',
-        existingEntityId,
-      },
-      project,
-    );
+    const existingEntityId = '3OC6-HSL';
+    const result = buildSignalPoolDraft(existingState(existingEntityId), project);
 
     expect(result).toMatchObject({
       ok: true,
@@ -174,6 +173,59 @@ describe('Signal Pool authoring contract and draft', () => {
         inputPort: { entityId: existingEntityId },
         outputPort: { entityId: existingEntityId },
       },
+    });
+  });
+
+  it('accepts an existing Entity that occurs only on a production-rate port', () => {
+    const project = projectFixture();
+    const ratePort = project.network.modules[0]?.outputPorts[0];
+    if (!ratePort) throw new Error('Expected a project output port fixture.');
+    ratePort.entity = 'entity.production-rate-only';
+    ratePort.quantityType = 'production_rate';
+    ratePort.unit = 'nM/h';
+
+    expect(buildSignalPoolDraft(existingState(ratePort.entity), project)).toMatchObject({
+      ok: true,
+      draft: { signal: { source: 'existing', entityId: ratePort.entity } },
+    });
+  });
+
+  it.each(['normalized_promoter_activity', 'normalized_reporter_expression'])(
+    'rejects the non-signal-semantic project Entity %s',
+    (entityId) => {
+      const result = buildSignalPoolDraft(existingState(entityId), projectFixture());
+
+      expect(result).toMatchObject({
+        ok: false,
+        issues: [{ field: 'existingEntityId', code: 'existing_entity_unknown' }],
+      });
+    },
+  );
+
+  it('rejects a registry-only Entity without a signal-semantic project port', () => {
+    const project = projectFixture();
+    project.registry.entities.push({
+      id: 'entity.registry-only',
+      origin: 'user_defined',
+      displayName: 'Registry only',
+      description: null,
+    });
+
+    expect(buildSignalPoolDraft(existingState('entity.registry-only'), project)).toMatchObject({
+      ok: false,
+      issues: [{ field: 'existingEntityId', code: 'existing_entity_unknown' }],
+    });
+  });
+
+  it('keeps the known catalog path independent from current graph ports', () => {
+    const project = projectFixture();
+    project.network.inputSources = [];
+    project.network.modules = [];
+    project.network.outputMonitors = [];
+
+    expect(buildSignalPoolDraft(validKnownState(), project)).toMatchObject({
+      ok: true,
+      draft: { signal: { source: 'known' } },
     });
   });
 

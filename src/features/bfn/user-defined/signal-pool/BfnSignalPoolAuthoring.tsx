@@ -4,7 +4,6 @@ import { Button } from '../../../../components/Button';
 import { Icon } from '../../../../components/Icon';
 import { bfnEntityLabel, bfnUnitLabel } from '../../presentation';
 import type { BfnPort, BfnProject } from '../../types';
-import { collectExistingEntityIds } from '../userModuleAuthoringDraft';
 import { getDesignedSenderSignalCatalog } from '../designed-sender/designedSenderSignalCatalog';
 import {
   SIGNAL_POOL_CONCENTRATION_UNITS,
@@ -15,6 +14,7 @@ import {
   type SignalPoolDraft,
 } from './signalPoolContract';
 import { buildSignalPoolDraft } from './signalPoolDraft';
+import { collectSignalPoolEligibleEntityIds } from './signalPoolEntityEligibility';
 import type { SignalPoolMaterializationResult } from './signalPoolMaterialization';
 
 interface BfnSignalPoolAuthoringProps {
@@ -38,7 +38,7 @@ export function BfnSignalPoolAuthoring({ project, onBack, onAdd }: BfnSignalPool
   );
   const existingEntities = useMemo(
     () =>
-      collectExistingEntityIds(project).map((id) => ({
+      collectSignalPoolEligibleEntityIds(project).map((id) => ({
         id,
         label: existingEntityDisplayName(project, id, language, bfnEntityLabel(id, t)),
       })),

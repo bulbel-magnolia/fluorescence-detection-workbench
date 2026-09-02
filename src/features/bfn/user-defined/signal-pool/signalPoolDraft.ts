@@ -1,5 +1,4 @@
 import type { BfnPort, BfnProject } from '../../types';
-import { collectExistingEntityIds } from '../userModuleAuthoringDraft';
 import {
   getDesignedSenderSignalCatalog,
   type DesignedSenderSignalIdentity,
@@ -11,6 +10,7 @@ import {
   type SignalPoolDraft,
   type SignalPoolSignalDraft,
 } from './signalPoolContract';
+import { collectSignalPoolEligibleEntityIds } from './signalPoolEntityEligibility';
 
 export type SignalPoolAuthoringIssueCode =
   | 'module_name_required'
@@ -114,7 +114,7 @@ function resolveSignal(
       issues.push(issue('existingEntityId', 'existing_entity_required'));
       return null;
     }
-    if (!collectExistingEntityIds(project).includes(state.existingEntityId)) {
+    if (!collectSignalPoolEligibleEntityIds(project).includes(state.existingEntityId)) {
       issues.push(issue('existingEntityId', 'existing_entity_unknown'));
       return null;
     }

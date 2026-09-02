@@ -53,8 +53,13 @@ describe('Signal Pool authoring form', () => {
 
     await user.click(within(form).getByRole('radio', { name: '项目已有实体' }));
     const existing = within(form).getByRole('combobox', { name: '项目已有实体' });
-    expect(within(existing).getAllByRole('option').length).toBeGreaterThan(1);
-    expect(within(existing).getAllByRole('option')[1]?.getAttribute('value')).toBeTruthy();
+    const existingValues = within(existing)
+      .getAllByRole('option')
+      .map((option) => option.getAttribute('value'));
+    expect(within(existing).getByRole('option', { name: '3OC6-HSL' })).toHaveValue('3OC6-HSL');
+    expect(existingValues).toContain('3OC6-HSL');
+    expect(existingValues).not.toContain('normalized_promoter_activity');
+    expect(existingValues).not.toContain('normalized_reporter_expression');
 
     await user.click(within(form).getByRole('radio', { name: '自定义信号' }));
     expect(within(form).getByRole('textbox', { name: '自定义信号' })).toBeInTheDocument();

@@ -8,9 +8,9 @@ import type {
   BfnProject,
   BfnValidityDomain,
 } from '../../types';
-import { collectExistingEntityIds } from '../userModuleAuthoringDraft';
 import { getDesignedSenderSignalCatalog } from '../designed-sender/designedSenderSignalCatalog';
 import { signalPoolUnitPair, type SignalPoolDraft } from './signalPoolContract';
+import { collectSignalPoolEligibleEntityIds } from './signalPoolEntityEligibility';
 
 export type SignalPoolMaterializationIssueCode =
   | 'draft_invalid'
@@ -44,11 +44,11 @@ export function materializeSignalPool(
   draft: SignalPoolDraft,
   project: BfnProject,
 ): SignalPoolMaterializationResult {
-  const draftIssue = validateDraftShape(draft, project);
-  if (draftIssue) return failure([draftIssue]);
-
   const entityIssue = validateEntityIdentity(draft, project);
   if (entityIssue) return failure([entityIssue]);
+
+  const draftIssue = validateDraftShape(draft);
+  if (draftIssue) return failure([draftIssue]);
 
   const modelId = `${draft.id}.model.accumulator.v1`;
   const domainId = `${draft.id}.domain.v1`;
@@ -163,10 +163,7 @@ export function materializeSignalPool(
   return { ok: true, nextProject, addedModuleId: module.id };
 }
 
-function validateDraftShape(
-  draft: SignalPoolDraft,
-  project: BfnProject,
-): SignalPoolMaterializationIssue | null {
+function validateDraftShape(draft: SignalPoolDraft): SignalPoolMaterializationIssue | null {
   if (!hasText(draft.id) || draft.origin !== 'user_defined' || !hasText(draft.name)) {
     return { code: 'draft_invalid', path: 'identity' };
   }
@@ -196,18 +193,6 @@ function validateDraftShape(
     // The central accumulator contract reports the stable scientific reason below.
     return null;
   }
-  if (draft.signal.source === 'existing') {
-    if (!collectExistingEntityIds(project).includes(draft.signal.entityId)) {
-      return { code: 'signal_identity_invalid', path: 'signal.entityId' };
-    }
-  } else if (draft.signal.source === 'custom') {
-    if (
-      draft.signal.entityId !== `${draft.id}.entity.signal` ||
-      !hasText(draft.signal.displayName)
-    ) {
-      return { code: 'signal_identity_invalid', path: 'signal' };
-    }
-  }
   return null;
 }
 
@@ -215,40 +200,71 @@ function validateEntityIdentity(
   draft: SignalPoolDraft,
   project: BfnProject,
 ): SignalPoolMaterializationIssue | null {
-  if (draft.signal.source === 'known') {
-    const signal = draft.signal;
-    const canonical = getDesignedSenderSignalCatalog().find(
-      (candidate) => candidate.catalogSignalId === signal.catalogSignalId,
-    );
-    if (
-      !canonical ||
-      canonical.entityId !== signal.entityId ||
-      canonical.displayName !== signal.displayName
-    ) {
+  const runtimeDraft: unknown = draft;
+  if (!isRecord(runtimeDraft) || !isRecord(runtimeDraft.signal)) {
+    return { code: 'signal_identity_invalid', path: 'signal' };
+  }
+  const signal = runtimeDraft.signal;
+
+  switch (signal.source) {
+    case 'known': {
+      if (
+        typeof signal.catalogSignalId !== 'string' ||
+        typeof signal.entityId !== 'string' ||
+        typeof signal.displayName !== 'string'
+      ) {
+        return { code: 'signal_identity_invalid', path: 'signal' };
+      }
+      const canonical = getDesignedSenderSignalCatalog().find(
+        (candidate) => candidate.catalogSignalId === signal.catalogSignalId,
+      );
+      if (
+        !canonical ||
+        canonical.entityId !== signal.entityId ||
+        canonical.displayName !== signal.displayName
+      ) {
+        return { code: 'signal_identity_invalid', path: 'signal' };
+      }
+      const definitions = project.registry.entities.filter(
+        (entity) => entity.id === canonical.entityId,
+      );
+      if (definitions.some((entity) => entity.displayName !== canonical.displayName)) {
+        return {
+          code: 'entity_definition_conflict',
+          path: 'signal.entityId',
+          details: [canonical.entityId],
+        };
+      }
+      return null;
+    }
+    case 'existing':
+      if (
+        typeof signal.entityId !== 'string' ||
+        !collectSignalPoolEligibleEntityIds(project).includes(signal.entityId)
+      ) {
+        return { code: 'signal_identity_invalid', path: 'signal.entityId' };
+      }
+      return null;
+    case 'custom':
+      if (
+        typeof signal.entityId !== 'string' ||
+        typeof signal.displayName !== 'string' ||
+        signal.entityId !== `${draft.id}.entity.signal` ||
+        !hasText(signal.displayName)
+      ) {
+        return { code: 'signal_identity_invalid', path: 'signal' };
+      }
+      if (collectProjectEntityIds(project).has(signal.entityId)) {
+        return {
+          code: 'entity_definition_conflict',
+          path: 'signal.entityId',
+          details: [signal.entityId],
+        };
+      }
+      return null;
+    default:
       return { code: 'signal_identity_invalid', path: 'signal' };
-    }
-    const definitions = project.registry.entities.filter(
-      (entity) => entity.id === canonical.entityId,
-    );
-    if (definitions.some((entity) => entity.displayName !== canonical.displayName)) {
-      return {
-        code: 'entity_definition_conflict',
-        path: 'signal.entityId',
-        details: [canonical.entityId],
-      };
-    }
   }
-  if (
-    draft.signal.source === 'custom' &&
-    collectProjectEntityIds(project).has(draft.signal.entityId)
-  ) {
-    return {
-      code: 'entity_definition_conflict',
-      path: 'signal.entityId',
-      details: [draft.signal.entityId],
-    };
-  }
-  return null;
 }
 
 function collectProjectEntityIds(project: BfnProject): ReadonlySet<string> {
