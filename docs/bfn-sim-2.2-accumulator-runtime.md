@@ -1,10 +1,11 @@
 # BFN-SIM 2.2 Accumulator Runtime
 
-Batch 12.4.1 is an **ACTIVE implementation candidate** based exactly on
+Batch 12.4.1 is a **CANDIDATE** whose final persistence correction is complete
+at c1a350f7f3dfa81f985cd84e7b86dd1292fe2111. Its exact original base is
 cb41a6e49829249b5b2fbf44206cfb6436a425bf. Batch 12.4.0 is the reviewed
 predecessor: implementation review and correction review passed, while its
-freeze bookkeeping was deferred by Master Control. This document does not
-declare Batch 12.4.1 PASS, FROZEN, or reviewed.
+freeze bookkeeping was deferred by Master Control. Batch 12.4.1 awaits the
+combined Master Review and is not PASS or FROZEN.
 
 ## Representation and admission
 
@@ -96,6 +97,14 @@ New runs use BFN-SIM-2.2. Historical BFN-SIM-2.0 and BFN-SIM-2.1 payloads
 retain their original parser contracts and are not rewritten. Workspace
 IndexedDB structural version remains 1.
 
+For SIM 2.2 snapshots, `method` preserves the model's serialized uncertainty
+declaration while `propagationMode` records its role in the current network
+propagation. Repository validation therefore admits the simulator-produced
+combination `method = parameter_interval_envelope` with
+`propagationMode = deterministic_transform`, `intervalExecutable = true`, and
+`reason = null`. Save/load is lossless; unsupported deterministic-transform
+methods such as bootstrap, posterior_samples, and covariance remain rejected.
+
 SIM 2.2 dynamic metrics add terminalValue and steadyStateAvailable. An
 output-reachable accumulator reports:
 
@@ -131,9 +140,12 @@ representation conversion, such as nM -> M. Direct
 production_rate -> concentration wiring remains rejected by unchanged Port
 Compatibility rules.
 
-## Deferred scope
+## Authoring integration boundary
 
-Batch 12.4 remains **PLANNED / NOT AUTHORIZED**. This candidate does not add a
-Signal Pool form, authoring panel, materializer, automatic graph insertion, a
-feedback solver, degradation, dilution, clearance, amount/volume state,
-multi-rate summation, or initial-state uncertainty.
+Batch 12.4 now has a **CANDIDATE** Signal Pool authoring implementation. It
+materializes the existing accumulator representation and delegates all
+execution to this BFN-SIM 2.2 runtime. It does not add another integration
+equation, automatic graph insertion or wiring, a feedback solver, degradation,
+dilution, clearance, amount/volume state, multi-rate summation, or initial-state
+uncertainty. Batch 12.4.0, 12.4.1, and 12.4 await combined Master Review and are
+not FROZEN.

@@ -85,18 +85,19 @@ Designed Sender draft 先映射到冻结的通用用户模块合同，再调用�
 
 `production_rate` 和 `concentration` 是不同物理量。即使 Sender 输出与 Receiver 输入使用同一 canonical signal identity，也不能通过 Ideal Edge 直接连接。连接检查继续返回 Quantity/Unit dimension 硬冲突，界面说明需要显式累积或清除过程。
 
-当前实现不会积分产生速率、不会插入隐藏转换，也不会创建 Signal Pool。显式 Signal Pool / Accumulation 属于 Batch 12.4。
+Designed Sender 自身不会积分产生速率、插入隐藏转换或创建 Signal Pool。Batch 12.4 候选提供独立的显式 Signal Pool 创作入口；用户必须先创建该普通 Functional Module，再通过 Ideal Edge 显式连接。
 
 ## 与 Sender V1.2 的隔离
 
 Sender V1.2 继续作为冻结的文献 evidence extension，当前维持 53 条 evidence、0 admitted Sender。Designed Sender 生产代码不依赖 Sender V1.2 source、loader、validator、Runtime Admission、evidence scope presentation 或 Catalog Sender Add action。文献 Sender 仍不可直接加入网络。
 
-后续工作边界保持独立：Batch 12.3 负责有状态或动态自定义模块，Batch 12.4 负责 Signal Pool / Accumulation，Batch 12.5 负责可复用用户模块库；Batch 11.2 仍是未授权的未来文献 Sender runtime。
+工作边界保持独立：Batch 12.3 冻结有状态或动态自定义模块，Batch 12.4 候选负责 Signal Pool / Accumulation authoring，Batch 12.5 继续规划可复用用户模块库；Batch 11.2 仍是未授权的未来文献 Sender runtime。
 
 相关合同：
 
 - [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)
 - [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)
+- [Signal Pool 创作与集成](signal-pool-authoring.md)
 - [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)
 - [时间语义、兼容性与适用性](temporal-and-compatibility.md)
 - [Sender Evidence Extension V1.2](sender-evidence-v1.2.md)

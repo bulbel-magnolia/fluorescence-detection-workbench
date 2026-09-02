@@ -64,6 +64,10 @@ Accumulator v1 固定为一个 exact-Entity `production_rate` 输入和一个 `c
 
 SIM 2.2 把 accumulator 记录为 deterministic uncertainty transform。它传播上游可执行 parameter scenarios，不创建自身 parameter interval，也不扰动 initialState；整条输出可达路径至少包含一个真实 parameter-envelope source 时才生成网络区间。含 accumulator 的路径只报告 terminal value，不把有限窗口末值命名为 steady state。完整合同见 [BFN-SIM 2.2 Accumulator Runtime](bfn-sim-2.2-accumulator-runtime.md)。
 
+Batch 12.4 Signal Pool 是该 accumulator 表示的受限创作投影。表单只收集名称、可选描述、显式信号身份、`nM/h → nM | uM/h → uM` 单位对和非负初始浓度。物化结果是 ordinary dynamic-only Functional Module，默认 `independent_assumption` evidence、`none` uncertainty、空来源、`null` Context 与 `unspecified` Implementation。Known AHL/HSL 复用 Designed Sender canonical identity，现有项目信号保留 exact Entity ID，自定义信号只创建 ordinary user-defined Entity。
+
+Signal Pool 的 Add 操作不改 network mode，不创建 Edge、Input Source、Output Monitor 或 Run。`initialState`、信号 Entity 与单位对属于计算语义并进入 computation signature；名称、描述与节点位置继续排除。JSON、localStorage 与 Workspace Draft/Version 直接保存既有 BFN-IR 2.3 对象图。完整创作合同见 [Signal Pool 创作与集成](signal-pool-authoring.md)。
+
 ### Context 与 ValidityDomain
 
 上下文记录宿主、菌株、培养基、温度、pH、供氧、增长阶段、质粒骨架、拷贝数范围、诱导协议、测量时间和批次。2.1 使用 `recorded | partial | not_recorded` 显式描述文档状态，缺失事实以 `null` 保存；model 与 ValidityDomain 的 Context 引用也可以为 `null`。上下文用于选择模型版本和解释迁移范围，不作为普通输入端口。
@@ -109,7 +113,7 @@ Batch 12.2 在通用创作能力上增加一个受限的 Designed Sender 工作�
 
 Add to Network 是一个原子编辑，不自动创建 Edge、Input Source、Output Monitor、Run 或隐藏转换。`production_rate → concentration` 继续硬拒绝；当前求解器不进行隐式积分。完整合同见 [Designed Sender 创作与信号产生语义](designed-sender-authoring.md)。
 
-Identity no-op、zero-input constant、lookup table、任意公式、多输出、Signal Pool authoring 和 reusable template 分别延期。Batch 12.4.1 仅提供 programmatic/imported accumulator runtime，不创建 Signal Pool UI、form 或 materializer。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，当前 2.3 schema 见 [BFN-IR 2.3 Dynamic Process 表示扩展](bfn-ir-2.3.md)，2.2 与 2.1 保留为版本历史；运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
+Identity no-op、zero-input constant、lookup table、任意公式、多输出和 reusable template 继续延期。Batch 12.4 候选只把显式单输入 Signal Pool 接入现有 authoring/materialization/runtime，不增加通用公式编辑器或第二套仿真器。Batch 12.0 的 2.0 表示审计见 [用户定义功能模块科学与计算合同](user-defined-functional-modules.md)，当前 2.3 schema 见 [BFN-IR 2.3 Dynamic Process 表示扩展](bfn-ir-2.3.md)，2.2 与 2.1 保留为版本历史；运行与界面合同见 [用户定义静态功能模块创作与运行](user-defined-static-authoring.md)，正式路线状态见 [BFN Development State Ledger](bfn-development-state.md)。
 
 ## Semantic classification layer
 

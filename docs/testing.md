@@ -1216,3 +1216,31 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - correction 定向门为 2 个测试文件、27 项测试全部通过；完整回归为 152 个测试文件、1266 项测试全部通过。12 个 Sender immutable source 文件按逐文件 length/SHA-256 清单临时物化混合 LF/CRLF 字节，finally 后 source diff 为零；
 - `npm run typecheck`、`npm run lint` 与 Vite 7.3.6 production build 全部通过；build 转换 304 个模块，主 CSS 为 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 为 3,359.41 kB（gzip 465.26 kB），保留既有大于 500 kB chunk 提示；
 - BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace IndexedDB structural version 保持 1；accumulator equation、first-order equation、mixed ordering、feedback、Sender/Receiver/Compatibility、metrics schema 与 repository persistence 均未修改。
+
+## 2026-09-02 Batch 12.4.1 Final Correction + Batch 12.4 Signal Pool
+
+### Phase 0 — SIM-2.2 deterministic-transform persistence
+
+- final correction 从唯一合法 pre-fix Head `1fd4b60225b90c9e5da41b92eaec77c7c97687c8` 线性追加为 `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`，仅修改 `repository.ts` 与 `repository.test.ts`；
+- regression 构建 real parameter-envelope producer → zero-parameter identity → accumulator → Monitor，确认 identity snapshot 同时保存 `method = parameter_interval_envelope`、`propagationMode = deterministic_transform`、`intervalExecutable = true` 与 `reason = null`；
+- 实际 `runBfnSimulation() → saveBfnRun() → loadBfnRuns()` 对完整 Run deep-equal，包括 interval bounds、engine version、dynamic metrics、temporal snapshot 与 context snapshot；
+- repository 继续拒绝 `bootstrap | posterior_samples | covariance` 与 deterministic-transform 的 malformed 组合，并按各自合同读取 BFN-SIM 2.0、2.1、2.2；
+- repository 与 simulationUncertainty 定向门为 2 个测试文件、45 项测试全部通过；`npm run typecheck` 通过；Phase 0 diff check 通过；
+- Phase 0 工作树 clean 后普通 push，local 与 origin correction SHA 均为 `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`。Batch 12.4.1 为 `CANDIDATE`、not `FROZEN`，等待联合 Master Review。
+
+### Phase 1 — Signal Pool contract、materialization 与 authoring
+
+- Phase 1 分支 `codex/bfn-signal-pool-authoring-integration` 从 exact base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建；Signal Pool 只收集 name、optional description、explicit signal、`nM | uM` 与 finite non-negative `C0`；
+- known signal 复用 Designed Sender canonical identity，existing project Entity 保留 exact ID，custom signal 只创建一个 ordinary user-defined Entity；pure materializer 创建 exactly one dynamic-only accumulator Functional Module 和最小 ValidityDomain；
+- module input/output 固定为同 Entity 的 `production_rate nM/h → concentration nM` 或 `production_rate uM/h → concentration uM`；evidence 为 `independent_assumption`，uncertainty 为 `none`，Context 为 `null`，Implementation 为 `unspecified`；
+- Add Module 中英文 UI 覆盖 known/existing/custom signal、unit pair、initial concentration 与 invalid-state blocking。一次 Add 是一个 Undo/Redo transaction，不创建 Edge、Input Source、Output Monitor 或 Run，不自动连线、插入或切换 network mode；
+- JSON、localStorage、Workspace Draft 与 Workspace Version 无损保存 dynamic-only family、Entity、units、initialState 与 authoring metadata；BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace IndexedDB structural version 保持 1；
+- production materializer constant-rate regression 使用 `10 nM/h`、`C0 = 2 nM`、`dt = 0.5 h` 得到 `[2, 7, 12, 17]`；static selected path 返回 `temporal_execution_unsupported`；
+- production Designed Sender → Signal Pool → trusted Catalog Receiver 集成得到 Sender rate `[0, 0, 5, 5, 5]`、Pool concentration `[2, 2, 2, 4.5, 7]`，Receiver 同步读取当前 `Ck`；直接 Sender → Receiver 继续因 Quantity/Unit mismatch 被拒绝；
+- upstream real parameter interval 经 Signal Pool 保持 output `[2, 7, 12]`、lower `[2, 4.5, 7]`、upper `[2, 9.5, 17]`；Pool snapshot 声明 `method = none` 与 `propagationMode = deterministic_transform`，不成为 uncertainty source；
+- computation signature 随 `C0`、signal Entity 与 unit pair 改变，name、description 与 position 不改变；Undo/Redo 与 persistence 保持同一科学状态；
+- contract、draft、materialization、authoring、platform、persistence、runtime、uncertainty、Designed Sender、Catalog Receiver、Port Compatibility、temporal、feedback、first-order 与既有 authoring 联合定向门为 33 个测试文件、357 项测试全部通过；lint 类型修正后的 4 个相关文件、28 项测试复跑通过；
+- 最终 `npm test -- --maxWorkers=4` 为 158 个测试文件、1303 项测试全部通过；12 个 Sender immutable source 文件按 length/SHA-256 清单临时物化为规定的混合 LF/CRLF 字节，finally 后逐字节恢复；
+- `npm run typecheck` 与 `npm run lint` 全部通过；Vite 7.3.6 production build 转换 308 个模块，主 CSS 为 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 为 3,377.46 kB（gzip 468.79 kB），保留既有大于 500 kB chunk 提示；
+- 全部分支变更文件通过 changed-file Prettier 和 `git diff --check`；相对 Phase 0 base，accumulator/first-order equations、IR migration、runtime contract、uncertainty runtime、repository、Port Compatibility、unit system、Designed Sender/Receiver science、Temporal evidence、Ontology、Inverse Design、Workspace DB 与 dependencies 保持零差异；
+- 以上只声明 local validation。GitHub workflow runs、check runs 与 status contexts 在 push 后按实际查询结果回传；本节不声明 CI、PASS、FROZEN、Master Review passed 或 freeze bookkeeping complete。
