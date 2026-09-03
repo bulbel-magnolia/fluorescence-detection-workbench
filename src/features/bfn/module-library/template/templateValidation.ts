@@ -10,6 +10,7 @@ import type {
   BfnTemplateStaticResponseV1,
   BfnTemplateValidityDomainV1,
 } from './templateTypes';
+import { resolveCanonicalEntityById } from './templateEntityPolicy';
 import {
   bfnTemplateContextDocumentationStates,
   bfnTemplateEvidenceGrades,
@@ -122,6 +123,7 @@ function validateEntities(
 ): void {
   const usedEntityKeys = new Set([...index.portByKey.values()].map((port) => port.entityKey));
   const canonicalIdentityKeys = new Map<string, string>();
+  const slotSourceIdentityKeys = new Map<string, string>();
   for (const [position, entity] of entities.entries()) {
     const path = `payload.entities[${position}]`;
     if (entity.key !== `entity.${position + 1}`) {
@@ -149,6 +151,16 @@ function validateEntities(
     if (entity.mode === 'embedded') continue;
     if (!isNonEmptyString(entity.sourceEntityId)) {
       issues.push(issue(`${path}.sourceEntityId`, 'blank'));
+    } else {
+      const existingKey = slotSourceIdentityKeys.get(entity.sourceEntityId);
+      if (existingKey !== undefined) {
+        issues.push(issue(`${path}.sourceEntityId`, 'slot_source_identity_duplicate'));
+      } else {
+        slotSourceIdentityKeys.set(entity.sourceEntityId, entity.key);
+      }
+      if (resolveCanonicalEntityById(entity.sourceEntityId) !== null) {
+        issues.push(issue(`${path}.sourceEntityId`, 'canonical_mode_required'));
+      }
     }
     const expectedRequirements = [...index.portByKey.values()]
       .filter((port) => port.entityKey === entity.key)

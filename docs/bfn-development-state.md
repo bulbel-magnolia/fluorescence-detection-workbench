@@ -1,11 +1,12 @@
 # BFN Development State Ledger
 
-- 最后核查日期：2026-09-02
+- 最后核查日期：2026-09-03
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
 - 当前正式冻结交付：Batch 12.3，以及经 Master Control 最终联合复核的 Batch 12.4.0、Batch 12.4.1 与 Batch 12.4；后三者现统一登记为 `FROZEN`
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
 - 本次 docs-only bookkeeping commit 建立统一 Batch 12.4 freeze checkpoint；实际 freeze SHA 在提交创建后由 handoff 记录，不在本提交中自引用
-- 当前授权开发：Batch 12.5.0 Correction Pass；分支 `codex/bfn-module-template-representation-contract`；原始 exact base `2d55b3b92c474bf70a2a28fe957590eb2345168c`；correction base `42bafecf908f3ba11d50b840a0b35f495266d919`；状态为 `CANDIDATE`，correction implementation complete，等待 Master Control re-review
+- 当前授权开发：Batch 12.5.1 Local Versioned Module Library Persistence；分支 `codex/bfn-local-versioned-module-library`；exact base `d7fdcbf13ec8847ec9480085756dfaf184c35331`；状态为 `ACTIVE`
+- Batch 12.5.0 保持 `CANDIDATE / not FROZEN`；Batch 12.5 主用户 workflow 保持 `PLANNED / NOT AUTHORIZED`
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -100,7 +101,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 | Batch 12.4.1 — Accumulator Runtime                        | FROZEN    | `codex/bfn-sim-2-2-accumulator-runtime`；base `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`                                                                               | Final Review PASS；BFN-SIM 2.2 accumulator runtime 与 persistence correction 冻结               |
 | Batch 12.4 — Signal Pool / Accumulation                   | FROZEN    | `codex/bfn-signal-pool-authoring-integration`；base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6` | Correction Review PASS；Signal Pool authoring、identity boundary 与 production integration 冻结 |
 | Batch 12.5.0 — Reusable Module Template Representation    | CANDIDATE | `codex/bfn-module-template-representation-contract`；original base `2d55b3b92c474bf70a2a28fe957590eb2345168c`；correction base `42bafecf908f3ba11d50b840a0b35f495266d919`；re-review required                                                    | BFN-MODULE-TEMPLATE 1.0 correction candidate；not `FROZEN`                                      |
-| Batch 12.5.1 — Local Versioned Module Library Persistence | PLANNED   | NOT AUTHORIZED；尚未启动；无实施 commit                                                                                                                                                                                                          | 等待后续 Master Control 独立授权；无模板 repository 或 persistence                              |
+| Batch 12.5.1 — Local Versioned Module Library Persistence | ACTIVE    | `codex/bfn-local-versioned-module-library`；exact base `d7fdcbf13ec8847ec9480085756dfaf184c35331`                                                                                                                                                | 独立本地 versioned repository 实施中；不包含主用户 workflow；not `FROZEN`                       |
 | Batch 12.5 — Reusable Module Library User Workflow        | PLANNED   | NOT AUTHORIZED；尚未启动；无实施 commit                                                                                                                                                                                                          | 等待后续 Master Control 独立授权；无用户可见模块库 workflow                                     |
 | Batch 13                                                  | FUTURE    | 范围与 SHA 均未建立                                                                                                                                                                                                                              | 不在当前授权范围                                                                                |
 
@@ -268,6 +269,21 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - `npm run typecheck`、`npm run lint` 与 Vite 7.3.6 production build 全部通过；build 转换 309 个模块。Correction 只修改 Template 目录和三份授权文档；BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、冻结 runtime/materializer、dependencies、UI 与 i18n 保持零差异；
 - Batch 12.5.0 状态为 `CANDIDATE` correction implementation complete，not `FROZEN`，等待 Master Control re-review。Batch 12.5.1 与 Batch 12.5 保持 `PLANNED / NOT AUTHORIZED`。
 
+## 2026-09-03 Batch 12.5.1 Local Versioned Module Library Persistence
+
+- 本批从 exact base `d7fdcbf13ec8847ec9480085756dfaf184c35331` 创建分支 `codex/bfn-local-versioned-module-library`，不从 `main` 或 Batch 12.4 freeze checkpoint 分支，不改写已评审历史；
+- Phase 0 在 Template representation 层补齐 source identity normalization：distinct slot records 的 `sourceEntityId` 必须唯一，production AHL/HSL resolver 已识别的 Entity ID 必须使用 canonical mode，canonical-as-slot 无法通过 parser 后以 `create_same_entity` 实例化；不同 slot、正常 canonical 与共享 noncanonical slot 路径保持有效；
+- Phase 1 使用独立 IndexedDB `fluorescence-desktop-bfn-module-library` structural version `1`，对象仓库严格为 `templates` 与 `versions`；Workspace database、stores、indexes 与 structural version 均不改变；
+- `BfnModuleLibraryRepository` 分离 metadata 与 immutable `BfnModuleTemplateVersionV1`，支持 create/get/list、metadata update、same-signature no-op、transactional N+1 scientific revision 与 metadata/version cascade delete；历史版本只用 `add` 写入，不原位覆盖；
+- localStorage fallback 使用独立 key `fluorescence-desktop.bfn-module-library.v1` 和 exact versioned envelope，在同一 runtime 的共享 `Storage` 实例上串行化操作并保持相同 observable semantics；
+- 每次读取完整 snapshot 并通过既有 strict metadata/template parser；schema、identity、revision、payload、signature、orphan、gap、latestRevision 和 envelope corruption 均 fail closed，不修复或推断科学字段；
+- metadata 返回独立 clone，version 返回独立 deep-frozen clone；Project instantiation 保持 copy-on-create，repository 不保存 Project ID、不修改 Project、不创建 graph linkage，也不参与 Project load/run；
+- repository 定向契约为 1 个文件 / 50 项测试通过，覆盖 IndexedDB/localStorage parity、corruption injection、Workspace isolation 与双仓库并发 revision allocation；Phase 0 Template 定向门为 4 个文件 / 118 项测试通过；
+- 默认 Windows checkout 的首次全量为 162/163 个文件、1477/1478 项通过，唯一失败为冻结 Sender source 的物理换行字节与 manifest 不一致；按 manifest 临时物化后，最终 `npm test -- --maxWorkers=4` 为 163/163 个文件、1478/1478 项通过，`finally` 后 12 个 Sender 文件逐字节恢复并验证，source diff 为零；
+- `npm run typecheck`、全项目 `npm run lint` 与 Vite 7.3.6 production build 通过；build 转换 309 个模块，保留既有大于 500 kB chunk 提示；14 个 changed files 通过 Prettier，`git diff --check` 通过；
+- 相对 exact base 的 14 个文件全部位于授权 Template/Module Library 与文档范围；BFN-IR、BFN-SIM、Workspace、accumulator、Compatibility/unit、Signal Pool、Designed Sender/Receiver、Temporal、Ontology、Inverse Design 与 package dependencies 零差异；
+- 本批没有新增依赖、UI、i18n、library import/export、cloud sync 或 Batch 12.5 主 workflow。Batch 12.5.1 保持 `ACTIVE`、not `FROZEN`，不声明 Master Review PASS。
+
 ## Sender Public Evidence Research formal boundary
 
 - Sender Public Evidence Research：`FROZEN`；
@@ -299,6 +315,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - [BFN-SIM 2.2 Accumulator Runtime](bfn-sim-2.2-accumulator-runtime.md)
 - [Signal Pool 创作与集成](signal-pool-authoring.md)
 - [BFN Module Template 1.0](bfn-module-template-1.0.md)
+- [BFN Local Versioned Module Library Persistence 1.0](bfn-module-library-persistence-1.0.md)
 - [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)
 - [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)
 - [时间语义、兼容性与适用性](temporal-and-compatibility.md)

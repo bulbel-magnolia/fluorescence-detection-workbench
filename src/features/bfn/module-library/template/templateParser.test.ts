@@ -163,6 +163,46 @@ describe('BFN-MODULE-TEMPLATE 1.0 strict parser', () => {
     );
   });
 
+  it('rejects two distinct slots with the same source Entity identity after re-signing', () => {
+    const candidate: unknown = structuredClone(versionForPayload(twoDistinctSlotPayload()));
+    const entities = array(record(record(candidate).payload).entities);
+    record(entities[1]).sourceEntityId = record(entities[0]).sourceEntityId;
+    resign(candidate);
+
+    expect(isBfnModuleTemplateVersionV1(candidate)).toBe(false);
+    expect(() => parseBfnModuleTemplateVersion(candidate)).toThrowError(
+      BFN_MODULE_TEMPLATE_SCHEMA_INVALID,
+    );
+  });
+
+  it('rejects a production canonical AHL/HSL identity encoded as a slot', () => {
+    const candidate: unknown = structuredClone(versionForPayload(twoDistinctSlotPayload()));
+    const canonical = captureAccumulatorFixture().entities[0]!;
+    if (canonical.mode !== 'canonical') throw new Error('Expected canonical fixture.');
+    const slot = record(array(record(record(candidate).payload).entities)[0]);
+    slot.sourceEntityId = canonical.entityId;
+    slot.displayName = canonical.displayName;
+    resign(candidate);
+
+    expect(isBfnModuleTemplateVersionV1(candidate)).toBe(false);
+    expect(() => parseBfnModuleTemplateVersion(candidate)).toThrowError(
+      BFN_MODULE_TEMPLATE_SCHEMA_INVALID,
+    );
+  });
+
+  it('accepts two genuinely different slot identities', () => {
+    const version = versionForPayload(twoDistinctSlotPayload(), 'template.two-distinct-slots');
+
+    expect(isBfnModuleTemplateVersionV1(version)).toBe(true);
+    expect(parseBfnModuleTemplateVersion(version)).toEqual(version);
+  });
+
+  it('keeps a normal production canonical Entity roundtrip valid', () => {
+    const version = versionForPayload(captureAccumulatorFixture(), 'template.canonical-roundtrip');
+
+    expect(parseBfnModuleTemplateVersion(version)).toEqual(version);
+  });
+
   it('rejects dataset fields and unknown payload properties', () => {
     const candidate: unknown = structuredClone(versionForPayload(captureStaticFixture()));
     const payload = record(record(candidate).payload);
@@ -266,6 +306,31 @@ function resign(value: unknown): void {
   root.payloadSignature = createBfnModuleTemplatePayloadSignature(
     root.payload as BfnReusableModulePayloadV1,
   );
+}
+
+function twoDistinctSlotPayload(): BfnReusableModulePayloadV1 {
+  const payload = structuredClone(captureStaticFixture());
+  return {
+    ...payload,
+    entities: payload.entities.map((entity, index) => {
+      const port = payload.ports[index]!;
+      return {
+        key: entity.key,
+        mode: 'slot' as const,
+        sourceEntityId: `external.entity.${String(index + 1)}`,
+        displayName: entity.displayName,
+        description: entity.mode === 'canonical' ? null : entity.description,
+        requirements: [
+          {
+            portKey: port.key,
+            direction: port.direction,
+            quantityType: port.quantityType,
+            unit: port.unit,
+          },
+        ],
+      };
+    }),
+  };
 }
 
 function record(value: unknown): Record<string, unknown> {

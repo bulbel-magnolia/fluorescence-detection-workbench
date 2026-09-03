@@ -7,6 +7,7 @@ import {
   createReusableModuleScientificProjection,
   reusableModuleScientificProjectionsEqual,
 } from './templateProjection';
+import { createBfnModuleTemplatePayloadSignature } from './templateSignature';
 import type {
   BfnReusableModulePayloadV1,
   BfnTemplateEntityBindingDecisions,
@@ -453,6 +454,57 @@ describe('reusable module template instantiation', () => {
     });
   });
 
+  it('rejects a re-signed canonical-as-slot create_same_entity before materialization', () => {
+    const payload = createCanonicalAsSlotPayload();
+    const validVersion = versionForPayload(captureStaticFixture(), 'template.canonical-as-slot');
+    const forgedVersion = {
+      ...validVersion,
+      payload,
+      payloadSignature: createBfnModuleTemplatePayloadSignature(payload),
+    };
+    const slot = payload.entities.find((entity) => entity.mode === 'slot')!;
+
+    expect(
+      instantiateReusableModuleTemplate(
+        forgedVersion,
+        createBlankTemplateProject('project.target.canonical-as-slot'),
+        {
+          [slot.key]: {
+            mode: 'create_same_entity',
+            identityConfirmation: 'same_scientific_entity',
+          },
+        },
+        options('instance.canonical-as-slot'),
+      ),
+    ).toMatchObject({ ok: false, issues: [{ code: 'template_schema_invalid' }] });
+  });
+
+  it('roundtrips a shared noncanonical slot as an independent same-identity copy', () => {
+    const payload = createSlotPayload();
+    const slot = payload.entities.find((entity) => entity.mode === 'slot')!;
+    const result = instantiateReusableModuleTemplate(
+      versionForPayload(payload, 'template.shared-noncanonical-slot'),
+      createBlankTemplateProject('project.target.shared-noncanonical-slot'),
+      {
+        [slot.key]: {
+          mode: 'create_same_entity',
+          identityConfirmation: 'same_scientific_entity',
+        },
+      },
+      options('instance.shared-noncanonical-slot'),
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.nextProject.registry.entities).toContainEqual(
+        expect.objectContaining({
+          id: `instance.shared-noncanonical-slot.${slot.key}`,
+          displayName: slot.displayName,
+        }),
+      );
+    }
+  });
+
   it('makes instance projection reject a concrete Entity-relation collapse', () => {
     const payload = captureStaticFixture();
     const result = instantiateReusableModuleTemplate(
@@ -802,8 +854,8 @@ function createCanonicalAndSlotPayload(): BfnReusableModulePayloadV1 {
   entities[0] = {
     key: entities[0]!.key,
     mode: 'slot',
-    sourceEntityId: canonical.entityId,
-    displayName: canonical.displayName,
+    sourceEntityId: 'external.noncanonical.input',
+    displayName: 'External noncanonical input',
     description: null,
     requirements: [
       {
@@ -819,6 +871,27 @@ function createCanonicalAndSlotPayload(): BfnReusableModulePayloadV1 {
     key: entities[1]!.key,
   };
   return { ...payload, entities };
+}
+
+function createCanonicalAsSlotPayload(): BfnReusableModulePayloadV1 {
+  const payload = createCanonicalAndSlotPayload();
+  const canonical = payload.entities.find((entity) => entity.mode === 'canonical')!;
+  const slot = payload.entities.find((entity) => entity.mode === 'slot')!;
+  if (canonical.mode !== 'canonical' || slot.mode !== 'slot') {
+    throw new Error('Expected canonical and slot fixtures.');
+  }
+  return {
+    ...payload,
+    entities: payload.entities.map((entity) =>
+      entity.key === slot.key
+        ? {
+            ...entity,
+            sourceEntityId: canonical.entityId,
+            displayName: canonical.displayName,
+          }
+        : entity,
+    ),
+  };
 }
 
 function options(instanceId: string): BfnTemplateInstantiationOptions {

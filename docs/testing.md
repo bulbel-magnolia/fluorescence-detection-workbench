@@ -1297,3 +1297,49 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 production build 通过并转换 309 个模块，主 CSS 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 3,378.07 kB（gzip 468.90 kB），保留既有大于 500 kB chunk 提示；
 - correction 的 10 个 Template TypeScript 文件与 3 个文档文件进入 changed-file Prettier 和 diff gate；BFN-IR schema/migration、BFN-SIM runtime/equations、accumulator runtime、Signal Pool、Designed Sender、Sender/Receiver、Workspace、Compatibility、unit system、dependencies、UI 与 i18n 均不在 correction diff；
 - 以上只声明 local validation。Batch 12.5.0 为 `CANDIDATE` correction implementation complete、not `FROZEN`；GitHub workflow/check/status context 由 push 后实际查询，不声明 CI 或 Master Review。
+
+## 2026-09-03 Batch 12.5.1 Local Versioned Module Library Persistence
+
+### Phase 0 Template identity regression
+
+- duplicate slot `sourceEntityId` 与 canonical AHL/HSL ID encoded as slot 均由 re-signed parser fixture 拒绝；
+- canonical-as-slot 加 `create_same_entity` 返回 `template_schema_invalid`，不能生成 ordinary Entity；
+- two distinct slots、normal canonical roundtrip 与 shared noncanonical slot roundtrip 保持有效；
+- Phase 0 纳入既有四个 Template 测试文件，定向门为 4 个文件 / 118 项测试通过。
+
+### Repository contract tests
+
+`src/features/bfn/module-library/moduleLibraryRepository.test.ts` 对 IndexedDB 和 localStorage 运行同一套 repository contract，并直接覆盖：
+
+1. create template 与 revision 1；
+2. metadata roundtrip；
+3. strict frozen version roundtrip；
+4. metadata 与 version deterministic ordering；
+5. metadata-only rename 不创建 revision；
+6. changed payload 创建 N+1；
+7. identical latest signature no-op；
+8. metadata edit、new revision 与 Project instantiation 后 historical bytes/science 不变；
+9. metadata 与全部 versions cascade delete；
+10. unknown metadata/version 的稳定 null/not-found 结果；
+11. corrupt metadata fail closed；
+12. corrupt schema/schemaVersion/template ID/version ID/revision/payload/signature/missing field fail closed；
+13. returned metadata mutation 与 frozen version mutation不改变 persistence；
+14. IndexedDB/localStorage observable result parity；
+15. Workspace IndexedDB schema 与 localStorage namespace isolation；
+16. 两个 repository instance 并发保存分配连续 revision 且不覆盖历史；
+17. incompatible database、malformed envelope 与 orphan version 的 repository-state rejection。
+
+定向结果：1 个文件 / 50 项测试通过。测试使用现有 `fake-indexeddb`，没有新增 package dependency。
+
+### Validation results
+
+- Template targeted：4 个文件 / 118 项测试通过；
+- Module Library targeted：1 个文件 / 50 项测试通过；
+- 默认 checkout 首次 full suite：162/163 个文件、1477/1478 项通过，唯一失败为既有 Sender immutable source 的 Windows CRLF/LF 物理字节清单；
+- manifest-protected final `npm test -- --maxWorkers=4`：163/163 个文件、1478/1478 项通过；`finally` 后 12/12 Sender source 恢复 hash 与运行前一致，Sender source diff 为零；
+- `npm run typecheck` 与 `npm run lint` 通过；
+- Vite 7.3.6 `npm run build` 通过，转换 309 个模块；主 CSS 279.02 kB（gzip 46.50 kB），主 JavaScript chunk 3,378.07 kB（gzip 468.90 kB），保留既有 chunk-size warning；
+- 14 个 changed files 通过 Prettier check，`git diff --check` 通过；
+- frozen boundary audit：Workspace 与 package files 零差异，BFN-IR/SIM、accumulator、Compatibility/unit、Signal Pool、Designed Sender/Receiver、Temporal、Ontology、Inverse Design 零差异，production repository 无 Project linkage 引用。
+
+本节记录 Batch 12.5.1 local validation，不声明 Batch 12.5.0 或 12.5.1 frozen，也不声明 Master Review PASS。

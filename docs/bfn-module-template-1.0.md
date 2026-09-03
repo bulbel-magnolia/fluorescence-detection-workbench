@@ -4,11 +4,12 @@
 
 - Schema: `BFN-MODULE-TEMPLATE`
 - Schema version: `1.0`
-- Delivery: Batch 12.5.0 `ACTIVE` implementation candidate
+- Delivery: Batch 12.5.0 `CANDIDATE`, not frozen
 - Runtime target: BFN-IR 2.3 projects
-- Persistence and user workflow: outside Batch 12.5.0
+- Persistence: Batch 12.5.1 separate repository contract
+- User workflow: not authorized
 
-This document defines the project-independent representation and pure conversion contract for reusable user-authored modules. It does not declare Batch 12.5.0 frozen or provide a module-library repository.
+This document defines the project-independent representation and pure conversion contract for reusable user-authored modules. The separate [local versioned module library](bfn-module-library-persistence-1.0.md) persists admitted values without changing this representation contract. Neither delivery is declared frozen.
 
 ## Responsibility boundary
 
@@ -35,9 +36,9 @@ Template identity metadata is separate from scientific versions:
 - `BfnModuleTemplateVersionV1` records the fixed schema identity, version ID, template ID, positive revision, creation timestamp, optional note, normalized payload, and payload signature.
 - `createBfnModuleTemplateVersionV1()` receives identity and timestamp data from its caller, computes the signature, and admits the result through the same strict parser used for imported data.
 
-The version ID is exactly `${templateId}:version:${revision}`. Revision 1 is the initial scientific version. A scientific payload change creates a new positive integer revision; a metadata name or description edit does not. Saving the same latest payload signature is a no-op. A version is never modified in place, and the parser returns a deeply frozen clone. Template 1.0 does not delete an individual historical version. A future repository must delete metadata and all versions atomically when deleting a template.
+The version ID is exactly `${templateId}:version:${revision}`. Revision 1 is the initial scientific version. A scientific payload change creates a new positive integer revision; a metadata name or description edit does not. Saving the same latest payload signature is a no-op. A version is never modified in place, and the parser returns a deeply frozen clone. Template 1.0 does not delete an individual historical version. The Batch 12.5.1 repository deletes metadata and the complete version history as one repository operation.
 
-This delivery defines and validates these value semantics only. Allocation, storage, no-op coordination, and deletion belong to Batch 12.5.1.
+This representation delivery defines and validates the value semantics. Allocation, storage, no-op coordination, and deletion are implemented by the independent Batch 12.5.1 repository.
 
 ## Supported module classes
 
@@ -89,6 +90,8 @@ Each slot requires one explicit decision at instantiation:
 - both decisions must carry `identityConfirmation: 'same_scientific_entity'`.
 
 All ports associated with one slot use the same decision. Missing, unexpected, malformed, name-guessed, or arbitrary-substitution decisions are rejected. The API records an explicit scientific identity assertion; it does not infer biological equivalence from names.
+
+Each distinct slot record carries a distinct `sourceEntityId`. Multiple ports can continue to reference one shared slot key. A source Entity ID recognized by the production AHL/HSL canonical resolver cannot be represented as a slot and must use canonical mode. Parser admission enforces both rules before instantiation, so canonical identity cannot be downgraded to a slot and recreated as an ordinary Entity through `create_same_entity`.
 
 The final template-key-to-project-Entity mapping is injective across all modes. Two slot keys cannot bind to one target Entity, a slot cannot converge on a canonical Entity used by another key, and two canonical keys cannot name the same concrete canonical identity. Imported duplicate canonical identities fail parsing even when the payload is re-signed. Instance projection also rejects a collapsed mapping instead of assigning separate scientific ordinals from template keys alone.
 
@@ -173,6 +176,6 @@ This signature is an equality and change-detection aid. It is not cryptographic,
 
 ## Unsupported boundaries
 
-Batch 12.5.0 does not implement persistence, an IndexedDB or localStorage repository, revision allocation, library import/export, cloud sync, team sharing, automatic graph wiring, automatic updates, live instance linkage, Dataset or Calibration Map packaging, arbitrary Entity substitution, or user-visible module-library UI.
+Batch 12.5.0 does not itself implement persistence. Batch 12.5.1 provides only the separate local IndexedDB/localStorage repository, revision allocation, strict stored-record admission, and atomic template-history deletion. Library import/export, cloud sync, team sharing, automatic graph wiring, automatic updates, live instance linkage, Dataset or Calibration Map packaging, arbitrary Entity substitution, and user-visible module-library UI remain outside both deliveries.
 
 BFN-IR remains 2.3, BFN-SIM remains 2.2, and the Workspace IndexedDB structural version remains 1. No package dependency is added.
