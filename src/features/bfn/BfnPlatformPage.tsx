@@ -36,6 +36,22 @@ import {
 } from './editorHistory';
 import { bfnEditorShortcut, isBfnEditorOverlayOpen } from './editorShortcuts';
 import { resolveEffectiveBfnModel } from './modelResolution';
+import type { BfnModuleLibraryInitialView } from './module-library/BfnModuleLibraryWorkspace';
+import {
+  createBfnModuleLibraryRepository,
+  type BfnModuleLibraryRepository,
+} from './module-library';
+import {
+  buildReusableModuleCaptureAvailability,
+  type ReusableModuleCaptureAvailability,
+} from './module-library/moduleLibraryWorkflow';
+import {
+  instantiateReusableModuleTemplate,
+  type BfnModuleTemplateVersionV1,
+  type BfnTemplateEntityBindingDecisions,
+  type BfnTemplateInstantiationOptions,
+  type BfnTemplateInstantiationResult,
+} from './module-library/template';
 import { BFN_CANVAS_SIZE, findBfnModulePlacement, type BfnCanvasViewport } from './nodePlacement';
 import { createCatalogModule, createDemoBfnProject, type BfnCatalogModuleId } from './fixtures';
 import {
@@ -119,6 +135,8 @@ export interface BfnPlatformPageProps {
   onImportProject?: (file: File) => Promise<void>;
   onOpenProjectCenter?: () => void;
   onCatalogOpen?: () => void;
+  moduleLibraryRepository?: BfnModuleLibraryRepository | null;
+  moduleLibraryClock?: () => string;
 }
 
 interface EndpointOption {
@@ -368,6 +386,8 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const [resultPanelOpen, setResultPanelOpen] = useState(initialResult !== null);
   const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
+  const [moduleLibraryInitialView, setModuleLibraryInitialView] =
+    useState<BfnModuleLibraryInitialView | null>(null);
   const [catalogInitialDetailTarget, setCatalogInitialDetailTarget] =
     useState<BfnCatalogDetailTarget | null>(null);
   const [localSaveStatus, setLocalSaveStatus] = useState<BfnSaveStatus>('saved');
@@ -380,6 +400,20 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     useState<DestructiveAction | null>(null);
   const [history, setHistory] = useState<BfnEditorHistory>(createBfnEditorHistory);
   const importRef = useRef<HTMLInputElement>(null);
+  const defaultModuleLibraryRepositoryRef = useRef<BfnModuleLibraryRepository | null | undefined>(
+    undefined,
+  );
+  if (defaultModuleLibraryRepositoryRef.current === undefined) {
+    try {
+      defaultModuleLibraryRepositoryRef.current = createBfnModuleLibraryRepository();
+    } catch {
+      defaultModuleLibraryRepositoryRef.current = null;
+    }
+  }
+  const moduleLibraryRepository =
+    props.moduleLibraryRepository !== undefined
+      ? props.moduleLibraryRepository
+      : defaultModuleLibraryRepositoryRef.current;
   const projectRef = useRef(project);
   const selectedNodeRef = useRef(selectedNodeId);
   const selectedEdgeRef = useRef(selectedEdgeId);
@@ -484,6 +518,13 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   );
   const selectedModule =
     project.network.modules.find((module) => module.id === selectedNodeId) ?? null;
+  const selectedModuleLibraryAvailability = useMemo<ReusableModuleCaptureAvailability | null>(
+    () =>
+      selectedModule?.authoring?.origin === 'user_defined'
+        ? buildReusableModuleCaptureAvailability(project, selectedModule.id)
+        : null,
+    [project, selectedModule],
+  );
   const selectedSource =
     project.network.inputSources.find((source) => source.id === selectedNodeId) ?? null;
   const selectedMonitor =
@@ -895,21 +936,60 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     return outcome;
   };
 
+  const addSavedModule = (
+    version: BfnModuleTemplateVersionV1,
+    bindings: BfnTemplateEntityBindingDecisions,
+    options: BfnTemplateInstantiationOptions,
+  ): BfnTemplateInstantiationResult => {
+    const outcome = instantiateReusableModuleTemplate(
+      version,
+      projectRef.current,
+      bindings,
+      options,
+    );
+    if (!outcome.ok) return outcome;
+    const changed = performProjectEdit(() => outcome.nextProject);
+    if (!changed) {
+      return {
+        ok: false,
+        issues: [{ code: 'generated_id_collision', path: 'options.instanceId' }],
+      };
+    }
+    selectNode(outcome.addedModuleId);
+    setView('design');
+    setModulePickerOpen(false);
+    setCatalogInitialDetailTarget(null);
+    setModuleLibraryInitialView(null);
+    setNotice(t('bfn.moduleLibrary.feedback.added'));
+    return outcome;
+  };
+
   const openCatalogDiscovery = (): void => {
     props.onCatalogOpen?.();
     setCatalogInitialDetailTarget(null);
+    setModuleLibraryInitialView(null);
     setModulePickerOpen(true);
   };
 
   const openCatalogDetail = (target: BfnCatalogDetailTarget): void => {
     props.onCatalogOpen?.();
+    setModuleLibraryInitialView(null);
     setCatalogInitialDetailTarget(target);
+    setModulePickerOpen(true);
+  };
+
+  const openSelectedModuleLibrarySave = (): void => {
+    if (!selectedModule || !selectedModuleLibraryAvailability?.supported) return;
+    props.onCatalogOpen?.();
+    setCatalogInitialDetailTarget(null);
+    setModuleLibraryInitialView({ kind: 'save', moduleId: selectedModule.id });
     setModulePickerOpen(true);
   };
 
   const closeCatalogDrawer = (): void => {
     setModulePickerOpen(false);
     setCatalogInitialDetailTarget(null);
+    setModuleLibraryInitialView(null);
   };
 
   const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
@@ -1630,6 +1710,34 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         )}
                       </section>
                     </details>
+                    {selectedModule.authoring?.origin === 'user_defined' &&
+                    selectedModuleLibraryAvailability ? (
+                      <section className="bfn-inspector-block">
+                        <header>
+                          <strong>{t('bfn.moduleLibrary.inspector.title')}</strong>
+                        </header>
+                        <p>
+                          {selectedModuleLibraryAvailability.supported
+                            ? t('bfn.moduleLibrary.inspector.description')
+                            : t(
+                                'bfn.moduleLibrary.captureFailures.' +
+                                  selectedModuleLibraryAvailability.failureKind,
+                              )}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leadingIcon={<Icon name="file" size={14} />}
+                          disabled={!selectedModuleLibraryAvailability.supported}
+                          {...(!selectedModuleLibraryAvailability.supported
+                            ? { disabledReason: t('bfn.moduleLibrary.inspector.saveBlocked') }
+                            : {})}
+                          onClick={openSelectedModuleLibrarySave}
+                        >
+                          {t('bfn.moduleLibrary.inspector.saveAction')}
+                        </Button>
+                      </section>
+                    ) : null}
                     <button
                       className="danger-text-button"
                       type="button"
@@ -2107,6 +2215,12 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           onAddUserModule={addUserDefinedModule}
           onAddDesignedSender={addDesignedSender}
           onAddSignalPool={addSignalPool}
+          moduleLibraryRepository={moduleLibraryRepository ?? null}
+          onInstantiateSavedModule={addSavedModule}
+          {...(props.moduleLibraryClock ? { moduleLibraryClock: props.moduleLibraryClock } : {})}
+          {...(moduleLibraryInitialView
+            ? { initialModuleLibraryView: moduleLibraryInitialView }
+            : {})}
           {...(catalogInitialDetailTarget
             ? { initialDetailTarget: catalogInitialDetailTarget }
             : {})}

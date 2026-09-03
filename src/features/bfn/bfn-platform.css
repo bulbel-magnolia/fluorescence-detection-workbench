@@ -1,6 +1,7 @@
 @import './bfn-workbench.css';
 @import './bfn-catalog-discovery.css';
 @import './bfn-user-module-authoring.css';
+@import './module-library/bfn-module-library.css';
 @import './bfn-canvas.css';
 @import './bfn-inspector.css';
 @import './bfn-results.css';

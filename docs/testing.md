@@ -1343,3 +1343,21 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - frozen boundary audit：Workspace 与 package files 零差异，BFN-IR/SIM、accumulator、Compatibility/unit、Signal Pool、Designed Sender/Receiver、Temporal、Ontology、Inverse Design 零差异，production repository 无 Project linkage 引用。
 
 本节记录 Batch 12.5.1 local validation，不声明 Batch 12.5.0 或 12.5.1 frozen，也不声明 Master Review PASS。
+
+## 2026-09-03 Batch 12.5 Reusable Module Library User Workflow
+
+### Targeted workflow and presentation tests
+
+- `moduleLibraryWorkflow.test.ts`、`BfnModuleLibraryWorkspace.test.tsx` 与 `BfnPlatformModuleLibraryWorkflow.test.tsx` 为 3 个文件 / 65 项测试，覆盖支持性判断、保存策略、新建与显式追加版本、same-science no-op、metadata-only edit、确定性列表、历史版本只读、科学信息呈现、Entity 确认、独立项目副本、整体删除、损坏记录和普通用户文案边界；
+- Template targeted regression 为 4 个文件 / 118 项测试通过；Module Library Repository contract regression 为 1 个文件 / 50 项测试通过；
+- 新增工作流与 Catalog、generic static authoring、Designed Sender、Signal Pool、组件级 authoring 及中英文 key 的联合 BFN UI regression 为 12 个文件 / 114 项测试通过；
+- presentation regression 确认普通用户可见内容不暴露 raw ID、raw JSON、存储实现或内部 contract 字段，同时显示 quantity、unit、model、parameters、applicability、evidence、uncertainty、version 和明确主操作。
+
+### Full validation
+
+- Windows 默认工作树首轮完整测试为 165/166 个文件、1542/1543 项通过，唯一失败是冻结 Sender source 的 CRLF/LF 物理字节与清单不一致；
+- 按现有安全策略逐文件选择满足清单长度与 SHA-256 的 Git blob 或 Windows 工作树字节后，Sender loader 为 1 个文件 / 6 项通过，最终 `npm test -- --maxWorkers=4` 为 166/166 个文件、1543/1543 项通过；
+- `finally` 恢复 12/12 Sender source 的运行前字节，逐文件 SHA-256 相同，Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；
+- Vite 7.3.6 `npm run build` 通过，转换 332 个模块；主 CSS 为 289.59 kB（gzip 47.91 kB），主 JavaScript chunk 为 3,508.06 kB（gzip 501.34 kB），保留既有大于 500 kB chunk 提示；
+- 本批只声明 local validation。Batch 12.5 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`，不声明 CI 或 Master Review PASS。

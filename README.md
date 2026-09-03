@@ -6,21 +6,21 @@ BIT-CHINA 荧光检测项目的 Windows 研究原型。该子项目采用 Tauri 
 
 ## 当前状态
 
-| 能力                                         | 状态                                                               |
-| -------------------------------------------- | ------------------------------------------------------------------ |
-| Windows 10/11 x64 桌面壳                     | 已实现                                                             |
-| 中文 / 英文界面                              | 已实现、持久化并完成文案审校                                       |
-| 演示设备扫描、连接、控制和三通道曲线         | 已实现                                                             |
-| HC-08D 扫描、连接、通知接收和检测光源控制    | 已实现，等待目标硬件完成双向真机验收                               |
-| FFE0/FFE1 优先与自适应 GATT 发现             | 已实现；存在歧义时可在技术详情中手动选择                           |
-| 真实四路原始信号曲线、饱和标记和本地记录     | 已实现                                                             |
-| JSON / CSV 导入与 Demo 分析                  | 已实现                                                             |
-| BFN-IR 2.3 完整功能模块与理想连接            | 已实现；Batch 12.4 候选增加显式 Signal Pool 创作并复用 BFN-SIM 2.2 |
-| 静态/动态仿真、ANN 近似与双空间反向设计      | 已实现研究原型；内置参数、数据与候选均明确标为 Demo                |
-| SQLite 历史、原始帧、通道采样和同步队列      | 已实现                                                             |
-| JSON / CSV 记录导出                          | 已实现                                                             |
-| Supabase 账号、工作区、RLS 与 Edge Functions | 已建立基础                                                         |
-| NSIS / MSI 安装包                            | 构建流程已配置；本轮 HC-08D 版本的最终产物见测试记录               |
+| 能力                                         | 状态                                                          |
+| -------------------------------------------- | ------------------------------------------------------------- |
+| Windows 10/11 x64 桌面壳                     | 已实现                                                        |
+| 中文 / 英文界面                              | 已实现、持久化并完成文案审校                                  |
+| 演示设备扫描、连接、控制和三通道曲线         | 已实现                                                        |
+| HC-08D 扫描、连接、通知接收和检测光源控制    | 已实现，等待目标硬件完成双向真机验收                          |
+| FFE0/FFE1 优先与自适应 GATT 发现             | 已实现；存在歧义时可在技术详情中手动选择                      |
+| 真实四路原始信号曲线、饱和标记和本地记录     | 已实现                                                        |
+| JSON / CSV 导入与 Demo 分析                  | 已实现                                                        |
+| BFN-IR 2.3 完整功能模块与理想连接            | 已实现；Batch 12.5 候选增加本地可复用模块库工作流，当前未冻结 |
+| 静态/动态仿真、ANN 近似与双空间反向设计      | 已实现研究原型；内置参数、数据与候选均明确标为 Demo           |
+| SQLite 历史、原始帧、通道采样和同步队列      | 已实现                                                        |
+| JSON / CSV 记录导出                          | 已实现                                                        |
+| Supabase 账号、工作区、RLS 与 Edge Functions | 已建立基础                                                    |
+| NSIS / MSI 安装包                            | 构建流程已配置；本轮 HC-08D 版本的最终产物见测试记录          |
 
 真实硬件与 Demo 使用同一套页面结构，通过操作、状态和文案区分。真实 HC-08D 记录标记为 `RAW_ONLY`，不执行 Demo 背景校正、浓度换算或质量判定。Demo 中的标定参数、换算值、质量分和等级均未经实验验证。
 
@@ -105,6 +105,8 @@ BFN-SIM 2.2 对满足窄科学合同的显式 accumulator 执行 `dC/dt = r(t)`�
 
 Batch 12.4 Signal Pool 候选把这项已有能力接入 Add Module 工作流。用户选择已知 AHL/HSL、项目现有 Entity 或显式自定义信号，设置 `nM/h → nM` 或 `uM/h → uM` 与非负初始浓度，系统将其物化为普通、dynamic-only 的 accumulator Functional Module。Add 操作不创建连接、不自动插入模块、不切换网络模式，也不触发运行；用户继续通过 Ideal Edge 显式组成 `Designed Sender → Signal Pool → Receiver`。
 
+Batch 12.5 可复用模块库候选把已审阅的模板与本地版本仓库接入科研工作台。受支持的用户模块可从属性面板保存；“添加模块”中的“我的模块”提供确定性列表、科学详情、历史版本、元数据编辑、整体删除与实体确认。添加操作创建一个独立项目副本，不建立实时关联，也不自动创建连接、输入源、输出监视器、信号池或运行。该批次已完成本地实现，状态为 `CANDIDATE / not FROZEN`，等待 Master Review。
+
 ANN 是完整响应模型的局部替代表示，只在用户指定的工作域内训练与评价。工作台同时报告 R²、NRMSE、最大误差和区间覆盖率；未达到接受标准时保留完整非线性模型作为计算依据。反向设计显式区分模型参数空间 θ 与可实现设计变量空间 q，通过版本化标定映射生成候选，并按功能误差、实现负担、串扰、噪声、不确定性和遗传稳定性排序。候选状态固定显示为“提议、未构建”。
 
 项目使用 `BFN-IR-2.3` JSON 结构在本机保存，可导入、导出与重置。合法 BFN-IR 2.0、2.1、2.2 与 2.3 项目和 Workspace Draft/Version 在读取时通过中央迁移暴露为 2.3；旧 `baseline / gain / sensitivity` 建模格式仍只识别和提示，不在缺少语义映射时静默改名。普通项目变化采用 320 ms 轻量自动保存，并明确显示保存中、已保存或失败。结果新鲜度由只包含可计算状态的 computation signature 派生：语义编辑会使结果过期，Undo 回到运行时状态会恢复当前结果，节点位置、schema 描述元数据和面板状态不参与比较。BFN-SIM 2.2 只执行 BFN-IR 2.3 中满足 exact arity、Entity、Quantity、Unit、initialState 与 uncertainty contract 的 accumulator；Signal Pool materializer 通过同一中央合同，不建立第二套运行语义。内置模块、数据集、标定关系、仿真值和反向设计候选均为演示数据，不代表实验验证或最终工程参数。完整结构和算法边界见 [BFN-IR 2.3 表示扩展](docs/bfn-ir-2.3.md)、[BFN-SIM 2.2 Accumulator Runtime](docs/bfn-sim-2.2-accumulator-runtime.md)、[Signal Pool 创作与集成](docs/signal-pool-authoring.md) 与 [建模说明](docs/modeling.md)；[BFN-IR 2.2 端口标签表示扩展](docs/bfn-ir-2.2.md) 和 [BFN-IR 2.1 表示扩展](docs/bfn-ir-2.1.md) 保留为版本历史。
@@ -178,6 +180,7 @@ Tauri 配置同时生成 NSIS 和 MSI。首次原生构建需要访问 crates.io
 - [BFN-IR 2.3 Dynamic Process 表示扩展](docs/bfn-ir-2.3.md)
 - [BFN-SIM 2.2 Accumulator Runtime](docs/bfn-sim-2.2-accumulator-runtime.md)
 - [Signal Pool 创作与集成](docs/signal-pool-authoring.md)
+- [可复用模块库用户工作流](docs/bfn-reusable-module-library-workflow.md)
 - [BFN-IR 2.2 端口标签表示扩展](docs/bfn-ir-2.2.md)
 - [BFN-IR 2.1 表示扩展历史](docs/bfn-ir-2.1.md)
 - [用户定义一阶动态模块创作与运行](docs/user-defined-first-order-dynamic-authoring.md)
