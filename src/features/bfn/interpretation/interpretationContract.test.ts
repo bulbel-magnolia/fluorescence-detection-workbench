@@ -494,7 +494,7 @@ describe('BFN-INTERPRETATION 1.0 static-family and scientific definitions', () =
     );
   });
 
-  it('admits identity', () => {
+  it('rejects a same-unit identity between different entities and quantities', () => {
     const project = createDemoBfnProject();
     const module = project.network.modules[1]!;
     useSingleStaticResponse(project, module, {
@@ -505,9 +505,71 @@ describe('BFN-INTERPRETATION 1.0 static-family and scientific definitions', () =
       { portId: module.inputPorts[0]!.id, value: 0.5, unit: 'dimensionless' },
     ]);
 
-    expect(assessBfnLocalInfluenceRequest(project, request).target?.responseFamily).toBe(
-      'identity',
-    );
+    expect(assessBfnLocalInfluenceRequest(project, request)).toMatchObject({
+      status: 'unsupported',
+      issues: [
+        expect.objectContaining({
+          code: 'model_contract_invalid',
+          details: { reason: 'identity_contract_invalid' },
+        }),
+      ],
+    });
+  });
+
+  it('admits identity only when Entity, quantity type, and unit are all equal', () => {
+    const project = createDemoBfnProject();
+    const module = project.network.modules[1]!;
+    const input = module.inputPorts[0]!;
+    const output = module.outputPorts[0]!;
+    output.entity = input.entity;
+    output.quantityType = input.quantityType;
+    output.unit = input.unit;
+    useSingleStaticResponse(project, module, {
+      family: 'identity',
+      inputPortId: input.id,
+    });
+
+    expect(
+      assessBfnLocalInfluenceRequest(
+        project,
+        requestFor(module, [{ portId: input.id, value: 0.5, unit: input.unit }]),
+      ).target?.responseFamily,
+    ).toBe('identity');
+  });
+
+  it.each([0, 1])(
+    'rejects output selection %s when a static response has two same-unit outputs',
+    (outputIndex) => {
+      const { project, module } = singleInputFixture();
+      module.outputPorts.push({
+        ...structuredClone(module.outputPorts[0]!),
+        id: 'secondary-output',
+      });
+      const request = {
+        ...requestFor(module),
+        outputPortId: module.outputPorts[outputIndex]!.id,
+      };
+
+      expect(assessBfnLocalInfluenceRequest(project, request)).toMatchObject({
+        status: 'unsupported',
+        issues: [
+          expect.objectContaining({
+            code: 'model_contract_invalid',
+            details: { reason: 'static_output_arity_invalid' },
+          }),
+        ],
+      });
+    },
+  );
+
+  it('preserves supported behavior for an exactly-one-output static module', () => {
+    const { project, module, request } = singleInputFixture();
+
+    expect(module.outputPorts).toHaveLength(1);
+    expect(assessBfnLocalInfluenceRequest(project, request)).toMatchObject({
+      status: 'supported',
+      target: { outputPortId: module.outputPorts[0]!.id },
+    });
   });
 
   it('keeps Ideal Edge as identity topology without weight, gain, bias, or sensitivity fields', () => {

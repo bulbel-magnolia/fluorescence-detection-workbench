@@ -195,7 +195,12 @@ function responseInputPorts(
     }
     case 'identity': {
       const input = inputPort(module, response.inputPortId);
-      return input && input.unit === outputPort.unit ? [input] : null;
+      return input &&
+        input.entity === outputPort.entity &&
+        input.quantityType === outputPort.quantityType &&
+        input.unit === outputPort.unit
+        ? [input]
+        : null;
     }
     case 'independent_inputs': {
       if (
@@ -576,6 +581,12 @@ function assessLocalInfluenceRequest(
     });
     return finishAdmission(issues, null, null);
   }
+  if (module.outputPorts.length !== 1) {
+    addIssue(issues, 'model_contract_invalid', 'error', module.id, {
+      reason: 'static_output_arity_invalid',
+    });
+    return finishAdmission(issues, null, null);
+  }
   const outputMatches = module.outputPorts.filter((port) => port.id === request.outputPortId);
   if (outputMatches.length !== 1) {
     addIssue(issues, 'output_port_invalid', 'error', request.outputPortId);
@@ -611,7 +622,10 @@ function assessLocalInfluenceRequest(
   const requiredInputs = responseInputPorts(module, outputPort, model.response);
   if (!requiredInputs) {
     addIssue(issues, 'model_contract_invalid', 'error', model.id, {
-      reason: 'static_response_invalid',
+      reason:
+        model.response.family === 'identity'
+          ? 'identity_contract_invalid'
+          : 'static_response_invalid',
     });
     return finishAdmission(issues, null, null);
   }

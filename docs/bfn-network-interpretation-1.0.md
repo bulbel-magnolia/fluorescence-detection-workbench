@@ -30,6 +30,10 @@ Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性
 4. `identity`
 5. `independent_inputs`
 
+`module_static_response` v1 只接收 exactly-one-output module。当前 `BfnStaticResponse` 没有 explicit output binding，多 output module 无法从单位、quantity、Entity、display name、请求选择或数组位置可靠推断 response 所属 output，因此 admission 直接返回 `model_contract_invalid / static_output_arity_invalid`。请求的 `outputPortId` 必须与该唯一 output 完全一致。
+
+`identity` 只有在 input/output 的 Entity、quantity type 和 unit 三者完全相同时才表示科学恒等关系。equal unit alone 不足以建立 identity；例如同为 `dimensionless` 的 activity 与 expression level 仍是不同科学量。违反该规则时 admission 返回 `model_contract_invalid / identity_contract_invalid`。
+
 唯一通用纯静态求值器为 `responseMath.ts` 中的 `evaluateStaticResponse()`。生产方程如下。
 
 令：
