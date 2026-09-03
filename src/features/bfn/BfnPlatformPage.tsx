@@ -21,6 +21,8 @@ import {
   type BfnSaveStatus,
 } from './BfnProjectToolbar';
 import { BfnResultWorkspace } from './BfnResultWorkspace';
+import { BfnLocalInfluenceDrawer } from './interpretation/BfnLocalInfluenceDrawer';
+import { assessBfnLocalInfluenceAvailability } from './interpretation/localInfluencePresentation';
 import { BfnCatalogInverseWorkspace } from './inverse-design/ui/BfnCatalogInverseWorkspace';
 import { createBfnComputationSignature } from './computationSignature';
 import {
@@ -386,6 +388,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const [resultPanelOpen, setResultPanelOpen] = useState(initialResult !== null);
   const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
+  const [localInfluenceModuleId, setLocalInfluenceModuleId] = useState<string | null>(null);
   const [moduleLibraryInitialView, setModuleLibraryInitialView] =
     useState<BfnModuleLibraryInitialView | null>(null);
   const [catalogInitialDetailTarget, setCatalogInitialDetailTarget] =
@@ -518,6 +521,21 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   );
   const selectedModule =
     project.network.modules.find((module) => module.id === selectedNodeId) ?? null;
+  const selectedLocalInfluenceAvailability = useMemo(
+    () => (selectedModule ? assessBfnLocalInfluenceAvailability(project, selectedModule) : null),
+    [project, selectedModule],
+  );
+  const localInfluenceModule =
+    project.network.modules.find((module) => module.id === localInfluenceModuleId) ?? null;
+  const localInfluenceAvailability = useMemo(
+    () =>
+      localInfluenceModule
+        ? assessBfnLocalInfluenceAvailability(project, localInfluenceModule)
+        : null,
+    [localInfluenceModule, project],
+  );
+  const localInfluenceOpen =
+    localInfluenceModule !== null && localInfluenceAvailability?.supported === true;
   const selectedModuleLibraryAvailability = useMemo<ReusableModuleCaptureAvailability | null>(
     () =>
       selectedModule?.authoring?.origin === 'user_defined'
@@ -992,6 +1010,10 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setModuleLibraryInitialView(null);
   };
 
+  const closeLocalInfluence = (): void => {
+    setLocalInfluenceModuleId(null);
+  };
+
   const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
     if (!moduleId || !projectRef.current.network.modules.some((module) => module.id === moduleId)) {
       return;
@@ -1111,11 +1133,17 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
       const overlayOpen =
         inputSettingsOpen ||
         modulePickerOpen ||
+        localInfluenceOpen ||
         props.projectCenterOpen === true ||
         pendingDestructiveAction !== null ||
         isBfnEditorOverlayOpen();
       if (event.key === 'Escape') {
         if (pendingDestructiveAction !== null) return;
+        if (localInfluenceOpen) {
+          event.preventDefault();
+          closeLocalInfluence();
+          return;
+        }
         if (inputSettingsOpen) {
           event.preventDefault();
           closeInputSettings();
@@ -1173,6 +1201,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
             onOpenProjectCenter={() => {
               closeInputSettings();
               closeCatalogDrawer();
+              closeLocalInfluence();
               props.onOpenProjectCenter?.();
             }}
             onImport={() => importRef.current?.click()}
@@ -1571,6 +1600,44 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         </strong>
                       </div>
                     </section>
+                    {selectedLocalInfluenceAvailability ? (
+                      <section className="bfn-inspector-block bfn-inspector-action">
+                        <header>
+                          <strong>{t('bfn.localInfluence.inspectorTitle')}</strong>
+                        </header>
+                        <p
+                          className={
+                            selectedLocalInfluenceAvailability.supported
+                              ? undefined
+                              : 'bfn-inspector-action__reason'
+                          }
+                        >
+                          {selectedLocalInfluenceAvailability.supported
+                            ? t('bfn.localInfluence.purpose')
+                            : t(
+                                'bfn.localInfluence.availabilityReasons.' +
+                                  selectedLocalInfluenceAvailability.reason,
+                              )}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leadingIcon={<Icon name="pulse" size={14} />}
+                          disabled={!selectedLocalInfluenceAvailability.supported}
+                          {...(!selectedLocalInfluenceAvailability.supported
+                            ? {
+                                disabledReason: t(
+                                  'bfn.localInfluence.availabilityReasons.' +
+                                    selectedLocalInfluenceAvailability.reason,
+                                ),
+                              }
+                            : {})}
+                          onClick={() => setLocalInfluenceModuleId(selectedModule.id)}
+                        >
+                          {t('bfn.localInfluence.action')}
+                        </Button>
+                      </section>
+                    ) : null}
                     {selectedModuleModel ? (
                       <BfnCatalogProvenanceInspector
                         project={project}
@@ -2206,6 +2273,15 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         ) : null}
       </div>
 
+      {view === 'design' && localInfluenceModule && localInfluenceAvailability?.supported ? (
+        <BfnLocalInfluenceDrawer
+          key={localInfluenceModule.id + ':' + localInfluenceAvailability.target.staticModelId}
+          project={project}
+          module={localInfluenceModule}
+          target={localInfluenceAvailability.target}
+          onClose={closeLocalInfluence}
+        />
+      ) : null}
       {modulePickerOpen ? (
         <BfnCatalogDiscoveryDrawer
           project={project}

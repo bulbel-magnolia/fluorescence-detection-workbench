@@ -589,6 +589,98 @@ export const bfnEnUS = {
     monitorText: 'Shows the final reporter output produced by the network.',
     edgeText: '{{signal}} is passed from “{{source}}” to “{{target}}”.',
   },
+  localInfluence: {
+    kicker: 'Selected module analysis',
+    title: 'Input Influence Analysis',
+    inspectorTitle: 'Input Influence Analysis',
+    action: 'Analyze input influence…',
+    close: 'Close Input Influence Analysis',
+    purpose:
+      'See how strongly and in which direction each input affects the selected module output under the current conditions.',
+    unavailable: 'Cannot calculate at this condition',
+    sensitivityUnavailable: 'Not calculable at this condition',
+    notRecorded: 'Not recorded',
+    firstOrder:
+      'This view uses the dynamic module’s steady-state response relationship and does not describe its time response.',
+    availabilityReasons: {
+      dynamic_integrator:
+        'A signal pool is a dynamic integration process and does not apply to this steady-state input influence analysis.',
+      steady_state_missing:
+        'This module has no steady-state response model available for this analysis.',
+      response_invalid:
+        'This module’s response definition is incomplete, so input influence cannot be analyzed yet.',
+    },
+    object: {
+      title: 'Analysis object',
+      module: 'Module',
+      output: 'Output',
+      response: 'Response relationship',
+    },
+    families: {
+      hill_activation: 'Hill activation',
+      hill_repression: 'Hill repression',
+      linear_transfer: 'Linear response',
+      identity: 'Identity response',
+      independent_inputs: 'Independent multi-input response',
+    },
+    conditions: {
+      title: 'Analysis conditions',
+      input: 'Input',
+      value: 'Analysis value',
+      valueFor: 'Analysis value for {{input}}',
+      range: 'Recorded range',
+      rangeValue: '{{minimum}}–{{maximum}} {{unit}}',
+      requirement:
+        'Enter complete, finite, non-negative values. Units are fixed to the module ports.',
+      incomplete: 'Enter every valid analysis value first.',
+      invalidValue: 'Enter a finite, non-negative value.',
+    },
+    analyze: 'Analyze',
+    outside: {
+      title: 'No formal result generated',
+      description: 'The current analysis value is outside this model’s recorded applicable range.',
+      range: '{{input}}: allowed range {{minimum}}–{{maximum}} {{unit}}',
+    },
+    failure: {
+      title: 'Analysis unavailable',
+      description:
+        'The module’s steady-state response cannot produce a finite result under these conditions.',
+    },
+    results: {
+      title: 'Results',
+      firstOrderLabel: 'Module-local · steady state',
+      currentOutput: 'Current output',
+      input: 'Input',
+      direction: 'Influence direction',
+      gain: 'Local response gain',
+      sensitivity: 'Relative sensitivity',
+    },
+    directions: {
+      enhancing: 'Enhancing',
+      inhibiting: 'Inhibiting',
+      no_local_change: 'No local change at this condition',
+      unavailable: 'Cannot calculate at this condition',
+    },
+    gainReasons: {
+      notUnique: 'A unique local response gain is not available at this point',
+      nonFinite: 'A finite local response gain is not available at this point',
+      unavailable: 'This response does not support an analytic influence value',
+    },
+    elasticityReasons: {
+      inputNotPositive: 'The current input is zero',
+      outputNotPositive: 'The current output is not positive',
+      gainUnavailable: 'A local response gain is unavailable at this point',
+    },
+    applicability: {
+      title: 'Applicability',
+      within: 'The current analysis conditions are within the model’s recorded applicable range.',
+      notRecorded: 'This model does not record a complete applicable range for its inputs.',
+    },
+    modelBasis: {
+      title: 'Model basis',
+      nominal: 'The result inherits the response model evidence above and uses nominal parameters.',
+    },
+  },
   context: {
     host: 'Host',
     strain: 'Strain',

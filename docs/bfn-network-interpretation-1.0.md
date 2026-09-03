@@ -2,9 +2,9 @@
 
 ## 状态与目的
 
-本合同定义 BIO-NET Phase III 的派生网络解释层。当前状态为 Batch 13.0 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
+本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0 原 reviewed candidate `0717b51` 的状态为 `Master Review FIX / CANDIDATE / not FROZEN`。其 correction checkpoint 已完成 Entity + quantity + unit 恒等约束与单一 output 约束，当前为 `CANDIDATE / awaiting Master Correction Review / not FROZEN`。
 
-Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义，并提供纯请求 admission。当前批次不计算导数，不传播网络影响，不提供动态增益，不增加分析 UI。
+Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义，并提供纯请求 admission。Batch 13.1 在该合同上实现 module-local 静态输入作用计算与用户工作流，状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
 
 解释层使用独立版本 `BFN-INTERPRETATION 1.0`。BFN-IR 保持 `2.3`，BFN-SIM 保持 `2.2`，Workspace IndexedDB、Module Library IndexedDB 与 Module Template 的版本均保持不变。
 
@@ -148,7 +148,7 @@ Batch 13.1 只允许由生产方程推导的 analytic derivative。数值差分�
 - `independent_inputs` 先对每个正式 Hill term 求偏导，再严格传播其既有 aggregation。最终 output clamp 的切换点采用同一唯一导数规则。
 - 任何 branch、min/max、saturation 或 clamp 的 kink 都不选择左导数或右导数代替正式结果。
 
-Batch 13.0 只记录上述定义和 unavailable 规则，不包含 derivative calculator。
+Batch 13.1 的 `calculateBfnLocalInfluence(project, request)` 实现上述解析规则。它先执行 admission，仅在 supported request 上调用生产静态求值器与解析导数路径。一个 input 的 Hill 导数不可用时，只影响该 input；其他独立输入继续按各自解析偏导计算。
 
 ## 增益单位
 
@@ -220,7 +220,7 @@ first-order module 的静态解释只描述 active static response 的 steady-st
 ∂ steady-state output / ∂ input
 ```
 
-该量不命名为 DC gain、frequency gain、dynamic transfer 或 transfer function。τ、initial state 和时间输入不进入 Batch 13.0 静态局部解释。
+该量不命名为 DC gain、frequency gain、dynamic transfer 或 transfer function。τ、initial state 和时间输入不进入 Batch 13.1 静态局部解释。界面明确标记当前显示的是动态模块的稳态响应关系。
 
 ## Accumulator 排除
 
@@ -230,7 +230,7 @@ Accumulator / Signal Pool 的运行方程为：
 dC/dt = r
 ```
 
-其 BFN-SIM 2.2 合同要求单个 production-rate input、单个同 Entity concentration output，并支持 `nM/h → nM` 或 `uM/h → uM`。Accumulator 没有普通 static input-output response，Batch 13.0 admission 返回 `static_interpretation_unsupported`。积分器和频率相关解释属于 Batch 13.4。
+其 BFN-SIM 2.2 合同要求单个 production-rate input、单个同 Entity concentration output，并支持 `nM/h → nM` 或 `uM/h → uM`。Accumulator 没有普通 static input-output response，admission 返回 `static_interpretation_unsupported`。Batch 13.1 Inspector 禁用该操作，并以自然语言说明 Signal Pool 是动态积分过程。积分器和频率相关解释属于 Batch 13.4。
 
 ## 局部 ANN weight 与 bias
 
@@ -255,7 +255,7 @@ weight 是派生解释量，不是 Edge 属性、Module parameter 或实验系�
 
 ## Result 合同
 
-`BfnLocalInfluenceResultV1` 为 Batch 13.1 预留 future-facing、readonly、ephemeral envelope，可表达：
+`BfnLocalInfluenceResultV1` 是 Batch 13.1 calculator 返回的 readonly、ephemeral envelope，表达：
 
 - exact module、active static model、model version、response family 和 output port；
 - 完整 operating point 与同点 output value；
@@ -271,17 +271,19 @@ weight 是派生解释量，不是 Edge 属性、Module parameter 或实验系�
 
 Batch 13.2 将以 module-local gains 为基础按 chain rule 组合路径影响。Edge 是 identity propagation，不贡献额外 biological gain。Branching 和 convergence 通过下游 partial derivative 结构组合。
 
-Batch 13.0 不实现 path search、path contribution、total input-output gain、network Jacobian、global sensitivity matrix、overlay 或 highlighting。静态环路继续由现有 DAG admission 阻止；当前不支持的 dynamic feedback 继续 fail closed。本合同不定义 closed-loop sensitivity、feedback gain、stability margin 或 eigenvalue。
+Batch 13.1 不实现 path search、path contribution、total input-output gain、network Jacobian、global sensitivity matrix、overlay 或 highlighting。静态环路继续由现有 DAG admission 阻止；当前不支持的 dynamic feedback 继续 fail closed。本合同不定义 closed-loop sensitivity、feedback gain、stability margin 或 eigenvalue。
 
 ## 未来动态分析边界
 
-Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer function、Laplace-domain、state-space linearization 和 simulation snapshot linearization。Batch 13.0 不将静态响应导数命名为动态增益，也不为 Signal Pool 构造有限 static/DC weight。
+Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer function、Laplace-domain、state-space linearization 和 simulation snapshot linearization。Batch 13.1 不将静态响应导数命名为动态增益，也不为 Signal Pool 构造有限 static/DC weight。
 
-## 未来 UI 表达边界
+## Batch 13.1 UI 表达
 
-普通用户主界面围绕科研任务展示：分析对象、分析条件、结果、单位、作用方向、适用范围和模型依据。推荐用户语言为“网络作用分析”“分析条件”“局部响应增益”“相对敏感度”“作用方向”“适用范围”“模型依据”和“神经网络近似”。
+入口位于 selected-module Inspector，中文为“分析输入作用…”，英文为 “Analyze input influence…”；它打开沿用科研工作台视觉语言的右侧 Drawer。
 
-公式、Jacobian、gradient、partial derivative、chain rule、matrix notation、OperatingPointVector 和 differentiation terminology 不进入默认主界面。科研用户需要核对定义时，可在“详细信息”或“计算说明”中查看。本合同文档中的公式不构成未来 UI 展示要求。
+普通用户界面围绕当前任务展示分析对象、分析条件、固定端口单位、已记录范围、当前输出、作用方向、局部响应增益、相对敏感度、适用性和模型依据。输入值初始为空，关闭 Drawer 后丢弃；编辑任一输入立即清除旧结果。域外条件只显示阻断原因与允许范围，不显示正式 gain。适用范围未完整记录时保留数学结果，并在结果附近明确说明。
+
+公式、Jacobian、gradient、partial derivative、chain rule、matrix notation、OperatingPointVector 和 differentiation terminology 不进入默认主界面。本合同文档中的公式不构成 UI 展示要求。
 
 ## 稳定 admission issue
 
@@ -309,16 +311,15 @@ request_contract_invalid
 
 这些 code 服务于内部控制流和测试，不直接作为普通用户文案。
 
-## 当前未实现范围
+## 当前实现与后续边界
 
-- analytic derivative calculator
-- local influence result engine
-- numerical differentiation fallback
-- uncertainty propagation、confidence interval、posterior、Monte Carlo、Sobol 或 global sensitivity
-- network propagation、path enumeration、feedback solver
-- dynamic/frequency analysis
-- local ANN view、weight overlay、公式 drawer
-- interpretation persistence、cache、export schema
-- 新的 UI 与 i18n copy
+Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案以及适用性阻断。未进入本批次的范围包括：
 
-Batch 13.0 的完成状态仅表示合同、admission、测试与文档实现完成，后续由 Master Review 决定是否通过；当前状态不是 PASS，也不是 FROZEN。
+- numerical differentiation production fallback；
+- uncertainty propagation、confidence interval、posterior、Monte Carlo、Sobol 或 global sensitivity；
+- network propagation、path enumeration、feedback solver；
+- dynamic/frequency analysis；
+- local ANN view、weight overlay、公式界面；
+- interpretation persistence、cache、export schema。
+
+Batch 13.0 correction checkpoint 的实现完成不代表 PASS，等待 Master Correction Review。Batch 13.1 的实现完成不代表 PASS，等待 Master Review。两个 Batch 均不是 FROZEN。

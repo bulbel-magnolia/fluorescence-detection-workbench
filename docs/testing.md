@@ -1375,3 +1375,23 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - changed-file Prettier、`git diff --check` 与 correction allowlist audit 通过；Template/Persistence 合同、BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、Accumulator、Signal Pool、Designed Sender、Sender/Receiver、Compatibility/unit、Temporal、Ontology、Inverse Design 与 package dependencies 均为零差异。
 
 本轮只声明 Batch 12.5 Correction Candidate complete、awaiting Master Correction Review、not FROZEN；不声明 PASS、FROZEN 或 CI passed。
+
+## 2026-09-03 Batch 13.0 Correction + Batch 13.1 Static Local Influence Analysis
+
+### Correction 与 local influence 定向门
+
+- Phase 0 interpretation contract 为 1 个文件 / 44 项通过，相关 BFN contract 为 5 个文件 / 92 项通过，Template identity regression 为 4 个文件 / 118 项通过；correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad` 的 parent 精确为 `0717b51ae4f659dab7a91dd42444734895eedd3d`；
+- Phase 1 calculator 与 presentation 为 2 个文件 / 36 项，UI 为 1 个文件 / 9 项，zh-CN / en-US key parity 为 1 个文件 / 1 项；与 44 项 correction contract 合并后为 5 个文件 / 90 项，全部通过；
+- calculator 覆盖 Hill activation/repression 的有限差分 test oracle、Hill x=0、linear clamp、scientific identity、independent bounded-sum/multiplicative、final clamp kink、production output、gain unit、elasticity priority、response input ordering、applicability、first-order steady state、Accumulator rejection、Catalog Evidence、immutability、ephemeral result、non-finite handling 与 `annThresholds` independence；
+- UI 覆盖 Inspector 入口、空分析值、固定单位、recorded/not-recorded range、结果字段、域外阻断、旧结果清除、multi-input 顺序、first-order 稳态说明、Accumulator 与 malformed response 自然禁用原因、关闭后焦点/值恢复、Project 不变和英文等价流程。
+
+### Regression、完整门禁与视觉审计
+
+- static/first-order/runtime 分组为 9 个文件 / 100 项；Accumulator / Signal Pool 为 10 个文件 / 78 项；Compatibility / Template / Module Library 为 13 个文件 / 306 项；ANN / thresholds 为 4 个文件 / 72 项；相关 BFN UI / i18n 为 13 个文件 / 57 项，全部通过；
+- Windows 默认工作树首次完整测试为 169/170 个文件、1636/1637 项通过，唯一失败是既有 Sender immutable source 的 CRLF/LF 物理字节清单；按 manifest 逐文件选择 8 个 Git blob 与 4 个工作树字节后，最终 `npm test -- --maxWorkers=4` 为 170/170 个文件、1637/1637 项通过；
+- Sender 测试物化使用 verified backup 与 `try/finally`；最终 12/12 source 恢复运行前 length/SHA-256，Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 `npm run build` 通过，转换 337 个 modules；主 CSS 为 296.67 kB（gzip 48.81 kB），主 JavaScript chunk 为 3,545.47 kB（gzip 510.88 kB），保留既有 chunk-size warning；
+- supported single-input、multi-input、outside-domain 与 Accumulator unsupported 四态完成真实运行截图；console warning/error 为 0。布局检查确认 right Drawer、section divider、table、numeric/unit alignment、scroll 与 focus 行为清楚，未出现 hero、card wall、gradient、公式优先或 raw backend terminology；
+- changed-file Prettier、`git diff --check` 与 frozen-boundary audit 纳入最终提交前门禁；BFN-IR/SIM、Workspace、Ideal Edge、Compatibility/unit、static/dynamic/accumulator runtime、Signal Pool、Designed Sender/Receiver、Temporal、Ontology、Inverse Design、Template、Module Library persistence、ANN range-fit semantics 与 package dependencies 保持零差异。
+
+以上只声明 local validation。Batch 13.0 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Batch 13.1 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 PASS、FROZEN 或 CI passed。

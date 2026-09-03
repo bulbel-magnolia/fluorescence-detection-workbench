@@ -161,10 +161,7 @@ export interface BfnLocalInputInfluenceV1 {
   readonly logElasticity: BfnLogElasticityV1;
 }
 
-/**
- * Future result envelope for Batch 13.1. Batch 13.0 defines this shape but does
- * not calculate or persist it.
- */
+/** Ephemeral result envelope calculated from one admitted static operating point. */
 export interface BfnLocalInfluenceResultV1 {
   readonly contractVersion: typeof BFN_INTERPRETATION_CONTRACT_VERSION;
   readonly scope: BfnLocalInfluenceAnalysisScopeV1;
@@ -178,3 +175,19 @@ export interface BfnLocalInfluenceResultV1 {
   readonly applicability: Exclude<BfnInterpretationApplicabilityState, 'outside_recorded_domain'>;
   readonly persistence: 'ephemeral';
 }
+
+export type BfnLocalInfluenceCalculationIssueCodeV1 =
+  'output_non_finite' | 'model_resolution_failed';
+
+export type BfnLocalInfluenceCalculationV1 =
+  | {
+      readonly ok: true;
+      readonly admission: BfnLocalInfluenceAdmissionV1;
+      readonly result: BfnLocalInfluenceResultV1;
+    }
+  | {
+      readonly ok: false;
+      readonly admission: BfnLocalInfluenceAdmissionV1;
+      /** Null means semantic admission rejected the request before calculation. */
+      readonly calculationIssue: BfnLocalInfluenceCalculationIssueCodeV1 | null;
+    };
