@@ -301,6 +301,21 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - manifest-protected 完整 `npm test -- --maxWorkers=4` 为 166/166 个文件、1543/1543 项通过；12/12 Sender source 在 `finally` 后逐字节恢复且 source diff 为零；`npm run typecheck`、`npm run lint` 与 Vite 7.3.6 production build 通过，build 转换 332 个模块；
 - 本批不新增 package dependency，不改变 BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、Ideal Edge、Port Compatibility、unit、Accumulator、Signal Pool、Designed Sender、Sender/Receiver、Temporal、Ontology 或 Inverse Design 合同。Batch 12.5 状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
 
+## 2026-09-03 Batch 13.0 Network Interpretation Contract
+
+- 当前 Master Control 状态统一记录为：Batch 12.5.0 `Master Review PASS / CANDIDATE / not FROZEN`；Batch 12.5.1 `Master Review PASS / CANDIDATE / not FROZEN`；Batch 12.5 `Master Correction Review PASS / CANDIDATE / not FROZEN`。统一 freeze 继续暂缓；
+- 本批从 exact reviewed base `5b12d37ecffee8a0445ddf02d9c64d17e71a50a0` 创建分支 `codex/bfn-network-interpretation-contract`，不从 main 或旧 candidate/freeze 分支启动，不改写已评审历史；
+- 独立 `BFN-INTERPRETATION 1.0` 将 operating point、local differential gain、log elasticity、applicability、Evidence inheritance 和 local ANN weight/bias 定义为 derived interpretation；Edge 继续只承担 instantaneous、lossless、identity topology；
+- `BfnLocalInfluenceRequestV1` 使用 exact module/port identity、完整输入工作点和 Port exact unit。纯 `assessBfnLocalInfluenceRequest()` 对缺失、重复、多余、output/unknown port、单位错误、非有限值、负值、模型冲突与适用域执行 deterministic fail-closed admission；
+- static interpretation 只解析 active BFN static response。paired first-order 标为 steady-state static interpretation；Accumulator / Signal Pool 没有普通 static response，明确拒绝。Catalog reference 只保留来源和映射 identity，不从来源参数建立第二套 interpretation equation；
+- ValidityDomain 使用闭区间并区分 `within_recorded_domain / applicability_not_recorded / outside_recorded_domain`；域外阻断正式结果，未记录范围不解释为 unbounded。结果只继承 active model 的 version、Evidence grade、uncertainty、Context、ValidityDomain 与 model provenance，Implementation-only provenance 不进入 model Evidence；
+- 当前合同只使用 nominal parameter value，规定 analytic derivative only。Derivative calculator、network propagation、dynamic/frequency analysis、uncertainty propagation、analysis UI、i18n 与 persistence 均未实现，分别保留给 Batch 13.1–13.4 或后续独立合同；
+- Batch 13.0 定向合同测试为 1 个文件 / 40 项通过；相关 BFN 合同、static runtime、first-order、Accumulator / Signal Pool、Compatibility / unit、Template 与 Module Library 回归分别为 5/92、5/57、6/59、6/43、3/36、4/118 与 4/120，全部通过；
+- manifest-protected 完整 `npm test -- --maxWorkers=4` 为 167/167 个文件、1588/1588 项通过；12/12 Sender source 在 `finally` 后按原工作树 byte hash 恢复且 source diff 为零；`npm run typecheck`、全项目 `npm run lint` 与 Vite 7.3.6 production build 通过，build 转换 332 个模块并保留既有大 chunk 提示；7 个 changed files 通过 Prettier 与 `git diff --check`；
+- frozen-boundary audit 确认 7 个变更文件只位于授权 interpretation/docs 范围；BFN-IR、BFN-SIM、Workspace、Ideal Edge、Compatibility/unit、static/first-order/Accumulator/Signal Pool runtime、Designed Sender、Receiver、Temporal、Ontology、Inverse Design、Template、Module Library 与 package dependencies 相对 exact base 零差异；
+- BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace IndexedDB structural version、Module Library IndexedDB version 与 fallback schema version 均保持 1，Module Template 保持 1.0；package dependencies、现有 static/dynamic/accumulator runtime、ANN range-fit thresholds、UI 和 storage 零语义变更；
+- Batch 13.0 状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。Batch 13.1、13.2、13.3 与 13.4 均为 `PLANNED / NOT AUTHORIZED`。
+
 ## Sender Public Evidence Research formal boundary
 
 - Sender Public Evidence Research：`FROZEN`；
@@ -334,6 +349,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - [BFN Module Template 1.0](bfn-module-template-1.0.md)
 - [BFN Local Versioned Module Library Persistence 1.0](bfn-module-library-persistence-1.0.md)
 - [BFN Reusable Module Library User Workflow](bfn-reusable-module-library-workflow.md)
+- [BFN-INTERPRETATION 1.0 网络作用解释合同](bfn-network-interpretation-1.0.md)
 - [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)
 - [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)
 - [时间语义、兼容性与适用性](temporal-and-compatibility.md)

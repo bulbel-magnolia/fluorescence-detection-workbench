@@ -1,0 +1,320 @@
+# BFN-INTERPRETATION 1.0 网络作用解释合同
+
+## 状态与目的
+
+本合同定义 BIO-NET Phase III 的派生网络解释层。当前状态为 Batch 13.0 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
+
+Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义，并提供纯请求 admission。当前批次不计算导数，不传播网络影响，不提供动态增益，不增加分析 UI。
+
+解释层使用独立版本 `BFN-INTERPRETATION 1.0`。BFN-IR 保持 `2.3`，BFN-SIM 保持 `2.2`，Workspace IndexedDB、Module Library IndexedDB 与 Module Template 的版本均保持不变。
+
+## 派生解释边界
+
+解释结果来自现有模型在指定分析条件附近的数学性质，不构成新的生物网络物理对象或实验事实。
+
+- Module 承担 transformation / computation。
+- Edge 保持 instantaneous、lossless、identity propagation，仅表示 topology。
+- weight、gain、bias 和 sensitivity 只能存在于 ephemeral analysis result 或未来 analysis overlay。
+- 解释结果不写回 Project、Module、ModelVariant、Edge、Workspace Draft/Version 或 Module Library。
+- 计算只使用模型参数的 nominal `value`。区间、posterior、bootstrap 和 covariance 元数据继续作为来源上下文保留，不在本合同中传播为 gain uncertainty。
+
+## 与当前生产运行时的关系
+
+### 正式静态响应 family
+
+`BfnStaticResponse` 当前包含五类正式响应：
+
+1. `hill_activation`
+2. `hill_repression`
+3. `linear_transfer`
+4. `identity`
+5. `independent_inputs`
+
+唯一通用纯静态求值器为 `responseMath.ts` 中的 `evaluateStaticResponse()`。生产方程如下。
+
+令：
+
+```text
+x+ = max(0, x)
+K+ = max(Number.EPSILON, K)
+n+ = max(Number.EPSILON, n)
+H(x) = x+^n+ / (K+^n+ + x+^n+)
+```
+
+则：
+
+```text
+hill_activation: y = ymin + (ymax - ymin) H(x)
+hill_repression: y = ymax - (ymax - ymin) H(x)
+linear_transfer: y = clamp(intercept + scale x, outputMinimum, outputMaximum)
+identity: y = x
+```
+
+`linear_transfer` 未声明下界或上界时分别使用负无穷和正无穷。
+
+对于 `independent_inputs`，每个输入先形成独立项：
+
+```text
+activation term: ti = contribution_i H_i(xi)
+repression term: ti = contribution_i (1 - H_i(xi))
+```
+
+随后按已记录的 aggregation 计算：
+
+```text
+bounded_sum:
+  combined = basal + Σ ti
+
+multiplicative:
+  combined = basal + (outputMaximum - basal) (1 - Π(1 - ti))
+
+output:
+  y = clamp(combined, min(0, basal), outputMaximum)
+```
+
+解释层严格沿用这些方程，不引入 synergy、competition、ratio sensing、resource coupling 或底层模型未表示的 cross term。
+
+### Catalog Receiver
+
+Catalog Receiver 实例保存 materialized `hill_activation`：`ymin=0`、`ymax=1`、`K=EC50`、`n=Hill coefficient`。现有生产运行时先核验 frozen catalog identity、来源参数、端口、Context 和 ValidityDomain，再通过可信 Receiver evaluator 执行同一归一化响应。
+
+解释层以当前 active BFN static response 为唯一响应来源。`catalogReference` 继续保存 catalog、release、response、component、signal、Context 和 source identity，用于来源与映射审计；解释层不重新读取 `sourceParameters` 生成第二套响应真值。
+
+### 既有 ANN approximation
+
+`annApproximation.ts` 中的既有 ANN 表示是静态工作域采样后的 least-squares affine fit：
+
+```text
+y ≈ WΩ x + beff
+```
+
+`BfnAnalysisSettings.annThresholds.minimumR2` 与 `maximumNrmse` 只判断该区间拟合是否 accepted。它们不表示局部响应增益阈值，不参与 operating-point linearization，也不进入 `BFN-INTERPRETATION 1.0`。未来局部 ANN approximation 如需质量合同，由独立 Batch 定义。
+
+## 分析条件合同
+
+`BfnLocalInfluenceRequestV1` 明确绑定：
+
+- `contractVersion = 1.0`；
+- `scope = module_static_response`；
+- exact `moduleId`；
+- exact `outputPortId`；
+- 完整 `operatingPoint`。
+
+每个工作点输入包含 exact `portId`、finite numeric `value` 和 exact Port `unit`。身份解析不使用 Entity display name、模块显示名或数组位置。
+
+active response 使用的每个输入必须恰好出现一次。缺失、重复、多余、未知端口、output port 冒充 input、unit 不一致、NaN、正负 Infinity 和负值均被拒绝。负值拒绝延续当前 BFN 输入规格的非负科学值约束。
+
+admission API 为：
+
+```text
+assessBfnLocalInfluenceRequest(project, request)
+```
+
+该函数 pure、deterministic、non-mutating，不访问 storage，不执行网络，不调用 UI，不求模型输出或导数。普通 malformed request 返回稳定 issue，不通过异常承担正常控制流。
+
+## active static model 解析
+
+解释目标只通过 `module.activeModelIds.static` 解析，并要求该 ID 在 `modelVariants` 中唯一对应一个 static model。Dormant variant 不参与解析。重复 module identity、重复或错误 active model identity 直接 fail closed。
+
+含 active static 与 active first-order dynamic model 的模块必须保持 `dynamic.steadyStateResponse` 与 active static `response` 一致。该模块的 Batch 13.0 解释类型为 `first_order_steady_state_static_response`。网络当前处于 static 或 dynamic mode 不改变这项解析规则。
+
+## 局部响应增益
+
+对于：
+
+```text
+y = f(x1, x2, ..., xn)
+```
+
+在分析条件 `x0`，输入 `xi` 的局部响应增益定义为：
+
+```text
+wi = ∂y/∂xi |x0
+```
+
+每个输入分别形成一个增益。增益绑定同一 Project snapshot、module、active static model、nominal parameters、output port 和 operating point。增益允许为正、负或零；正式 available 值必须 finite。
+
+Batch 13.1 只允许由生产方程推导的 analytic derivative。数值差分、epsilon、step size、tolerance 和 perturbation 不属于生产合同。有限差分可作为测试 oracle，不构成结果来源。
+
+### 可微性边界
+
+- `identity` 在有限输入处导数为 1。
+- Hill family 在正输入和有效正 `K`、`n` 下按解析式可微。`max(0,x)` 的分支点 `x=0` 必须检查两侧导数是否一致；非唯一或非有限时返回 unavailable。
+- bounded linear response 在线性区导数为 `scale`，在严格 clamp 区导数为 0。进入或离开 clamp 的边界点只有在两侧导数一致时才形成唯一导数。
+- `independent_inputs` 先对每个正式 Hill term 求偏导，再严格传播其既有 aggregation。最终 output clamp 的切换点采用同一唯一导数规则。
+- 任何 branch、min/max、saturation 或 clamp 的 kink 都不选择左导数或右导数代替正式结果。
+
+Batch 13.0 只记录上述定义和 unavailable 规则，不包含 derivative calculator。
+
+## 增益单位
+
+增益单位由 output/input 单位对组成：
+
+```text
+outputUnit = module output port unit
+inputUnit  = corresponding input port unit
+```
+
+例如 `(nM/h)/uM` 表示为 `{ outputUnit: 'nM/h', inputUnit: 'uM' }`。该表示属于解释层，不扩展 `BfnUnit`。
+
+## 相对敏感度
+
+相对敏感度采用标准 log elasticity：
+
+```text
+Ei = (xi / y) (∂y/∂xi)
+```
+
+结果 dimensionless。available 至少要求 `xi > 0`、`y > 0` 且局部响应增益 finite。失败原因稳定区分：
+
+- `input_not_positive`
+- `output_not_positive`
+- `derivative_unavailable`
+
+模型输出 `y0=f(x0)`、gain、elasticity 和未来 ANN bias 必须来自同一分析快照与同一 operating point。
+
+## ValidityDomain 与适用性
+
+请求单位必须与 Port 单位完全一致。ValidityDomain range 可使用同量纲 BFN unit；比较时沿用冻结 unit conversion。
+
+每个 active-response input 的 recorded range 采用闭区间：
+
+```text
+minimum <= value <= maximum
+```
+
+适用性状态为：
+
+- `within_recorded_domain`：每个必要输入均有唯一合法 range，且值位于闭区间内；
+- `applicability_not_recorded`：模型合同有效，至少一个必要输入没有 recorded range；数学解释可形成，同时保留适用范围未记录状态；
+- `outside_recorded_domain`：至少一个值超出 recorded range，阻止正式 interpretation result。
+
+`applicability_not_recorded` 不表示 unbounded 或 universally valid。损坏、重复、未知端口或量纲不兼容的 range 属于 `model_contract_invalid`。
+
+## Context、Evidence 与 Provenance
+
+解释结果继承 active static model 自己声明的：
+
+- model ID 与 version；
+- evidence grade；
+- uncertainty method；
+- `sourceDatasetIds`；
+- `provenanceIds`；
+- Context reference；
+- ValidityDomain reference；
+- Catalog mapping identity（适用时）。
+
+解释不创建更高 Evidence grade。Model `provenanceIds` 是结果的 model provenance 范围；BiologicalImplementation 自己的 `provenanceIds` 不进入 model evidence。Catalog source IDs 保持 catalog mapping/provenance identity，不伪装成 BFN registry model provenance。
+
+普通 BFN model 的非空 Context ID 必须唯一解析到 Project Context。`contextId = null` 明确表示 not recorded。Catalog-backed model 使用 catalog parameter Context reference。Batch 13.0 不增加第二套 host、medium、temperature compatibility system。
+
+## first-order 静态解释
+
+first-order module 的静态解释只描述 active static response 的 steady-state/local response：
+
+```text
+∂ steady-state output / ∂ input
+```
+
+该量不命名为 DC gain、frequency gain、dynamic transfer 或 transfer function。τ、initial state 和时间输入不进入 Batch 13.0 静态局部解释。
+
+## Accumulator 排除
+
+Accumulator / Signal Pool 的运行方程为：
+
+```text
+dC/dt = r
+```
+
+其 BFN-SIM 2.2 合同要求单个 production-rate input、单个同 Entity concentration output，并支持 `nM/h → nM` 或 `uM/h → uM`。Accumulator 没有普通 static input-output response，Batch 13.0 admission 返回 `static_interpretation_unsupported`。积分器和频率相关解释属于 Batch 13.4。
+
+## 局部 ANN weight 与 bias
+
+指定 operating point 下：
+
+```text
+weight_i = local differential gain_i at the same operating point
+```
+
+局部线性近似为：
+
+```text
+y ≈ y0 + Σ wi (xi - xi0)
+  ≈ Σ wi xi + b
+
+b = y0 - Σ wi xi0
+```
+
+weight 是派生解释量，不是 Edge 属性、Module parameter 或实验系数。bias 属于 ANN approximation layer，单位等于 module output unit。basal expression、leak、constitutive output、threshold shift、environmental background 和 initial state 继续作为底层生物或状态量，不重命名为 ANN bias。
+
+本地导数线性化与既有 working-range least-squares affine fit 是两类不同分析，结果、阈值和语义不混用。
+
+## Result 合同
+
+`BfnLocalInfluenceResultV1` 为 Batch 13.1 预留 future-facing、readonly、ephemeral envelope，可表达：
+
+- exact module、active static model、model version、response family 和 output port；
+- 完整 operating point 与同点 output value；
+- 每个 input 的 available/unavailable local differential gain；
+- output/input gain unit pair；
+- 每个 input 的 available/unavailable log elasticity 及 internal reason；
+- `within_recorded_domain` 或 `applicability_not_recorded`；
+- model Evidence、uncertainty、Provenance、Context、ValidityDomain 与 Catalog identity。
+
+域外请求在 admission 阶段阻断，不形成看似正常的 result。Result 不包含用户界面文案。
+
+## 未来网络组合边界
+
+Batch 13.2 将以 module-local gains 为基础按 chain rule 组合路径影响。Edge 是 identity propagation，不贡献额外 biological gain。Branching 和 convergence 通过下游 partial derivative 结构组合。
+
+Batch 13.0 不实现 path search、path contribution、total input-output gain、network Jacobian、global sensitivity matrix、overlay 或 highlighting。静态环路继续由现有 DAG admission 阻止；当前不支持的 dynamic feedback 继续 fail closed。本合同不定义 closed-loop sensitivity、feedback gain、stability margin 或 eigenvalue。
+
+## 未来动态分析边界
+
+Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer function、Laplace-domain、state-space linearization 和 simulation snapshot linearization。Batch 13.0 不将静态响应导数命名为动态增益，也不为 Signal Pool 构造有限 static/DC weight。
+
+## 未来 UI 表达边界
+
+普通用户主界面围绕科研任务展示：分析对象、分析条件、结果、单位、作用方向、适用范围和模型依据。推荐用户语言为“网络作用分析”“分析条件”“局部响应增益”“相对敏感度”“作用方向”“适用范围”“模型依据”和“神经网络近似”。
+
+公式、Jacobian、gradient、partial derivative、chain rule、matrix notation、OperatingPointVector 和 differentiation terminology 不进入默认主界面。科研用户需要核对定义时，可在“详细信息”或“计算说明”中查看。本合同文档中的公式不构成未来 UI 展示要求。
+
+## 稳定 admission issue
+
+当前内部 issue 至少覆盖：
+
+```text
+module_not_found
+module_identity_conflict
+static_model_missing
+static_interpretation_unsupported
+dynamic_only_model
+input_value_missing
+input_value_duplicate
+unexpected_input
+input_port_invalid
+output_port_invalid
+unit_mismatch
+value_non_finite
+value_negative
+outside_validity_domain
+applicability_not_recorded
+model_contract_invalid
+request_contract_invalid
+```
+
+这些 code 服务于内部控制流和测试，不直接作为普通用户文案。
+
+## 当前未实现范围
+
+- analytic derivative calculator
+- local influence result engine
+- numerical differentiation fallback
+- uncertainty propagation、confidence interval、posterior、Monte Carlo、Sobol 或 global sensitivity
+- network propagation、path enumeration、feedback solver
+- dynamic/frequency analysis
+- local ANN view、weight overlay、公式 drawer
+- interpretation persistence、cache、export schema
+- 新的 UI 与 i18n copy
+
+Batch 13.0 的完成状态仅表示合同、admission、测试与文档实现完成，后续由 Master Review 决定是否通过；当前状态不是 PASS，也不是 FROZEN。
