@@ -923,7 +923,11 @@ function ModuleLibraryInspector(props: MyModulesViewProps) {
               <Button
                 size="sm"
                 variant="tertiary"
-                onClick={() => props.onMetadataEditingChange(false)}
+                onClick={() => {
+                  props.onMetadataNameChange(metadata.name);
+                  props.onMetadataDescriptionChange(metadata.description ?? '');
+                  props.onMetadataEditingChange(false);
+                }}
               >
                 {t('bfn.moduleLibrary.actions.cancel')}
               </Button>

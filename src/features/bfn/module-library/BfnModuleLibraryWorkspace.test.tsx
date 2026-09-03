@@ -13,6 +13,7 @@ import {
 import { instantiateReusableModuleTemplate, type BfnReusableModulePayloadV1 } from './template';
 import {
   captureAccumulatorFixture,
+  captureFirstOrderFixture,
   captureStaticFixture,
   createBlankTemplateProject,
   createStaticTemplateProject,
@@ -92,6 +93,77 @@ describe('My Modules workspace', () => {
     expect(screen.getByText('Escherichia coli')).toBeInTheDocument();
     expect(screen.getByText('Fitted from published data')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Version 1 · latest' })).toBeInTheDocument();
+  });
+
+  it('scopes static model evidence to provenance declared by that model', async () => {
+    const repository = createLocalStorageBfnModuleLibraryRepository();
+    await seed(repository, 'module.evidence-scope', 'Scoped evidence', TIME_1);
+    renderLibrary(repository);
+    await screen.findByRole('combobox', { name: 'Module version' });
+
+    const evidence = screen.getByRole('heading', { name: 'Evidence' }).closest('section');
+    expect(evidence).not.toBeNull();
+    expect(within(evidence!).getByText('doi:10.0000/template-model')).toBeVisible();
+    expect(within(evidence!).queryByText('registry:template-implementation')).toBeNull();
+  });
+
+  it('scopes accumulator evidence to provenance declared by its dynamic model', async () => {
+    const repository = createLocalStorageBfnModuleLibraryRepository();
+    await seed(
+      repository,
+      'module.accumulator-evidence-scope',
+      'Scoped accumulator evidence',
+      TIME_1,
+      accumulatorWithImplementationProvenance(),
+    );
+    renderLibrary(repository);
+    await screen.findByRole('combobox', { name: 'Module version' });
+
+    const evidence = screen.getByRole('heading', { name: 'Evidence' }).closest('section');
+    expect(evidence).not.toBeNull();
+    expect(within(evidence!).getByText('doi:10.0000/accumulator-model')).toBeVisible();
+    expect(within(evidence!).queryByText('registry:accumulator-implementation')).toBeNull();
+  });
+
+  it('separates first-order response metadata when the scientific scopes differ', async () => {
+    const repository = createLocalStorageBfnModuleLibraryRepository();
+    await seed(
+      repository,
+      'module.distinct-scopes',
+      'Distinct scientific scopes',
+      TIME_1,
+      distinctFirstOrderPayload(),
+    );
+    renderLibrary(repository);
+    await screen.findByRole('combobox', { name: 'Module version' });
+
+    const steady = screen.getByRole('region', { name: 'Steady-state response' });
+    const dynamic = screen.getByRole('region', { name: 'Dynamic response' });
+    expect(within(steady).getByText('Fitted from published data')).toBeVisible();
+    expect(within(steady).getByText('doi:10.0000/template-model')).toBeVisible();
+    expect(within(steady).queryByText('doi:10.0000/template-dynamic')).toBeNull();
+    expect(within(dynamic).getByText('Measured in multiple conditions')).toBeVisible();
+    expect(within(dynamic).getByText('doi:10.0000/template-dynamic')).toBeVisible();
+    expect(within(dynamic).queryByText('doi:10.0000/template-model')).toBeNull();
+  });
+
+  it('compacts identical first-order scientific metadata into one shared summary', async () => {
+    const repository = createLocalStorageBfnModuleLibraryRepository();
+    await seed(
+      repository,
+      'module.shared-scope',
+      'Shared scientific scope',
+      TIME_1,
+      captureFirstOrderFixture(),
+    );
+    renderLibrary(repository);
+    await screen.findByRole('combobox', { name: 'Module version' });
+
+    expect(screen.queryByRole('region', { name: 'Steady-state response' })).toBeNull();
+    expect(screen.queryByRole('region', { name: 'Dynamic response' })).toBeNull();
+    expect(screen.getAllByRole('heading', { name: 'Applicability' })).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { name: 'Evidence' })).toHaveLength(1);
+    expect(screen.getAllByRole('heading', { name: 'Uncertainty' })).toHaveLength(1);
   });
 
   it('keeps ordinary visible copy free of implementation vocabulary and raw identifiers', async () => {
@@ -218,6 +290,38 @@ describe('My Modules workspace', () => {
       }),
     );
     expect(await repository.listVersions('module.rename')).toHaveLength(1);
+  });
+
+  it('discards metadata drafts when editing is cancelled', async () => {
+    const user = userEvent.setup();
+    const repository = createLocalStorageBfnModuleLibraryRepository();
+    const updateMetadata = vi.spyOn(repository, 'updateMetadata');
+    await seed(repository, 'module.cancel-edit', 'Original', TIME_1);
+    const originalVersionCount = (await repository.listVersions('module.cancel-edit')).length;
+    renderLibrary(repository);
+
+    await user.click(await screen.findByRole('button', { name: 'Edit details' }));
+    const name = screen.getByRole('textbox', { name: 'Name' });
+    const description = screen.getByRole('textbox', { name: 'Description' });
+    await user.clear(name);
+    await user.type(name, 'Draft');
+    await user.clear(description);
+    await user.type(description, 'Draft description');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+
+    expect(updateMetadata).not.toHaveBeenCalled();
+    expect(await repository.getTemplateMetadata('module.cancel-edit')).toMatchObject({
+      name: 'Original',
+      description: 'Original description',
+      latestRevision: 1,
+    });
+    expect(await repository.listVersions('module.cancel-edit')).toHaveLength(originalVersionCount);
+
+    await user.click(screen.getByRole('button', { name: 'Edit details' }));
+    expect(screen.getByRole('textbox', { name: 'Name' })).toHaveValue('Original');
+    expect(screen.getByRole('textbox', { name: 'Description' })).toHaveValue(
+      'Original description',
+    );
   });
 
   it('deletes the whole saved module only after explicit history confirmation', async () => {
@@ -543,5 +647,69 @@ function changedStaticPayload(maximum: number): BfnReusableModulePayloadV1 {
         },
       },
     },
+  };
+}
+
+function distinctFirstOrderPayload(): BfnReusableModulePayloadV1 {
+  const payload = captureFirstOrderFixture();
+  if (payload.moduleClass !== 'first_order') {
+    throw new Error('Expected a first-order response fixture.');
+  }
+  const dynamicProvenance = {
+    key: `provenance.${payload.provenance.length + 1}`,
+    kind: 'publication' as const,
+    reference: 'doi:10.0000/template-dynamic',
+  };
+  return {
+    ...payload,
+    provenance: [...payload.provenance, dynamicProvenance],
+    models: {
+      static: payload.models.static,
+      dynamic: {
+        ...payload.models.dynamic,
+        provenanceKeys: [dynamicProvenance.key],
+        evidenceGrade: 'measured_multiple_contexts',
+      },
+    },
+  };
+}
+
+function accumulatorWithImplementationProvenance(): BfnReusableModulePayloadV1 {
+  const accumulator = captureAccumulatorFixture();
+  const staticPayload = captureStaticFixture();
+  if (
+    accumulator.moduleClass !== 'accumulator' ||
+    staticPayload.moduleClass !== 'static' ||
+    !staticPayload.implementations[0]
+  ) {
+    throw new Error('Expected accumulator and implementation fixtures.');
+  }
+  const modelProvenance = {
+    key: 'provenance.1',
+    kind: 'publication' as const,
+    reference: 'doi:10.0000/accumulator-model',
+  };
+  const implementationProvenance = {
+    key: 'provenance.2',
+    kind: 'repository_record' as const,
+    reference: 'registry:accumulator-implementation',
+  };
+  return {
+    ...accumulator,
+    provenance: [modelProvenance, implementationProvenance],
+    models: {
+      dynamic: {
+        ...accumulator.models.dynamic,
+        provenanceKeys: [modelProvenance.key],
+      },
+    },
+    implementations: [
+      {
+        ...staticPayload.implementations[0],
+        provenanceKeys: [implementationProvenance.key],
+      },
+    ],
+    implementationKeys: ['implementation.1'],
+    implementationState: staticPayload.implementationState,
   };
 }

@@ -1361,3 +1361,17 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `npm run typecheck` 与全项目 `npm run lint` 通过；
 - Vite 7.3.6 `npm run build` 通过，转换 332 个模块；主 CSS 为 289.59 kB（gzip 47.91 kB），主 JavaScript chunk 为 3,508.06 kB（gzip 501.34 kB），保留既有大于 500 kB chunk 提示；
 - 本批只声明 local validation。Batch 12.5 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`，不声明 CI 或 Master Review PASS。
+
+## 2026-09-03 Batch 12.5 Correction Pass
+
+### Scientific presentation and metadata cancel
+
+- Correction base 为 `c4295d1335448ad2ca6b7f4296d77ab2dc5a18c1`；修正仅位于 Module Library presentation/workflow、局部样式、双语标签、对应测试与文档；
+- RED 阶段稳定复现 3 个失败：static model Evidence 混入 implementation-only provenance、差异化 first-order metadata 被折叠为 dynamic 单组，以及 Cancel 后 draft 在再次编辑时复现；
+- 工作区定向回归为 1 个文件 / 27 项测试通过，其中新增 5 项覆盖 static 与 accumulator model provenance 隔离、first-order 差异分组、相同 scientific metadata 紧凑合并，以及 metadata Cancel 恢复 persisted name/description、零 repository update、零 revision；
+- 原 Batch 12.5 workflow 回归为 3 个文件 / 70 项通过；Template 1.0 回归为 4 个文件 / 118 项通过；Module Library Repository 回归为 1 个文件 / 50 项通过；BFN UI/i18n 联合回归为 12 个文件 / 82 项通过；
+- 最终 `npm test -- --maxWorkers=4` 为 166/166 个文件、1548/1548 项通过；12 个 Sender immutable source 按清单临时选择 8 个 Git blob 与 4 个工作树字节，`finally` 后全部恢复为运行前字节、逐文件 SHA-256 相同且 source diff 为零；
+- `npm run typecheck` 与 `npm run lint` 通过；Vite 7.3.6 `npm run build` 通过，转换 332 个模块；主 CSS 为 289.91 kB（gzip 47.97 kB），主 JavaScript chunk 为 3,510.65 kB（gzip 502.06 kB），保留既有大于 500 kB chunk 提示；
+- changed-file Prettier、`git diff --check` 与 correction allowlist audit 通过；Template/Persistence 合同、BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、Accumulator、Signal Pool、Designed Sender、Sender/Receiver、Compatibility/unit、Temporal、Ontology、Inverse Design 与 package dependencies 均为零差异。
+
+本轮只声明 Batch 12.5 Correction Candidate complete、awaiting Master Correction Review、not FROZEN；不声明 PASS、FROZEN 或 CI passed。

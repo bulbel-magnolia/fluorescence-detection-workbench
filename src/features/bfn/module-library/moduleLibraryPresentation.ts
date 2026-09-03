@@ -3,9 +3,11 @@ import { bfnQuantityLabel, bfnUnitLabel } from '../presentation';
 import type { BfnParameterEstimate, BfnUnit } from '../types';
 import type {
   BfnReusableModulePayloadV1,
+  BfnTemplateContextV1,
   BfnTemplateEntityV1,
   BfnTemplateModelBaseV1,
   BfnTemplatePortV1,
+  BfnTemplateProvenanceV1,
   BfnTemplateStaticResponseV1,
 } from './template';
 
@@ -31,6 +33,14 @@ export interface ModuleLibraryPropertyPresentation {
   readonly value: string;
 }
 
+export interface ModuleLibraryScientificScopePresentation {
+  readonly kind: 'combined' | 'steady_state' | 'dynamic';
+  readonly applicability: readonly ModuleLibraryPropertyPresentation[];
+  readonly evidenceBasis: string;
+  readonly evidenceSources: readonly string[];
+  readonly uncertainty: string;
+}
+
 export interface ModuleLibraryScientificPresentation {
   readonly moduleType: string;
   readonly modelName: string;
@@ -38,10 +48,7 @@ export interface ModuleLibraryScientificPresentation {
   readonly modelVersion: string;
   readonly ports: readonly ModuleLibraryPortPresentation[];
   readonly parameters: readonly ModuleLibraryParameterPresentation[];
-  readonly applicability: readonly ModuleLibraryPropertyPresentation[];
-  readonly evidenceBasis: string;
-  readonly evidenceSources: readonly string[];
-  readonly uncertainty: string;
+  readonly scientificScopes: readonly ModuleLibraryScientificScopePresentation[];
 }
 
 export function createModuleLibraryScientificPresentation(
@@ -74,10 +81,126 @@ export function createModuleLibraryScientificPresentation(
     modelVersion: model.version,
     ports,
     parameters,
+    scientificScopes: presentScientificScopes(payload, entities, t),
+  };
+}
+
+function presentScientificScopes(
+  payload: BfnReusableModulePayloadV1,
+  entities: ReadonlyMap<string, BfnTemplateEntityV1>,
+  t: TFunction,
+): ModuleLibraryScientificScopePresentation[] {
+  if (payload.moduleClass !== 'first_order') {
+    return [presentScientificScope(payload, primaryModel(payload), 'combined', entities, t)];
+  }
+
+  const steadyState = presentScientificScope(
+    payload,
+    payload.models.static,
+    'steady_state',
+    entities,
+    t,
+  );
+  const dynamic = presentScientificScope(payload, payload.models.dynamic, 'dynamic', entities, t);
+  if (
+    modelScientificMetadataIdentity(payload, payload.models.static) ===
+    modelScientificMetadataIdentity(payload, payload.models.dynamic)
+  ) {
+    return [{ ...steadyState, kind: 'combined' }];
+  }
+  return [steadyState, dynamic];
+}
+
+function presentScientificScope(
+  payload: BfnReusableModulePayloadV1,
+  model: BfnTemplateModelBaseV1,
+  kind: ModuleLibraryScientificScopePresentation['kind'],
+  entities: ReadonlyMap<string, BfnTemplateEntityV1>,
+  t: TFunction,
+): ModuleLibraryScientificScopePresentation {
+  return {
+    kind,
     applicability: presentApplicability(payload, model, entities, t),
     evidenceBasis: t(`bfn.moduleLibrary.evidence.${model.evidenceGrade}`),
-    evidenceSources: payload.provenance.map((record) => record.reference),
+    evidenceSources: resolveModelProvenance(payload, model).map((record) => record.reference),
     uncertainty: t(`bfn.moduleLibrary.uncertainty.${model.uncertaintyMethod}`),
+  };
+}
+
+function resolveModelProvenance(
+  payload: BfnReusableModulePayloadV1,
+  model: BfnTemplateModelBaseV1,
+): BfnTemplateProvenanceV1[] {
+  const provenanceByKey = new Map(payload.provenance.map((record) => [record.key, record]));
+  return model.provenanceKeys
+    .map((key) => provenanceByKey.get(key))
+    .filter((record): record is BfnTemplateProvenanceV1 => record !== undefined);
+}
+
+function modelScientificMetadataIdentity(
+  payload: BfnReusableModulePayloadV1,
+  model: BfnTemplateModelBaseV1,
+): string {
+  const context = model.contextKey
+    ? payload.contexts.find((candidate) => candidate.key === model.contextKey)
+    : undefined;
+  const domain = payload.validityDomains.find(
+    (candidate) => candidate.key === model.validityDomainKey,
+  );
+  const domainContext = domain?.contextKey
+    ? payload.contexts.find((candidate) => candidate.key === domain.contextKey)
+    : undefined;
+  const provenance = resolveModelProvenance(payload, model)
+    .map((record) => ({ kind: record.kind, reference: record.reference }))
+    .sort((left, right) =>
+      `${left.kind}\u0000${left.reference}`.localeCompare(`${right.kind}\u0000${right.reference}`),
+    );
+  const inputRanges = [...(domain?.inputRanges ?? [])]
+    .map((range) => ({
+      portKey: range.portKey,
+      minimum: range.minimum,
+      maximum: range.maximum,
+      unit: range.unit,
+    }))
+    .sort((left, right) =>
+      `${left.portKey}\u0000${left.unit}\u0000${left.minimum}\u0000${left.maximum}`.localeCompare(
+        `${right.portKey}\u0000${right.unit}\u0000${right.minimum}\u0000${right.maximum}`,
+      ),
+    );
+  return JSON.stringify({
+    evidenceGrade: model.evidenceGrade,
+    uncertaintyMethod: model.uncertaintyMethod,
+    provenance,
+    context: scientificContextIdentity(context),
+    validityDomain: domain
+      ? {
+          labelKey: domain.labelKey,
+          inputRanges,
+          timeRangeHours: domain.timeRangeHours ?? null,
+          context: scientificContextIdentity(domainContext),
+        }
+      : null,
+  });
+}
+
+function scientificContextIdentity(context: BfnTemplateContextV1 | undefined): object | null {
+  if (!context) return null;
+  return {
+    labelKey: context.labelKey,
+    documentationState: context.documentationState,
+    host: context.host,
+    strain: context.strain,
+    medium: context.medium,
+    temperatureCelsius: context.temperatureCelsius,
+    ph: context.ph,
+    oxygenation: context.oxygenation,
+    growthPhase: context.growthPhase,
+    plasmidBackbone: context.plasmidBackbone,
+    copyNumberRegime: context.copyNumberRegime,
+    inductionProtocol: context.inductionProtocol,
+    measurementTimeHours: context.measurementTimeHours,
+    batch: context.batch,
+    isDemo: context.isDemo,
   };
 }
 

@@ -1,6 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import type { BfnReusableModulePayloadV1 } from './template';
-import { createModuleLibraryScientificPresentation } from './moduleLibraryPresentation';
+import {
+  createModuleLibraryScientificPresentation,
+  type ModuleLibraryScientificScopePresentation,
+} from './moduleLibraryPresentation';
 
 interface BfnModuleScientificSummaryProps {
   payload: BfnReusableModulePayloadV1;
@@ -105,10 +108,39 @@ export function BfnModuleScientificSummary({ payload }: BfnModuleScientificSumma
         )}
       </section>
 
+      {presentation.scientificScopes.map((scope) => (
+        <ScientificScopeSummary
+          key={scope.kind}
+          scope={scope}
+          separated={presentation.scientificScopes.length > 1}
+        />
+      ))}
+    </div>
+  );
+}
+
+function ScientificScopeSummary({
+  scope,
+  separated,
+}: {
+  scope: ModuleLibraryScientificScopePresentation;
+  separated: boolean;
+}) {
+  const { t } = useTranslation();
+  const title =
+    scope.kind === 'steady_state'
+      ? t('bfn.moduleLibrary.scopeTitles.steadyState')
+      : t('bfn.moduleLibrary.scopeTitles.dynamic');
+  const content = (
+    <>
       <section className="bfn-module-science__section">
-        <h3>{t('bfn.moduleLibrary.sections.applicability')}</h3>
+        {separated ? (
+          <h4>{t('bfn.moduleLibrary.sections.applicability')}</h4>
+        ) : (
+          <h3>{t('bfn.moduleLibrary.sections.applicability')}</h3>
+        )}
         <dl className="bfn-module-library__properties">
-          {presentation.applicability.map((property) => (
+          {scope.applicability.map((property) => (
             <div key={property.key}>
               <dt>{property.label}</dt>
               <dd>{property.value}</dd>
@@ -118,17 +150,21 @@ export function BfnModuleScientificSummary({ payload }: BfnModuleScientificSumma
       </section>
 
       <section className="bfn-module-science__section">
-        <h3>{t('bfn.moduleLibrary.sections.evidence')}</h3>
+        {separated ? (
+          <h4>{t('bfn.moduleLibrary.sections.evidence')}</h4>
+        ) : (
+          <h3>{t('bfn.moduleLibrary.sections.evidence')}</h3>
+        )}
         <dl className="bfn-module-library__properties">
           <div>
             <dt>{t('bfn.moduleLibrary.fields.basis')}</dt>
-            <dd>{presentation.evidenceBasis}</dd>
+            <dd>{scope.evidenceBasis}</dd>
           </div>
           <div>
             <dt>{t('bfn.moduleLibrary.fields.sources')}</dt>
             <dd>
-              {presentation.evidenceSources.length
-                ? presentation.evidenceSources.join(' · ')
+              {scope.evidenceSources.length
+                ? scope.evidenceSources.join(' · ')
                 : t('bfn.moduleLibrary.userDefinedSource')}
             </dd>
           </div>
@@ -136,9 +172,21 @@ export function BfnModuleScientificSummary({ payload }: BfnModuleScientificSumma
       </section>
 
       <section className="bfn-module-science__section">
-        <h3>{t('bfn.moduleLibrary.sections.uncertainty')}</h3>
-        <p>{presentation.uncertainty}</p>
+        {separated ? (
+          <h4>{t('bfn.moduleLibrary.sections.uncertainty')}</h4>
+        ) : (
+          <h3>{t('bfn.moduleLibrary.sections.uncertainty')}</h3>
+        )}
+        <p>{scope.uncertainty}</p>
       </section>
-    </div>
+    </>
+  );
+
+  if (!separated) return content;
+  return (
+    <section className="bfn-module-science__scope" aria-label={title}>
+      <h3>{title}</h3>
+      {content}
+    </section>
   );
 }

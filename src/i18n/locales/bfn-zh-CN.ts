@@ -1954,6 +1954,10 @@ export const bfnZhCN = {
       versionNote: '版本说明',
       moduleVersion: '模块版本',
     },
+    scopeTitles: {
+      steadyState: '稳态响应',
+      dynamic: '动态响应',
+    },
     fields: {
       type: '模块类型',
       model: '模型',

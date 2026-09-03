@@ -5,7 +5,7 @@
 - 当前正式冻结交付：Batch 12.3，以及经 Master Control 最终联合复核的 Batch 12.4.0、Batch 12.4.1 与 Batch 12.4；后三者现统一登记为 `FROZEN`
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
 - 本次 docs-only bookkeeping commit 建立统一 Batch 12.4 freeze checkpoint；实际 freeze SHA 在提交创建后由 handoff 记录，不在本提交中自引用
-- 当前交付：Batch 12.5 Reusable Module Library User Workflow；分支 `codex/bfn-reusable-module-library-workflow`；exact base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`；状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`
+- 当前交付：Batch 12.5 Reusable Module Library User Workflow；分支 `codex/bfn-reusable-module-library-workflow`；exact implementation base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`；exact correction base `c4295d1335448ad2ca6b7f4296d77ab2dc5a18c1`；状态为 `CANDIDATE / Correction Candidate complete / awaiting Master Correction Review / not FROZEN`
 - Batch 12.5.0 与 Batch 12.5.1 的 Master Review 结果均为 `PASS`，生命周期状态保持 `CANDIDATE / not FROZEN`；本轮不做 freeze bookkeeping
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
@@ -65,6 +65,7 @@
 | Batch 12.4 pre-freeze integrated head   | `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6` | `docs(bfn): record signal pool identity correction`          |
 | Batch 12.5.0 reviewed contract          | `d7fdcbf13ec8847ec9480085756dfaf184c35331` | `fix(bfn): harden module template representation contract`   |
 | Batch 12.5.1 reviewed persistence       | `1d59a144e03eea4cdce70b3889936cd3e2e20f74` | `feat(bfn): add local versioned module library`              |
+| Batch 12.5 initial workflow candidate   | `c4295d1335448ad2ca6b7f4296d77ab2dc5a18c1` | `feat(bfn): add reusable module library workflow`            |
 
 Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master Control 完成实现审核与窄修正复核。`2a33365c40d4852d2270252560e148b7dc247aaf` 是正式审定的 Batch 12.0 实现 Head，`42e4cf6770c2986c950c89efc724a981e9ccf5d9` 是其 freeze bookkeeping commit。
 

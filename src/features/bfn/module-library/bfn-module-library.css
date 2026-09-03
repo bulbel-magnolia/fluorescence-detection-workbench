@@ -133,6 +133,7 @@
 .bfn-module-library-list h3,
 .bfn-module-library-inspector h3,
 .bfn-module-science h3,
+.bfn-module-science h4,
 .bfn-module-library-form-section h3,
 .bfn-module-library-add-boundary h3 {
   margin: 0;
@@ -309,6 +310,24 @@
 .bfn-module-science__section {
   display: grid;
   gap: 8px;
+}
+
+.bfn-module-science__scope {
+  display: grid;
+  padding-top: 12px;
+  border-bottom: var(--ui-divider);
+}
+
+.bfn-module-science__scope > h3 {
+  color: var(--ui-accent);
+}
+
+.bfn-module-science__scope .bfn-module-science__section {
+  padding-left: 8px;
+}
+
+.bfn-module-science__scope .bfn-module-science__section:last-child {
+  border-bottom: 0;
 }
 
 .bfn-module-library__table-scroll {

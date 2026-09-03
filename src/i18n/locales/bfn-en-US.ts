@@ -2085,6 +2085,10 @@ export const bfnEnUS = {
       versionNote: 'Version note',
       moduleVersion: 'Module version',
     },
+    scopeTitles: {
+      steadyState: 'Steady-state response',
+      dynamic: 'Dynamic response',
+    },
     fields: {
       type: 'Module type',
       model: 'Model',
