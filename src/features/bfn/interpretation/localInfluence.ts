@@ -49,15 +49,18 @@ function unavailableDerivative(
 }
 
 function hillFractionDerivative(input: number, k: number, n: number): DerivativeResolution {
-  if (input === 0) {
-    if (n > 1) return availableDerivative(0);
-    if (n === 1) return unavailableDerivative('derivative_not_unique');
+  const safeInput = Math.max(0, input);
+  const safeK = Math.max(Number.EPSILON, k);
+  const safeN = Math.max(Number.EPSILON, n);
+  if (safeInput === 0) {
+    if (safeN > 1) return availableDerivative(0);
+    if (safeN === 1) return unavailableDerivative('derivative_not_unique');
     return unavailableDerivative('derivative_non_finite');
   }
-  const inputPower = input ** n;
-  const thresholdPower = k ** n;
+  const inputPower = safeInput ** safeN;
+  const thresholdPower = safeK ** safeN;
   return availableDerivative(
-    (n * thresholdPower * input ** (n - 1)) / (thresholdPower + inputPower) ** 2,
+    (safeN * thresholdPower * safeInput ** (safeN - 1)) / (thresholdPower + inputPower) ** 2,
   );
 }
 

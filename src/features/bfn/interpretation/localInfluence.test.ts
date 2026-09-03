@@ -165,6 +165,14 @@ function finiteDifference(
   );
 }
 
+function productionSafeHillFractionDerivative(input: number, k: number, n: number): number {
+  const safeK = Math.max(Number.EPSILON, k);
+  const safeN = Math.max(Number.EPSILON, n);
+  const inputPower = input ** safeN;
+  const thresholdPower = safeK ** safeN;
+  return (safeN * thresholdPower * input ** (safeN - 1)) / (thresholdPower + inputPower) ** 2;
+}
+
 describe('calculateBfnLocalInfluence', () => {
   it('matches a finite-difference test oracle for an interior Hill activation point', () => {
     const fixture = singleInputFixture((module) => hillResponse(module), 3);
@@ -191,6 +199,40 @@ describe('calculateBfnLocalInfluence', () => {
       8,
     );
   });
+
+  it.each(['hill_activation', 'hill_repression'] as const)(
+    'uses production-safe K for a sub-EPS %s derivative',
+    (family) => {
+      const k = Number.EPSILON / 4;
+      const input = Number.EPSILON;
+      const fixture = singleInputFixture(
+        (module) => hillResponse(module, { family, k, n: 2 }),
+        input,
+      );
+      const result = successfulResult(calculateBfnLocalInfluence(fixture.project, fixture.request));
+      const direction = family === 'hill_activation' ? 1 : -1;
+      const expected = direction * productionSafeHillFractionDerivative(input, k, 2);
+
+      expect(gainValue(result) / expected).toBeCloseTo(1, 12);
+    },
+  );
+
+  it.each(['hill_activation', 'hill_repression'] as const)(
+    'uses production-safe n for a sub-EPS %s derivative',
+    (family) => {
+      const n = Number.EPSILON / 4;
+      const input = 3;
+      const fixture = singleInputFixture(
+        (module) => hillResponse(module, { family, k: 2, n }),
+        input,
+      );
+      const result = successfulResult(calculateBfnLocalInfluence(fixture.project, fixture.request));
+      const direction = family === 'hill_activation' ? 1 : -1;
+      const expected = direction * productionSafeHillFractionDerivative(input, 2, n);
+
+      expect(gainValue(result) / expected).toBeCloseTo(1, 12);
+    },
+  );
 
   it.each([
     { name: 'zero amplitude', n: 1, ymin: 0.4, ymax: 0.4, expected: 0 },
@@ -328,6 +370,32 @@ describe('calculateBfnLocalInfluence', () => {
           7,
         );
       });
+    },
+  );
+
+  it.each(['activation', 'repression'] as const)(
+    'uses production-safe Hill semantics for an independent %s term',
+    (direction) => {
+      const input = Number.EPSILON;
+      const fixture = independentFixture('bounded_sum', [input, 0.7]);
+      const term = fixture.response.terms[0]!;
+      term.direction = direction;
+      term.k.value = Number.EPSILON / 4;
+      delete term.k.interval95;
+      term.n.value = 2;
+      delete term.n.interval95;
+      term.contribution.value = 0.2;
+      delete term.contribution.interval95;
+      fixture.response.outputMaximum.value = 10;
+      delete fixture.response.outputMaximum.interval95;
+      const result = successfulResult(calculateBfnLocalInfluence(fixture.project, fixture.request));
+      const sign = direction === 'activation' ? 1 : -1;
+      const expected =
+        sign *
+        term.contribution.value *
+        productionSafeHillFractionDerivative(input, term.k.value, term.n.value);
+
+      expect(gainValue(result) / expected).toBeCloseTo(1, 12);
     },
   );
 
