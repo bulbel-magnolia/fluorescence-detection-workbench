@@ -5,5 +5,6 @@
 @import './bfn-canvas.css';
 @import './bfn-inspector.css';
 @import './interpretation/bfn-local-influence.css';
+@import './interpretation/bfn-network-influence.css';
 @import './bfn-results.css';
 @import './workspace/bfn-project-center.css';

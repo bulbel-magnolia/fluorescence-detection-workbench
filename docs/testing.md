@@ -1395,3 +1395,31 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - changed-file Prettier、`git diff --check` 与 frozen-boundary audit 纳入最终提交前门禁；BFN-IR/SIM、Workspace、Ideal Edge、Compatibility/unit、static/dynamic/accumulator runtime、Signal Pool、Designed Sender/Receiver、Temporal、Ontology、Inverse Design、Template、Module Library persistence、ANN range-fit semantics 与 package dependencies 保持零差异。
 
 以上只声明 local validation。Batch 13.0 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Batch 13.1 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 PASS、FROZEN 或 CI passed。
+
+## 2026-09-04 Batch 13.1 Correction + Batch 13.2 Network Influence Propagation
+
+### Phase 0 correction
+
+- `localInfluence.test.ts` 新增 sub-EPS `K`、sub-EPS `n` 以及 independent-input Hill term 的 production-safe analytic derivative 回归；修正前 6 项稳定失败，修正后该文件 36/36 项通过；
+- correction 与 Batch 13.0/13.1 相关专项合计 4 个文件 / 111 项通过，`npm run typecheck` 与 `git diff --check` 通过；correction checkpoint 为 `a05375798f09cf3c8d278275970baacc823ccca5`，parent 精确为 `7c1eec761346f2eba85df052a8ee02067cc95ee0`；
+- `responseMath.ts`、package manifest 与 lockfile 相对 exact base 零差异。
+
+### Phase 1 target-scoped network contract
+
+- `networkInfluenceValidation.test.ts` 覆盖 selected Output Monitor active-response closure、无关坏模块、相关/无关环路、Accumulator、paired first-order、dynamic DAG、缺失/重复/disabled incoming Edge、unknown endpoint、unknown Monitor，以及 external source missing/duplicate/unexpected/unit/non-finite/negative admission；
+- 结构准入只要求 active response 实际使用的 Module inputs，Module 上未参与 response 的 input 不产生伪缺失；目标外 source、module、cycle 与 malformed response 不进入当前 target gate；
+- `networkInfluence.test.ts` 覆盖 single-chain product、production output trace、direct transmission、same-unit identity、`nM → uM` coordinate conversion、Project source order、多输入方向、branch/convergence sum、saturated exact zero、per-source unavailable containment、relative sensitivity、域外阻断、not-recorded applicability、off-target applicability、Evidence/provenance/uncertainty metadata、purity、freeze、ephemeral persistence 与 annThreshold independence；
+- Edge regression 明确断言 Edge 不具有 gain 或 weight；总作用来自 forward sensitivity propagation，未调用 ANN approximation；
+- `networkInfluencePresentation.test.ts` 覆盖结构 availability、自然 unsupported reason 与 static fixed/dynamic constant exclusive prefill；
+- `BfnNetworkInfluenceUi.test.tsx` 覆盖 Output Monitor Inspector action、Drawer、purpose、target-only sources、working-range blank、fixed/constant prefill、incomplete disabled、current output、direction、total response gain、relative sensitivity、applicability、逐模块依据、域外阻断、not-recorded result、multi-input rows、Accumulator/feedback reason、internal-code containment、stale-result clearing、关闭后值/焦点恢复、Project unchanged 与英文流程；
+- `bfn-locales.test.ts` 继续验证 zh-CN/en-US key parity。Phase 1 初始定向门为 5 个文件 / 49 项通过。
+
+### Final validation record
+
+- Phase 0 最终复跑的解释层门为 4 个测试文件 / 95 项通过，static runtime 另为 1 个文件 / 12 项通过；correction checkpoint 前已记录的定向门保持 4 个文件 / 111 项通过；
+- Phase 1 request/admission、calculator、presentation、UI 与 locale parity 定向门为 5 个测试文件 / 49 项通过；完整 BFN 与 BFN locale regression 为 109 个测试文件 / 1312 项通过；
+- manifest-protected `npm test -- --maxWorkers=4` 为 174 个测试文件 / 1691 项通过；12 个 Sender immutable source 按清单临时选择 4 个工作树字节版本与 8 个 raw Git blob，`finally` 后 12/12 恢复为运行前 length/SHA-256，Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 `npm run build` 通过，转换 342 个 modules，主 CSS 为 297.37 kB（gzip 48.90 kB），主 JavaScript chunk 为 3,576.82 kB（gzip 518.21 kB），保留既有大于 500 kB chunk warning；
+- changed-file Prettier、`git diff --check` 与冻结边界审计通过；BFN-IR 2.3、BFN-SIM 2.2、Workspace DB、Ideal Edge、Port Compatibility、BfnUnit / unit conversion、production response equations、first-order / Accumulator / Signal Pool runtime、Designed Sender / Receiver、Temporal、Ontology、Inverse Design、Module Template、Module Library persistence、ANN approximation / thresholds 与 dependencies 相对 exact base 均为零差异；
+- 真实界面审计覆盖 single-input chain、multi-input network、branching/convergence、outside-domain blocker、Accumulator unsupported 与 first-order steady-state network 六态。Right Drawer 保持明确 target、条件表、结果表、numeric/unit alignment、非颜色状态和次级 Evidence details；主界面未出现 hero、card wall、gradient、formula-first、raw IDs、internal issue codes 或 solver vocabulary；
+- 当前只声明 local validation passed。Batch 13.1 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Batch 13.2 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 Master Review PASS、FROZEN 或 CI passed。

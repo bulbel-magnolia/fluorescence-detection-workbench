@@ -2,9 +2,9 @@
 
 ## 状态与目的
 
-本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0 原 reviewed candidate `0717b51` 的状态为 `Master Review FIX / CANDIDATE / not FROZEN`。其 correction checkpoint 已完成 Entity + quantity + unit 恒等约束与单一 output 约束，当前为 `CANDIDATE / awaiting Master Correction Review / not FROZEN`。
+本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0 已完成 Master Correction Review，状态保持 `CANDIDATE / not FROZEN`。Batch 13.1 original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0` 的 Master Review 结论为 `FIX`；本轮 correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5` 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。
 
-Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义，并提供纯请求 admission。Batch 13.1 在该合同上实现 module-local 静态输入作用计算与用户工作流，状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
+Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义。Batch 13.1 实现 module-local 静态输入作用计算与用户工作流。Batch 13.2 在同一局部真值上实现 Output Monitor 目标闭包、工作点传播和外部输入总体作用分析，状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
 
 解释层使用独立版本 `BFN-INTERPRETATION 1.0`。BFN-IR 保持 `2.3`，BFN-SIM 保持 `2.2`，Workspace IndexedDB、Module Library IndexedDB 与 Module Template 的版本均保持不变。
 
@@ -150,6 +150,8 @@ Batch 13.1 只允许由生产方程推导的 analytic derivative。数值差分�
 
 Batch 13.1 的 `calculateBfnLocalInfluence(project, request)` 实现上述解析规则。它先执行 admission，仅在 supported request 上调用生产静态求值器与解析导数路径。一个 input 的 Hill 导数不可用时，只影响该 input；其他独立输入继续按各自解析偏导计算。
 
+Batch 13.1 correction 将 Hill derivative 的 parameter safeguard 与生产求值器完全对齐：所有 Hill activation/repression 与 `independent_inputs` term 都先使用 `safeK = max(Number.EPSILON, K)` 和 `safeN = max(Number.EPSILON, n)`，再执行零点分类与解析导数。该修正不改变 `responseMath.ts` 的生产语义，也不引入 numerical derivative fallback。
+
 ## 增益单位
 
 增益单位由 output/input 单位对组成：
@@ -267,15 +269,43 @@ weight 是派生解释量，不是 Edge 属性、Module parameter 或实验系�
 
 域外请求在 admission 阶段阻断，不形成看似正常的 result。Result 不包含用户界面文案。
 
-## 未来网络组合边界
+## Batch 13.2 网络组合合同
 
-Batch 13.2 将以 module-local gains 为基础按 chain rule 组合路径影响。Edge 是 identity propagation，不贡献额外 biological gain。Branching 和 convergence 通过下游 partial derivative 结构组合。
+`BfnNetworkInfluenceRequestV1` 绑定 `contractVersion = 1.0`、`scope = network_static_output`、exact `outputMonitorId`，以及该目标上游实际参与 active response 的全部外部 Input Source 工作点。每个工作点包含 exact `inputSourceId`、finite non-negative value 和 Input Source output port 的 exact unit。用户不填写内部 Module input。
 
-Batch 13.1 不实现 path search、path contribution、total input-output gain、network Jacobian、global sensitivity matrix、overlay 或 highlighting。静态环路继续由现有 DAG admission 阻止；当前不支持的 dynamic feedback 继续 fail closed。本合同不定义 closed-loop sensitivity、feedback gain、stability margin 或 eigenvalue。
+纯 `assessBfnNetworkInfluenceRequest()` 从 selected Output Monitor 沿 enabled Edge 反向解析目标闭包。它对每个相关 Module 调用 local admission 取得实际 active-response inputs，并要求每个必要 input 恰好一条 enabled incoming Edge。目标外 Input Source、Module、Edge、环路和 applicability 不进入当前请求。目标闭包的 missing/duplicate input、unknown endpoint、科学 identity 不一致、unit 不兼容、Accumulator 或 directed cycle 均 fail closed。
+
+纯 `calculateBfnNetworkInfluence()` 按目标闭包拓扑顺序传播工作点。每个 Module 通过 `calculateBfnLocalInfluence()` 取得同一点 production output、analytic local gains、applicability 和 Evidence。网络层不建立第二套 static evaluator。
+
+对 external source `u`，source 处初始化 `du/du = 1`。单位坐标经过 Edge 时使用：
+
+```text
+unitCoordinateScale
+= convertUnit(1, sourceUnit, targetUnit)
+  - convertUnit(0, sourceUnit, targetUnit)
+```
+
+Module output 使用 forward sensitivity propagation：
+
+```text
+dy/du = Σi (∂y/∂xi)(dxi/du)
+```
+
+Branching 和 convergence 由该和式组合。主 total influence 不以 path enumeration 计算。对特定 source，`dxi/du === 0` 时该 input contribution 为零，即使对应 local derivative unavailable 也不污染该 source；非零 upstream sensitivity 遇到 unavailable local derivative 时只将该 source 标记 unavailable。精确零 local gain 同样形成零贡献。
+
+Edge 仍是 instantaneous、lossless、identity topology。`unitCoordinateScale` 只改变 numeric derivative coordinate，不是 biological Edge gain，不能保存或显示为 `edge.weight`、`edge.gain` 或 `edge.sensitivity`。
+
+网络结果以 Project Input Source 顺序返回每个相关外部源的总体响应增益、exact-sign direction 与相对敏感度。增益单位继续用 `BfnDerivedGainUnit` 表示 Output Monitor unit / Input Source output unit。直接 Input Source → Output Monitor 支持同一科学量的 identity transmission 与单位坐标换算。
+
+每个 relevant Module 的 `outside_recorded_domain` 阻断正式网络结果，并保留 module/input/current/range 供自然展示。只出现 `applicability_not_recorded` 时保留数学结果，并将 network applicability 记为 `applicability_not_recorded`。
+
+结果逐模块保留 active model ID/version、Evidence、uncertainty method、model provenance、Context、ValidityDomain、Catalog identity 与 interpretation basis，不创建 synthetic network Evidence grade。Batch 13.2 只使用 nominal parameters，不进行 numerical uncertainty propagation。
+
+Path contribution breakdown 在当前实现中未提供。总体作用已覆盖分支与汇合；未来路径明细只能作为 secondary audit detail，并保持与 forward-propagated total 的一致性和完整性安全上限。
 
 ## 未来动态分析边界
 
-Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer function、Laplace-domain、state-space linearization 和 simulation snapshot linearization。Batch 13.1 不将静态响应导数命名为动态增益，也不为 Signal Pool 构造有限 static/DC weight。
+Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer function、Laplace-domain、state-space linearization 和 simulation snapshot linearization。Batch 13.2 不将稳态网络响应导数命名为动态增益，也不为 Signal Pool 构造有限 static/DC weight。
 
 ## Batch 13.1 UI 表达
 
@@ -284,6 +314,14 @@ Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer fu
 普通用户界面围绕当前任务展示分析对象、分析条件、固定端口单位、已记录范围、当前输出、作用方向、局部响应增益、相对敏感度、适用性和模型依据。输入值初始为空，关闭 Drawer 后丢弃；编辑任一输入立即清除旧结果。域外条件只显示阻断原因与允许范围，不显示正式 gain。适用范围未完整记录时保留数学结果，并在结果附近明确说明。
 
 公式、Jacobian、gradient、partial derivative、chain rule、matrix notation、OperatingPointVector 和 differentiation terminology 不进入默认主界面。本合同文档中的公式不构成 UI 展示要求。
+
+## Batch 13.2 UI 表达
+
+入口位于 selected Output Monitor Inspector，中文为“分析网络作用…”，英文为 “Analyze network influence…”。目标闭包支持时打开右侧科研 Drawer；Accumulator、反馈、必要输入缺失和 response invalid 分别显示自然禁用原因。
+
+Drawer 只列出目标闭包实际使用的外部 Input Sources。static `fixed_value` 与 dynamic `constant` 可使用 exact Project value 预填，其余输入规格保持空白。结果展示当前输出、逐外部源作用方向、总体响应增益、相对敏感度、network applicability 和折叠的逐模块分析依据。编辑任一条件清除旧结果，关闭后丢弃全部条件并恢复焦点。
+
+域外工作点不展示总体结果，同时显示自然 module/input 名称、当前值和 recorded range。first-order 路径统一显示一次 steady-state boundary；直接传递路径说明没有功能模块转换。普通 UI 不显示内部公式、raw identity、unit-coordinate scale 或 issue code。
 
 ## 稳定 admission issue
 
@@ -313,13 +351,15 @@ request_contract_invalid
 
 ## 当前实现与后续边界
 
-Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案以及适用性阻断。未进入本批次的范围包括：
+Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案与 applicability admission；correction 已将 Hill derivative 的 `safeK/safeN` 语义和 production evaluator 对齐。Batch 13.2 已实现 target-scoped network admission、工作点与前向敏感度传播、ephemeral network result、selected-monitor Drawer、逐模块 Evidence 保留及自然 fail-closed 说明。
+
+当前未实现范围包括：
 
 - numerical differentiation production fallback；
-- uncertainty propagation、confidence interval、posterior、Monte Carlo、Sobol 或 global sensitivity；
-- network propagation、path enumeration、feedback solver；
+- network uncertainty propagation、confidence interval、posterior、Monte Carlo、Sobol 或 global sensitivity；
+- path contribution breakdown、feedback solver 与 closed-loop interpretation；
 - dynamic/frequency analysis；
 - local ANN view、weight overlay、公式界面；
 - interpretation persistence、cache、export schema。
 
-Batch 13.0 correction checkpoint 的实现完成不代表 PASS，等待 Master Correction Review。Batch 13.1 的实现完成不代表 PASS，等待 Master Review。两个 Batch 均不是 FROZEN。
+Batch 13.0 为 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13.1 original candidate 为 `Master Review FIX`；correction checkpoint 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。Batch 13.2 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。Batch 13.3 与 13.4 保持 `PLANNED / NOT AUTHORIZED`。

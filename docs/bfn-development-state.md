@@ -1,12 +1,12 @@
 # BFN Development State Ledger
 
-- 最后核查日期：2026-09-03
+- 最后核查日期：2026-09-04
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
 - 当前正式冻结交付：Batch 12.3，以及经 Master Control 最终联合复核的 Batch 12.4.0、Batch 12.4.1 与 Batch 12.4；后三者现统一登记为 `FROZEN`
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
 - 本次 docs-only bookkeeping commit 建立统一 Batch 12.4 freeze checkpoint；实际 freeze SHA 在提交创建后由 handoff 记录，不在本提交中自引用
-- 当前交付：Batch 12.5 Reusable Module Library User Workflow；分支 `codex/bfn-reusable-module-library-workflow`；exact implementation base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`；exact correction base `c4295d1335448ad2ca6b7f4296d77ab2dc5a18c1`；状态为 `CANDIDATE / Correction Candidate complete / awaiting Master Correction Review / not FROZEN`
-- Batch 12.5.0 与 Batch 12.5.1 的 Master Review 结果均为 `PASS`，生命周期状态保持 `CANDIDATE / not FROZEN`；本轮不做 freeze bookkeeping
+- 当前交付：Batch 13.1 Correction + Batch 13.2 Network Influence Propagation；分支 `codex/bfn-network-influence-propagation`；exact base `7c1eec761346f2eba85df052a8ee02067cc95ee0`；13.1 correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`
+- Batch 13.0 为 `Master Correction Review PASS / CANDIDATE / not FROZEN`；Batch 13.1 original candidate 为 `Master Review FIX`；Batch 13.1 correction 与 Batch 13.2 implementation 均等待对应 Master Review，本轮不做 freeze bookkeeping
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -106,9 +106,10 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 | Batch 12.5.0 — Reusable Module Template Representation    | CANDIDATE | `codex/bfn-module-template-representation-contract`；reviewed implementation `d7fdcbf13ec8847ec9480085756dfaf184c35331`                                                                                                                          | Master Review `PASS`；BFN-MODULE-TEMPLATE 1.0 not `FROZEN`                                      |
 | Batch 12.5.1 — Local Versioned Module Library Persistence | CANDIDATE | `codex/bfn-local-versioned-module-library`；reviewed implementation `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                   | Master Review `PASS`；独立本地 versioned repository not `FROZEN`                                |
 | Batch 12.5 — Reusable Module Library User Workflow        | CANDIDATE | `codex/bfn-reusable-module-library-workflow`；exact base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                              | implementation complete；awaiting Master Review；not `FROZEN`                                   |
-| Batch 13.0 — Network Interpretation Correction            | CANDIDATE | `codex/bfn-static-local-influence-analysis`；exact base / original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d`；correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad`                                               | correction implementation complete；awaiting Master Correction Review；not `FROZEN`             |
-| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | `codex/bfn-static-local-influence-analysis`；linear successor of correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad`                                                                                                                | implementation complete；awaiting Master Review；not `FROZEN`                                   |
-| Batch 13.2–13.4                                           | PLANNED   | NOT AUTHORIZED；无 implementation commit                                                                                                                                                                                                         | network propagation、ANN view 与 dynamic gain 不在当前授权范围                                  |
+| Batch 13.0 — Network Interpretation Correction            | CANDIDATE | original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d`；correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad`                                                                                                         | Master Correction Review `PASS`；not `FROZEN`                                                   |
+| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | correction implementation complete；awaiting Master Correction Review；not `FROZEN`             |
+| Batch 13.2 — Network Influence Propagation                | CANDIDATE | `codex/bfn-network-influence-propagation`；exact base `7c1eec761346f2eba85df052a8ee02067cc95ee0`；final implementation SHA 由提交后 handoff 登记                                                                                                 | implementation complete；awaiting Master Review；not `FROZEN`                                   |
+| Batch 13.3–13.4                                           | PLANNED   | NOT AUTHORIZED；无 implementation commit                                                                                                                                                                                                         | ANN local view 与 dynamic/frequency gain 不在当前授权范围                                       |
 
 ## Batch 12.0 frozen boundary
 
@@ -332,6 +333,23 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - frozen-boundary audit 保持 BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、Ideal Edge、Port Compatibility、BfnUnit、static/first-order/Accumulator/Signal Pool runtime、Designed Sender、Sender/Receiver、Temporal、Ontology、Inverse Design、Template 1.0、Module Library Persistence 1.0、`annApproximation.ts`、`analysis.annThresholds` 与 package dependencies 零差异；
 - Batch 13.0 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。Batch 13.1 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。本节只记录 local validation，不声明 PASS、FROZEN 或 CI passed。
 
+## 2026-09-04 Batch 13.1 Correction + Batch 13.2 Network Influence Propagation
+
+- 合并任务分支 `codex/bfn-network-influence-propagation` 从 exact Batch 13.1 original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0` 线性创建；Phase 0 correction checkpoint 为 `a05375798f09cf3c8d278275970baacc823ccca5`，parent 为 exact base；
+- Phase 0 使 Hill activation/repression 与 independent-input Hill term 的 derivative 在零点分类、幂运算和系数中统一使用 production `safeK/safeN`。`responseMath.ts`、生产 response 语义、BFN-IR、BFN-SIM 与 dependencies 零改动；
+- Phase 1 新增 pure `assessBfnNetworkInfluenceRequest()` 与 `calculateBfnNetworkInfluence()`。结构准入只沿 selected Output Monitor 的 enabled active-response closure 解析，必要输入要求 exactly one incoming Edge；目标外环路、坏模块和无关 Input Source 不阻断当前目标；
+- 工作点按目标闭包拓扑顺序传播，每个 Module 委托 `calculateBfnLocalInfluence()` 取得 production output、analytic local gains、applicability 和 model evidence。总体作用使用 per-source forward sensitivity propagation；branch/convergence 通过局部偏导和式组合；
+- compatible unit conversion 沿用 frozen `convertUnit()`，内部 coordinate scale 不属于 Edge biological gain。Ideal Edge representation 与 semantics 保持不变，不增加 weight/gain/sensitivity；
+- 特定 module input 的 upstream sensitivity 为精确零时，local derivative unavailable 不污染该 external source；非零 upstream sensitivity 遇到 unavailable derivative 时仅阻断该 source，其他 source 结果保持可用；
+- target closure 包含 Accumulator / Signal Pool 或 feedback 时自然 fail closed。paired first-order 路径只解释 steady-state response，不描述时间过程；direct Input Source → Output Monitor 支持同科学量的单位坐标传播；
+- 任一相关 Module 域外时阻断正式 network result，并保留 module/input/current/range。部分相关模型没有 recorded range 时保留结果并聚合为 `applicability_not_recorded`；
+- Result 按 Project Input Source order 返回 current output、总体响应增益、exact-sign direction 与相对敏感度，并逐模块保留 Evidence、uncertainty method、model provenance、Context、ValidityDomain 与 interpretation basis；不创建 synthetic network Evidence grade，不做数值 uncertainty propagation；
+- selected Output Monitor Inspector 增加“分析网络作用…”入口和右侧科研 Drawer。只显示目标相关外部输入，预填仅接受 static fixed value / dynamic constant；输入编辑清除旧结果，关闭后丢弃 ephemeral 条件并恢复焦点；
+- 当前 path contribution breakdown 未实现；总体作用完整来自 forward sensitivity propagation。Batch 13.3 / 13.4 保持 `PLANNED / NOT AUTHORIZED`；
+- Phase 1 初始定向门为 5 个文件 / 49 项通过，最终全量测试、构建、截图、frozen-boundary 与 GitHub 状态在提交前后按实际结果补充。本节不声明 CI passed、Batch 13.1 correction PASS、Batch 13.2 PASS 或 FROZEN。
+
+Batch 13.1 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。Batch 13.2 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
+
 ## Sender Public Evidence Research formal boundary
 
 - Sender Public Evidence Research：`FROZEN`；
@@ -366,6 +384,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - [BFN Local Versioned Module Library Persistence 1.0](bfn-module-library-persistence-1.0.md)
 - [BFN Reusable Module Library User Workflow](bfn-reusable-module-library-workflow.md)
 - [BFN-INTERPRETATION 1.0 网络作用解释合同](bfn-network-interpretation-1.0.md)
+- [BFN 网络作用分析](bfn-network-influence-analysis.md)
 - [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)
 - [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)
 - [时间语义、兼容性与适用性](temporal-and-compatibility.md)

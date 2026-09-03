@@ -1,0 +1,42 @@
+.bfn-network-influence {
+  width: min(760px, calc(100vw - 80px));
+}
+
+.bfn-network-influence .bfn-local-influence__conditions th:first-child {
+  width: 44%;
+}
+
+.bfn-network-influence .bfn-local-influence__conditions th:nth-child(2) {
+  width: 56%;
+}
+
+.bfn-network-influence__details {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: var(--ui-divider);
+}
+
+.bfn-network-influence__details summary {
+  color: var(--ui-text-primary);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.bfn-network-influence__details > p {
+  margin: 6px 0 8px;
+  color: var(--ui-text-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.bfn-network-influence__basis-table th,
+.bfn-network-influence__basis-table td {
+  width: 50%;
+}
+
+@media (max-width: 760px) {
+  .bfn-network-influence {
+    width: calc(100vw - 24px);
+  }
+}

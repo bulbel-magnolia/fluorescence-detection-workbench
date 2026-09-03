@@ -22,7 +22,9 @@ import {
 } from './BfnProjectToolbar';
 import { BfnResultWorkspace } from './BfnResultWorkspace';
 import { BfnLocalInfluenceDrawer } from './interpretation/BfnLocalInfluenceDrawer';
+import { BfnNetworkInfluenceDrawer } from './interpretation/BfnNetworkInfluenceDrawer';
 import { assessBfnLocalInfluenceAvailability } from './interpretation/localInfluencePresentation';
+import { assessBfnNetworkInfluenceAvailability } from './interpretation/networkInfluencePresentation';
 import { BfnCatalogInverseWorkspace } from './inverse-design/ui/BfnCatalogInverseWorkspace';
 import { createBfnComputationSignature } from './computationSignature';
 import {
@@ -389,6 +391,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const [inputSettingsOpen, setInputSettingsOpen] = useState(false);
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
   const [localInfluenceModuleId, setLocalInfluenceModuleId] = useState<string | null>(null);
+  const [networkInfluenceMonitorId, setNetworkInfluenceMonitorId] = useState<string | null>(null);
   const [moduleLibraryInitialView, setModuleLibraryInitialView] =
     useState<BfnModuleLibraryInitialView | null>(null);
   const [catalogInitialDetailTarget, setCatalogInitialDetailTarget] =
@@ -547,6 +550,23 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     project.network.inputSources.find((source) => source.id === selectedNodeId) ?? null;
   const selectedMonitor =
     project.network.outputMonitors.find((monitor) => monitor.id === selectedNodeId) ?? null;
+  const selectedNetworkInfluenceAvailability = useMemo(
+    () =>
+      selectedMonitor ? assessBfnNetworkInfluenceAvailability(project, selectedMonitor) : null,
+    [project, selectedMonitor],
+  );
+  const networkInfluenceMonitor =
+    project.network.outputMonitors.find((monitor) => monitor.id === networkInfluenceMonitorId) ??
+    null;
+  const networkInfluenceAvailability = useMemo(
+    () =>
+      networkInfluenceMonitor
+        ? assessBfnNetworkInfluenceAvailability(project, networkInfluenceMonitor)
+        : null,
+    [networkInfluenceMonitor, project],
+  );
+  const networkInfluenceOpen =
+    networkInfluenceMonitor !== null && networkInfluenceAvailability?.supported === true;
   const selectedEdge = project.network.edges.find((edge) => edge.id === selectedEdgeId) ?? null;
   const selectedEdgeSourcePort = selectedEdge
     ? portForEndpoint(project, selectedEdge.source)
@@ -1014,6 +1034,10 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setLocalInfluenceModuleId(null);
   };
 
+  const closeNetworkInfluence = (): void => {
+    setNetworkInfluenceMonitorId(null);
+  };
+
   const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
     if (!moduleId || !projectRef.current.network.modules.some((module) => module.id === moduleId)) {
       return;
@@ -1134,6 +1158,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         inputSettingsOpen ||
         modulePickerOpen ||
         localInfluenceOpen ||
+        networkInfluenceOpen ||
         props.projectCenterOpen === true ||
         pendingDestructiveAction !== null ||
         isBfnEditorOverlayOpen();
@@ -1142,6 +1167,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         if (localInfluenceOpen) {
           event.preventDefault();
           closeLocalInfluence();
+          return;
+        }
+        if (networkInfluenceOpen) {
+          event.preventDefault();
+          closeNetworkInfluence();
           return;
         }
         if (inputSettingsOpen) {
@@ -1884,6 +1914,44 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         ]}
                       />
                     </section>
+                    {selectedNetworkInfluenceAvailability ? (
+                      <section className="bfn-inspector-block bfn-inspector-action">
+                        <header>
+                          <strong>{t('bfn.networkInfluence.inspectorTitle')}</strong>
+                        </header>
+                        <p
+                          className={
+                            selectedNetworkInfluenceAvailability.supported
+                              ? undefined
+                              : 'bfn-inspector-action__reason'
+                          }
+                        >
+                          {selectedNetworkInfluenceAvailability.supported
+                            ? t('bfn.networkInfluence.purpose')
+                            : t(
+                                'bfn.networkInfluence.availabilityReasons.' +
+                                  selectedNetworkInfluenceAvailability.reason,
+                              )}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leadingIcon={<Icon name="pulse" size={14} />}
+                          disabled={!selectedNetworkInfluenceAvailability.supported}
+                          {...(!selectedNetworkInfluenceAvailability.supported
+                            ? {
+                                disabledReason: t(
+                                  'bfn.networkInfluence.availabilityReasons.' +
+                                    selectedNetworkInfluenceAvailability.reason,
+                                ),
+                              }
+                            : {})}
+                          onClick={() => setNetworkInfluenceMonitorId(selectedMonitor.id)}
+                        >
+                          {t('bfn.networkInfluence.action')}
+                        </Button>
+                      </section>
+                    ) : null}
                   </>
                 ) : selectedEdge ? (
                   <>
@@ -2280,6 +2348,19 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           module={localInfluenceModule}
           target={localInfluenceAvailability.target}
           onClose={closeLocalInfluence}
+        />
+      ) : null}
+      {view === 'design' && networkInfluenceMonitor && networkInfluenceAvailability?.supported ? (
+        <BfnNetworkInfluenceDrawer
+          key={
+            networkInfluenceMonitor.id +
+            ':' +
+            networkInfluenceAvailability.target.relevantEdgeIds.join('|')
+          }
+          project={project}
+          monitor={networkInfluenceMonitor}
+          target={networkInfluenceAvailability.target}
+          onClose={closeNetworkInfluence}
         />
       ) : null}
       {modulePickerOpen ? (

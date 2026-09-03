@@ -681,6 +681,102 @@ export const bfnEnUS = {
       nominal: 'The result inherits the response model evidence above and uses nominal parameters.',
     },
   },
+  networkInfluence: {
+    kicker: 'Selected output analysis',
+    title: 'Network Influence Analysis',
+    inspectorTitle: 'Network Influence Analysis',
+    action: 'Analyze network influence…',
+    close: 'Close Network Influence Analysis',
+    purpose:
+      'See how strongly and in which direction each network input affects the selected output under specified input conditions.',
+    unavailable: 'Cannot calculate at this condition',
+    sensitivityUnavailable: 'Not calculable at this condition',
+    firstOrder:
+      'This analysis uses the steady-state response relationship of dynamic modules and does not include their time process.',
+    directTransmission:
+      'This input passes directly to the target output without a functional-module transformation.',
+    availabilityReasons: {
+      dynamic_integrator:
+        'The selected output has a signal pool or another dynamic integration process upstream, so steady-state network influence analysis does not apply.',
+      feedback:
+        'The selected output has a feedback loop upstream. This version cannot perform steady-state network influence analysis for it.',
+      missing_input:
+        'A module on the selected output path has a required input that is unconnected or connected more than once.',
+      response_invalid:
+        'A module on the selected output path lacks a response model that can be used for this analysis.',
+    },
+    object: {
+      title: 'Analysis object',
+      output: 'Output',
+      signal: 'Output signal',
+      module: 'Module',
+    },
+    conditions: {
+      title: 'Analysis conditions',
+      input: 'Network input',
+      value: 'Analysis value',
+      valueFor: 'Analysis value for {{input}}',
+      requirement:
+        'Enter finite, non-negative values for every relevant network input. Units are fixed to the source ports.',
+      incomplete: 'Enter every valid analysis value first.',
+      invalidValue: 'Enter a finite, non-negative value.',
+    },
+    analyze: 'Analyze',
+    outside: {
+      title: 'No formal result generated',
+      description:
+        'The current analysis conditions place part of the network outside a recorded applicable range.',
+      range:
+        '{{module}} · {{input}}: current {{current}} {{currentUnit}}; recorded range {{minimum}}–{{maximum}} {{rangeUnit}}',
+    },
+    failure: {
+      title: 'Analysis unavailable',
+      description:
+        'The network’s steady-state response cannot produce a finite result under these conditions.',
+    },
+    results: {
+      title: 'Results',
+      scopeLabel: 'Target network · steady state',
+      currentOutput: 'Current output',
+      input: 'Network input',
+      direction: 'Influence direction',
+      gain: 'Total response gain',
+      sensitivity: 'Relative sensitivity',
+    },
+    directions: {
+      enhancing: 'Enhancing',
+      inhibiting: 'Inhibiting',
+      no_local_change: 'No local change at this condition',
+      unavailable: 'Cannot calculate at this condition',
+    },
+    gainReasons: {
+      notUnique: 'A response on this route has no unique local gain at this point',
+      nonFinite: 'A response on this route has no finite local gain at this point',
+      unavailable: 'This route cannot provide an analytic influence value',
+    },
+    elasticityReasons: {
+      inputNotPositive: 'The current input is zero',
+      outputNotPositive: 'The current output is not positive',
+      gainUnavailable: 'A total response gain is unavailable at this point',
+    },
+    applicability: {
+      title: 'Applicability',
+      within:
+        'The current analysis conditions are within every relevant model’s recorded applicable range.',
+      notRecorded:
+        'Some response models in this network do not record complete applicable input ranges.',
+    },
+    modelBasis: {
+      title: 'Analysis basis',
+      description: 'The current result is jointly derived from these module response models.',
+      module: 'Module',
+      evidence: 'Model basis',
+      direct:
+        'This result comes from direct transmission of the same scientific quantity and numeric unit-coordinate conversion.',
+      nominal:
+        'The calculation uses each response model’s nominal parameters and does not propagate numeric uncertainty.',
+    },
+  },
   context: {
     host: 'Host',
     strain: 'Strain',
