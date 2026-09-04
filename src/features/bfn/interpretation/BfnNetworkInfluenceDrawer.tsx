@@ -472,6 +472,17 @@ export function BfnNetworkInfluenceDrawer({
                   )}
                 </p>
               </section>
+              {result.contextApplicability.summary === 'mismatch_present' ? (
+                <section className="bfn-local-influence__applicability" data-state="context-caveat">
+                  <strong>{t('bfn.networkInfluence.context.title')}</strong>
+                  <p>{t('bfn.networkInfluence.context.mismatch')}</p>
+                </section>
+              ) : result.contextApplicability.summary === 'uncertain_or_unavailable' ? (
+                <section className="bfn-local-influence__applicability" data-state="context-caveat">
+                  <strong>{t('bfn.networkInfluence.context.title')}</strong>
+                  <p>{t('bfn.networkInfluence.context.uncertain')}</p>
+                </section>
+              ) : null}
               <details className="bfn-network-influence__details">
                 <summary>{t('bfn.networkInfluence.modelBasis.title')}</summary>
                 <p>{t('bfn.networkInfluence.modelBasis.description')}</p>

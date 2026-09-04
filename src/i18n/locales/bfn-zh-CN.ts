@@ -701,6 +701,12 @@ export const bfnZhCN = {
       within: '当前分析条件在所有相关模型已记录的适用范围内。',
       notRecorded: '该网络中部分响应模型没有记录完整的输入适用范围。',
     },
+    context: {
+      title: '实验条件提示',
+      mismatch:
+        '相关模块记录的实验条件存在不一致。当前总体作用是这些模型的数学组合，解释结果时需注意条件差异。',
+      uncertain: '部分相关模块的实验条件不足以确认一致性。',
+    },
     modelBasis: {
       title: '分析依据',
       description: '当前结果由以下模块响应模型共同推导。',

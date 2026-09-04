@@ -3,5 +3,6 @@ export * from './interpretationTypes';
 export { calculateBfnLocalInfluence } from './localInfluence';
 export { assessBfnLocalInfluenceRequest } from './interpretationValidation';
 export { calculateBfnNetworkInfluence } from './networkInfluence';
+export { createBfnNetworkInterpretationContextSnapshot } from './networkInfluenceContext';
 export * from './networkInfluenceTypes';
 export { assessBfnNetworkInfluenceRequest } from './networkInfluenceValidation';

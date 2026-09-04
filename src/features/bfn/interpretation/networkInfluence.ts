@@ -7,6 +7,7 @@ import type {
   BfnLogElasticityV1,
 } from './interpretationTypes';
 import { calculateBfnLocalInfluence } from './localInfluence';
+import { createBfnNetworkInterpretationContextSnapshot } from './networkInfluenceContext';
 import type {
   BfnNetworkInfluenceAdmissionV1,
   BfnNetworkInfluenceCalculationIssueV1,
@@ -392,6 +393,7 @@ export function calculateBfnNetworkInfluence(
     outputAtOperatingPoint: Object.freeze({ value: monitored.value, unit: target.outputUnit }),
     perSource: Object.freeze(perSource),
     applicability,
+    contextApplicability: createBfnNetworkInterpretationContextSnapshot(project, target),
     moduleInterpretations: Object.freeze(moduleInterpretations),
     persistence: 'ephemeral' as const,
   });

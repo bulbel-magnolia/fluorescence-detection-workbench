@@ -59,10 +59,14 @@ export function bfnNetworkInfluencePrefill(
   const source = project.network.inputSources.find((candidate) => candidate.id === inputSourceId);
   if (!source) return null;
   if (project.network.mode === 'static' && source.staticSpecification.type === 'fixed_value') {
-    return source.staticSpecification.value;
+    return source.staticSpecification.unit === source.outputPort.unit
+      ? source.staticSpecification.value
+      : null;
   }
   if (project.network.mode === 'dynamic' && source.dynamicSpecification.type === 'constant') {
-    return source.dynamicSpecification.value;
+    return source.dynamicSpecification.unit === source.outputPort.unit
+      ? source.dynamicSpecification.value
+      : null;
   }
   return null;
 }

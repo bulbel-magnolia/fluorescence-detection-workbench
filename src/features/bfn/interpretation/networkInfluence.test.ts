@@ -7,6 +7,7 @@ import type {
   BfnStaticModel,
   BfnUnit,
 } from '../types';
+import { assessBfnConnectionContextApplicability } from '../compatibility/contextIntegration';
 import { calculateBfnNetworkInfluence } from './networkInfluence';
 import type {
   BfnNetworkInfluenceCalculationV1,
@@ -48,6 +49,29 @@ function activeStaticModel(module: BfnFunctionalModule): BfnStaticModel {
   );
   if (!model) throw new Error('Expected an active static model.');
   return model;
+}
+
+function setStaticModuleContext(project: BfnProject, moduleIndex: number, contextId: string): void {
+  const model = activeStaticModel(project.network.modules[moduleIndex]!);
+  model.contextId = contextId;
+  const domain = project.registry.validityDomains.find(
+    (candidate) => candidate.id === model.validityDomainId,
+  );
+  if (!domain) throw new Error('Expected a validity domain.');
+  domain.contextId = contextId;
+}
+
+function addComparedContext(
+  project: BfnProject,
+  changes: Partial<(typeof project.registry.contexts)[number]>,
+): string {
+  const context = {
+    ...structuredClone(project.registry.contexts[0]!),
+    ...changes,
+    id: 'context-network-compared',
+  };
+  project.registry.contexts.push(context);
+  return context.id;
 }
 
 function sourceFor(
@@ -429,6 +453,147 @@ describe('calculateBfnNetworkInfluence', () => {
     expect(result).not.toHaveProperty('uncertaintyInterval');
   });
 
+  it('retains a matched target-scoped Module-to-Module Context snapshot', () => {
+    const project = createDemoBfnProject();
+    const result = successfulResult(calculateBfnNetworkInfluence(project, requestFor(project)));
+
+    expect(result.contextApplicability).toMatchObject({
+      scope: 'target_relevant_module_edges',
+      summary: 'matched',
+      edges: [{ edgeId: 'edge-sensor-reporter', state: 'matched' }],
+    });
+    expect(result.contextApplicability.edges[0]!.checks).toHaveLength(4);
+  });
+
+  it('keeps a mathematical result and exact per-edge checks when relevant Contexts mismatch', () => {
+    const project = createDemoBfnProject();
+    const originalTemperature = project.registry.contexts[0]!.temperatureCelsius;
+    if (originalTemperature === null) throw new Error('Expected demo temperature.');
+    const contextId = addComparedContext(project, {
+      temperatureCelsius: originalTemperature + 5,
+    });
+    setStaticModuleContext(project, 1, contextId);
+
+    const result = successfulResult(calculateBfnNetworkInfluence(project, requestFor(project)));
+
+    expect(result.outputAtOperatingPoint.value).toBeCloseTo(0.4706, 12);
+    expect(result.contextApplicability.summary).toBe('mismatch_present');
+    const [edgeContext] = result.contextApplicability.edges;
+    expect(edgeContext).toEqual(
+      expect.objectContaining({
+        edgeId: 'edge-sensor-reporter',
+        state: 'mismatched',
+      }),
+    );
+    expect(edgeContext?.checks).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'temperatureCelsius', state: 'mismatched' }),
+      ]),
+    );
+  });
+
+  it('retains an uncertain relevant Context without blocking the result', () => {
+    const project = createDemoBfnProject();
+    const contextId = addComparedContext(project, { host: 'A differently reported host' });
+    setStaticModuleContext(project, 1, contextId);
+
+    const result = successfulResult(calculateBfnNetworkInfluence(project, requestFor(project)));
+
+    expect(result.contextApplicability.summary).toBe('uncertain_or_unavailable');
+    expect(result.contextApplicability.edges[0]).toMatchObject({
+      edgeId: 'edge-sensor-reporter',
+      state: 'uncertain',
+    });
+  });
+
+  it('retains an unavailable relevant Context without blocking steady-state calculation', () => {
+    const project = createDemoBfnProject();
+    project.network.mode = 'dynamic';
+    project.network.inputSources[0]!.dynamicSpecification = {
+      type: 'constant',
+      value: 10,
+      unit: 'nM',
+    };
+    const reporter = project.network.modules[1]!;
+    const dynamicModel = reporter.modelVariants.find(
+      (candidate) => candidate.id === reporter.activeModelIds.dynamic,
+    );
+    if (!dynamicModel || dynamicModel.mode !== 'dynamic') {
+      throw new Error('Expected an active dynamic model.');
+    }
+    dynamicModel.contextId = 'context-missing-from-registry';
+
+    const result = successfulResult(calculateBfnNetworkInfluence(project, requestFor(project)));
+
+    expect(result.contextApplicability.summary).toBe('uncertain_or_unavailable');
+    expect(result.contextApplicability.edges[0]).toMatchObject({
+      edgeId: 'edge-sensor-reporter',
+      state: 'unavailable',
+    });
+  });
+
+  it('ignores an off-target Context mismatch', () => {
+    const project = createDemoBfnProject();
+    const originalTemperature = project.registry.contexts[0]!.temperatureCelsius;
+    if (originalTemperature === null) throw new Error('Expected demo temperature.');
+    const contextId = addComparedContext(project, {
+      temperatureCelsius: originalTemperature + 5,
+    });
+    const offTargetSource = structuredClone(project.network.modules[0]!);
+    const offTargetTarget = structuredClone(project.network.modules[1]!);
+    offTargetSource.id = 'module-off-target-source';
+    offTargetTarget.id = 'module-off-target-target';
+    const offTargetModel = offTargetTarget.modelVariants.find(
+      (candidate) => candidate.id === offTargetTarget.activeModelIds.static,
+    );
+    if (!offTargetModel || offTargetModel.mode !== 'static') {
+      throw new Error('Expected an off-target static model.');
+    }
+    offTargetModel.contextId = contextId;
+    project.network.modules.push(offTargetSource, offTargetTarget);
+    const offTargetEdge = {
+      id: 'edge-off-target-context-mismatch',
+      source: {
+        nodeId: offTargetSource.id,
+        portId: offTargetSource.outputPorts[0]!.id,
+      },
+      target: {
+        nodeId: offTargetTarget.id,
+        portId: offTargetTarget.inputPorts[0]!.id,
+      },
+      mapping: 'identity' as const,
+      enabled: true,
+    };
+    project.network.edges.push(offTargetEdge);
+    expect(
+      assessBfnConnectionContextApplicability(project, offTargetEdge.source, offTargetEdge.target)
+        .overall,
+    ).toBe('mismatched');
+
+    const result = successfulResult(calculateBfnNetworkInfluence(project, requestFor(project)));
+
+    expect(result.contextApplicability.summary).toBe('matched');
+    expect(result.contextApplicability.edges.map((edge) => edge.edgeId)).toEqual([
+      'edge-sensor-reporter',
+    ]);
+  });
+
+  it('marks direct source transmission Context as not applicable', () => {
+    const project = directProject('nM', 'uM');
+    const result = successfulResult(
+      calculateBfnNetworkInfluence(
+        project,
+        requestFor(project, [{ inputSourceId: 'source-ahl', value: 1000, unit: 'nM' }]),
+      ),
+    );
+
+    expect(result.contextApplicability).toEqual({
+      scope: 'target_relevant_module_edges',
+      summary: 'not_applicable',
+      edges: [],
+    });
+  });
+
   it('is pure, ephemeral, frozen, and independent of ANN thresholds', () => {
     const project = createDemoBfnProject();
     const request = requestFor(project);
@@ -443,6 +608,8 @@ describe('calculateBfnNetworkInfluence', () => {
     expect(first.persistence).toBe('ephemeral');
     expect(Object.isFrozen(first)).toBe(true);
     expect(Object.isFrozen(first.perSource)).toBe(true);
+    expect(Object.isFrozen(first.contextApplicability)).toBe(true);
+    expect(Object.isFrozen(first.contextApplicability.edges)).toBe(true);
     expect(request).toEqual(requestBefore);
     expect({ ...project, analysis: projectBefore.analysis }).toEqual(projectBefore);
     expect(project.network.inputSources[0]!.staticSpecification).toEqual(

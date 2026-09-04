@@ -17,6 +17,25 @@ function activeStaticModel(project: BfnProject, moduleIndex: number): BfnStaticM
   return model;
 }
 
+function setReporterContext(
+  project: BfnProject,
+  changes: Partial<(typeof project.registry.contexts)[number]>,
+): void {
+  const context = {
+    ...structuredClone(project.registry.contexts[0]!),
+    ...changes,
+    id: 'context-network-ui-compared',
+  };
+  project.registry.contexts.push(context);
+  const model = activeStaticModel(project, 1);
+  model.contextId = context.id;
+  const domain = project.registry.validityDomains.find(
+    (candidate) => candidate.id === model.validityDomainId,
+  );
+  if (!domain) throw new Error('Expected reporter validity domain.');
+  domain.contextId = context.id;
+}
+
 function sourceFor(id: string, name: string, port: BfnInputSource['outputPort']): BfnInputSource {
   return {
     kind: 'input_source',
@@ -207,6 +226,31 @@ describe('BFN Network Influence Analysis workflow', () => {
     expect(within(dialog).getByRole('button', { name: '分析' })).toBeEnabled();
   });
 
+  it.each([
+    ['static fixed value', 'static'],
+    ['dynamic constant value', 'dynamic'],
+  ] as const)('leaves a compatible but different-unit %s blank', async (_label, mode) => {
+    const project = createDemoBfnProject();
+    project.network.mode = mode;
+    if (mode === 'static') {
+      project.network.inputSources[0]!.staticSpecification = {
+        type: 'fixed_value',
+        value: 1,
+        unit: 'uM',
+      };
+    } else {
+      project.network.inputSources[0]!.dynamicSpecification = {
+        type: 'constant',
+        value: 1,
+        unit: 'uM',
+      };
+    }
+    render(<BfnPlatformPage project={project} />);
+    const { dialog } = await openAnalysis();
+    expect(within(dialog).getByRole('spinbutton', { name: /分析值/ })).toHaveValue(null);
+    expect(within(dialog).getByRole('button', { name: '分析' })).toBeDisabled();
+  });
+
   it('shows current output, direction, total gain, sensitivity, applicability, and model basis', async () => {
     const project = createDemoBfnProject();
     const before = structuredClone(project);
@@ -261,6 +305,36 @@ describe('BFN Network Influence Analysis workflow', () => {
     expect(within(dialog).getByRole('region', { name: '结果' })).toHaveTextContent(
       '该网络中部分响应模型没有记录完整的输入适用范围',
     );
+  });
+
+  it('shows a natural caveat for relevant Context mismatch while retaining the result', async () => {
+    const project = createDemoBfnProject();
+    const temperature = project.registry.contexts[0]!.temperatureCelsius;
+    if (temperature === null) throw new Error('Expected demo temperature.');
+    setReporterContext(project, { temperatureCelsius: temperature + 5 });
+    render(<BfnPlatformPage project={project} />);
+    const { user, dialog } = await openAnalysis();
+    await user.type(within(dialog).getByRole('spinbutton', { name: /分析值/ }), '10');
+    await user.click(within(dialog).getByRole('button', { name: '分析' }));
+
+    expect(within(dialog).getByRole('region', { name: '结果' })).toHaveTextContent(
+      '相关模块记录的实验条件存在不一致。当前总体作用是这些模型的数学组合，解释结果时需注意条件差异。',
+    );
+    expect(dialog).not.toHaveTextContent(/context_applicability_mismatch|mismatched/);
+  });
+
+  it('shows a natural caveat for uncertain relevant Context while retaining the result', async () => {
+    const project = createDemoBfnProject();
+    setReporterContext(project, { host: 'A differently reported host' });
+    render(<BfnPlatformPage project={project} />);
+    const { user, dialog } = await openAnalysis();
+    await user.type(within(dialog).getByRole('spinbutton', { name: /分析值/ }), '10');
+    await user.click(within(dialog).getByRole('button', { name: '分析' }));
+
+    expect(within(dialog).getByRole('region', { name: '结果' })).toHaveTextContent(
+      '部分相关模块的实验条件不足以确认一致性。',
+    );
+    expect(dialog).not.toHaveTextContent(/uncertain|unavailable/);
   });
 
   it('renders two upstream inputs and two result rows for a multi-input network', async () => {

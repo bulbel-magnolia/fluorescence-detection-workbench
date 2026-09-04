@@ -1,4 +1,6 @@
 import type { BfnUnit } from '../types';
+import type { BfnContextApplicabilityCheck } from '../compatibility/compatibilityTypes';
+import type { BfnIntegratedContextApplicabilityState } from '../compatibility/contextIntegration';
 import type {
   BfnDerivedGainUnit,
   BfnInterpretationApplicabilityState,
@@ -95,6 +97,22 @@ export interface BfnNetworkModuleInterpretationV1 {
   readonly localInfluence: BfnLocalInfluenceResultV1;
 }
 
+export type BfnNetworkInterpretationContextSummaryV1 =
+  'not_applicable' | 'matched' | 'mismatch_present' | 'uncertain_or_unavailable';
+
+export interface BfnNetworkInterpretationContextEdgeV1 {
+  readonly edgeId: string;
+  readonly state: BfnIntegratedContextApplicabilityState;
+  readonly checks: readonly BfnContextApplicabilityCheck[];
+}
+
+/** Scientific caveat snapshot for Module-to-Module edges in the selected target closure only. */
+export interface BfnNetworkInterpretationContextSnapshotV1 {
+  readonly scope: 'target_relevant_module_edges';
+  readonly summary: BfnNetworkInterpretationContextSummaryV1;
+  readonly edges: readonly BfnNetworkInterpretationContextEdgeV1[];
+}
+
 /** Ephemeral, target-scoped result calculated at one explicit external operating point. */
 export interface BfnNetworkInfluenceResultV1 {
   readonly contractVersion: '1.0';
@@ -107,6 +125,7 @@ export interface BfnNetworkInfluenceResultV1 {
   };
   readonly perSource: readonly BfnNetworkSourceInfluenceV1[];
   readonly applicability: Exclude<BfnInterpretationApplicabilityState, 'outside_recorded_domain'>;
+  readonly contextApplicability: BfnNetworkInterpretationContextSnapshotV1;
   readonly moduleInterpretations: readonly BfnNetworkModuleInterpretationV1[];
   readonly persistence: 'ephemeral';
 }

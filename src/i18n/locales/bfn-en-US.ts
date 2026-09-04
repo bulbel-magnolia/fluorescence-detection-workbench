@@ -766,6 +766,13 @@ export const bfnEnUS = {
       notRecorded:
         'Some response models in this network do not record complete applicable input ranges.',
     },
+    context: {
+      title: 'Experimental-condition note',
+      mismatch:
+        'Recorded experimental conditions differ across relevant modules. This overall influence is the mathematical composition of those models, so interpret it with those condition differences in view.',
+      uncertain:
+        'Some relevant modules do not record enough experimental-condition detail to confirm consistency.',
+    },
     modelBasis: {
       title: 'Analysis basis',
       description: 'The current result is jointly derived from these module response models.',
