@@ -4,7 +4,7 @@
 
 网络作用分析回答一个目标明确的问题：在用户给定的外部输入条件下，各网络输入对所选 Output Monitor 的当前输出产生多强的总体局部作用，以及作用方向为何。该能力属于 `BFN-INTERPRETATION 1.0` 派生解释层，结果不改变网络模型，也不构成新的实验事实。
 
-Batch 13.2 的状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。Batch 13.1 Correction 的状态为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。
+Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 的 Master Review 结论为 `FIX`。本轮 correction checkpoint `c52b0329ee5c07c2c29b2fa7a9c04785b1d89ab2` 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。
 
 ## 分析对象与条件
 
@@ -19,7 +19,7 @@ Batch 13.2 的状态为 `CANDIDATE / implementation complete / awaiting Master R
 
 分析条件只存在于 Drawer 组件状态和本次纯函数调用中。关闭 Drawer 后条件丢弃，不修改 Input Source specification、Project、Workspace、localStorage 或 IndexedDB。
 
-界面只在 Project 已记录唯一分析值时预填：static Project 的 `fixed_value`，以及 dynamic Project 的 `constant`。`working_range`、`step`、`pulse`、`periodic` 和 `custom_time_series` 保持空白。
+界面只在 Project 已记录唯一且单位完全相同的分析值时预填：static Project 的 `fixed_value`，以及 dynamic Project 的 `constant`。specification unit 必须与 Input Source output port unit 严格相等；即使两者量纲兼容，单位不同也返回空白，由用户显式填写端口坐标中的分析值。解释层不借 prefill 静默修正 Project 内的单位差异。`working_range`、`step`、`pulse`、`periodic` 和 `custom_time_series` 保持空白。
 
 ## 目标闭包与结构准入
 
@@ -117,6 +117,14 @@ gain unavailable、`u <= 0` 或 `y <= 0` 时按 Batch 13.1 的稳定原因返回
 
 计算使用 nominal parameters。不执行 network gain confidence interval、Monte Carlo、posterior、Sobol 或其他数值 uncertainty propagation；component model uncertainty metadata 保留在对应模块记录中。
 
+## 目标范围内的 Context 兼容性
+
+成功结果包含 interpretation-only `BfnNetworkInterpretationContextSnapshotV1`。其范围固定为 `target_relevant_module_edges`，只评估所选 Output Monitor active-response closure 内 enabled 的 Module→Module Edge。目标外分支、目标外环路及其 Context 差异不进入当前快照。
+
+每条相关 Edge 直接委托 `assessBfnConnectionContextApplicability()`，保留既有 exact state 与 checks。网络层不建立第二套 Context 比较。summary 规则为：没有相关 Module→Module Edge 时 `not_applicable`；存在 `mismatched` 时 `mismatch_present`；其余情况下存在 `uncertain` 或 `unavailable` 时 `uncertain_or_unavailable`；全部匹配时 `matched`。
+
+Context mismatch、uncertain 与 unavailable 均是 scientific interpretation caveat，不改变原有 non-blocking compatibility 语义，不转化为 ValidityDomain failure，也不阻止数学结果。普通界面仅在需要时显示自然语言提醒，不暴露内部 state 或 issue code。
+
 ## 用户界面
 
 入口位于 selected Output Monitor Inspector，中文为“分析网络作用…”，英文为 “Analyze network influence…”。右侧 Drawer 依次展示分析对象、相关网络输入条件、当前输出、每个外部输入的作用方向、总体响应增益、相对敏感度、适用性和折叠的分析依据。
@@ -127,4 +135,4 @@ gain unavailable、`u <= 0` 或 `y <= 0` 时按 Batch 13.1 的稳定原因返回
 
 Batch 13.2 未实现 path contribution breakdown。总体响应增益已经覆盖 branching 与 convergence，并完全由前向敏感度传播产生；后续如增加路径明细，将作为不改变总体结果的次级审计视图，并设置完整性安全上限。
 
-本批也不实现 feedback/static steady-state solver、dynamic/frequency analysis、network uncertainty propagation、ANN local view、analysis persistence、cache 或 export schema。Batch 13.3 与 Batch 13.4 保持 `PLANNED / NOT AUTHORIZED`。
+本批不实现 feedback/static steady-state solver、dynamic/frequency analysis、network uncertainty propagation、analysis persistence、cache 或 export schema。Batch 13.3 的局部神经网络近似在独立 interpretation contract 中复用本结果，不改变网络作用传播语义；Batch 13.4 保持 `PLANNED / NOT AUTHORIZED`。

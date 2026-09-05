@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../../i18n';
 import { createCatalogModule, createDemoBfnProject } from './fixtures';
 import { BfnNetworkCanvas } from './BfnNetworkCanvas';
+import type { BfnLocalAnnCanvasOverlayV1 } from './interpretation/localAnnApproximationOverlay';
 import { checkIdealConnection } from './validation';
 import type { BfnProject } from './types';
 
-function renderCanvas(project: BfnProject) {
+function renderCanvas(project: BfnProject, annOverlay: BfnLocalAnnCanvasOverlayV1 | null = null) {
   const onCreateConnection = vi.fn(() => true);
   const onMoveNode = vi.fn();
   render(
@@ -27,6 +28,7 @@ function renderCanvas(project: BfnProject) {
       }}
       onCreateConnection={onCreateConnection}
       onViewportChange={vi.fn()}
+      annOverlay={annOverlay}
     />,
   );
   return { onCreateConnection, onMoveNode };
@@ -151,5 +153,53 @@ describe('BFN network canvas direct manipulation', () => {
     expect(
       within(module).getByRole('button', { name: /RhlR \/ pRhl，输入端口/u }),
     ).toBeInTheDocument();
+  });
+
+  it('renders local ANN weights beside their downstream module inputs with complete accessible units', () => {
+    const project = createDemoBfnProject();
+    const targetModule = project.network.modules[0]!;
+    const targetPort = targetModule.inputPorts[0]!;
+    const edge = project.network.edges.find(
+      (candidate) =>
+        candidate.target.nodeId === targetModule.id && candidate.target.portId === targetPort.id,
+    )!;
+    const overlay: BfnLocalAnnCanvasOverlayV1 = {
+      weights: [
+        {
+          targetModuleId: targetModule.id,
+          targetInputPortId: targetPort.id,
+          edgeId: edge.id,
+          value: 0.25,
+          unit: {
+            outputUnit: targetModule.outputPorts[0]!.unit,
+            inputUnit: targetPort.unit,
+          },
+        },
+      ],
+      moduleBiases: [],
+      relevantEdgeIds: [edge.id],
+      relevantNodeIds: [targetModule.id],
+      persistence: 'ephemeral',
+    };
+
+    renderCanvas(project, overlay);
+
+    const label = screen.getByLabelText(/局部权重 \+0\.25.*下游模块.*AHL 响应/u);
+    expect(label).toHaveTextContent('+0.25');
+    expect(label).toHaveAttribute('data-target-module-id', targetModule.id);
+    expect(label).toHaveAttribute('data-target-input-port-id', targetPort.id);
+    expect(label).toHaveAttribute('data-edge-id', edge.id);
+    expect(label.querySelector('title')).toHaveTextContent('/');
+    expect(screen.getByRole('note')).toHaveTextContent(
+      '连线旁数值表示下游模块在当前条件下的局部权重；原网络连接本身不带权重。',
+    );
+    expect(document.querySelector('.bfn-canvas-edge[data-ann-magnitude]')).not.toBeInTheDocument();
+  });
+
+  it('keeps the biological canvas free of approximation labels without an active overlay', () => {
+    renderCanvas(createDemoBfnProject());
+
+    expect(document.querySelector('.bfn-canvas-ann-weight')).not.toBeInTheDocument();
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });
 });

@@ -359,14 +359,24 @@ describe('BFN Network Influence Analysis workflow', () => {
     const { unmount } = render(<BfnPlatformPage project={accumulator} />);
     await selectMonitor(user, /报告信号, 输出/);
     expect(screen.getByRole('button', { name: '分析网络作用…' })).toBeDisabled();
-    expect(screen.getByText(/上游包含信号池等动态积分过程/, { selector: 'p' })).toBeInTheDocument();
+    expect(
+      screen.getByText('所选输出的上游包含信号池等动态积分过程，当前稳态网络作用分析不适用。', {
+        selector: 'p',
+        exact: true,
+      }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/upstream_accumulator_unsupported/)).not.toBeInTheDocument();
     unmount();
 
     render(<BfnPlatformPage project={feedbackProject()} />);
     await selectMonitor(user, /报告信号, 输出/);
     expect(screen.getByRole('button', { name: '分析网络作用…' })).toBeDisabled();
-    expect(screen.getByText(/上游包含反馈回路/, { selector: 'p' })).toBeInTheDocument();
+    expect(
+      screen.getByText('所选输出的上游包含反馈回路，当前版本不能进行稳态网络作用分析。', {
+        selector: 'p',
+        exact: true,
+      }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/upstream_feedback_unsupported/)).not.toBeInTheDocument();
   });
 

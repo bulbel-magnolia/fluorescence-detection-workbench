@@ -1423,3 +1423,23 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - changed-file Prettier、`git diff --check` 与冻结边界审计通过；BFN-IR 2.3、BFN-SIM 2.2、Workspace DB、Ideal Edge、Port Compatibility、BfnUnit / unit conversion、production response equations、first-order / Accumulator / Signal Pool runtime、Designed Sender / Receiver、Temporal、Ontology、Inverse Design、Module Template、Module Library persistence、ANN approximation / thresholds 与 dependencies 相对 exact base 均为零差异；
 - 真实界面审计覆盖 single-input chain、multi-input network、branching/convergence、outside-domain blocker、Accumulator unsupported 与 first-order steady-state network 六态。Right Drawer 保持明确 target、条件表、结果表、numeric/unit alignment、非颜色状态和次级 Evidence details；主界面未出现 hero、card wall、gradient、formula-first、raw IDs、internal issue codes 或 solver vocabulary；
 - 当前只声明 local validation passed。Batch 13.1 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Batch 13.2 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 Master Review PASS、FROZEN 或 CI passed。
+
+## 2026-09-05 Batch 13.2 Correction + Batch 13.3 Local ANN Approximation
+
+### Correction、calculator 与 UI 定向门
+
+- Phase 0 最终解释层回归为 9 个测试文件 / 144 项通过，覆盖 exact-unit conservative prefill、target-scoped Context snapshot、matched/mismatched/uncertain/unavailable、off-target 排除、direct transmission、purity、自然双语 caveat 与 locale parity；
+- Phase 1 calculator、presentation、overlay、canvas 与 UI 定向门为 6 个测试文件 / 48 项通过，覆盖 contract identity、local/network affine reconstruction、正负零 bias、多输入、混合单位、branch/convergence、direct transmission、first-order steady-state、完整 local-gain fail-closed、Context/ValidityDomain/Evidence 继承与 ephemeral overlay；
+- 扩展 BFN 回归为 40 个测试文件 / 618 项通过。现有 ANN range-fit、threshold、static/dynamic runtime、Compatibility、Context、validation 与相关 UI 行为保持通过。
+
+### 完整门禁、Sender 恢复与视觉审计
+
+- manifest-protected `npm test -- --maxWorkers=4` 为 178/178 个测试文件、1745/1745 项通过；
+- Sender 测试物化逐文件验证 manifest length/SHA-256，选择 4 个工作树字节版本与 8 个 raw Git blob；`try/finally` 后 12/12 文件恢复为运行前 bytes/hash，Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；changed-file Prettier 通过；Vite 7.3.6 `npm run build` 通过，转换 347 个 modules，主 CSS 为 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 为 3,609.20 kB（gzip 524.26 kB），保留既有大于 500 kB chunk warning；
+- 八类真实界面状态完成截图审计：single-input、multi-input、branch/convergence、first-order steady-state、Context mismatch、applicability not recorded、local linearization unavailable，以及 Biological Network / ANN Approximation 对照。console error 为 0；
+- UI 保持紧凑科研工作区、right Drawer、表格与 numeric/unit alignment；overlay 沿原 Edge 定位并绑定 downstream module/input，不改变 topology、position 或 Edge ownership，不以 magnitude 驱动线宽、发光、热图或亮度；
+- frozen-boundary audit 相对 exact base `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 为零差异：BFN-IR 2.3、BFN-SIM 2.2、Workspace DB、Ideal Edge、Port Compatibility / unit conversion、production response / first-order / Accumulator / Signal Pool runtime、Designed Sender、Sender V1.2、Receiver、Temporal、Ontology、Inverse Design、Module Template 1.0、Module Library Persistence 1.0、现有 ANN range-fit / thresholds 与 package dependencies 均未修改；
+- `annApproximation.ts`、`types.ts`、`responseMath.ts` 与 `unitSystem.ts` 的 base/index Git blob 完全一致，分别为 `37987c348f5a7c07990af7ed8d00badba1e879d8`、`4e7600f42c57e10f47255c5a91b6072427458a8d`、`f67457cba17daed00b3b47b9686f6ca6a1a7579c` 与 `1a789ebe55a9dbc877d2e823aff80d81269063db`。
+
+以上只声明 local validation passed。Batch 13.2 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Batch 13.3 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 Master Review PASS、FROZEN 或 CI passed。

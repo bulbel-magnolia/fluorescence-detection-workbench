@@ -345,10 +345,59 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - 任一相关 Module 域外时阻断正式 network result，并保留 module/input/current/range。部分相关模型没有 recorded range 时保留结果并聚合为 `applicability_not_recorded`；
 - Result 按 Project Input Source order 返回 current output、总体响应增益、exact-sign direction 与相对敏感度，并逐模块保留 Evidence、uncertainty method、model provenance、Context、ValidityDomain 与 interpretation basis；不创建 synthetic network Evidence grade，不做数值 uncertainty propagation；
 - selected Output Monitor Inspector 增加“分析网络作用…”入口和右侧科研 Drawer。只显示目标相关外部输入，预填仅接受 static fixed value / dynamic constant；输入编辑清除旧结果，关闭后丢弃 ephemeral 条件并恢复焦点；
-- 当前 path contribution breakdown 未实现；总体作用完整来自 forward sensitivity propagation。Batch 13.3 / 13.4 保持 `PLANNED / NOT AUTHORIZED`；
+- 当前 path contribution breakdown 未实现；总体作用完整来自 forward sensitivity propagation。Batch 13.3 的后续实现记录见下一节；Batch 13.4 保持 `PLANNED / NOT AUTHORIZED`；
 - Phase 1 初始定向门为 5 个文件 / 49 项通过，最终全量测试、构建、截图、frozen-boundary 与 GitHub 状态在提交前后按实际结果补充。本节不声明 CI passed、Batch 13.1 correction PASS、Batch 13.2 PASS 或 FROZEN。
 
-Batch 13.1 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。Batch 13.2 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。
+Batch 13.0 与 Batch 13.1 均已通过 Master Correction Review，状态保持 `CANDIDATE / not FROZEN`。Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 的 Master Review 结论为 `FIX`。
+
+## 2026-09-05 Batch 13.2 Correction + Batch 13.3 Local ANN Approximation
+
+- 合并任务分支 `codex/bfn-local-ann-approximation` 从 exact Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 线性创建；Phase 0 correction checkpoint 为 `f62babfa2af09156c711792d362fab687270f42c`，parent 精确为 exact base；
+- Phase 0 将 Input Source prefill 收紧为 specification/port unit exact equal；兼容量纲的不同单位保持空白。成功 network result 新增 `target_relevant_module_edges` Context snapshot，每条相关 Module→Module Edge 复用既有 Context applicability state/checks。mismatch、uncertain 与 unavailable 继续 non-blocking，并以自然 caveat 跟随结果；
+- Phase 1 新增 independent `BfnLocalAnnApproximationRequestV1/ResultV1`。calculator 只委托 corrected `calculateBfnNetworkInfluence()`，直接采用 Batch 13.1 local differential gains 作为 module weights、Batch 13.2 total differential gains 作为 overall weights，并分别从同一工作点的 current output 计算 module/network affine bias；
+- 完整 local ANN approximation 要求所有 relevant module active inputs 均有 finite analytic local gain。域外、Accumulator / Signal Pool、feedback 与 incomplete local linearization 均 fail closed；direct transmission 保持空 module approximation；first-order 只采用 steady-state response；
+- selected Output Monitor Inspector 提供“神经网络近似 / 生成神经网络近似…”入口。Drawer 展示 relevant current conditions、overall weights、近似偏置、current output、local-only boundary、紧凑 module table、Context/ValidityDomain caveat 与折叠 Evidence basis；中英文 key 保持 parity；
+- 成功结果在 existing canvas 上启用 ephemeral read-only overlay。weight identity 绑定 downstream module/input，`edgeId` 仅作定位；完整 unit 在 Drawer 与 accessible label 中可见。Canvas 保持原 topology 与 positions，不重排为 MLP，不以线宽、发光、热图或颜色强度表达 magnitude；
+- condition edit、Drawer close 与 Project switch 清除 result/overlay 并回到 Biological Network view。Project、Module、Input Source specification、Edge、Workspace、Module Library 与 persistence 均不修改；
+- 既有 `annApproximation.ts`、`BfnAnnApproximation`、R²/NRMSE、accepted/rejected 与 `analysis.annThresholds` 保持完全隔离；BFN-IR 2.3、BFN-SIM 2.2、Workspace DB、Ideal Edge、Port Compatibility、BfnUnit、production response equations、first-order/Accumulator/Signal Pool runtime、Sender/Receiver、Temporal、Ontology、Inverse Design、Template、Module Library persistence 与 dependencies 不在实现范围内。
+- Phase 0 最终解释层回归为 9 个测试文件 / 144 项通过；Phase 1 calculator、presentation、overlay、canvas 与 UI 为 6 个测试文件 / 48 项通过；扩展 BFN 回归为 40 个测试文件 / 618 项通过；
+- manifest-protected 完整 `npm test -- --maxWorkers=4` 为 178/178 个测试文件、1745/1745 项通过。Sender 临时物化选择 4 个工作树字节版本与 8 个 raw Git blob，`finally` 后 12/12 恢复且 source diff 为零；
+- `npm run typecheck`、全项目 `npm run lint`、changed-file Prettier 与 Vite 7.3.6 production build 全部通过；build 转换 347 个 modules，主 CSS 为 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 为 3,609.20 kB（gzip 524.26 kB），保留既有大于 500 kB chunk 提示；
+- 真实界面审计覆盖 single-input、multi-input、branch/convergence、first-order steady-state、Context mismatch、applicability not recorded、local linearization unavailable 以及 Biological Network / ANN Approximation 对照八类状态；console error 为 0；
+- frozen-boundary audit 确认受保护合同与 runtime 相对 exact base 零差异；`annApproximation.ts`、`types.ts`、`responseMath.ts` 与 `unitSystem.ts` 的 Git blob 分别保持 `37987c348f5a7c07990af7ed8d00badba1e879d8`、`4e7600f42c57e10f47255c5a91b6072427458a8d`、`f67457cba17daed00b3b47b9686f6ca6a1a7579c` 与 `1a789ebe55a9dbc877d2e823aff80d81269063db`。
+
+正式状态台账：
+
+```text
+Batch 13.0
+= Master Correction Review PASS
+= CANDIDATE
+= not FROZEN
+
+Batch 13.1
+= Master Correction Review PASS
+= CANDIDATE
+= not FROZEN
+
+Batch 13.2 original candidate
+= f3da7c9277976ba60526a28ddb3dda7b30fb9a49
+= Master Review FIX
+
+Batch 13.2 correction checkpoint
+= CANDIDATE
+= correction implementation complete
+= awaiting Master Correction Review
+= not FROZEN
+
+Batch 13.3
+= CANDIDATE
+= implementation complete
+= awaiting Master Review
+= not FROZEN
+
+Batch 13.4
+= PLANNED / NOT AUTHORIZED
+```
 
 ## Sender Public Evidence Research formal boundary
 

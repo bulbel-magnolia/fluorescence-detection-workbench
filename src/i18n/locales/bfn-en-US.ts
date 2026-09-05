@@ -357,6 +357,10 @@ export const bfnEnUS = {
     outputPortLabel: '{{node}}, output port: {{port}}',
     modules: 'modules',
     edges: 'connections',
+    annWeightLabel:
+      'Local weight {{value}}, {{unit}}, downstream module {{module}}, input port {{input}}',
+    annLegend:
+      'Values beside connections are local weights for downstream modules at the current condition; the original network connections do not themselves carry weights.',
   },
   networkIndex: {
     title: 'Network structure',
@@ -777,6 +781,130 @@ export const bfnEnUS = {
       title: 'Analysis basis',
       description: 'The current result is jointly derived from these module response models.',
       module: 'Module',
+      evidence: 'Model basis',
+      direct:
+        'This result comes from direct transmission of the same scientific quantity and numeric unit-coordinate conversion.',
+      nominal:
+        'The calculation uses each response model’s nominal parameters and does not propagate numeric uncertainty.',
+    },
+  },
+  localAnn: {
+    kicker: 'Selected output approximation',
+    title: 'Neural Network Approximation',
+    inspectorTitle: 'Neural Network Approximation',
+    inspectorDescription:
+      'Convert the current network into a local approximation of weights and biases near specified input conditions.',
+    action: 'Build neural network approximation…',
+    close: 'Close Neural Network Approximation',
+    purpose:
+      'Approximate the current biological network with weights and biases near the specified input conditions, making each module’s local influence easier to understand and compare.',
+    firstOrder:
+      'Dynamic modules are approximated from their steady-state responses; the time process is not included.',
+    directTransmission:
+      'This target has no functional-module transformation; the result is a direct local linear mapping from input to output.',
+    availabilityReasons: {
+      dynamic_integrator:
+        'The selected output has a signal pool or another dynamic integration process upstream, so a local neural-network approximation does not apply.',
+      feedback:
+        'The selected output has a feedback loop upstream. This version cannot generate a local neural-network approximation for it.',
+      missing_input:
+        'A module on the selected output path has a required input that is unconnected or connected more than once.',
+      response_invalid:
+        'A module on the selected output path lacks a response model that can be used for local approximation.',
+    },
+    object: {
+      title: 'Approximation target',
+      output: 'Output',
+      signal: 'Output signal',
+      module: 'Module',
+    },
+    conditions: {
+      title: 'Current analysis conditions',
+      input: 'Network input',
+      value: 'Analysis value',
+      valueFor: 'Analysis value for {{input}}',
+      requirement:
+        'Enter finite, non-negative values for every relevant network input. Units are fixed to the source ports.',
+      incomplete: 'Enter every valid analysis value first.',
+      invalidValue: 'Enter a finite, non-negative value.',
+    },
+    generate: 'Generate approximation',
+    outside: {
+      title: 'No neural-network approximation generated',
+      description:
+        'The current analysis conditions place part of the network outside a recorded applicable range.',
+      range:
+        '{{module}} · {{input}}: current {{current}} {{currentUnit}}; recorded range {{minimum}}–{{maximum}} {{rangeUnit}}',
+    },
+    failure: {
+      title: 'No complete approximation generated',
+      notUnique:
+        'A module response cannot be uniquely linearized at the current operating point, so no complete neural-network approximation was generated.',
+      nonFinite:
+        'A module response has no finite local weight at the current operating point, so no complete neural-network approximation was generated.',
+      notDifferentiable:
+        'A module response cannot be locally linearized at the current operating point, so no complete neural-network approximation was generated.',
+      unsupportedDerivative:
+        'A response model cannot provide all required analytic local weights, so no neural-network approximation was generated.',
+      incompleteNetwork:
+        'The current operating point cannot provide a complete overall weight for every network input, so no neural-network approximation was generated.',
+      generic:
+        'The network cannot form a finite, complete local neural-network approximation under these conditions.',
+      module: 'Module: {{module}}',
+      input: 'Network input: {{input}}',
+    },
+    results: {
+      title: 'Approximation result',
+      scopeLabel: 'Selected output · current condition',
+      currentOutput: 'Current output',
+      bias: 'Approximate bias',
+      networkWeights: 'Overall input weights',
+      input: 'Network input',
+      operatingValue: 'Current value',
+      weight: 'Weight',
+      localBoundary:
+        'This is a local approximation near the current analysis conditions and does not alter the original biological model.',
+    },
+    view: {
+      label: 'Canvas view',
+      biological: 'Biological network',
+      approximation: 'Neural network approximation',
+    },
+    applicability: {
+      title: 'Applicability',
+      within:
+        'The current analysis conditions are within every relevant model’s recorded applicable range.',
+      notRecorded: 'Some models do not record complete applicable input ranges.',
+    },
+    context: {
+      title: 'Experimental-condition note',
+      mismatch:
+        'Recorded experimental conditions differ across relevant modules. The approximation inherits those model-context boundaries.',
+      uncertain:
+        'Some relevant modules do not record enough experimental-condition detail to confirm consistency.',
+    },
+    modules: {
+      title: 'Module local parameters',
+      module: 'Module',
+      input: 'Module input',
+      operatingValue: 'Current value',
+      weight: 'Local weight',
+      bias: 'Module bias',
+      currentOutput: 'Current module output',
+      nominal:
+        'All weights and biases are derived from the nominal parameters of the current biological response models.',
+      basis: {
+        active_static_response: 'Current steady-state response',
+        first_order_steady_state_static_response:
+          'Steady-state response of a first-order dynamic model',
+      },
+    },
+    analysisBasis: {
+      title: 'Analysis basis',
+      description:
+        'The current approximation is jointly derived from the local influence of these module response models.',
+      module: 'Module',
+      response: 'Response basis',
       evidence: 'Model basis',
       direct:
         'This result comes from direct transmission of the same scientific quantity and numeric unit-coordinate conversion.',

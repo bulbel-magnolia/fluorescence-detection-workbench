@@ -22,7 +22,14 @@ import {
 } from './BfnProjectToolbar';
 import { BfnResultWorkspace } from './BfnResultWorkspace';
 import { BfnLocalInfluenceDrawer } from './interpretation/BfnLocalInfluenceDrawer';
+import {
+  BfnLocalAnnApproximationDrawer,
+  type BfnLocalAnnCanvasMode,
+} from './interpretation/BfnLocalAnnApproximationDrawer';
 import { BfnNetworkInfluenceDrawer } from './interpretation/BfnNetworkInfluenceDrawer';
+import { createBfnLocalAnnCanvasOverlay } from './interpretation/localAnnApproximationOverlay';
+import { assessBfnLocalAnnApproximationAvailability } from './interpretation/localAnnApproximationPresentation';
+import type { BfnLocalAnnApproximationResultV1 } from './interpretation/localAnnApproximationTypes';
 import { assessBfnLocalInfluenceAvailability } from './interpretation/localInfluencePresentation';
 import { assessBfnNetworkInfluenceAvailability } from './interpretation/networkInfluencePresentation';
 import { BfnCatalogInverseWorkspace } from './inverse-design/ui/BfnCatalogInverseWorkspace';
@@ -392,6 +399,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
   const [localInfluenceModuleId, setLocalInfluenceModuleId] = useState<string | null>(null);
   const [networkInfluenceMonitorId, setNetworkInfluenceMonitorId] = useState<string | null>(null);
+  const [localAnnMonitorId, setLocalAnnMonitorId] = useState<string | null>(null);
+  const [localAnnResult, setLocalAnnResult] = useState<BfnLocalAnnApproximationResultV1 | null>(
+    null,
+  );
+  const [localAnnCanvasMode, setLocalAnnCanvasMode] = useState<BfnLocalAnnCanvasMode>('biological');
   const [moduleLibraryInitialView, setModuleLibraryInitialView] =
     useState<BfnModuleLibraryInitialView | null>(null);
   const [catalogInitialDetailTarget, setCatalogInitialDetailTarget] =
@@ -555,6 +567,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
       selectedMonitor ? assessBfnNetworkInfluenceAvailability(project, selectedMonitor) : null,
     [project, selectedMonitor],
   );
+  const selectedLocalAnnAvailability = useMemo(
+    () =>
+      selectedMonitor ? assessBfnLocalAnnApproximationAvailability(project, selectedMonitor) : null,
+    [project, selectedMonitor],
+  );
   const networkInfluenceMonitor =
     project.network.outputMonitors.find((monitor) => monitor.id === networkInfluenceMonitorId) ??
     null;
@@ -567,6 +584,21 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   );
   const networkInfluenceOpen =
     networkInfluenceMonitor !== null && networkInfluenceAvailability?.supported === true;
+  const localAnnMonitor =
+    project.network.outputMonitors.find((monitor) => monitor.id === localAnnMonitorId) ?? null;
+  const localAnnAvailability = useMemo(
+    () =>
+      localAnnMonitor ? assessBfnLocalAnnApproximationAvailability(project, localAnnMonitor) : null,
+    [localAnnMonitor, project],
+  );
+  const localAnnOpen = localAnnMonitor !== null && localAnnAvailability?.supported === true;
+  const localAnnCanvasOverlay = useMemo(
+    () =>
+      localAnnResult && localAnnCanvasMode === 'approximation'
+        ? createBfnLocalAnnCanvasOverlay(project, localAnnResult)
+        : null,
+    [localAnnCanvasMode, localAnnResult, project],
+  );
   const selectedEdge = project.network.edges.find((edge) => edge.id === selectedEdgeId) ?? null;
   const selectedEdgeSourcePort = selectedEdge
     ? portForEndpoint(project, selectedEdge.source)
@@ -1038,6 +1070,12 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setNetworkInfluenceMonitorId(null);
   };
 
+  const closeLocalAnnApproximation = (): void => {
+    setLocalAnnMonitorId(null);
+    setLocalAnnResult(null);
+    setLocalAnnCanvasMode('biological');
+  };
+
   const commitRemoveSelectedModule = (moduleId = selectedNodeRef.current): void => {
     if (!moduleId || !projectRef.current.network.modules.some((module) => module.id === moduleId)) {
       return;
@@ -1152,6 +1190,13 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setPendingDestructiveAction(null);
   };
 
+  const localAnnProjectRef = useRef(project);
+  useEffect(() => {
+    if (localAnnProjectRef.current === project) return;
+    localAnnProjectRef.current = project;
+    if (localAnnMonitorId !== null || localAnnResult !== null) closeLocalAnnApproximation();
+  }, [project]);
+
   useEffect(() => {
     const handleKeyboard = (event: KeyboardEvent): void => {
       const overlayOpen =
@@ -1159,6 +1204,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         modulePickerOpen ||
         localInfluenceOpen ||
         networkInfluenceOpen ||
+        localAnnOpen ||
         props.projectCenterOpen === true ||
         pendingDestructiveAction !== null ||
         isBfnEditorOverlayOpen();
@@ -1172,6 +1218,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         if (networkInfluenceOpen) {
           event.preventDefault();
           closeNetworkInfluence();
+          return;
+        }
+        if (localAnnOpen) {
+          event.preventDefault();
+          closeLocalAnnApproximation();
           return;
         }
         if (inputSettingsOpen) {
@@ -1494,6 +1545,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                 onViewportChange={(viewport) => {
                   canvasViewportRef.current = viewport;
                 }}
+                annOverlay={localAnnCanvasOverlay}
               />
             </section>
 
@@ -1952,6 +2004,48 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         </Button>
                       </section>
                     ) : null}
+                    {selectedLocalAnnAvailability ? (
+                      <section className="bfn-inspector-block bfn-inspector-action">
+                        <header>
+                          <strong>{t('bfn.localAnn.inspectorTitle')}</strong>
+                        </header>
+                        <p
+                          className={
+                            selectedLocalAnnAvailability.supported
+                              ? undefined
+                              : 'bfn-inspector-action__reason'
+                          }
+                        >
+                          {selectedLocalAnnAvailability.supported
+                            ? t('bfn.localAnn.inspectorDescription')
+                            : t(
+                                'bfn.localAnn.availabilityReasons.' +
+                                  selectedLocalAnnAvailability.reason,
+                              )}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leadingIcon={<Icon name="pulse" size={14} />}
+                          disabled={!selectedLocalAnnAvailability.supported}
+                          {...(!selectedLocalAnnAvailability.supported
+                            ? {
+                                disabledReason: t(
+                                  'bfn.localAnn.availabilityReasons.' +
+                                    selectedLocalAnnAvailability.reason,
+                                ),
+                              }
+                            : {})}
+                          onClick={() => {
+                            setLocalAnnResult(null);
+                            setLocalAnnCanvasMode('biological');
+                            setLocalAnnMonitorId(selectedMonitor.id);
+                          }}
+                        >
+                          {t('bfn.localAnn.action')}
+                        </Button>
+                      </section>
+                    ) : null}
                   </>
                 ) : selectedEdge ? (
                   <>
@@ -2361,6 +2455,18 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           monitor={networkInfluenceMonitor}
           target={networkInfluenceAvailability.target}
           onClose={closeNetworkInfluence}
+        />
+      ) : null}
+      {view === 'design' && localAnnMonitor && localAnnAvailability?.supported ? (
+        <BfnLocalAnnApproximationDrawer
+          key={localAnnMonitor.id + ':' + localAnnAvailability.target.relevantEdgeIds.join('|')}
+          project={project}
+          monitor={localAnnMonitor}
+          target={localAnnAvailability.target}
+          canvasMode={localAnnCanvasMode}
+          onCanvasModeChange={setLocalAnnCanvasMode}
+          onResultChange={setLocalAnnResult}
+          onClose={closeLocalAnnApproximation}
         />
       ) : null}
       {modulePickerOpen ? (

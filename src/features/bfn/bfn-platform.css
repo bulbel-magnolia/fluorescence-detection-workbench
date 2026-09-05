@@ -6,5 +6,6 @@
 @import './bfn-inspector.css';
 @import './interpretation/bfn-local-influence.css';
 @import './interpretation/bfn-network-influence.css';
+@import './interpretation/bfn-local-ann-approximation.css';
 @import './bfn-results.css';
 @import './workspace/bfn-project-center.css';

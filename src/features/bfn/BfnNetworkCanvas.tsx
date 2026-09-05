@@ -5,7 +5,9 @@ import {
   bfnNodeDisplayName,
   bfnPortMetaLabel,
   bfnPortPrimaryLabel,
+  bfnUnitLabel,
 } from './presentation';
+import type { BfnLocalAnnCanvasOverlayV1 } from './interpretation/localAnnApproximationOverlay';
 import { BFN_CANVAS_SIZE, BFN_NODE_SIZE, type BfnCanvasViewport } from './nodePlacement';
 import type {
   BfnCanvasPosition,
@@ -35,6 +37,7 @@ interface BfnNetworkCanvasProps {
   ) => BfnConnectionCandidateStatus;
   onCreateConnection: (source: BfnIdealEdgeEndpoint, target: BfnIdealEdgeEndpoint) => boolean;
   onViewportChange: (viewport: BfnCanvasViewport) => void;
+  annOverlay?: BfnLocalAnnCanvasOverlayV1 | null;
 }
 
 interface NodeDragState {
@@ -184,9 +187,14 @@ export function BfnNetworkCanvas({
   evaluateConnection,
   onCreateConnection,
   onViewportChange,
+  annOverlay = null,
 }: BfnNetworkCanvasProps) {
   const { t, i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
+  const signedNumberFormatter = new Intl.NumberFormat(language, {
+    maximumSignificantDigits: 5,
+    signDisplay: 'exceptZero',
+  });
   const canvasRef = useRef<HTMLDivElement>(null);
   const nodeDragRef = useRef<NodeDragState | null>(null);
   const connectionDragRef = useRef<ConnectionDragState | null>(null);
@@ -467,6 +475,7 @@ export function BfnNetworkCanvas({
       role="application"
       aria-label={t('bfn.canvas.label')}
       data-connecting={Boolean(connectionDrag)}
+      data-ann-mode={annOverlay ? 'approximation' : 'biological'}
       onScroll={(event) => onViewportChange(canvasViewport(event.currentTarget))}
       onClick={(event) => {
         if (
@@ -520,7 +529,14 @@ export function BfnNetworkCanvas({
           </marker>
         </defs>
         {project.network.edges.map((edge) => (
-          <g key={edge.id} data-selected={selectedEdgeId === edge.id} data-enabled={edge.enabled}>
+          <g
+            key={edge.id}
+            data-selected={selectedEdgeId === edge.id}
+            data-enabled={edge.enabled}
+            data-ann-relevant={
+              annOverlay ? annOverlay.relevantEdgeIds.includes(edge.id) : undefined
+            }
+          >
             <path className="bfn-canvas-edge__halo" d={edgePath(project, edge)} />
             <path
               className="bfn-canvas-edge"
@@ -539,6 +555,52 @@ export function BfnNetworkCanvas({
             />
           </g>
         ))}
+        {annOverlay?.weights.map((weight) => {
+          const edge = project.network.edges.find((candidate) => candidate.id === weight.edgeId);
+          const module = project.network.modules.find(
+            (candidate) => candidate.id === weight.targetModuleId,
+          );
+          const inputPort = module?.inputPorts.find(
+            (candidate) => candidate.id === weight.targetInputPortId,
+          );
+          if (!edge || !module || !inputPort) return null;
+          const start = endpointPosition(project, edge.source);
+          const end = endpointPosition(project, edge.target);
+          if (!start || !end) return null;
+          const value = signedNumberFormatter.format(weight.value);
+          const unit = `${bfnUnitLabel(weight.unit.outputUnit, t)} / ${bfnUnitLabel(
+            weight.unit.inputUnit,
+            t,
+          )}`;
+          const moduleLabel = bfnNodeDisplayName(module, language, t);
+          const inputLabel = bfnPortPrimaryLabel(inputPort, t, language);
+          const label = t('bfn.canvas.annWeightLabel', {
+            value,
+            unit,
+            module: moduleLabel,
+            input: inputLabel,
+          });
+          const x = start.x + (end.x - start.x) * 0.72;
+          const y = start.y + (end.y - start.y) * 0.72 - 12;
+          return (
+            <g
+              key={`${weight.edgeId}:${weight.targetInputPortId}`}
+              className="bfn-canvas-ann-weight"
+              role="img"
+              aria-label={label}
+              data-edge-id={weight.edgeId}
+              data-target-module-id={weight.targetModuleId}
+              data-target-input-port-id={weight.targetInputPortId}
+              transform={`translate(${x} ${y})`}
+            >
+              <title>{label}</title>
+              <rect x="-27" y="-11" width="54" height="22" rx="4" />
+              <text textAnchor="middle" dominantBaseline="central">
+                {value}
+              </text>
+            </g>
+          );
+        })}
         {connectionDrag ? (
           <path
             className="bfn-canvas-edge bfn-canvas-edge--preview"
@@ -558,6 +620,9 @@ export function BfnNetworkCanvas({
           key={source.id}
           className="bfn-canvas-node bfn-canvas-node--source"
           data-selected={selectedNodeId === source.id}
+          data-ann-relevant={
+            annOverlay ? annOverlay.relevantNodeIds.includes(source.id) : undefined
+          }
           role="button"
           tabIndex={0}
           style={{ left: source.position.x, top: source.position.y }}
@@ -586,6 +651,9 @@ export function BfnNetworkCanvas({
           key={module.id}
           className="bfn-canvas-node bfn-canvas-node--module"
           data-selected={selectedNodeId === module.id}
+          data-ann-relevant={
+            annOverlay ? annOverlay.relevantNodeIds.includes(module.id) : undefined
+          }
           role="button"
           tabIndex={0}
           style={{ left: module.position.x, top: module.position.y }}
@@ -625,6 +693,9 @@ export function BfnNetworkCanvas({
           key={monitor.id}
           className="bfn-canvas-node bfn-canvas-node--monitor"
           data-selected={selectedNodeId === monitor.id}
+          data-ann-relevant={
+            annOverlay ? annOverlay.relevantNodeIds.includes(monitor.id) : undefined
+          }
           role="button"
           tabIndex={0}
           style={{ left: monitor.position.x, top: monitor.position.y }}
@@ -673,6 +744,11 @@ export function BfnNetworkCanvas({
         >
           {connectionFeedback.message}
         </div>
+      ) : null}
+      {annOverlay ? (
+        <p className="bfn-canvas-ann-legend" role="note">
+          {t('bfn.canvas.annLegend')}
+        </p>
       ) : null}
     </div>
   );
