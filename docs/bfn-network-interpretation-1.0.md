@@ -2,7 +2,7 @@
 
 ## 状态与目的
 
-本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0 与 Batch 13.1 均已完成 Master Correction Review，状态保持 `CANDIDATE / not FROZEN`。Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 的 Master Review 结论为 `FIX`；本轮 correction checkpoint `c52b0329ee5c07c2c29b2fa7a9c04785b1d89ab2` 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。
+本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0、Batch 13.1 与 Batch 13.2 均已完成 Master Correction Review，状态保持 `CANDIDATE / not FROZEN`。Batch 13.2 reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`。Batch 13.3 reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 已通过 Master Review，状态为 `CANDIDATE / not FROZEN`。
 
 Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义。Batch 13.1 实现 module-local 静态输入作用计算与用户工作流。Batch 13.2 在同一局部真值上实现 Output Monitor 目标闭包、工作点传播和外部输入总体作用分析。Batch 13.3 将这些结果转换为同一 operating point 的完整局部权重与近似偏置视图。
 
@@ -398,4 +398,4 @@ Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local in
 - approximation-quality radius 与 local weight/bias uncertainty；
 - interpretation persistence、cache、export schema。
 
-Batch 13.0 与 Batch 13.1 均为 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 为 `Master Review FIX`；Batch 13.2 correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。Batch 13.3 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。Batch 13.4 保持 `PLANNED / NOT AUTHORIZED`。
+Batch 13.0、Batch 13.1 与 Batch 13.2 均为 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13.2 reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`。Batch 13.3 为 `Master Review PASS / CANDIDATE / not FROZEN`，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。Batch 13.4 已获实现授权，尚未进入 unified freeze。

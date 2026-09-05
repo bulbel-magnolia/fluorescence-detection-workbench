@@ -1,12 +1,12 @@
 # BFN Development State Ledger
 
-- 最后核查日期：2026-09-04
+- 最后核查日期：2026-09-06
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
 - 当前正式冻结交付：Batch 12.3，以及经 Master Control 最终联合复核的 Batch 12.4.0、Batch 12.4.1 与 Batch 12.4；后三者现统一登记为 `FROZEN`
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
-- 本次 docs-only bookkeeping commit 建立统一 Batch 12.4 freeze checkpoint；实际 freeze SHA 在提交创建后由 handoff 记录，不在本提交中自引用
-- 当前交付：Batch 13.1 Correction + Batch 13.2 Network Influence Propagation；分支 `codex/bfn-network-influence-propagation`；exact base `7c1eec761346f2eba85df052a8ee02067cc95ee0`；13.1 correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`
-- Batch 13.0 为 `Master Correction Review PASS / CANDIDATE / not FROZEN`；Batch 13.1 original candidate 为 `Master Review FIX`；Batch 13.1 correction 与 Batch 13.2 implementation 均等待对应 Master Review，本轮不做 freeze bookkeeping
+- Batch 12.4 docs-only bookkeeping commit 建立了该系列的统一 freeze checkpoint；实际 freeze SHA 由对应 handoff 记录
+- 当前交付：Phase 0 Batch 13.2 / 13.3 review bookkeeping correction + Phase 1 Batch 13.4 Dynamic Gain Analysis；分支 `codex/bfn-dynamic-gain-analysis`；exact base `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`
+- 本次 docs-only marker 为 `BATCH_13_REVIEW_BOOKKEEPING_CHECKPOINT`。Batch 13.2 已通过 Master Correction Review，reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`；Batch 13.3 已通过 Master Review，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。两者均为 `CANDIDATE / not FROZEN`；Batch 13.4 已获实现授权，本阶段不做 unified freeze bookkeeping
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -107,9 +107,10 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 | Batch 12.5.1 — Local Versioned Module Library Persistence | CANDIDATE | `codex/bfn-local-versioned-module-library`；reviewed implementation `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                   | Master Review `PASS`；独立本地 versioned repository not `FROZEN`                                |
 | Batch 12.5 — Reusable Module Library User Workflow        | CANDIDATE | `codex/bfn-reusable-module-library-workflow`；exact base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                              | implementation complete；awaiting Master Review；not `FROZEN`                                   |
 | Batch 13.0 — Network Interpretation Correction            | CANDIDATE | original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d`；correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad`                                                                                                         | Master Correction Review `PASS`；not `FROZEN`                                                   |
-| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | correction implementation complete；awaiting Master Correction Review；not `FROZEN`             |
-| Batch 13.2 — Network Influence Propagation                | CANDIDATE | `codex/bfn-network-influence-propagation`；exact base `7c1eec761346f2eba85df052a8ee02067cc95ee0`；final implementation SHA 由提交后 handoff 登记                                                                                                 | implementation complete；awaiting Master Review；not `FROZEN`                                   |
-| Batch 13.3–13.4                                           | PLANNED   | NOT AUTHORIZED；无 implementation commit                                                                                                                                                                                                         | ANN local view 与 dynamic/frequency gain 不在当前授权范围                                       |
+| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | Master Correction Review `PASS`；not `FROZEN`                                                 |
+| Batch 13.2 — Network Influence Propagation                | CANDIDATE | original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49`；reviewed correction `f62babfa2af09156c711792d362fab687270f42c`                                                                                                                    | Master Correction Review `PASS`；not `FROZEN`                                                 |
+| Batch 13.3 — Local ANN Approximation                      | CANDIDATE | reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`                                                                                                                                                                               | Master Review `PASS`；not `FROZEN`                                                            |
+| Batch 13.4 — Dynamic Gain Analysis                        | PLANNED   | AUTHORIZED FOR IMPLEMENTATION；Phase 1 尚未开始                                                                                                                                                                                                    | 本 Phase 0 checkpoint 不提前登记 `ACTIVE`；not `FROZEN`                                      |
 
 ## Batch 12.0 frozen boundary
 
@@ -379,24 +380,23 @@ Batch 13.1
 = CANDIDATE
 = not FROZEN
 
-Batch 13.2 original candidate
-= f3da7c9277976ba60526a28ddb3dda7b30fb9a49
-= Master Review FIX
-
-Batch 13.2 correction checkpoint
+Batch 13.2
+= Master Correction Review PASS
 = CANDIDATE
-= correction implementation complete
-= awaiting Master Correction Review
 = not FROZEN
+reviewed correction = f62babfa2af09156c711792d362fab687270f42c
+original candidate = f3da7c9277976ba60526a28ddb3dda7b30fb9a49
+original Master Review = FIX
 
 Batch 13.3
+= Master Review PASS
 = CANDIDATE
-= implementation complete
-= awaiting Master Review
 = not FROZEN
+reviewed implementation = e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44
 
 Batch 13.4
-= PLANNED / NOT AUTHORIZED
+= AUTHORIZED FOR IMPLEMENTATION
+= not FROZEN
 ```
 
 ## Sender Public Evidence Research formal boundary
