@@ -1,0 +1,100 @@
+Repository: bulbel-magnolia/fluorescence-detection-workbench
+Branch: codex/application-separation-fluorescence
+Tested source SHA: 9d46b3c0e3b1c7d7ae1975d126eee4d3aa515aa3
+Validation date/time: 2026-09-06 17:27:53 +08:00
+node --version: v24.13.1
+npm --version: 11.8.0
+rustc --version: rustc 1.97.1 (8bab26f4f 2026-07-14)
+cargo --version: cargo 1.97.1 (c980f4866 2026-06-30)
+
+ENVIRONMENT RETRY NOTE
+The first sandboxed npm ci and npm run test attempts exited 1 with Windows
+"spawn EPERM". The unchanged commands were rerun outside the sandbox under
+the approved local environment. The successful rerun evidence follows.
+
+COMMAND
+npm ci
+EXIT CODE
+0
+RELEVANT OUTPUT
+added 288 packages in 6s
+
+68 packages are looking for funding
+  run `npm fund` for details
+
+COMMAND
+npm run typecheck
+EXIT CODE
+0
+RELEVANT OUTPUT
+> fluorescence-desktop@0.1.1 typecheck
+> tsc --noEmit
+
+COMMAND
+npm run lint
+EXIT CODE
+0
+RELEVANT OUTPUT
+> fluorescence-desktop@0.1.1 lint
+> eslint . --max-warnings 0
+
+COMMAND
+npm run test
+EXIT CODE
+0
+RELEVANT OUTPUT
+> fluorescence-desktop@0.1.1 test
+> vitest run
+
+ RUN  v4.1.10 C:/Users/zby/Desktop/iGEM/荧光识别蓝牙传输软件/.tmp/fluorescence-detection-workbench-application-separation
+
+ Test Files  23 passed (23)
+      Tests  90 passed (90)
+   Start at  17:29:55
+   Duration  23.20s (transform 1.71s, setup 16.49s, import 7.90s, tests 5.68s, environment 57.27s)
+
+COMMAND
+npm run build
+EXIT CODE
+0
+RELEVANT OUTPUT
+> fluorescence-desktop@0.1.1 build
+> vite build
+
+vite v7.3.6 building client environment for production...
+transforming...
+✓ 146 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                   0.54 kB │ gzip:   0.37 kB
+dist/assets/index-BEKLCyA1.css  103.36 kB │ gzip:  20.00 kB
+dist/assets/index-BuUfU03w.js   409.74 kB │ gzip: 125.44 kB
+✓ built in 1.65s
+
+COMMAND
+cargo check --manifest-path src-tauri/Cargo.toml
+EXIT CODE
+0
+RELEVANT OUTPUT
+    Checking fluorescence-desktop v0.1.1 (C:\Users\zby\Desktop\iGEM\荧光识别蓝牙传输软件\.tmp\fluorescence-detection-workbench-application-separation\src-tauri)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 19.48s
+
+COMMAND
+npm run tauri build
+EXIT CODE
+0
+RELEVANT OUTPUT
+> fluorescence-desktop@0.1.1 tauri
+> tauri build
+        Info Looking up installed tauri packages to check mismatched versions...
+     Running beforeBuildCommand `npm run build`
+✓ 146 modules transformed.
+✓ built in 1.11s
+warning: `fluorescence-desktop` (lib) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 1m 22s
+       Built application at: C:\Users\zby\Desktop\iGEM\荧光识别蓝牙传输软件\.tmp\fluorescence-detection-workbench-application-separation\src-tauri\target\release\fluorescence-desktop.exe
+     Running makensis to produce C:\Users\zby\Desktop\iGEM\荧光识别蓝牙传输软件\.tmp\fluorescence-detection-workbench-application-separation\src-tauri\target\release\bundle\nsis\FluorescenceDesktop_0.1.1_x64-setup.exe
+     Running light to produce C:\Users\zby\Desktop\iGEM\荧光识别蓝牙传输软件\.tmp\fluorescence-detection-workbench-application-separation\src-tauri\target\release\bundle\msi\FluorescenceDesktop_0.1.1_x64_en-US.msi
+    Finished 2 bundles at:
+        C:\Users\zby\Desktop\iGEM\荧光识别蓝牙传输软件\.tmp\fluorescence-detection-workbench-application-separation\src-tauri\target\release\bundle\nsis\FluorescenceDesktop_0.1.1_x64-setup.exe
+        C:\Users\zby\Desktop\iGEM\荧光识别蓝牙传输软件\.tmp\fluorescence-detection-workbench-application-separation\src-tauri\target\release\bundle\msi\FluorescenceDesktop_0.1.1_x64_en-US.msi
