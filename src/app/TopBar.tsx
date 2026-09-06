@@ -15,23 +15,6 @@ export function TopBar() {
   const lastError = useAppStore((state) => state.lastError);
   const pending = useAppStore((state) => state.syncPendingCount);
 
-  if (section === 'modeling') {
-    return (
-      <header className="top-bar top-bar--modeling">
-        <div className="top-bar__modeling-context">
-          <span className="top-bar__icon">
-            <Icon name="network" size={18} />
-          </span>
-          <div>
-            <span>{t('topbar.modelingContext')}</span>
-            <strong>{t('nav.modeling')}</strong>
-          </div>
-        </div>
-        <span className="top-bar__modeling-focus">{t('topbar.modelingFocus')}</span>
-      </header>
-    );
-  }
-
   const connected = connection.status === 'connected';
   const deviceName = connected ? connection.device.name : t('topbar.noDevice');
 

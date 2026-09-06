@@ -9,7 +9,7 @@ interface NavigationItem {
   icon: IconName;
 }
 
-type NavigationGroupKey = 'detection' | 'modeling' | 'system';
+type NavigationGroupKey = 'detection' | 'system';
 
 const overviewItem: NavigationItem = { section: 'overview', icon: 'overview' };
 const detectionItems: NavigationItem[] = [
@@ -17,8 +17,6 @@ const detectionItems: NavigationItem[] = [
   { section: 'import', icon: 'import' },
   { section: 'history', icon: 'history' },
 ];
-const modelingItem: NavigationItem = { section: 'modeling', icon: 'network' };
-
 const teamItem: NavigationItem = {
   section: 'team',
   icon: 'team',
@@ -33,7 +31,6 @@ export function NavigationRail() {
   const transportMode = useAppStore((state) => state.transportMode);
   const groups: Array<{ key: NavigationGroupKey; items: NavigationItem[] }> = [
     { key: 'detection', items: detectionItems },
-    { key: 'modeling', items: [modelingItem] },
     {
       key: 'system',
       items: supabaseConfigured || section === 'team' ? [teamItem, settingsItem] : [settingsItem],
@@ -90,14 +87,12 @@ export function NavigationRail() {
           </div>
         ))}
       </nav>
-      {section !== 'modeling' ? (
-        <div className="nav-rail__footer">
-          <span className={transportMode === 'hc08d' ? 'hardware-beacon' : 'demo-beacon'} />
-          <div>
-            <strong>{transportMode === 'hc08d' ? 'HC-08D' : t('common.demoMode')}</strong>
-          </div>
+      <div className="nav-rail__footer">
+        <span className={transportMode === 'hc08d' ? 'hardware-beacon' : 'demo-beacon'} />
+        <div>
+          <strong>{transportMode === 'hc08d' ? 'HC-08D' : t('common.demoMode')}</strong>
         </div>
-      ) : null}
+      </div>
     </aside>
   );
 }

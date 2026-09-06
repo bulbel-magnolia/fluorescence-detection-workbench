@@ -6,7 +6,6 @@ import { TopBar } from './TopBar';
 import { DetectionPage } from '../pages/DetectionPage';
 import { HistoryPage } from '../pages/HistoryPage';
 import { ImportPage } from '../pages/ImportPage';
-import { ModelingPage } from '../pages/ModelingPage';
 import { OverviewPage } from '../pages/OverviewPage';
 import { SettingsPage } from '../pages/SettingsPage';
 import { TeamPage } from '../pages/TeamPage';
@@ -15,7 +14,6 @@ import { useAppStore } from '../store/appStore';
 export const pageTitleKeys: Record<NavigationSection, string> = {
   overview: 'overview.title',
   detection: 'detection.title',
-  modeling: 'modeling.title',
   import: 'import.title',
   history: 'history.title',
   team: 'team.title',
@@ -43,8 +41,6 @@ export function AppShell() {
         return <OverviewPage />;
       case 'detection':
         return <DetectionPage />;
-      case 'modeling':
-        return <ModelingPage />;
       case 'import':
         return <ImportPage />;
       case 'history':
@@ -64,7 +60,7 @@ export function AppShell() {
       <div className="app-shell" data-detection-state={detectionState}>
         <NavigationRail />
         <div className="app-frame" data-section={section}>
-          {section === 'modeling' ? null : <TopBar />}
+          <TopBar />
           <main
             id="main-content"
             className="page-viewport"

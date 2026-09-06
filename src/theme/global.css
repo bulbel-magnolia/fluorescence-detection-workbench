@@ -311,10 +311,6 @@ button:not(:disabled):active {
   grid-template-rows: 68px minmax(0, 1fr);
 }
 
-.app-frame[data-section='modeling'] {
-  grid-template-rows: minmax(0, 1fr);
-}
-
 .top-bar {
   display: flex;
   min-width: 0;
@@ -418,45 +414,6 @@ button:not(:disabled):active {
   height: 100%;
 }
 
-.top-bar--modeling .top-bar__device {
-  opacity: 0.72;
-}
-
-.top-bar--modeling .top-bar__status-block,
-.top-bar--modeling .top-bar__item--battery {
-  display: none;
-}
-
-.top-bar__modeling-context {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 11px;
-}
-
-.top-bar__modeling-context > div {
-  display: grid;
-  gap: 2px;
-}
-
-.top-bar__modeling-context span:not(.top-bar__icon) {
-  color: var(--ink-500);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.top-bar__modeling-context strong {
-  color: var(--ink-900);
-  font-size: 13px;
-}
-
-.top-bar__modeling-focus {
-  color: var(--ink-500);
-  font-size: 11px;
-}
-
 .top-bar__item,
 .top-bar__account {
   height: 32px;
@@ -493,10 +450,6 @@ button:not(:disabled):active {
     linear-gradient(90deg, rgb(10 37 64 / 2.4%) 1px, transparent 1px), var(--paper);
   background-size: 32px 32px;
   animation: page-in 280ms ease both;
-}
-
-.page-viewport[data-section='modeling'] {
-  overflow: hidden;
 }
 
 .page {
@@ -2722,10 +2675,6 @@ button:not(:disabled):active {
   .top-bar__stop {
     padding-inline: 8px;
     font-size: 12px;
-  }
-
-  .top-bar__modeling-focus {
-    display: none;
   }
 
   .page {

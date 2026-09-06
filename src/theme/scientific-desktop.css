@@ -522,17 +522,6 @@ textarea:focus,
   box-shadow: none;
 }
 
-.confirm-dialog,
-.dialog,
-.modeling-part-dialog,
-.modeling-reverse-dialog,
-.evidence-catalog-dialog {
-  background: var(--ui-bg-pane);
-  border-color: var(--ui-border-default);
-  border-radius: var(--ui-radius-md);
-  box-shadow: var(--ui-shadow-floating);
-}
-
 .confirm-dialog__icon {
   color: var(--ui-warning);
   background: var(--ui-warning-subtle);
@@ -557,34 +546,6 @@ textarea:focus,
 
 :root .page-viewport .page > * {
   animation: none;
-}
-
-.page:not(.page--bfn) {
-  min-width: 0;
-  padding: 16px 20px 24px;
-}
-
-.page:not(.page--bfn) .page-header {
-  margin-bottom: 12px;
-}
-
-.page:not(.page--bfn) .telemetry-strip {
-  min-height: 42px;
-  margin-bottom: 12px;
-  overflow: hidden;
-  background: var(--ui-bg-pane);
-  background-image: none;
-  border: 1px solid var(--ui-border-default);
-  border-radius: var(--ui-radius-sm);
-  box-shadow: none;
-  clip-path: none;
-}
-
-.page:not(.page--bfn) .telemetry-cell {
-  min-height: 40px;
-  gap: 2px;
-  padding: 5px 10px;
-  border-left-color: var(--ui-border-subtle);
 }
 
 .telemetry-cell__label {

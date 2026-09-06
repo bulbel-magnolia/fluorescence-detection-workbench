@@ -65,7 +65,7 @@ export type DetectionState =
   | 'error';
 
 export type NavigationSection =
-  'overview' | 'detection' | 'modeling' | 'import' | 'history' | 'team' | 'settings';
+  'overview' | 'detection' | 'import' | 'history' | 'team' | 'settings';
 
 export interface BleDevice {
   id: string;
