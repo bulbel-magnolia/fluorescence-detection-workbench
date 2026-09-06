@@ -8,7 +8,7 @@ The application includes device and HC-08D connectivity, fluorescence acquisitio
 
 Biological functional network modeling is maintained as the independent private repository `bulbel-magnolia/bfn-modeling-workbench`. This application contains no runnable BFN workspace and has no runtime or build dependency on that repository.
 
-Batch 14.0.0 application separation remains a candidate pending Master Review.
+Batch 14 Application Separation is `FROZEN` following a `PASS` from the Master Freeze Review.
 
 ## Development
 
