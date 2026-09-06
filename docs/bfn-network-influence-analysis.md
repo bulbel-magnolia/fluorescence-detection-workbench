@@ -4,7 +4,7 @@
 
 网络作用分析回答一个目标明确的问题：在用户给定的外部输入条件下，各网络输入对所选 Output Monitor 的当前输出产生多强的总体局部作用，以及作用方向为何。该能力属于 `BFN-INTERPRETATION 1.0` 派生解释层，结果不改变网络模型，也不构成新的实验事实。
 
-Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 的 Master Review 结论为 `FIX`。reviewed correction `f62babfa2af09156c711792d362fab687270f42c` 已通过 Master Correction Review；Batch 13.2 保持 `CANDIDATE / not FROZEN`。
+Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 的 Master Review 结论为 `FIX`。reviewed correction `f62babfa2af09156c711792d362fab687270f42c` 已通过 Master Correction Review；经 Batch 13 Unified Final Review 后，Batch 13.2 随统一 freeze checkpoint 正式登记为 `FROZEN`。
 
 ## 分析对象与条件
 
@@ -135,4 +135,4 @@ Context mismatch、uncertain 与 unavailable 均是 scientific interpretation ca
 
 Batch 13.2 未实现 path contribution breakdown。总体响应增益已经覆盖 branching 与 convergence，并完全由前向敏感度传播产生；后续如增加路径明细，将作为不改变总体结果的次级审计视图，并设置完整性安全上限。
 
-本批不实现 feedback/static steady-state solver、dynamic/frequency analysis、network uncertainty propagation、analysis persistence、cache 或 export schema。Batch 13.3 的局部神经网络近似在独立 interpretation contract 中复用本结果，不改变网络作用传播语义；Batch 13.4 已获独立实现授权，不改变本合同的稳态网络作用语义。
+本批不实现 feedback/static steady-state solver、network uncertainty propagation、analysis persistence、cache 或 export schema。已冻结的 Batch 13.3 局部神经网络近似与 Batch 13.4 动态作用分析在独立 interpretation contract 中复用本结果，不改变本批的稳态网络作用传播语义。

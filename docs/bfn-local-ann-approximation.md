@@ -4,7 +4,7 @@
 
 神经网络近似把已有生物网络在一个明确输入工作点附近表示为权重与近似偏置，帮助用户比较各模块及外部输入在当前条件下的局部作用。完整 biological network 始终是 source of truth；近似结果是 `BFN-INTERPRETATION 1.0` 的只读派生视图。
 
-该功能对应 Batch 13.3。reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 已通过 Master Review，状态为 `CANDIDATE / not FROZEN`。它不表示 trained neural network、learned model、全局生物学真值、新实验结果或 working-range regression。
+该功能对应 Batch 13.3。reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 已通过 Master Review；经 Batch 13 Unified Final Review 后，现随统一 freeze checkpoint 正式登记为 `FROZEN`。它不表示 trained neural network、learned model、全局生物学真值、新实验结果或 working-range regression。
 
 ## 请求与单一计算路径
 

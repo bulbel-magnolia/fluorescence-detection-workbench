@@ -2,7 +2,7 @@
 
 ## 状态
 
-Batch 13.1 当前为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。本实现建立在 Batch 13.0 correction checkpoint 上；该 checkpoint 当前为 `CANDIDATE / awaiting Master Correction Review / not FROZEN`。
+Batch 13.1 reviewed correction `a05375798f09cf3c8d278275970baacc823ccca5` 已通过 Master Correction Review；经 Batch 13 Unified Final Review 后，本能力随 Batch 13 统一 freeze checkpoint 正式登记为 `FROZEN`。其前置 Batch 13.0 correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad` 同步属于已冻结的 BFN-INTERPRETATION 1.0 边界。
 
 ## 用户目的
 
@@ -99,14 +99,12 @@ Drawer 使用现有科研桌面工作台的 section divider、property row、tab
 
 主界面不显示公式、Jacobian、gradient、raw ID、enum、schema 或 internal issue code。输入变化立即清除旧结果；关闭并重新打开时字段恢复为空。
 
-## 动态与后续批次边界
+## 动态与后续解释边界
 
-同时具有 paired first-order model 的模块只解释稳态响应关系，界面明确说明不包含时间响应。τ、initial state、frequency response 和 dynamic gain 不参与计算。
+同时具有 paired first-order model 的模块只解释稳态响应关系，界面明确说明不包含时间响应。τ、initial state、frequency response 和 dynamic gain 不参与本 Batch 13.1 计算。
 
 Accumulator / Signal Pool 是动态积分过程，没有静态 input-output response。Inspector 禁用本操作并显示自然语言说明，不构造 gain 1 或有限 DC gain。
 
-- Batch 13.2：whole-network influence propagation 与 chain rule；
-- Batch 13.3：local ANN approximation view、weight 与 bias；
-- Batch 13.4：dynamic/frequency gain 与积分过程解释。
+同一已冻结 BFN-INTERPRETATION 1.0 中，Batch 13.2 负责 whole-network influence propagation，Batch 13.3 负责 local ANN approximation view / weight / bias，Batch 13.4 负责动态作用分析；这些后续能力不改变 Batch 13.1 的 module-local 静态解释语义。
 
 本批次不改变 Edge、BFN-IR 2.3、BFN-SIM 2.2、Template 1.0、Module Library Persistence 1.0、`annApproximation.ts` 或 `analysis.annThresholds`。

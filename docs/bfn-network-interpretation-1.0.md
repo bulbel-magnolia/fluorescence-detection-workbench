@@ -2,9 +2,9 @@
 
 ## 状态与目的
 
-本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0、Batch 13.1 与 Batch 13.2 均已完成 Master Correction Review，状态保持 `CANDIDATE / not FROZEN`。Batch 13.2 reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`。Batch 13.3 reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 已通过 Master Review，状态为 `CANDIDATE / not FROZEN`。
+本合同定义 BIO-NET Phase III 的派生网络解释层。Batch 13.0、13.1、13.2、13.3 与 13.4 均已完成对应 Master Review / Master Correction Review，并经 Batch 13 Unified Final Review 统一通过；本合同及 Batch 13.0–13.4 现随 docs-only unified freeze checkpoint 正式登记为 `FROZEN`。正式 reviewed checkpoints 为：13.0 `510ce360eadaec47d373632aaf20388704bb63ad`；13.1 `a05375798f09cf3c8d278275970baacc823ccca5`；13.2 `f62babfa2af09156c711792d362fab687270f42c`；13.3 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`；13.4 `bbf28d649f91dc39c3624a066969e71f9e538265`。
 
-Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义。Batch 13.1 实现 module-local 静态输入作用计算与用户工作流。Batch 13.2 在同一局部真值上实现 Output Monitor 目标闭包、工作点传播和外部输入总体作用分析。Batch 13.3 将这些结果转换为同一 operating point 的完整局部权重与近似偏置视图。
+Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性、Evidence 继承以及局部 ANN weight/bias 的科学语义。Batch 13.1 实现 module-local 静态输入作用计算与用户工作流。Batch 13.2 在同一局部真值上实现 Output Monitor 目标闭包、工作点传播和外部输入总体作用分析。Batch 13.3 将这些结果转换为同一 operating point 的完整局部权重与近似偏置视图。Batch 13.4 在同一目标闭包与局部导数真值上实现 nominal analytic small-signal dynamic influence。
 
 解释层使用独立版本 `BFN-INTERPRETATION 1.0`。BFN-IR 保持 `2.3`，BFN-SIM 保持 `2.2`，Workspace IndexedDB、Module Library IndexedDB 与 Module Template 的版本均保持不变。
 
@@ -14,7 +14,7 @@ Batch 13.0 建立分析条件、局部响应增益、相对敏感度、适用性
 
 - Module 承担 transformation / computation。
 - Edge 保持 instantaneous、lossless、identity propagation，仅表示 topology。
-- weight、gain、bias 和 sensitivity 只能存在于 ephemeral analysis result 或未来 analysis overlay。
+- weight、gain、bias 和 sensitivity 只能存在于 ephemeral analysis result 或 analysis overlay。
 - 解释结果不写回 Project、Module、ModelVariant、Edge、Workspace Draft/Version 或 Module Library。
 - 计算只使用模型参数的 nominal `value`。区间、posterior、bootstrap 和 covariance 元数据继续作为来源上下文保留，不在本合同中传播为 gain uncertainty。
 
@@ -177,7 +177,7 @@ Ei = (xi / y) (∂y/∂xi)
 - `output_not_positive`
 - `derivative_unavailable`
 
-模型输出 `y0=f(x0)`、gain、elasticity 和未来 ANN bias 必须来自同一分析快照与同一 operating point。
+模型输出 `y0=f(x0)`、gain、elasticity 和 ANN bias 必须来自同一分析快照与同一 operating point。
 
 ## ValidityDomain 与适用性
 
@@ -232,7 +232,7 @@ Accumulator / Signal Pool 的运行方程为：
 dC/dt = r
 ```
 
-其 BFN-SIM 2.2 合同要求单个 production-rate input、单个同 Entity concentration output，并支持 `nM/h → nM` 或 `uM/h → uM`。Accumulator 没有普通 static input-output response，admission 返回 `static_interpretation_unsupported`。Batch 13.1 Inspector 禁用该操作，并以自然语言说明 Signal Pool 是动态积分过程。积分器和频率相关解释属于 Batch 13.4。
+其 BFN-SIM 2.2 合同要求单个 production-rate input、单个同 Entity concentration output，并支持 `nM/h → nM` 或 `uM/h → uM`。Accumulator 没有普通 static input-output response，admission 返回 `static_interpretation_unsupported`。Batch 13.1 Inspector 禁用该操作，并以自然语言说明 Signal Pool 是动态积分过程。Batch 13.4 也不擅自为该积分过程冻结 continuous 或 discrete frequency-transfer 语义。
 
 ## 局部 ANN weight 与 bias
 
@@ -331,7 +331,7 @@ B = Y0 - Σ Ws Us0
 
 该结果是 one explicit operating point 附近的 local first-order explanatory view。它不是 trained/learned ANN、全局替代模型、新实验结果或 range-fitted regression；当前 Batch 不定义近似质量半径。
 
-## Batch 13.4 动态增益合同
+## Batch 13.4 动态作用合同
 
 `BfnDynamicGainRequestV1` 使用 `contractVersion = 1.0`、`scope = network_dynamic_periodic_gain`、exact Output Monitor、Batch 13.2 的同一 external operating point 语义，以及 `perturbation.periodHours > 0`。static 与 dynamic Project 均可进入分析；支持性由 selected target closure 内实际 effective model kinds 决定。
 
@@ -403,7 +403,7 @@ request_contract_invalid
 
 ## 当前实现与后续边界
 
-Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案与 applicability admission；correction 已将 Hill derivative 的 `safeK/safeN` 语义和 production evaluator 对齐。Batch 13.2 已实现 target-scoped network admission、工作点与前向敏感度传播、ephemeral network result、selected-monitor Drawer、逐模块 Evidence 保留及自然 fail-closed 说明；本轮 correction 增加 exact-unit conservative prefill 与 target-scoped Context snapshot。Batch 13.3 已实现完整 local ANN affine contract、Output Monitor workflow 与 existing-canvas derived overlay。Batch 13.4 已实现 selected Output Monitor dynamic gain analysis、complex small-signal propagation、first-order phase/magnitude 与双语 Drawer。
+Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案与 applicability admission；correction 已将 Hill derivative 的 `safeK/safeN` 语义和 production evaluator 对齐。Batch 13.2 已实现 target-scoped network admission、工作点与前向敏感度传播、ephemeral network result、selected-monitor Drawer、逐模块 Evidence 保留及自然 fail-closed 说明；correction 增加 exact-unit conservative prefill 与 target-scoped Context snapshot。Batch 13.3 已实现完整 local ANN affine contract、Output Monitor workflow 与 existing-canvas derived overlay。Batch 13.4 已实现 selected Output Monitor 动态作用分析、complex small-signal propagation、formal signed DC、first-order phase/magnitude 与双语 Drawer。
 
 当前未实现范围包括：
 
@@ -414,4 +414,15 @@ Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local in
 - approximation-quality radius 与 local weight/bias uncertainty；
 - interpretation persistence、cache、export schema。
 
-Batch 13.0、Batch 13.1 与 Batch 13.2 均为 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13.2 reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`。Batch 13.3 为 `Master Review PASS / CANDIDATE / not FROZEN`，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。Batch 13.4 original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` 的 Master Review 结论为 FIX；当前 correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`，不进入 unified freeze。
+上述未实现范围不属于本次冻结能力。Batch 13.0–13.4 的已审定能力与边界统一登记为 `FROZEN`；任何后续扩展、语义放宽或对冻结边界的修改都必须通过新的授权 Batch / correction 与 Master Review，不得直接修改本合同所冻结的解释语义。
+
+## Unified Batch 13 freeze boundary
+
+- Unified Final Review：`PASS`；Further FIX：`NONE`；
+- pre-freeze reviewed implementation Head：`bbf28d649f91dc39c3624a066969e71f9e538265`；
+- 本 docs-only freeze bookkeeping commit 只统一状态与冻结边界，不修改 production、tests、fixtures、runtime、schema、storage、Sender/Receiver source 或 package dependency；
+- BFN-IR 保持 `2.3`，BFN-SIM 保持 `2.2`，Workspace IndexedDB structural version 保持 `1`；
+- Edge 继续是 instantaneous、lossless、identity topology，weight/gain/bias/sensitivity 只属于派生 interpretation；
+- Batch 13.0–13.4 的 reviewed checkpoints 分别为 `510ce360eadaec47d373632aaf20388704bb63ad`、`a05375798f09cf3c8d278275970baacc823ccca5`、`f62babfa2af09156c711792d362fab687270f42c`、`e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`、`bbf28d649f91dc39c3624a066969e71f9e538265`；
+- 本次 freeze 不自动提升 Batch 12.5.0 / 12.5.1 / 12.5 的正式状态；它们继续保持各自已审核但未冻结的状态边界；
+- freeze checkpoint 的实际 commit SHA 由提交后的 Master handoff 记录，不在本提交中自引用。

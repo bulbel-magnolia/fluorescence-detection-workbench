@@ -1,6 +1,6 @@
 # BFN Dynamic Influence Analysis
 
-该功能对应 Batch 13.4“动态作用分析 / Dynamic Influence Analysis”。当前状态为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。它在显式工作点和正周期下计算 selected Output Monitor 的 nominal analytic small-signal dynamic influence，不表示仿真轨迹、Bode 曲线、频率扫描、新实验结果或不确定性传播。
+该功能对应 Batch 13.4“动态作用分析 / Dynamic Influence Analysis”。reviewed correction `bbf28d649f91dc39c3624a066969e71f9e538265` 已通过 Master Correction Review；经 Batch 13 Unified Final Review 后，现随统一 freeze checkpoint 正式登记为 `FROZEN`。它在显式工作点和正周期下计算 selected Output Monitor 的 nominal analytic small-signal dynamic influence，不表示仿真轨迹、Bode 曲线、频率扫描、新实验结果或不确定性传播。
 
 ## 来源与范围
 
@@ -48,4 +48,4 @@ selected Output Monitor Inspector 的入口为“分析动态作用…” / “A
 
 ## 实现边界
 
-实现集中在 `src/features/bfn/interpretation/`、selected-monitor Drawer、双语文案和相关文档/测试。Batch 13.2 helper 保留 reviewed 13.4 candidate 带入的 reason-classification adjustment；supported-network semantics 未改变。本修正不修改 BFN-IR schema、BFN-SIM runtime、Accumulator / Signal Pool runtime、unit semantics、response equations、existing ANN range-fit、Batch 13.3 local ANN math、persistence、export schema、Sender source 或 package dependencies。
+实现集中在 `src/features/bfn/interpretation/`、selected-monitor Drawer、双语文案和相关文档/测试。Batch 13.2 helper 保留 reviewed 13.4 candidate 带入的 reason-classification adjustment；supported-network semantics 未改变。本冻结不修改 BFN-IR schema、BFN-SIM runtime、Accumulator / Signal Pool runtime、unit semantics、response equations、existing ANN range-fit、Batch 13.3 local ANN math、persistence、export schema、Sender source 或 package dependencies。

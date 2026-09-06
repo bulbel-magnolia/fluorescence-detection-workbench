@@ -2,11 +2,12 @@
 
 - 最后核查日期：2026-09-06
 - Repository：`bulbel-magnolia/fluorescence-detection-workbench`
-- 当前正式冻结交付：Batch 12.3，以及经 Master Control 最终联合复核的 Batch 12.4.0、Batch 12.4.1 与 Batch 12.4；后三者现统一登记为 `FROZEN`
+- 当前正式冻结交付：Batch 10、Batch 11、Batch 12.0、12.0.1、12.0.2、12.1、12.2、12.3、12.4.0、12.4.1、12.4，以及经 Master Control Unified Final Review 通过的 Batch 13.0–13.4；上述对应边界均登记为 `FROZEN`
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
 - Batch 12.4 docs-only bookkeeping commit 建立了该系列的统一 freeze checkpoint；实际 freeze SHA 由对应 handoff 记录
-- 当前交付：Batch 13.4 Dynamic Influence Analysis Correction；分支 `codex/bfn-dynamic-gain-analysis-correction`；exact base `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc`
-- Batch 13.4 original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` 的 Master Review 结论为 `FIX`。当前 correction 状态为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Phase 0 bookkeeping history 不变，本阶段不做 unified freeze bookkeeping
+- 当前交付：Batch 13 Unified Freeze；branch `codex/bfn-batch-13-freeze`；pre-freeze reviewed implementation Head `bbf28d649f91dc39c3624a066969e71f9e538265`
+- Batch 13.0、13.1、13.2、13.3、13.4 已分别通过对应 Master Review / Master Correction Review，并通过 Unified Final Review；本次 docs-only bookkeeping commit 建立统一 freeze checkpoint，实际 freeze SHA 由提交后 handoff 记录，不在本提交中自引用
+- Batch 12.5.0、Batch 12.5.1 与 Batch 12.5 的正式状态不因 Batch 13 freeze 自动提升；仍按各自 Master Review 结果保持 `CANDIDATE / not FROZEN`
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -66,6 +67,12 @@
 | Batch 12.5.0 reviewed contract          | `d7fdcbf13ec8847ec9480085756dfaf184c35331` | `fix(bfn): harden module template representation contract`   |
 | Batch 12.5.1 reviewed persistence       | `1d59a144e03eea4cdce70b3889936cd3e2e20f74` | `feat(bfn): add local versioned module library`              |
 | Batch 12.5 initial workflow candidate   | `c4295d1335448ad2ca6b7f4296d77ab2dc5a18c1` | `feat(bfn): add reusable module library workflow`            |
+| Batch 13.0 reviewed correction          | `510ce360eadaec47d373632aaf20388704bb63ad` | `fix(bfn): tighten static interpretation target semantics`   |
+| Batch 13.1 reviewed correction          | `a05375798f09cf3c8d278275970baacc823ccca5` | `fix(bfn): align hill influence with runtime safeguards`     |
+| Batch 13.2 reviewed correction          | `f62babfa2af09156c711792d362fab687270f42c` | `fix(bfn): preserve network interpretation context semantics` |
+| Batch 13.3 reviewed implementation      | `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` | `feat(bfn): add local ann approximation`                     |
+| Batch 13.4 original candidate           | `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` | `feat(bfn): add dynamic gain analysis`                       |
+| Batch 13.4 reviewed correction          | `bbf28d649f91dc39c3624a066969e71f9e538265` | `fix(bfn): complete dynamic influence analysis contract`     |
 
 Batch 12.0 从 `099294b018d1a6c4644156a9e083edde87570a43` 创建，并经 Master Control 完成实现审核与窄修正复核。`2a33365c40d4852d2270252560e148b7dc247aaf` 是正式审定的 Batch 12.0 实现 Head，`42e4cf6770c2986c950c89efc724a981e9ccf5d9` 是其 freeze bookkeeping commit。
 
@@ -105,12 +112,12 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 | Batch 12.4 — Signal Pool / Accumulation                   | FROZEN    | `codex/bfn-signal-pool-authoring-integration`；base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6` | Correction Review PASS；Signal Pool authoring、identity boundary 与 production integration 冻结 |
 | Batch 12.5.0 — Reusable Module Template Representation    | CANDIDATE | `codex/bfn-module-template-representation-contract`；reviewed implementation `d7fdcbf13ec8847ec9480085756dfaf184c35331`                                                                                                                          | Master Review `PASS`；BFN-MODULE-TEMPLATE 1.0 not `FROZEN`                                      |
 | Batch 12.5.1 — Local Versioned Module Library Persistence | CANDIDATE | `codex/bfn-local-versioned-module-library`；reviewed implementation `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                   | Master Review `PASS`；独立本地 versioned repository not `FROZEN`                                |
-| Batch 12.5 — Reusable Module Library User Workflow        | CANDIDATE | `codex/bfn-reusable-module-library-workflow`；exact base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                              | implementation complete；awaiting Master Review；not `FROZEN`                                   |
-| Batch 13.0 — Network Interpretation Correction            | CANDIDATE | original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d`；correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad`                                                                                                         | Master Correction Review `PASS`；not `FROZEN`                                                   |
-| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | Master Correction Review `PASS`；not `FROZEN`                                                   |
-| Batch 13.2 — Network Influence Propagation                | CANDIDATE | original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49`；reviewed correction `f62babfa2af09156c711792d362fab687270f42c`                                                                                                                    | Master Correction Review `PASS`；not `FROZEN`                                                   |
-| Batch 13.3 — Local ANN Approximation                      | CANDIDATE | reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`                                                                                                                                                                               | Master Review `PASS`；not `FROZEN`                                                              |
-| Batch 13.4 — Dynamic Influence Analysis                   | CANDIDATE | original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` Master Review `FIX`；correction on `codex/bfn-dynamic-gain-analysis-correction`                                                                                                    | correction implementation complete；awaiting Master Correction Review；not `FROZEN`             |
+| Batch 12.5 — Reusable Module Library User Workflow        | CANDIDATE | `codex/bfn-reusable-module-library-workflow`；reviewed integration Head `5b12d37ecffee8a0445ddf02d9c64d17e71a50a0`                                                                                                                               | Master Correction Review `PASS`；not `FROZEN`                                                   |
+| Batch 13.0 — Network Interpretation Contract              | FROZEN    | reviewed correction `510ce360eadaec47d373632aaf20388704bb63ad`                                                                                                                                                                                   | Master Correction Review PASS；BFN-INTERPRETATION 1.0 base contract frozen                     |
+| Batch 13.1 — Static Local Influence Analysis              | FROZEN    | reviewed correction `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                                                                                   | Master Correction Review PASS；module-local analytic influence frozen                           |
+| Batch 13.2 — Network Influence Propagation                | FROZEN    | reviewed correction `f62babfa2af09156c711792d362fab687270f42c`                                                                                                                                                                                   | Master Correction Review PASS；target-scoped network influence + Context caveat frozen          |
+| Batch 13.3 — Local ANN Approximation                      | FROZEN    | reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`                                                                                                                                                                              | Master Review PASS；local affine ANN interpretation + read-only overlay frozen                  |
+| Batch 13.4 — Dynamic Influence Analysis                   | FROZEN    | original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` Master Review FIX；reviewed correction `bbf28d649f91dc39c3624a066969e71f9e538265`                                                                                                  | Master Correction Review PASS；small-signal dynamic influence frozen                            |
 
 ## Batch 12.0 frozen boundary
 
@@ -195,7 +202,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - Add to Network 仍是一个 Project edit / Undo unit，只创建模块与必要 registry sidecar，不创建 Edge、Input Source、Output Monitor、Run 或 Signal Pool，不切换 network mode；
 - Designed Sender 生产合同与创作界面保持 static-only；Sender/Receiver evidence、Catalog runtime、Port Compatibility、Ideal Edge、Temporal evidence、Inverse Design、Ontology、Signal Pool 与 package dependencies 不在本批扩展范围内；
 - correction 定向回归为 11 个文件 / 133 项测试，其中中央 runtime 文件 16/16；完整本地回归为 146 个测试文件 / 1198 项测试全部通过，TypeScript、ESLint、Vite build（303 modules）、changed-file Prettier 与 `git diff --check` 通过；GitHub 当前无 check runs/status contexts/workflow runs，因此只声明 local validation passed，不声明 CI passed；
-- 本次 freeze bookkeeping 仅更新正式文档状态，不改变任何生产合同；其新 HEAD 是后续 Batch 12.4 preflight / implementation 的唯一合法 development base。
+- 本次 freeze bookkeeping 仅更新正式文档状态，不改变任何生产合同；其新 HEAD 是后续 Batch 12.4 preflight / implementation 的唯一合法开发基线。
 
 ## Batch 12.4.0 frozen representation boundary
 
@@ -307,18 +314,18 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 
 ## 2026-09-03 Batch 13.0 Network Interpretation Contract
 
-- 当前 Master Control 状态统一记录为：Batch 12.5.0 `Master Review PASS / CANDIDATE / not FROZEN`；Batch 12.5.1 `Master Review PASS / CANDIDATE / not FROZEN`；Batch 12.5 `Master Correction Review PASS / CANDIDATE / not FROZEN`。统一 freeze 继续暂缓；
+- 当前 Master Control 状态统一记录为：Batch 12.5.0 `Master Review PASS / CANDIDATE / not FROZEN`；Batch 12.5.1 `Master Review PASS / CANDIDATE / not FROZEN`；Batch 12.5 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13 freeze 不自动改变这些上游状态；
 - 本批从 exact reviewed base `5b12d37ecffee8a0445ddf02d9c64d17e71a50a0` 创建分支 `codex/bfn-network-interpretation-contract`，不从 main 或旧 candidate/freeze 分支启动，不改写已评审历史；
 - 独立 `BFN-INTERPRETATION 1.0` 将 operating point、local differential gain、log elasticity、applicability、Evidence inheritance 和 local ANN weight/bias 定义为 derived interpretation；Edge 继续只承担 instantaneous、lossless、identity topology；
 - `BfnLocalInfluenceRequestV1` 使用 exact module/port identity、完整输入工作点和 Port exact unit。纯 `assessBfnLocalInfluenceRequest()` 对缺失、重复、多余、output/unknown port、单位错误、非有限值、负值、模型冲突与适用域执行 deterministic fail-closed admission；
 - static interpretation 只解析 active BFN static response。paired first-order 标为 steady-state static interpretation；Accumulator / Signal Pool 没有普通 static response，明确拒绝。Catalog reference 只保留来源和映射 identity，不从来源参数建立第二套 interpretation equation；
 - ValidityDomain 使用闭区间并区分 `within_recorded_domain / applicability_not_recorded / outside_recorded_domain`；域外阻断正式结果，未记录范围不解释为 unbounded。结果只继承 active model 的 version、Evidence grade、uncertainty、Context、ValidityDomain 与 model provenance，Implementation-only provenance 不进入 model Evidence；
-- 当前合同只使用 nominal parameter value，规定 analytic derivative only。Derivative calculator、network propagation、dynamic/frequency analysis、uncertainty propagation、analysis UI、i18n 与 persistence 均未实现，分别保留给 Batch 13.1–13.4 或后续独立合同；
+- 当前合同只使用 nominal parameter value，规定 analytic derivative only。Derivative calculator、network propagation、dynamic/frequency analysis、uncertainty propagation、analysis UI、i18n 与 persistence 在后续 Batch 13.1–13.4 中实现或明确排除；
 - Batch 13.0 定向合同测试为 1 个文件 / 40 项通过；相关 BFN 合同、static runtime、first-order、Accumulator / Signal Pool、Compatibility / unit、Template 与 Module Library 回归分别为 5/92、5/57、6/59、6/43、3/36、4/118 与 4/120，全部通过；
 - manifest-protected 完整 `npm test -- --maxWorkers=4` 为 167/167 个文件、1588/1588 项通过；12/12 Sender source 在 `finally` 后按原工作树 byte hash 恢复且 source diff 为零；`npm run typecheck`、全项目 `npm run lint` 与 Vite 7.3.6 production build 通过，build 转换 332 个模块并保留既有大 chunk 提示；7 个 changed files 通过 Prettier 与 `git diff --check`；
 - frozen-boundary audit 确认 7 个变更文件只位于授权 interpretation/docs 范围；BFN-IR、BFN-SIM、Workspace、Ideal Edge、Compatibility/unit、static/first-order/Accumulator/Signal Pool runtime、Designed Sender、Receiver、Temporal、Ontology、Inverse Design、Template、Module Library 与 package dependencies 相对 exact base 零差异；
 - BFN-IR 保持 2.3，BFN-SIM 保持 2.2，Workspace IndexedDB structural version、Module Library IndexedDB version 与 fallback schema version 均保持 1，Module Template 保持 1.0；package dependencies、现有 static/dynamic/accumulator runtime、ANN range-fit thresholds、UI 和 storage 零语义变更；
-- Batch 13.0 original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d` 的状态为 `Master Review FIX / CANDIDATE / not FROZEN`。后续 correction 与 Batch 13.1 实现记录见下一节；Batch 13.2、13.3 与 13.4 保持 `PLANNED / NOT AUTHORIZED`。
+- Batch 13.0 original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d` 的 Master Review 结论为 `FIX`；reviewed correction `510ce360eadaec47d373632aaf20388704bb63ad` 后经 Master Correction Review PASS，并在本次统一冻结中登记为 `FROZEN`。
 
 ## 2026-09-03 Batch 13.0 Correction + Batch 13.1 Static Local Influence Analysis
 
@@ -332,7 +339,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 production build 转换 337 个 modules，主 CSS 296.67 kB（gzip 48.81 kB），主 JavaScript chunk 3,545.47 kB（gzip 510.88 kB），保留既有大于 500 kB chunk 提示；
 - 真实运行界面完成 supported single-input、multi-input、outside-domain 与 Accumulator unsupported 四态截图审计；console warning/error 为 0。UI 保持紧凑科研桌面布局、表格/数值/单位对齐，不展示公式、raw ID、enum 或 internal issue code；
 - frozen-boundary audit 保持 BFN-IR 2.3、BFN-SIM 2.2、Workspace DB 1、Ideal Edge、Port Compatibility、BfnUnit、static/first-order/Accumulator/Signal Pool runtime、Designed Sender、Sender/Receiver、Temporal、Ontology、Inverse Design、Template 1.0、Module Library Persistence 1.0、`annApproximation.ts`、`analysis.annThresholds` 与 package dependencies 零差异；
-- Batch 13.0 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。Batch 13.1 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。本节只记录 local validation，不声明 PASS、FROZEN 或 CI passed。
+- Batch 13.0 reviewed correction `510ce360eadaec47d373632aaf20388704bb63ad` 与 Batch 13.1 reviewed correction `a05375798f09cf3c8d278275970baacc823ccca5` 均已通过 Master Correction Review，并在本次 unified freeze 中登记为 `FROZEN`。
 
 ## 2026-09-04 Batch 13.1 Correction + Batch 13.2 Network Influence Propagation
 
@@ -346,10 +353,9 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 - 任一相关 Module 域外时阻断正式 network result，并保留 module/input/current/range。部分相关模型没有 recorded range 时保留结果并聚合为 `applicability_not_recorded`；
 - Result 按 Project Input Source order 返回 current output、总体响应增益、exact-sign direction 与相对敏感度，并逐模块保留 Evidence、uncertainty method、model provenance、Context、ValidityDomain 与 interpretation basis；不创建 synthetic network Evidence grade，不做数值 uncertainty propagation；
 - selected Output Monitor Inspector 增加“分析网络作用…”入口和右侧科研 Drawer。只显示目标相关外部输入，预填仅接受 static fixed value / dynamic constant；输入编辑清除旧结果，关闭后丢弃 ephemeral 条件并恢复焦点；
-- 当前 path contribution breakdown 未实现；总体作用完整来自 forward sensitivity propagation。Batch 13.3 的后续实现记录见下一节；Batch 13.4 保持 `PLANNED / NOT AUTHORIZED`；
-- Phase 1 初始定向门为 5 个文件 / 49 项通过，最终全量测试、构建、截图、frozen-boundary 与 GitHub 状态在提交前后按实际结果补充。本节不声明 CI passed、Batch 13.1 correction PASS、Batch 13.2 PASS 或 FROZEN。
-
-Batch 13.0 与 Batch 13.1 均已通过 Master Correction Review，状态保持 `CANDIDATE / not FROZEN`。Batch 13.2 original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49` 的 Master Review 结论为 `FIX`。
+- 当前 path contribution breakdown 未实现；总体作用完整来自 forward sensitivity propagation。Batch 13.3 与 13.4 的后续解释能力已分别审定并冻结，但不改变本批总体作用传播语义；
+- Phase 1 初始定向门为 5 个文件 / 49 项通过，最终全量测试、构建、截图、frozen-boundary 与 GitHub 状态按各轮 handoff 记录；
+- Batch 13.1 reviewed correction `a05375798f09cf3c8d278275970baacc823ccca5` 与 Batch 13.2 reviewed correction `f62babfa2af09156c711792d362fab687270f42c` 均已通过 Master Correction Review，并在本次 unified freeze 中登记为 `FROZEN`。
 
 ## 2026-09-05 Batch 13.2 Correction + Batch 13.3 Local ANN Approximation
 
@@ -360,76 +366,40 @@ Batch 13.0 与 Batch 13.1 均已通过 Master Correction Review，状态保持 `
 - selected Output Monitor Inspector 提供“神经网络近似 / 生成神经网络近似…”入口。Drawer 展示 relevant current conditions、overall weights、近似偏置、current output、local-only boundary、紧凑 module table、Context/ValidityDomain caveat 与折叠 Evidence basis；中英文 key 保持 parity；
 - 成功结果在 existing canvas 上启用 ephemeral read-only overlay。weight identity 绑定 downstream module/input，`edgeId` 仅作定位；完整 unit 在 Drawer 与 accessible label 中可见。Canvas 保持原 topology 与 positions，不重排为 MLP，不以线宽、发光、热图或颜色强度表达 magnitude；
 - condition edit、Drawer close 与 Project switch 清除 result/overlay 并回到 Biological Network view。Project、Module、Input Source specification、Edge、Workspace、Module Library 与 persistence 均不修改；
-- 既有 `annApproximation.ts`、`BfnAnnApproximation`、R²/NRMSE、accepted/rejected 与 `analysis.annThresholds` 保持完全隔离；BFN-IR 2.3、BFN-SIM 2.2、Workspace DB、Ideal Edge、Port Compatibility、BfnUnit、production response equations、first-order/Accumulator/Signal Pool runtime、Sender/Receiver、Temporal、Ontology、Inverse Design、Template、Module Library persistence 与 dependencies 不在实现范围内。
+- 既有 `annApproximation.ts`、`BfnAnnApproximation`、R²/NRMSE、accepted/rejected 与 `analysis.annThresholds` 保持完全隔离；BFN-IR 2.3、BFN-SIM 2.2、Workspace DB、Ideal Edge、Port Compatibility、BfnUnit、production response equations、first-order/Accumulator/Signal Pool runtime、Sender/Receiver、Temporal、Ontology、Inverse Design、Template、Module Library persistence 与 dependencies 不在实现范围内；
 - Phase 0 最终解释层回归为 9 个测试文件 / 144 项通过；Phase 1 calculator、presentation、overlay、canvas 与 UI 为 6 个测试文件 / 48 项通过；扩展 BFN 回归为 40 个测试文件 / 618 项通过；
 - manifest-protected 完整 `npm test -- --maxWorkers=4` 为 178/178 个测试文件、1745/1745 项通过。Sender 临时物化选择 4 个工作树字节版本与 8 个 raw Git blob，`finally` 后 12/12 恢复且 source diff 为零；
 - `npm run typecheck`、全项目 `npm run lint`、changed-file Prettier 与 Vite 7.3.6 production build 全部通过；build 转换 347 个 modules，主 CSS 为 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 为 3,609.20 kB（gzip 524.26 kB），保留既有大于 500 kB chunk 提示；
 - 真实界面审计覆盖 single-input、multi-input、branch/convergence、first-order steady-state、Context mismatch、applicability not recorded、local linearization unavailable 以及 Biological Network / ANN Approximation 对照八类状态；console error 为 0；
-- frozen-boundary audit 确认受保护合同与 runtime 相对 exact base 零差异；`annApproximation.ts`、`types.ts`、`responseMath.ts` 与 `unitSystem.ts` 的 Git blob 分别保持 `37987c348f5a7c07990af7ed8d00badba1e879d8`、`4e7600f42c57e10f47255c5a91b6072427458a8d`、`f67457cba17daed00b3b47b9686f6ca6a1a7579c` 与 `1a789ebe55a9dbc877d2e823aff80d81269063db`。
-
-正式状态台账：
-
-```text
-Batch 13.0
-= Master Correction Review PASS
-= CANDIDATE
-= not FROZEN
-
-Batch 13.1
-= Master Correction Review PASS
-= CANDIDATE
-= not FROZEN
-
-Batch 13.2
-= Master Correction Review PASS
-= CANDIDATE
-= not FROZEN
-reviewed correction = f62babfa2af09156c711792d362fab687270f42c
-original candidate = f3da7c9277976ba60526a28ddb3dda7b30fb9a49
-original Master Review = FIX
-
-Batch 13.3
-= Master Review PASS
-= CANDIDATE
-= not FROZEN
-reviewed implementation = e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44
-
-Batch 13.4
-= CANDIDATE
-= correction implementation complete
-= awaiting Master Correction Review
-= not FROZEN
-original candidate = 11f931ef0bbdeb031f5b337dcf22a9b600fbacfc
-original Master Review = FIX
-```
+- frozen-boundary audit 确认受保护合同与 runtime 相对 exact base 零差异；`annApproximation.ts`、`types.ts`、`responseMath.ts` 与 `unitSystem.ts` 的 Git blob 分别保持 `37987c348f5a7c07990af7ed8d00badba1e879d8`、`4e7600f42c57e10f47255c5a91b6072427458a8d`、`f67457cba17daed00b3b47b9686f6ca6a1a7579c` 与 `1a789ebe55a9dbc877d2e823aff80d81269063db`；
+- Batch 13.2 reviewed correction `f62babfa2af09156c711792d362fab687270f42c` 与 Batch 13.3 reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 均已通过 Master Review，并在本次 unified freeze 中登记为 `FROZEN`。
 
 ## 2026-09-06 Batch 13.4 Dynamic Influence Analysis Correction
 
-- correction 从 exact reviewed candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` 建立；Phase 0 bookkeeping commit `49854bd0146a2cd60da171ff9b0d51b9f6f0e3ba` 保持不变；
+- original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` 的 Master Review 结论为 `FIX`；correction 从该 exact candidate 建立，reviewed correction 为 `bbf28d649f91dc39c3624a066969e71f9e538265`；
 - static-only target 作为 quasi-static special case 支持，结果对 period 不敏感；input prefill 直接委托 Batch 13.2 exact-unit fixed-value/constant contract；
 - per-source `dcGain` 直接取自同一 Batch 13.2 `totalDifferentialGain`，UI 以保留符号的“慢变化作用”显示，并与当前周期响应幅度、相位关系并列；
 - Batch 13.4 在 complex propagation 前执行 complete local dynamic linearization gate，任一 relevant active input derivative unavailable 即整体 fail closed，包含 zero-upstream case；Batch 13.2 partial-source containment 未修改；
 - Drawer 增加折叠“动态模块明细”，逐 input 显示瞬时/一阶类型、signed local static gain、exact `tau`、current magnitude 与 phase。功能名称统一为“动态作用分析 / Dynamic Influence Analysis”；
-- Batch 13.2 helper carries a reason-classification adjustment from the reviewed 13.4 candidate; no supported-network semantics changed；
-- complex representation、first-order/static transfer、unit propagation、branch/convergence、phase normalization、Accumulator/feedback gates、Context/ValidityDomain、purity 与 ephemerality 保持原 reviewed core。
+- Batch 13.2 helper carries a reason-classification adjustment from the reviewed 13.4 candidate；no supported-network semantics changed；
+- complex representation、first-order/static transfer、unit propagation、branch/convergence、phase normalization、Accumulator/feedback gates、Context/ValidityDomain、purity 与 ephemerality 保持审定 core；
 - correction targeted regression 为 15 个文件 / 185 项通过；manifest-protected full suite 为 185/185 个文件、1789/1789 项通过，Sender 8 个 raw Git blob 临时物化后 12/12 恢复且 source diff 为零；
-- `npm run typecheck`、全项目 `npm run lint`、Vite 7.3.6 production build、changed-file Prettier 与 `git diff --check` 通过。build 转换 352 个 modules，保留既有大 chunk warning；冻结 blob 与 package manifests 相对 exact correction base 零差异。
+- `npm run typecheck`、全项目 `npm run lint`、Vite 7.3.6 production build、changed-file Prettier 与 `git diff --check` 通过。build 转换 352 个 modules，保留既有大 chunk warning；冻结 blob 与 package manifests 相对 exact correction base 零差异；
+- Master Correction Review `PASS`；Further FIX `NONE`；reviewed correction `bbf28d649f91dc39c3624a066969e71f9e538265` 现随 Batch 13 unified freeze 登记为 `FROZEN`。
 
-本轮最终状态仅为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`，不声明 PASS、CI passed、unified freeze 或 FROZEN。
+## Unified Batch 13 freeze checkpoint
 
-## 2026-09-06 Batch 13.4 Original Dynamic Gain Analysis Candidate
-
-- Phase 1 从 exact base `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 继续，Phase 0 review bookkeeping correction 已作为独立 docs commit 完成；
-- 新增 `BfnDynamicGainRequestV1/ResultV1`、dynamic gain admission、pure complex helper 与 `calculateBfnDynamicGain()`。calculator 先调用 corrected Batch 13.2 `calculateBfnNetworkInfluence()`，并复用其 target closure、source/module order、baseline output、local static gains、ValidityDomain、Context 与 Evidence；
-- quasi-static module 使用 `H = g + 0j`；first-order module 使用 `tau dy/dt = f(x) - y` 与 `H(j*omega) = g / (1 + j*omega*tau)`。`tau` 只读取 exact nominal `tau.value`，不复用 simulation tau floor，不读取 trajectory、duration/timeStep、initialState、run snapshot 或 `dynamicMetrics.frequencyGain`；
-- network propagation 只在 relevant target DAG 上传播 complex sensitivity。Edge 仅使用 unit coordinate scale，不拥有 gain、weight、phase 或 dynamic field；exact-zero containment 与 unavailable derivative 传播遵循 Batch 13.2 语义；
-- selected Output Monitor Inspector 新增“动态响应分析…” / “Dynamic Response Analysis…”；Drawer 展示周期、baseline conditions、基线输出、dynamic gain magnitude、phase、applicability、Context caveat 与折叠分析依据。UI 不显示 direction column、raw complex terms、internal issue codes、Bode、simulation 或 formula-first 内容；
-- 本批不修改 BFN-IR 2.3、BFN-SIM 2.2、Accumulator / Signal Pool runtime、unit enum、response equations、existing ANN range-fit、Local ANN approximation overlay、persistence、export schema 或 dependencies。
-- Dynamic-gain focused suite 为 6 个测试文件 / 76 项通过；manifest-protected `npm test -- --maxWorkers=4` 为 183/183 个测试文件、1777/1777 项通过；Sender V1.2 source 在 `try/finally` 中完成临时清单字节 materialization 与 12/12 bytes/hash 恢复，最终 source diff 为零；
-- `npm run typecheck`、`npm run lint` 与 `npm run build` 通过。Vite 7.3.6 转换 352 个 modules，主 CSS 为 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 为 3,640.03 kB（gzip 529.87 kB），保留既有 chunk-size warning；
-- 浏览器视觉检查覆盖 steady-state disabled reason、dynamic missing-input reason、supported demo Output Monitor workflow、空周期门禁、分析结果、numeric/unit alignment、applicability 与折叠依据。普通 UI 未出现 direction column、raw complex、internal issue code、Bode、simulation 或 formula-first presentation。
-
-以上只登记 Batch 13.4 implementation complete 的本地候选状态；Master Review、CI passed、FROZEN 与 unified freeze 均未声明。
+- Batch 13 Unified Final Review：`PASS`；Further FIX：`NONE`；
+- pre-freeze reviewed implementation Head：`bbf28d649f91dc39c3624a066969e71f9e538265`；
+- lineage 重新核验为线性 ancestry：`5b12d37… → 0717b51… → 510ce36… → 7c1eec7… → a053757… → f3da7c9… → f62babf… → e0ce3a1… → 49854bd… → 11f931e… → bbf28d6…`；相关 compare 均为 ahead、behind 0；
+- reviewed Batch 13 checkpoints：13.0 `510ce360eadaec47d373632aaf20388704bb63ad`；13.1 `a05375798f09cf3c8d278275970baacc823ccca5`；13.2 `f62babfa2af09156c711792d362fab687270f42c`；13.3 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`；13.4 `bbf28d649f91dc39c3624a066969e71f9e538265`；
+- 本次 docs-only bookkeeping commit 只更新正式文档状态与冻结边界，不修改 production、test、fixture、runtime、schema、storage、Sender/Receiver source、package manifest 或 lockfile；
+- BFN-IR 继续为 `2.3`，BFN-SIM 继续为 `2.2`，Workspace IndexedDB structural version 继续为 `1`；`simulation.ts`、`types.ts`、`responseMath.ts`、`unitSystem.ts`、`annApproximation.ts` 与 package manifests 继续保持既有冻结/审定 blob；
+- Edge 冻结原则保持 **instantaneous, lossless, identity propagation only**；weight、gain、bias、sensitivity 与 dynamic influence 只属于派生 interpretation，不写回 Edge；
+- Batch 13 冻结的解释能力包括：module-local static input influence、target-scoped network influence、local ANN affine approximation/read-only overlay、single-period nominal analytic dynamic influence；
+- 未冻结为 capability 的范围包括 numerical differentiation fallback、network uncertainty propagation、path contribution breakdown、feedback/closed-loop solver、frequency sweep/Bode、dynamic simulation snapshot linearization、ANN approximation-quality radius、interpretation persistence/cache/export；
+- Batch 12.5.0 / 12.5.1 / 12.5 的状态不因本冻结自动提升，继续保持各自 `PASS / CANDIDATE / not FROZEN`；本冻结仅确立 Batch 13 Phase III interpretation 的正式边界；
+- 本次 freeze checkpoint 的实际 SHA 由提交后的 handoff 记录，不在提交内容中自引用；任何后续修改 Batch 13 冻结语义的工作必须通过新的授权 Batch / correction 和 Master Review。
 
 ## Sender Public Evidence Research formal boundary
 
@@ -450,7 +420,8 @@ original Master Review = FIX
 4. 已冻结 Batch 的科学或生产边界发生变化时，必须记录新的授权任务和真实 commit。
 5. 当前 Sender 统计只描述冻结 V1.2 release：53 evidence、0 admitted Sender、20 trusted runnable Receiver。
 6. Freeze bookkeeping commit 可以更新正式状态账本，但不替代对应 Batch 的 reviewed implementation head。
-7. Batch 12.4.0、Batch 12.4.1 与 Batch 12.4 已通过最终联合复核并统一 `FROZEN`；后续工作必须以本次 docs-only freeze checkpoint 的实际提交 SHA 为唯一合法 development base，实际 SHA 仅在提交后 handoff 中登记。
+7. Batch 12.4.0、Batch 12.4.1 与 Batch 12.4 的历史统一 freeze checkpoint 继续作为其自身冻结边界；Batch 13 的 docs-only unified freeze checkpoint 在创建后成为所有依赖 BFN-INTERPRETATION 1.0 冻结能力的后续工作的唯一合法 development base，实际 SHA 由 Master handoff 登记。
+8. Batch 13 freeze 不自动提升 Batch 12.5.0 / 12.5.1 / 12.5；若后续需要修改或正式冻结 Module Library 系列，必须独立执行其状态账本与 freeze review。
 
 相关合同：
 
@@ -465,7 +436,10 @@ original Master Review = FIX
 - [BFN Local Versioned Module Library Persistence 1.0](bfn-module-library-persistence-1.0.md)
 - [BFN Reusable Module Library User Workflow](bfn-reusable-module-library-workflow.md)
 - [BFN-INTERPRETATION 1.0 网络作用解释合同](bfn-network-interpretation-1.0.md)
+- [BFN 静态输入作用分析](bfn-static-local-influence-analysis.md)
 - [BFN 网络作用分析](bfn-network-influence-analysis.md)
+- [BFN 局部神经网络近似](bfn-local-ann-approximation.md)
+- [BFN 动态作用分析](bfn-dynamic-gain-analysis.md)
 - [BFN-IR 2.2 端口标签表示扩展](bfn-ir-2.2.md)
 - [BFN-IR 2.1 用户模块表示扩展](bfn-ir-2.1.md)
 - [时间语义、兼容性与适用性](temporal-and-compatibility.md)
