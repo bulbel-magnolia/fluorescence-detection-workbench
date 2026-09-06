@@ -656,12 +656,24 @@ describe('BFN-INTERPRETATION 1.0 static-family and scientific definitions', () =
     expect(BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1.logElasticity.unit).toBe('dimensionless');
   });
 
-  it('keeps network composition and dynamic gain in future batches', () => {
+  it('records Batch 13.4 as an ephemeral nominal single-period dynamic interpretation', () => {
     expect(BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1.networkComposition.status).toBe(
-      'future_batch_13_2',
+      'implemented_batch_13_2',
     );
-    expect(BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1.dynamicAnalysis.status).toBe(
-      'future_batch_13_4',
+    const dynamicAnalysis = BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1.dynamicAnalysis;
+    expect(dynamicAnalysis.status).toBe('implemented_batch_13_4');
+    expect(dynamicAnalysis.scope).toBe('network_dynamic_periodic_gain');
+    expect(dynamicAnalysis.perturbation).toBe('single_period_hours');
+    expect(dynamicAnalysis.firstOrderEquation).toBe('tau_dy_dt_equals_f_x_minus_y');
+    expect(dynamicAnalysis.parameterBasis).toBe('nominal_tau_value');
+    expect(dynamicAnalysis.persistence).toBe('ephemeral');
+    expect(dynamicAnalysis.excludedSources).toEqual(
+      expect.arrayContaining([
+        'simulation_trajectory',
+        'dynamicMetrics_frequencyGain',
+        'analysis_durationHours',
+        'analysis_timeStepHours',
+      ]),
     );
   });
 });

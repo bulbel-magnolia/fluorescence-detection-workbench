@@ -234,6 +234,11 @@ function resolveNetworkTarget(project: BfnProject, outputMonitorId: string): Str
       return;
     }
     if (incoming.length !== 1) {
+      for (const edge of incoming) {
+        if (visitingModules.has(edge.source.nodeId)) {
+          addIssue(issues, 'upstream_feedback_unsupported', edge.source.nodeId);
+        }
+      }
       addIssue(issues, 'required_input_ambiguous', portId, {
         nodeId,
         incomingCount: incoming.length,

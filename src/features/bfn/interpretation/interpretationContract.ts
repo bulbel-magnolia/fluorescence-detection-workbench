@@ -39,11 +39,23 @@ export const BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1 = Object.freeze({
     derivedWeightStorage: 'forbidden' as const,
   }),
   networkComposition: Object.freeze({
-    status: 'future_batch_13_2' as const,
+    status: 'implemented_batch_13_2' as const,
     rule: 'chain_rule_over_module_local_gains' as const,
   }),
   dynamicAnalysis: Object.freeze({
-    status: 'future_batch_13_4' as const,
+    status: 'implemented_batch_13_4' as const,
+    scope: 'network_dynamic_periodic_gain' as const,
+    perturbation: 'single_period_hours' as const,
+    firstOrderEquation: 'tau_dy_dt_equals_f_x_minus_y' as const,
+    parameterBasis: 'nominal_tau_value' as const,
+    persistence: 'ephemeral' as const,
+    excludedSources: Object.freeze([
+      'simulation_trajectory',
+      'dynamicMetrics_frequencyGain',
+      'analysis_durationHours',
+      'analysis_timeStepHours',
+      'initialState',
+    ] as const),
   }),
   presentation: Object.freeze({
     formulasInPrimaryUi: 'not_required' as const,

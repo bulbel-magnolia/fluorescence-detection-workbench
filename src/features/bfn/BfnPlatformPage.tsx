@@ -27,10 +27,12 @@ import {
   type BfnLocalAnnCanvasMode,
 } from './interpretation/BfnLocalAnnApproximationDrawer';
 import { BfnNetworkInfluenceDrawer } from './interpretation/BfnNetworkInfluenceDrawer';
+import { BfnDynamicGainDrawer } from './interpretation/BfnDynamicGainDrawer';
 import { createBfnLocalAnnCanvasOverlay } from './interpretation/localAnnApproximationOverlay';
 import { assessBfnLocalAnnApproximationAvailability } from './interpretation/localAnnApproximationPresentation';
 import type { BfnLocalAnnApproximationResultV1 } from './interpretation/localAnnApproximationTypes';
 import { assessBfnLocalInfluenceAvailability } from './interpretation/localInfluencePresentation';
+import { assessBfnDynamicGainAvailability } from './interpretation/dynamicGainPresentation';
 import { assessBfnNetworkInfluenceAvailability } from './interpretation/networkInfluencePresentation';
 import { BfnCatalogInverseWorkspace } from './inverse-design/ui/BfnCatalogInverseWorkspace';
 import { createBfnComputationSignature } from './computationSignature';
@@ -399,6 +401,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   const [modulePickerOpen, setModulePickerOpen] = useState(false);
   const [localInfluenceModuleId, setLocalInfluenceModuleId] = useState<string | null>(null);
   const [networkInfluenceMonitorId, setNetworkInfluenceMonitorId] = useState<string | null>(null);
+  const [dynamicGainMonitorId, setDynamicGainMonitorId] = useState<string | null>(null);
   const [localAnnMonitorId, setLocalAnnMonitorId] = useState<string | null>(null);
   const [localAnnResult, setLocalAnnResult] = useState<BfnLocalAnnApproximationResultV1 | null>(
     null,
@@ -567,6 +570,10 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
       selectedMonitor ? assessBfnNetworkInfluenceAvailability(project, selectedMonitor) : null,
     [project, selectedMonitor],
   );
+  const selectedDynamicGainAvailability = useMemo(
+    () => (selectedMonitor ? assessBfnDynamicGainAvailability(project, selectedMonitor) : null),
+    [project, selectedMonitor],
+  );
   const selectedLocalAnnAvailability = useMemo(
     () =>
       selectedMonitor ? assessBfnLocalAnnApproximationAvailability(project, selectedMonitor) : null,
@@ -584,6 +591,15 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
   );
   const networkInfluenceOpen =
     networkInfluenceMonitor !== null && networkInfluenceAvailability?.supported === true;
+  const dynamicGainMonitor =
+    project.network.outputMonitors.find((monitor) => monitor.id === dynamicGainMonitorId) ?? null;
+  const dynamicGainAvailability = useMemo(
+    () =>
+      dynamicGainMonitor ? assessBfnDynamicGainAvailability(project, dynamicGainMonitor) : null,
+    [dynamicGainMonitor, project],
+  );
+  const dynamicGainOpen =
+    dynamicGainMonitor !== null && dynamicGainAvailability?.supported === true;
   const localAnnMonitor =
     project.network.outputMonitors.find((monitor) => monitor.id === localAnnMonitorId) ?? null;
   const localAnnAvailability = useMemo(
@@ -1070,6 +1086,10 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     setNetworkInfluenceMonitorId(null);
   };
 
+  const closeDynamicGain = (): void => {
+    setDynamicGainMonitorId(null);
+  };
+
   const closeLocalAnnApproximation = (): void => {
     setLocalAnnMonitorId(null);
     setLocalAnnResult(null);
@@ -1195,6 +1215,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
     if (localAnnProjectRef.current === project) return;
     localAnnProjectRef.current = project;
     if (localAnnMonitorId !== null || localAnnResult !== null) closeLocalAnnApproximation();
+    if (dynamicGainMonitorId !== null) closeDynamicGain();
   }, [project]);
 
   useEffect(() => {
@@ -1204,6 +1225,7 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         modulePickerOpen ||
         localInfluenceOpen ||
         networkInfluenceOpen ||
+        dynamicGainOpen ||
         localAnnOpen ||
         props.projectCenterOpen === true ||
         pendingDestructiveAction !== null ||
@@ -1218,6 +1240,11 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
         if (networkInfluenceOpen) {
           event.preventDefault();
           closeNetworkInfluence();
+          return;
+        }
+        if (dynamicGainOpen) {
+          event.preventDefault();
+          closeDynamicGain();
           return;
         }
         if (localAnnOpen) {
@@ -2004,6 +2031,44 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
                         </Button>
                       </section>
                     ) : null}
+                    {selectedDynamicGainAvailability ? (
+                      <section className="bfn-inspector-block bfn-inspector-action">
+                        <header>
+                          <strong>{t('bfn.dynamicGain.inspectorTitle')}</strong>
+                        </header>
+                        <p
+                          className={
+                            selectedDynamicGainAvailability.supported
+                              ? undefined
+                              : 'bfn-inspector-action__reason'
+                          }
+                        >
+                          {selectedDynamicGainAvailability.supported
+                            ? t('bfn.dynamicGain.inspectorDescription')
+                            : t(
+                                'bfn.dynamicGain.availabilityReasons.' +
+                                  selectedDynamicGainAvailability.reason,
+                              )}
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          leadingIcon={<Icon name="pulse" size={14} />}
+                          disabled={!selectedDynamicGainAvailability.supported}
+                          {...(!selectedDynamicGainAvailability.supported
+                            ? {
+                                disabledReason: t(
+                                  'bfn.dynamicGain.availabilityReasons.' +
+                                    selectedDynamicGainAvailability.reason,
+                                ),
+                              }
+                            : {})}
+                          onClick={() => setDynamicGainMonitorId(selectedMonitor.id)}
+                        >
+                          {t('bfn.dynamicGain.action')}
+                        </Button>
+                      </section>
+                    ) : null}
                     {selectedLocalAnnAvailability ? (
                       <section className="bfn-inspector-block bfn-inspector-action">
                         <header>
@@ -2455,6 +2520,19 @@ export function BfnPlatformPage(props: BfnPlatformPageProps = {}) {
           monitor={networkInfluenceMonitor}
           target={networkInfluenceAvailability.target}
           onClose={closeNetworkInfluence}
+        />
+      ) : null}
+      {view === 'design' && dynamicGainMonitor && dynamicGainAvailability?.supported ? (
+        <BfnDynamicGainDrawer
+          key={
+            dynamicGainMonitor.id +
+            ':' +
+            dynamicGainAvailability.target.baselineTarget.relevantEdgeIds.join('|')
+          }
+          project={project}
+          monitor={dynamicGainMonitor}
+          target={dynamicGainAvailability.target}
+          onClose={closeDynamicGain}
         />
       ) : null}
       {view === 'design' && localAnnMonitor && localAnnAvailability?.supported ? (

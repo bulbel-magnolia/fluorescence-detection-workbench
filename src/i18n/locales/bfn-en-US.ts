@@ -788,6 +788,107 @@ export const bfnEnUS = {
         'The calculation uses each response model’s nominal parameters and does not propagate numeric uncertainty.',
     },
   },
+  dynamicGain: {
+    kicker: 'Selected output analysis',
+    title: 'Dynamic Response Analysis',
+    inspectorTitle: 'Dynamic Response Analysis',
+    inspectorDescription:
+      'Calculate dynamic gain and phase from each network input to the selected output for a specified perturbation period.',
+    action: 'Dynamic Response Analysis…',
+    close: 'Close Dynamic Response Analysis',
+    purpose:
+      'Calculate the selected output’s periodic small-signal response to network inputs at a specified operating point and period.',
+    unavailable: 'Cannot calculate at this condition',
+    availabilityReasons: {
+      dynamic_mode_required: 'Dynamic Response Analysis applies only in dynamic network mode.',
+      dynamic_integrator:
+        'The selected output has a signal pool or another dynamic integration process upstream, and no interpretable reference state is available.',
+      feedback:
+        'The selected output has a feedback loop upstream. This version cannot perform Dynamic Response Analysis for it.',
+      missing_input:
+        'A module on the selected output path has a required input that is unconnected or connected more than once.',
+      response_invalid:
+        'A module on the selected output path lacks a dynamic response model that can be used for this analysis.',
+    },
+    object: {
+      title: 'Analysis object',
+      output: 'Output',
+      signal: 'Output signal',
+      module: 'Module',
+    },
+    conditions: {
+      title: 'Analysis conditions',
+      period: 'Period',
+      hours: 'h',
+      input: 'Network input',
+      value: 'Analysis value',
+      valueFor: 'Analysis value for {{input}}',
+      requirement:
+        'Enter finite, non-negative values for every relevant network input and a perturbation period greater than 0 h.',
+      incomplete: 'Enter every valid analysis value and a positive period first.',
+      invalidValue: 'Enter a finite, non-negative value.',
+    },
+    analyze: 'Analyze',
+    outside: {
+      title: 'No formal result generated',
+      description:
+        'The current analysis conditions place part of the network outside a recorded applicable range.',
+      range:
+        '{{module}} · {{input}}: current {{current}} {{currentUnit}}; recorded range {{minimum}}–{{maximum}} {{rangeUnit}}',
+    },
+    failure: {
+      title: 'Analysis unavailable',
+      description: 'The network cannot form a finite dynamic gain under these conditions.',
+    },
+    results: {
+      title: 'Results',
+      scopeLabel: 'Target network · periodic small signal',
+      baselineOutput: 'Baseline output',
+      input: 'Network input',
+      gain: 'Dynamic gain',
+      phase: 'Phase',
+    },
+    gainReasons: {
+      notUnique: 'A response on this route has no unique local gain at this point',
+      nonFinite: 'The dynamic gain on this route is not finite',
+      unavailable: 'This route cannot provide an analytic dynamic gain',
+    },
+    phaseReasons: {
+      zero: 'zero magnitude',
+      nonFinite: 'not calculable',
+      unavailable: 'not calculable',
+    },
+    applicability: {
+      title: 'Applicability',
+      within:
+        'The current analysis conditions are within every relevant model’s recorded applicable range.',
+      notRecorded:
+        'Some response models in this network do not record complete applicable input ranges.',
+    },
+    context: {
+      title: 'Experimental-condition note',
+      mismatch:
+        'Recorded experimental conditions differ across relevant modules. This dynamic gain inherits those model boundaries.',
+      uncertain:
+        'Some relevant modules do not record enough experimental-condition detail to confirm consistency.',
+    },
+    modelBasis: {
+      title: 'Analysis basis',
+      description:
+        'The current result is derived from the baseline network influence interpretation and each module dynamic model.',
+      module: 'Module',
+      kind: 'Dynamic model',
+      evidence: 'Model basis',
+      direct:
+        'This result comes from direct transmission of the same scientific quantity and numeric unit-coordinate conversion.',
+      nominal:
+        'First-order modules use nominal time constants; simulation trajectories, run duration, and frequency metrics are not read.',
+      kinds: {
+        quasi_static: 'Quasi-static',
+        first_order: 'First-order response',
+      },
+    },
+  },
   localAnn: {
     kicker: 'Selected output approximation',
     title: 'Neural Network Approximation',

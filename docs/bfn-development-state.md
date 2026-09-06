@@ -6,7 +6,7 @@
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
 - Batch 12.4 docs-only bookkeeping commit 建立了该系列的统一 freeze checkpoint；实际 freeze SHA 由对应 handoff 记录
 - 当前交付：Phase 0 Batch 13.2 / 13.3 review bookkeeping correction + Phase 1 Batch 13.4 Dynamic Gain Analysis；分支 `codex/bfn-dynamic-gain-analysis`；exact base `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`
-- 本次 docs-only marker 为 `BATCH_13_REVIEW_BOOKKEEPING_CHECKPOINT`。Batch 13.2 已通过 Master Correction Review，reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`；Batch 13.3 已通过 Master Review，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。两者均为 `CANDIDATE / not FROZEN`；Batch 13.4 已获实现授权，本阶段不做 unified freeze bookkeeping
+- 本次 docs-only marker 为 `BATCH_13_REVIEW_BOOKKEEPING_CHECKPOINT`。Batch 13.2 已通过 Master Correction Review，reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`；Batch 13.3 已通过 Master Review，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。两者均为 `CANDIDATE / not FROZEN`；Batch 13.4 已实现，状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`，本阶段不做 unified freeze bookkeeping
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -107,10 +107,10 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 | Batch 12.5.1 — Local Versioned Module Library Persistence | CANDIDATE | `codex/bfn-local-versioned-module-library`；reviewed implementation `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                   | Master Review `PASS`；独立本地 versioned repository not `FROZEN`                                |
 | Batch 12.5 — Reusable Module Library User Workflow        | CANDIDATE | `codex/bfn-reusable-module-library-workflow`；exact base `1d59a144e03eea4cdce70b3889936cd3e2e20f74`                                                                                                                                              | implementation complete；awaiting Master Review；not `FROZEN`                                   |
 | Batch 13.0 — Network Interpretation Correction            | CANDIDATE | original reviewed candidate `0717b51ae4f659dab7a91dd42444734895eedd3d`；correction checkpoint `510ce360eadaec47d373632aaf20388704bb63ad`                                                                                                         | Master Correction Review `PASS`；not `FROZEN`                                                   |
-| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | Master Correction Review `PASS`；not `FROZEN`                                                 |
-| Batch 13.2 — Network Influence Propagation                | CANDIDATE | original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49`；reviewed correction `f62babfa2af09156c711792d362fab687270f42c`                                                                                                                    | Master Correction Review `PASS`；not `FROZEN`                                                 |
-| Batch 13.3 — Local ANN Approximation                      | CANDIDATE | reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`                                                                                                                                                                               | Master Review `PASS`；not `FROZEN`                                                            |
-| Batch 13.4 — Dynamic Gain Analysis                        | PLANNED   | AUTHORIZED FOR IMPLEMENTATION；Phase 1 尚未开始                                                                                                                                                                                                    | 本 Phase 0 checkpoint 不提前登记 `ACTIVE`；not `FROZEN`                                      |
+| Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | Master Correction Review `PASS`；not `FROZEN`                                                   |
+| Batch 13.2 — Network Influence Propagation                | CANDIDATE | original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49`；reviewed correction `f62babfa2af09156c711792d362fab687270f42c`                                                                                                                    | Master Correction Review `PASS`；not `FROZEN`                                                   |
+| Batch 13.3 — Local ANN Approximation                      | CANDIDATE | reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`                                                                                                                                                                               | Master Review `PASS`；not `FROZEN`                                                              |
+| Batch 13.4 — Dynamic Gain Analysis                        | CANDIDATE | implementation complete on `codex/bfn-dynamic-gain-analysis`；awaiting Master Review                                                                                                                                                             | selected Output Monitor dynamic gain；not `FROZEN`                                              |
 
 ## Batch 12.0 frozen boundary
 
@@ -395,9 +395,25 @@ Batch 13.3
 reviewed implementation = e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44
 
 Batch 13.4
-= AUTHORIZED FOR IMPLEMENTATION
+= CANDIDATE
+= implementation complete
+= awaiting Master Review
 = not FROZEN
 ```
+
+## 2026-09-06 Batch 13.4 Dynamic Gain Analysis
+
+- Phase 1 从 exact base `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 继续，Phase 0 review bookkeeping correction 已作为独立 docs commit 完成；
+- 新增 `BfnDynamicGainRequestV1/ResultV1`、dynamic gain admission、pure complex helper 与 `calculateBfnDynamicGain()`。calculator 先调用 corrected Batch 13.2 `calculateBfnNetworkInfluence()`，并复用其 target closure、source/module order、baseline output、local static gains、ValidityDomain、Context 与 Evidence；
+- quasi-static module 使用 `H = g + 0j`；first-order module 使用 `tau dy/dt = f(x) - y` 与 `H(j*omega) = g / (1 + j*omega*tau)`。`tau` 只读取 exact nominal `tau.value`，不复用 simulation tau floor，不读取 trajectory、duration/timeStep、initialState、run snapshot 或 `dynamicMetrics.frequencyGain`；
+- network propagation 只在 relevant target DAG 上传播 complex sensitivity。Edge 仅使用 unit coordinate scale，不拥有 gain、weight、phase 或 dynamic field；exact-zero containment 与 unavailable derivative 传播遵循 Batch 13.2 语义；
+- selected Output Monitor Inspector 新增“动态响应分析…” / “Dynamic Response Analysis…”；Drawer 展示周期、baseline conditions、基线输出、dynamic gain magnitude、phase、applicability、Context caveat 与折叠分析依据。UI 不显示 direction column、raw complex terms、internal issue codes、Bode、simulation 或 formula-first 内容；
+- 本批不修改 BFN-IR 2.3、BFN-SIM 2.2、Accumulator / Signal Pool runtime、unit enum、response equations、existing ANN range-fit、Local ANN approximation overlay、persistence、export schema 或 dependencies。
+- Dynamic-gain focused suite 为 6 个测试文件 / 76 项通过；manifest-protected `npm test -- --maxWorkers=4` 为 183/183 个测试文件、1777/1777 项通过；Sender V1.2 source 在 `try/finally` 中完成临时清单字节 materialization 与 12/12 bytes/hash 恢复，最终 source diff 为零；
+- `npm run typecheck`、`npm run lint` 与 `npm run build` 通过。Vite 7.3.6 转换 352 个 modules，主 CSS 为 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 为 3,640.03 kB（gzip 529.87 kB），保留既有 chunk-size warning；
+- 浏览器视觉检查覆盖 steady-state disabled reason、dynamic missing-input reason、supported demo Output Monitor workflow、空周期门禁、分析结果、numeric/unit alignment、applicability 与折叠依据。普通 UI 未出现 direction column、raw complex、internal issue code、Bode、simulation 或 formula-first presentation。
+
+以上只登记 Batch 13.4 implementation complete 的本地候选状态；Master Review、CI passed、FROZEN 与 unified freeze 均未声明。
 
 ## Sender Public Evidence Research formal boundary
 

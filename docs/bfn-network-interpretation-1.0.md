@@ -331,9 +331,19 @@ B = Y0 - Σ Ws Us0
 
 该结果是 one explicit operating point 附近的 local first-order explanatory view。它不是 trained/learned ANN、全局替代模型、新实验结果或 range-fitted regression；当前 Batch 不定义近似质量半径。
 
-## 未来动态分析边界
+## Batch 13.4 动态增益合同
 
-Batch 13.4 负责 dynamic gain、frequency response、Bode、phase、transfer function、Laplace-domain、state-space linearization 和 simulation snapshot linearization。Batch 13.2 不将稳态网络响应导数命名为动态增益，也不为 Signal Pool 构造有限 static/DC weight。
+`BfnDynamicGainRequestV1` 使用 `contractVersion = 1.0`、`scope = network_dynamic_periodic_gain`、exact Output Monitor、Batch 13.2 的同一 external operating point 语义，以及 `perturbation.periodHours > 0`。该分析仅支持 dynamic network mode。
+
+calculator 先调用 corrected `calculateBfnNetworkInfluence()`，并直接复用其 target closure、source/module order、baseline output、local static gains、ValidityDomain、Context 和 Evidence。Batch 13.4 不重新求 source closure，不实现第二套 response evaluator，不调用 simulation runtime。
+
+quasi-static module input 的 local transfer 为 `H = g + 0j`。first-order module input 使用固定生产语义 `tau dy/dt = f(x) - y`，在 `omega = 2*pi/T` 下采用 `H(j*omega) = g / (1 + j*omega*tau)`。`tau` 只读取 active dynamic model 的 exact nominal `tau.value`，单位必须为 `h` 且大于 0；不复用 simulation trajectory 的 tau floor，不读取 `initialState`、`durationHours`、`timeStepHours`、run snapshot 或 `dynamicMetrics.frequencyGain`。
+
+网络传播沿 Batch 13.2 admitted target DAG 执行 complex sensitivity sum/product。Edge 只应用 `convertUnit(1) - convertUnit(0)` 的 numeric coordinate scale，不拥有 gain、weight、phase 或 dynamic field。精确零 upstream sensitivity 与精确零 local transfer 按 Batch 13.2 containment 规则保留可计算结果；不可用局部导数只传播到实际到达该输入的 source。
+
+结果包含 baseline output、per-source dynamic gain magnitude 与 phase、module transfer details、applicability、Context caveat 和 Evidence references。正 quasi-static gain phase 为 `0 deg`，负 gain phase 为 `180 deg`，精确零幅值相位 unavailable。结果 readonly、ephemeral、nominal，不创建 synthetic network Evidence grade，不传播 uncertainty。
+
+Accumulator / Signal Pool 在 target closure 内返回 `integrator_reference_state_unavailable`；target feedback 返回 `feedback`。off-target Accumulator、feedback、Context mismatch 或 applicability caveat 不进入所选目标结果。
 
 ## Batch 13.1 UI 表达
 
@@ -358,6 +368,12 @@ selected Output Monitor Inspector 提供“神经网络近似 / 生成神经网�
 成功结果启用“生物网络 / 神经网络近似”视图切换。ANN view 复用原 topology、node positions 和 graph engine，只把 derived module-input weights 以 signed numeric labels 放在对应 incoming connection 附近；完整 unit 同时存在于 Drawer table 与 accessible tooltip/label。`edgeId` 仅用于定位，overlay identity 绑定 `targetModuleId + targetInputPortId`。Edge 不拥有 weight，画布不以线宽、发光、热图或颜色强度编码 magnitude。module bias 保持在 Drawer 中，避免画布拥挤。
 
 Overlay readonly、ephemeral、non-editable。改变任一条件、关闭 Drawer 或切换 Project 都会清除 result 和 overlay，并回到 Biological Network view。Context mismatch/uncertain、applicability not recorded、first-order 与 direct transmission 以简洁自然文案跟随；outside domain 或不完整局部线性化不生成覆盖。
+
+## Batch 13.4 UI 表达
+
+selected Output Monitor Inspector 提供“动态响应分析…”入口；英文为 “Dynamic Response Analysis…”。static mode、target Accumulator、feedback、missing input 与 response invalid 均显示自然禁用原因。Drawer 展示 target output、周期、external input conditions、基线输出、dynamic gain magnitude、phase、applicability、Context caveat 与折叠的分析依据。
+
+输入值只从 exact same-unit dynamic `constant` 预填；周期默认空白且必须大于 0 h。编辑任一 baseline 条件或周期立即清除旧结果。关闭 Drawer 或切换 Project 丢弃暂存结果。普通 UI 不显示 raw complex number、internal issue code、Laplace notation、Bode、simulation、duration/timeStep 或 direction column。
 
 ## 稳定 admission issue
 
@@ -387,15 +403,15 @@ request_contract_invalid
 
 ## 当前实现与后续边界
 
-Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案与 applicability admission；correction 已将 Hill derivative 的 `safeK/safeN` 语义和 production evaluator 对齐。Batch 13.2 已实现 target-scoped network admission、工作点与前向敏感度传播、ephemeral network result、selected-monitor Drawer、逐模块 Evidence 保留及自然 fail-closed 说明；本轮 correction 增加 exact-unit conservative prefill 与 target-scoped Context snapshot。Batch 13.3 已实现完整 local ANN affine contract、Output Monitor workflow 与 existing-canvas derived overlay。
+Batch 13.1 已实现 nominal analytic derivative calculator、ephemeral local influence result、selected-module Drawer、中文/英文文案与 applicability admission；correction 已将 Hill derivative 的 `safeK/safeN` 语义和 production evaluator 对齐。Batch 13.2 已实现 target-scoped network admission、工作点与前向敏感度传播、ephemeral network result、selected-monitor Drawer、逐模块 Evidence 保留及自然 fail-closed 说明；本轮 correction 增加 exact-unit conservative prefill 与 target-scoped Context snapshot。Batch 13.3 已实现完整 local ANN affine contract、Output Monitor workflow 与 existing-canvas derived overlay。Batch 13.4 已实现 selected Output Monitor dynamic gain analysis、complex small-signal propagation、first-order phase/magnitude 与双语 Drawer。
 
 当前未实现范围包括：
 
 - numerical differentiation production fallback；
 - network uncertainty propagation、confidence interval、posterior、Monte Carlo、Sobol 或 global sensitivity；
 - path contribution breakdown、feedback solver 与 closed-loop interpretation；
-- dynamic/frequency analysis；
+- frequency sweep、Bode plot、closed-loop dynamic solver 与 simulation snapshot linearization；
 - approximation-quality radius 与 local weight/bias uncertainty；
 - interpretation persistence、cache、export schema。
 
-Batch 13.0、Batch 13.1 与 Batch 13.2 均为 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13.2 reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`。Batch 13.3 为 `Master Review PASS / CANDIDATE / not FROZEN`，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。Batch 13.4 已获实现授权，尚未进入 unified freeze。
+Batch 13.0、Batch 13.1 与 Batch 13.2 均为 `Master Correction Review PASS / CANDIDATE / not FROZEN`。Batch 13.2 reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`。Batch 13.3 为 `Master Review PASS / CANDIDATE / not FROZEN`，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。Batch 13.4 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`，不进入 unified freeze。

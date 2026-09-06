@@ -1443,3 +1443,15 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - `annApproximation.ts`、`types.ts`、`responseMath.ts` 与 `unitSystem.ts` 的 base/index Git blob 完全一致，分别为 `37987c348f5a7c07990af7ed8d00badba1e879d8`、`4e7600f42c57e10f47255c5a91b6072427458a8d`、`f67457cba17daed00b3b47b9686f6ca6a1a7579c` 与 `1a789ebe55a9dbc877d2e823aff80d81269063db`。
 
 以上只声明 local validation passed。Batch 13.2 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Batch 13.3 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 Master Review PASS、FROZEN 或 CI passed。
+
+## 2026-09-06 Batch 13.4 Dynamic Gain Analysis
+
+### Candidate implementation validation
+
+- Dynamic-gain focused suite 为 6 个测试文件 / 76 项通过，覆盖 complex helper、request admission、network propagation、feedback / Accumulator fail-closed、contract identity 与 Output Monitor Drawer workflow；
+- manifest-protected `npm test -- --maxWorkers=4` 为 183/183 个测试文件、1777/1777 项通过；Sender V1.2 immutable source 测试前临时 materialize 8 个 raw Git blob 与 4 个当前工作树字节版本，`try/finally` 后 12/12 文件恢复运行前 bytes/hash，Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；Vite 7.3.6 `npm run build` 通过，转换 352 个 modules，主 CSS 为 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 为 3,640.03 kB（gzip 529.87 kB），保留既有大于 500 kB chunk warning；
+- 浏览器视觉检查覆盖中文 steady-state mode disabled reason、dynamic mode missing-input reason、演示网络 supported Output Monitor workflow、右侧 Drawer、空周期门禁、分析后 baseline output、dynamic gain magnitude、phase、applicability 与折叠分析依据。普通界面未显示 direction column、raw complex coordinates、internal issue codes、Bode、simulation 或 formula-first presentation；
+- changed-file Prettier、`git diff --check` 与 frozen-boundary audit 纳入提交前门禁。本批不修改 BFN-IR 2.3、BFN-SIM 2.2、Accumulator / Signal Pool runtime、unit enum、production response equations、existing ANN range-fit、Local ANN overlay、persistence、export schema、Sender source 或 package dependencies。
+
+以上只声明 local validation passed。Batch 13.4 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 Master Review PASS、FROZEN、unified freeze 或 CI passed。
