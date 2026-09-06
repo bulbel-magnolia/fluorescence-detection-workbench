@@ -663,6 +663,9 @@ describe('BFN-INTERPRETATION 1.0 static-family and scientific definitions', () =
     const dynamicAnalysis = BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1.dynamicAnalysis;
     expect(dynamicAnalysis.status).toBe('implemented_batch_13_4');
     expect(dynamicAnalysis.scope).toBe('network_dynamic_periodic_gain');
+    expect(dynamicAnalysis.staticNetworks).toBe('quasi_static_supported');
+    expect(dynamicAnalysis.dcGainSource).toBe('batch_13_2_total_differential_gain');
+    expect(dynamicAnalysis.linearization).toBe('complete_target_closure_fail_closed');
     expect(dynamicAnalysis.perturbation).toBe('single_period_hours');
     expect(dynamicAnalysis.firstOrderEquation).toBe('tau_dy_dt_equals_f_x_minus_y');
     expect(dynamicAnalysis.parameterBasis).toBe('nominal_tau_value');

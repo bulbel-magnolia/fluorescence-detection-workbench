@@ -10,6 +10,7 @@ import type {
 } from '../types';
 import { bfnComplexAdd } from './complexMath';
 import { calculateBfnDynamicGain } from './dynamicGain';
+import { calculateBfnNetworkInfluence } from './networkInfluence';
 import type {
   BfnDynamicGainRequestV1,
   BfnDynamicGainResultV1,
@@ -54,6 +55,21 @@ function availableGain(
   return gain;
 }
 
+function expectDcMatchesBatch132(
+  project: BfnProject,
+  request: BfnDynamicGainRequestV1,
+  result: BfnDynamicGainResultV1,
+): void {
+  const baseline = calculateBfnNetworkInfluence(project, {
+    ...request,
+    scope: 'network_static_output',
+  });
+  if (!baseline.ok) throw new Error('Expected Batch 13.2 result.');
+  expect(result.perSource.map((source) => source.dcGain)).toEqual(
+    baseline.result.perSource.map((source) => source.totalDifferentialGain),
+  );
+}
+
 function activeStaticModel(module: BfnFunctionalModule): BfnStaticModel {
   const model = module.modelVariants.find(
     (candidate): candidate is BfnStaticModel =>
@@ -88,14 +104,16 @@ function sourceFor(id: string, port: BfnFunctionalModule['inputPorts'][number]):
 }
 
 function dualInputProject(
-  options: { readonly oneBranchedSource?: boolean; readonly unavailableFirst?: boolean } = {},
+  options: { readonly oneBranchedSource?: boolean; readonly unavailableExponent?: number } = {},
 ): BfnProject {
   const project = createDemoBfnProject();
   project.network.mode = 'dynamic';
   const module = createCatalogModule('dual-input-gate', 'dynamic-network');
   const model = activeStaticModel(module);
   if (model.response.family !== 'independent_inputs') throw new Error('Expected dual response.');
-  if (options.unavailableFirst) model.response.terms[0]!.n = { value: 1, unit: 'dimensionless' };
+  if (options.unavailableExponent !== undefined) {
+    model.response.terms[0]!.n = { value: options.unavailableExponent, unit: 'dimensionless' };
+  }
   const contextId = project.registry.contexts[0]?.id ?? null;
   const domainId = 'domain-dynamic-dual-network';
   model.validityDomainId = domainId;
@@ -163,6 +181,32 @@ function dualInputProject(
   return project;
 }
 
+function zeroUpstreamUnavailableProject(exponent: number): BfnProject {
+  const project = createDemoBfnProject();
+  const upstream = project.network.modules[0]!;
+  const upstreamModel = activeStaticModel(upstream);
+  upstream.activeModelIds = { static: upstreamModel.id };
+  if (upstreamModel.response.family !== 'hill_activation') throw new Error('Expected Hill.');
+  upstreamModel.response.ymin.value = 0;
+  upstreamModel.response.ymax.value = 0;
+  delete upstreamModel.response.ymin.interval95;
+  delete upstreamModel.response.ymax.interval95;
+
+  const downstream = project.network.modules[1]!;
+  const downstreamModel = activeStaticModel(downstream);
+  downstream.activeModelIds = { static: downstreamModel.id };
+  downstreamModel.family = 'hill_activation';
+  downstreamModel.response = {
+    family: 'hill_activation',
+    inputPortId: downstream.inputPorts[0]!.id,
+    ymin: { value: 0.1, unit: downstream.outputPorts[0]!.unit },
+    ymax: { value: 1, unit: downstream.outputPorts[0]!.unit },
+    k: { value: 0.5, unit: downstream.inputPorts[0]!.unit },
+    n: { value: exponent, unit: 'dimensionless' },
+  };
+  return project;
+}
+
 describe('calculateBfnDynamicGain network semantics', () => {
   it('preserves project source order and quasi-static multi-input signs', () => {
     const project = dualInputProject();
@@ -181,6 +225,14 @@ describe('calculateBfnDynamicGain network semantics', () => {
     expect(result.moduleTransfers).toHaveLength(1);
     expect(result.moduleTransfers[0]!.dynamicKind).toBe('quasi_static');
     expect(availableGain(result.perSource[0]!.dynamicGain).complex.im).toBe(0);
+    expectDcMatchesBatch132(
+      project,
+      requestFor(project, [
+        { inputSourceId: 'source-a', value: 0.4, unit: 'dimensionless' },
+        { inputSourceId: 'source-b', value: 0.7, unit: 'dimensionless' },
+      ]),
+      result,
+    );
   });
 
   it('sums converging branch complex sensitivities for one external source', () => {
@@ -197,25 +249,63 @@ describe('calculateBfnDynamicGain network semantics', () => {
 
     expect(overall.complex.re).toBeCloseTo(expected.re, 12);
     expect(overall.complex.im).toBeCloseTo(expected.im, 12);
+    expectDcMatchesBatch132(
+      project,
+      requestFor(project, [{ inputSourceId: 'source-shared', value: 0.6, unit: 'dimensionless' }]),
+      result,
+    );
   });
 
-  it('contains unavailable local derivatives to only the source that reaches them', () => {
-    const project = dualInputProject({ unavailableFirst: true });
-    const result = successfulResult(
+  it.each([
+    { exponent: 1, reason: 'derivative_not_unique' },
+    { exponent: 0.5, reason: 'derivative_non_finite' },
+  ] as const)('rejects complete dynamic interpretation for $reason', ({ exponent, reason }) => {
+    const project = dualInputProject({ unavailableExponent: exponent });
+    const calculation = calculateBfnDynamicGain(
       project,
       requestFor(project, [
         { inputSourceId: 'source-a', value: 0, unit: 'dimensionless' },
         { inputSourceId: 'source-b', value: 0.7, unit: 'dimensionless' },
       ]),
     );
-    const byId = new Map(result.perSource.map((source) => [source.inputSourceId, source] as const));
-
-    expect(byId.get('source-a')?.dynamicGain).toMatchObject({
-      availability: 'unavailable',
-      reason: 'derivative_not_unique',
+    expect(calculation).toMatchObject({
+      ok: false,
+      calculationIssue: {
+        code: 'incomplete_local_dynamic_linearization',
+        moduleId: 'module-dual-input-dynamic-network',
+        reason,
+      },
     });
-    expect(byId.get('source-b')?.dynamicGain).toMatchObject({ availability: 'available' });
   });
+
+  it.each([
+    { exponent: 1, reason: 'derivative_not_unique' },
+    { exponent: 0.5, reason: 'derivative_non_finite' },
+  ] as const)(
+    'rejects $reason behind exact-zero upstream sensitivity while Batch 13.2 contains it',
+    ({ exponent, reason }) => {
+      const project = zeroUpstreamUnavailableProject(exponent);
+      const request = requestFor(project, [{ inputSourceId: 'source-ahl', value: 5, unit: 'nM' }]);
+      const baseline = calculateBfnNetworkInfluence(project, {
+        ...request,
+        scope: 'network_static_output',
+      });
+      if (!baseline.ok) throw new Error('Expected contained Batch 13.2 result.');
+      expect(baseline.result.perSource[0]!.totalDifferentialGain).toMatchObject({
+        availability: 'available',
+        value: 0,
+      });
+
+      expect(calculateBfnDynamicGain(project, request)).toMatchObject({
+        ok: false,
+        calculationIssue: {
+          code: 'incomplete_local_dynamic_linearization',
+          moduleId: 'module-reporter',
+          reason,
+        },
+      });
+    },
+  );
 
   it('blocks formal output when the reused baseline calculation is outside domain', () => {
     const project = createDemoBfnProject();

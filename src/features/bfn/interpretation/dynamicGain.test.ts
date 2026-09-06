@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import { bfnComplexMultiply } from './complexMath';
 import { calculateBfnDynamicGain } from './dynamicGain';
+import { calculateBfnNetworkInfluence } from './networkInfluence';
 import type {
   BfnDynamicGainRequestV1,
   BfnDynamicGainResultV1,
@@ -69,13 +70,28 @@ function availableGain(
   return gain;
 }
 
+function expectDcMatchesBatch132(
+  project: BfnProject,
+  request: BfnDynamicGainRequestV1,
+  result: BfnDynamicGainResultV1,
+): void {
+  const baseline = calculateBfnNetworkInfluence(project, {
+    ...request,
+    scope: 'network_static_output',
+  });
+  if (!baseline.ok) throw new Error('Expected Batch 13.2 result.');
+  expect(result.perSource.map((source) => source.dcGain)).toEqual(
+    baseline.result.perSource.map((source) => source.totalDifferentialGain),
+  );
+}
+
 function linearProject(options: {
   readonly gain: number;
   readonly tauHours?: number;
   readonly firstOrder?: boolean;
 }): BfnProject {
   const project = createDemoBfnProject();
-  project.network.mode = 'dynamic';
+  project.network.mode = options.firstOrder ? 'dynamic' : 'static';
   const source = project.network.inputSources[0]!;
   const module = project.network.modules[1]!;
   const monitor = project.network.outputMonitors[0]!;
@@ -169,7 +185,8 @@ describe('calculateBfnDynamicGain', () => {
   ])(
     'uses quasi-static gain $gain with magnitude and signed phase',
     ({ gain, magnitude, phase }) => {
-      const result = successfulResult(linearProject({ gain }));
+      const project = linearProject({ gain });
+      const result = successfulResult(project);
       const source = result.perSource[0]!;
 
       expect(availableGain(source.dynamicGain)).toMatchObject({
@@ -178,6 +195,7 @@ describe('calculateBfnDynamicGain', () => {
       });
       expect(source.phase).toEqual({ availability: 'available', degrees: phase });
       expect(result.moduleTransfers[0]).toMatchObject({ dynamicKind: 'quasi_static' });
+      expectDcMatchesBatch132(project, requestFor(project), result);
     },
   );
 
@@ -195,13 +213,28 @@ describe('calculateBfnDynamicGain', () => {
     });
   });
 
+  it('keeps a static-only result exactly independent of perturbation period', () => {
+    const project = linearProject({ gain: -2 });
+    const results = [0.1, 1, 100].map((period) =>
+      successfulResult(project, requestFor(project, period)),
+    );
+    const reference = results[0]!.perSource[0]!;
+
+    for (const result of results.slice(1)) {
+      expect(result.perSource[0]!.dynamicGain).toEqual(reference.dynamicGain);
+      expect(result.perSource[0]!.phase).toEqual(reference.phase);
+      expect(result.perSource[0]!.dcGain).toEqual(reference.dcGain);
+    }
+  });
+
   it.each([
     { sourceUnit: 'nM' as const, monitorUnit: 'nM' as const, magnitude: 1 },
     { sourceUnit: 'nM' as const, monitorUnit: 'uM' as const, magnitude: 0.001 },
   ])(
     'uses the existing coordinate scale for direct $sourceUnit to $monitorUnit transmission',
     ({ sourceUnit, monitorUnit, magnitude }) => {
-      const result = successfulResult(directProject(sourceUnit, monitorUnit));
+      const project = directProject(sourceUnit, monitorUnit);
+      const result = successfulResult(project);
 
       expect(result.moduleTransfers).toEqual([]);
       expect(availableGain(result.perSource[0]!.dynamicGain)).toMatchObject({
@@ -210,6 +243,7 @@ describe('calculateBfnDynamicGain', () => {
         unit: { outputUnit: monitorUnit, inputUnit: sourceUnit },
       });
       expect(result.perSource[0]?.phase).toEqual({ availability: 'available', degrees: 0 });
+      expectDcMatchesBatch132(project, requestFor(project), result);
     },
   );
 
@@ -242,6 +276,7 @@ describe('calculateBfnDynamicGain', () => {
       validityDomainId: 'domain-demo-reporter',
     });
     expect(result.baselineOutput).toEqual({ value: 1, unit: 'dimensionless' });
+    expectDcMatchesBatch132(project, request, result);
   });
 
   it('uses a very small positive nominal tau without a 0.001 hour floor', () => {
@@ -254,6 +289,16 @@ describe('calculateBfnDynamicGain', () => {
 
     expect(gain.complex.re).toBeCloseTo(1 / (1 + omegaTau ** 2), 12);
     expect(gain.complex.im).toBeCloseTo(-omegaTau / (1 + omegaTau ** 2), 12);
+  });
+
+  it('uses the same Batch 13.2 total differential gain object as formal DC source of truth', () => {
+    const project = linearProject({ gain: 2, firstOrder: true });
+    const calculation = calculateBfnDynamicGain(project, requestFor(project));
+    if (!calculation.ok) throw new Error('Expected dynamic influence result.');
+
+    expect(calculation.result.perSource[0]!.dcGain).toBe(
+      calculation.networkInfluence.result.perSource[0]!.totalDifferentialGain,
+    );
   });
 
   it('propagates two first-order modules as a stable ordered complex cascade', () => {
@@ -275,5 +320,18 @@ describe('calculateBfnDynamicGain', () => {
     expect(result.perturbationPeriodHours).toBe(2);
     expect(result.angularFrequencyRadPerHour).toBeCloseTo(Math.PI, 12);
     expect(result.persistence).toBe('ephemeral');
+    expectDcMatchesBatch132(project, requestFor(project, 2, { 'source-ahl': 10 }), result);
+  });
+
+  it('approaches the formal signed DC response at very low frequency', () => {
+    const project = linearProject({ gain: -2, firstOrder: true, tauHours: 0.5 });
+    const result = successfulResult(project, requestFor(project, 1_000_000));
+    const source = result.perSource[0]!;
+    const dynamic = availableGain(source.dynamicGain);
+    if (source.dcGain.availability !== 'available') throw new Error('Expected available DC gain.');
+
+    expect(dynamic.magnitude).toBeCloseTo(Math.abs(source.dcGain.value), 9);
+    expect(dynamic.complex.re).toBeCloseTo(source.dcGain.value, 9);
+    expect(Math.abs(dynamic.complex.im)).toBeLessThan(0.00001);
   });
 });

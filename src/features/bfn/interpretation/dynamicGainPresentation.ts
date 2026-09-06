@@ -1,13 +1,10 @@
 import type { BfnOutputMonitor, BfnProject } from '../types';
 import type { BfnDynamicGainRequestV1, BfnResolvedDynamicGainTargetV1 } from './dynamicGainTypes';
 import { assessBfnDynamicGainRequest } from './dynamicGainValidation';
+import { bfnNetworkInfluencePrefill } from './networkInfluencePresentation';
 
 export type BfnDynamicGainAvailabilityReason =
-  | 'dynamic_mode_required'
-  | 'dynamic_integrator'
-  | 'feedback'
-  | 'missing_input'
-  | 'response_invalid';
+  'dynamic_integrator' | 'feedback' | 'missing_input' | 'response_invalid';
 
 export type BfnDynamicGainAvailability =
   | {
@@ -40,9 +37,6 @@ export function assessBfnDynamicGainAvailability(
   if (admission.target) {
     return Object.freeze({ supported: true, target: admission.target, reason: null });
   }
-  if (admission.issues.some((issue) => issue.code === 'dynamic_mode_required')) {
-    return Object.freeze({ supported: false, target: null, reason: 'dynamic_mode_required' });
-  }
   if (admission.issues.some((issue) => issue.code === 'integrator_reference_state_unavailable')) {
     return Object.freeze({ supported: false, target: null, reason: 'dynamic_integrator' });
   }
@@ -55,11 +49,7 @@ export function assessBfnDynamicGainAvailability(
   return Object.freeze({ supported: false, target: null, reason: 'response_invalid' });
 }
 
-/** Returns only an exact constant dynamic Project setting; all other conditions remain blank. */
+/** Reuses the corrected Batch 13.2 exact Project-setting prefill contract. */
 export function bfnDynamicGainPrefill(project: BfnProject, inputSourceId: string): number | null {
-  const source = project.network.inputSources.find((candidate) => candidate.id === inputSourceId);
-  if (!source || source.dynamicSpecification.type !== 'constant') return null;
-  return source.dynamicSpecification.unit === source.outputPort.unit
-    ? source.dynamicSpecification.value
-    : null;
+  return bfnNetworkInfluencePrefill(project, inputSourceId);
 }

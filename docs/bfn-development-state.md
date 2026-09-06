@@ -5,8 +5,8 @@
 - 当前正式冻结交付：Batch 12.3，以及经 Master Control 最终联合复核的 Batch 12.4.0、Batch 12.4.1 与 Batch 12.4；后三者现统一登记为 `FROZEN`
 - Batch 12.4 系列锚点：12.4.0 reviewed implementation `cb41a6e49829249b5b2fbf44206cfb6436a425bf`；12.4.1 final reviewed implementation `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111`；12.4 reviewed production correction `6150203fe9c75b9acbc308cb782104e80cab22cb`；pre-freeze integrated branch Head `29b3ec8bdf44f0d0bc39f6da1640d4ece09b27c6`
 - Batch 12.4 docs-only bookkeeping commit 建立了该系列的统一 freeze checkpoint；实际 freeze SHA 由对应 handoff 记录
-- 当前交付：Phase 0 Batch 13.2 / 13.3 review bookkeeping correction + Phase 1 Batch 13.4 Dynamic Gain Analysis；分支 `codex/bfn-dynamic-gain-analysis`；exact base `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`
-- 本次 docs-only marker 为 `BATCH_13_REVIEW_BOOKKEEPING_CHECKPOINT`。Batch 13.2 已通过 Master Correction Review，reviewed correction 为 `f62babfa2af09156c711792d362fab687270f42c`；Batch 13.3 已通过 Master Review，reviewed implementation 为 `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`。两者均为 `CANDIDATE / not FROZEN`；Batch 13.4 已实现，状态为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`，本阶段不做 unified freeze bookkeeping
+- 当前交付：Batch 13.4 Dynamic Influence Analysis Correction；分支 `codex/bfn-dynamic-gain-analysis-correction`；exact base `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc`
+- Batch 13.4 original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` 的 Master Review 结论为 `FIX`。当前 correction 状态为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`；Phase 0 bookkeeping history 不变，本阶段不做 unified freeze bookkeeping
 
 本文件是 BIO-NET 开发状态的正式账本。状态字段只允许：
 
@@ -110,7 +110,7 @@ Batch 12.4 从精确 base `c1a350f7f3dfa81f985cd84e7b86dd1292fe2111` 创建，�
 | Batch 13.1 — Static Local Influence Analysis              | CANDIDATE | original candidate `7c1eec761346f2eba85df052a8ee02067cc95ee0`；correction checkpoint `a05375798f09cf3c8d278275970baacc823ccca5`                                                                                                                  | Master Correction Review `PASS`；not `FROZEN`                                                   |
 | Batch 13.2 — Network Influence Propagation                | CANDIDATE | original candidate `f3da7c9277976ba60526a28ddb3dda7b30fb9a49`；reviewed correction `f62babfa2af09156c711792d362fab687270f42c`                                                                                                                    | Master Correction Review `PASS`；not `FROZEN`                                                   |
 | Batch 13.3 — Local ANN Approximation                      | CANDIDATE | reviewed implementation `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44`                                                                                                                                                                               | Master Review `PASS`；not `FROZEN`                                                              |
-| Batch 13.4 — Dynamic Gain Analysis                        | CANDIDATE | implementation complete on `codex/bfn-dynamic-gain-analysis`；awaiting Master Review                                                                                                                                                             | selected Output Monitor dynamic gain；not `FROZEN`                                              |
+| Batch 13.4 — Dynamic Influence Analysis                   | CANDIDATE | original candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` Master Review `FIX`；correction on `codex/bfn-dynamic-gain-analysis-correction`                                                                                                    | correction implementation complete；awaiting Master Correction Review；not `FROZEN`             |
 
 ## Batch 12.0 frozen boundary
 
@@ -396,12 +396,28 @@ reviewed implementation = e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44
 
 Batch 13.4
 = CANDIDATE
-= implementation complete
-= awaiting Master Review
+= correction implementation complete
+= awaiting Master Correction Review
 = not FROZEN
+original candidate = 11f931ef0bbdeb031f5b337dcf22a9b600fbacfc
+original Master Review = FIX
 ```
 
-## 2026-09-06 Batch 13.4 Dynamic Gain Analysis
+## 2026-09-06 Batch 13.4 Dynamic Influence Analysis Correction
+
+- correction 从 exact reviewed candidate `11f931ef0bbdeb031f5b337dcf22a9b600fbacfc` 建立；Phase 0 bookkeeping commit `49854bd0146a2cd60da171ff9b0d51b9f6f0e3ba` 保持不变；
+- static-only target 作为 quasi-static special case 支持，结果对 period 不敏感；input prefill 直接委托 Batch 13.2 exact-unit fixed-value/constant contract；
+- per-source `dcGain` 直接取自同一 Batch 13.2 `totalDifferentialGain`，UI 以保留符号的“慢变化作用”显示，并与当前周期响应幅度、相位关系并列；
+- Batch 13.4 在 complex propagation 前执行 complete local dynamic linearization gate，任一 relevant active input derivative unavailable 即整体 fail closed，包含 zero-upstream case；Batch 13.2 partial-source containment 未修改；
+- Drawer 增加折叠“动态模块明细”，逐 input 显示瞬时/一阶类型、signed local static gain、exact `tau`、current magnitude 与 phase。功能名称统一为“动态作用分析 / Dynamic Influence Analysis”；
+- Batch 13.2 helper carries a reason-classification adjustment from the reviewed 13.4 candidate; no supported-network semantics changed；
+- complex representation、first-order/static transfer、unit propagation、branch/convergence、phase normalization、Accumulator/feedback gates、Context/ValidityDomain、purity 与 ephemerality 保持原 reviewed core。
+- correction targeted regression 为 15 个文件 / 185 项通过；manifest-protected full suite 为 185/185 个文件、1789/1789 项通过，Sender 8 个 raw Git blob 临时物化后 12/12 恢复且 source diff 为零；
+- `npm run typecheck`、全项目 `npm run lint`、Vite 7.3.6 production build、changed-file Prettier 与 `git diff --check` 通过。build 转换 352 个 modules，保留既有大 chunk warning；冻结 blob 与 package manifests 相对 exact correction base 零差异。
+
+本轮最终状态仅为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`，不声明 PASS、CI passed、unified freeze 或 FROZEN。
+
+## 2026-09-06 Batch 13.4 Original Dynamic Gain Analysis Candidate
 
 - Phase 1 从 exact base `e0ce3a1cee0eff68a28a40edb4bfbd8a66ac3f44` 继续，Phase 0 review bookkeeping correction 已作为独立 docs commit 完成；
 - 新增 `BfnDynamicGainRequestV1/ResultV1`、dynamic gain admission、pure complex helper 与 `calculateBfnDynamicGain()`。calculator 先调用 corrected Batch 13.2 `calculateBfnNetworkInfluence()`，并复用其 target closure、source/module order、baseline output、local static gains、ValidityDomain、Context 与 Evidence；

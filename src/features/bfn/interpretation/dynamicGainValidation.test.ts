@@ -3,6 +3,7 @@ import { createDemoBfnProject } from '../fixtures';
 import { createAccumulatorBfnProject, getAccumulatorModule } from '../testing/accumulatorFixtures';
 import type { BfnDynamicModel, BfnProject } from '../types';
 import type { BfnDynamicGainRequestV1 } from './dynamicGainTypes';
+import { bfnDynamicGainPrefill } from './dynamicGainPresentation';
 import { assessBfnDynamicGainRequest } from './dynamicGainValidation';
 
 function dynamicProject(): BfnProject {
@@ -41,12 +42,26 @@ function issueCodes(project: BfnProject, request = requestFor(project)): string[
 }
 
 describe('assessBfnDynamicGainRequest', () => {
-  it('requires dynamic mode before considering dormant dynamic models', () => {
+  it('admits a static-only target as quasi-static dynamic influence', () => {
     const project = createDemoBfnProject();
     const admission = assessBfnDynamicGainRequest(project, requestFor(project));
 
-    expect(admission).toMatchObject({ status: 'unsupported', target: null });
-    expect(issueCodes(project)).toContain('dynamic_mode_required');
+    expect(admission.status).toBe('supported');
+    expect(admission.target?.modules.map((module) => module.dynamicKind)).toEqual([
+      'quasi_static',
+      'quasi_static',
+    ]);
+    expect(admission.issues).toEqual([]);
+  });
+
+  it('reuses Batch 13.2 static fixed-value exact-unit prefill and blanks mismatched units', () => {
+    const project = createDemoBfnProject();
+    const source = project.network.inputSources[0]!;
+    source.staticSpecification = { type: 'fixed_value', value: 12, unit: source.outputPort.unit };
+    expect(bfnDynamicGainPrefill(project, source.id)).toBe(12);
+
+    source.staticSpecification = { type: 'fixed_value', value: 12, unit: 'uM' };
+    expect(bfnDynamicGainPrefill(project, source.id)).toBeNull();
   });
 
   it.each([0, -1, Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(

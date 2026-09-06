@@ -222,8 +222,8 @@ function assess(project: BfnProject, request: BfnDynamicGainRequestV1): BfnDynam
     addIssue(issues, 'request_contract_invalid', 'request');
     return finish(issues, null, null);
   }
-  if (!isRecord(project) || !isRecord(project.network) || project.network.mode !== 'dynamic') {
-    addIssue(issues, 'dynamic_mode_required', request.outputMonitorId);
+  if (!isRecord(project) || !isRecord(project.network)) {
+    addIssue(issues, 'response_invalid', request.outputMonitorId);
     return finish(issues, null, null);
   }
   if (
@@ -265,7 +265,7 @@ function assess(project: BfnProject, request: BfnDynamicGainRequestV1): BfnDynam
   return finish(issues, target, baselineAdmission);
 }
 
-/** Pure dynamic-mode, period, target-closure, and model-metadata admission. */
+/** Pure period, target-closure, and effective model-metadata admission. */
 export function assessBfnDynamicGainRequest(
   project: BfnProject,
   request: BfnDynamicGainRequestV1,

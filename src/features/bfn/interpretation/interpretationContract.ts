@@ -45,6 +45,9 @@ export const BFN_INTERPRETATION_SCIENTIFIC_CONTRACT_V1 = Object.freeze({
   dynamicAnalysis: Object.freeze({
     status: 'implemented_batch_13_4' as const,
     scope: 'network_dynamic_periodic_gain' as const,
+    staticNetworks: 'quasi_static_supported' as const,
+    dcGainSource: 'batch_13_2_total_differential_gain' as const,
+    linearization: 'complete_target_closure_fail_closed' as const,
     perturbation: 'single_period_hours' as const,
     firstOrderEquation: 'tau_dy_dt_equals_f_x_minus_y' as const,
     parameterBasis: 'nominal_tau_value' as const,

@@ -790,21 +790,20 @@ export const bfnEnUS = {
   },
   dynamicGain: {
     kicker: 'Selected output analysis',
-    title: 'Dynamic Response Analysis',
-    inspectorTitle: 'Dynamic Response Analysis',
+    title: 'Dynamic Influence Analysis',
+    inspectorTitle: 'Dynamic Influence Analysis',
     inspectorDescription:
-      'Calculate dynamic gain and phase from each network input to the selected output for a specified perturbation period.',
-    action: 'Dynamic Response Analysis…',
-    close: 'Close Dynamic Response Analysis',
+      'Examine the strength and phase relation of time-varying input influences on the selected output.',
+    action: 'Analyze dynamic influence…',
+    close: 'Close Dynamic Influence Analysis',
     purpose:
-      'Calculate the selected output’s periodic small-signal response to network inputs at a specified operating point and period.',
+      'Examine how time-varying inputs influence the selected output near the current operating condition, including response magnitude and phase relation.',
     unavailable: 'Cannot calculate at this condition',
     availabilityReasons: {
-      dynamic_mode_required: 'Dynamic Response Analysis applies only in dynamic network mode.',
       dynamic_integrator:
         'The selected output has a signal pool or another dynamic integration process upstream, and no interpretable reference state is available.',
       feedback:
-        'The selected output has a feedback loop upstream. This version cannot perform Dynamic Response Analysis for it.',
+        'The selected output has a feedback loop upstream. This version cannot perform Dynamic Influence Analysis for it.',
       missing_input:
         'A module on the selected output path has a required input that is unconnected or connected more than once.',
       response_invalid:
@@ -839,14 +838,18 @@ export const bfnEnUS = {
     failure: {
       title: 'Analysis unavailable',
       description: 'The network cannot form a finite dynamic gain under these conditions.',
+      incompleteLinearization:
+        'A module response at the current operating point cannot be uniquely linearized, so a complete Dynamic Influence Analysis was not generated.',
+      module: 'Located module: {{module}}',
     },
     results: {
       title: 'Results',
       scopeLabel: 'Target network · periodic small signal',
       baselineOutput: 'Baseline output',
       input: 'Network input',
-      gain: 'Dynamic gain',
-      phase: 'Phase',
+      slowChange: 'Slow-change effect',
+      responseMagnitude: 'Response magnitude',
+      phaseRelation: 'Phase relation',
     },
     gainReasons: {
       notUnique: 'A response on this route has no unique local gain at this point',
@@ -886,6 +889,21 @@ export const bfnEnUS = {
       kinds: {
         quasi_static: 'Quasi-static',
         first_order: 'First-order response',
+      },
+    },
+    moduleDetails: {
+      title: 'Dynamic module details',
+      tauHelp: 'A larger time constant means a slower response to rapid changes.',
+      module: 'Module',
+      input: 'Input',
+      kind: 'Dynamic type',
+      localStaticGain: 'Steady-state local effect',
+      timeConstant: 'Time constant',
+      currentMagnitude: 'Current response magnitude',
+      phaseRelation: 'Phase relation',
+      kinds: {
+        quasi_static: 'Instantaneous response',
+        first_order: 'First-order dynamics',
       },
     },
   },

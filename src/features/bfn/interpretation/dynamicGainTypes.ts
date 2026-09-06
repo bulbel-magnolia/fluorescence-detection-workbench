@@ -54,7 +54,6 @@ export interface BfnResolvedDynamicGainTargetV1 {
 
 export type BfnDynamicGainIssueCodeV1 =
   | 'request_contract_invalid'
-  | 'dynamic_mode_required'
   | 'perturbation_period_invalid'
   | 'integrator_reference_state_unavailable'
   | 'feedback'
@@ -121,6 +120,7 @@ export interface BfnDynamicSourceGainV1 {
   readonly inputSourceId: string;
   readonly operatingValue: number;
   readonly operatingUnit: BfnUnit;
+  readonly dcGain: BfnLocalDifferentialGainV1;
   readonly dynamicGain: BfnDynamicGainValueV1;
   readonly phase: BfnDynamicPhaseV1;
 }
@@ -144,6 +144,15 @@ export interface BfnDynamicGainResultV1 {
 }
 
 export type BfnDynamicGainCalculationIssueV1 =
+  | {
+      readonly code: 'incomplete_local_dynamic_linearization';
+      readonly moduleId: string;
+      readonly inputPortId: string;
+      readonly reason: Extract<
+        BfnLocalDifferentialGainV1,
+        { readonly availability: 'unavailable' }
+      >['reason'];
+    }
   | {
       readonly code: 'dynamic_propagation_failed';
       readonly subjectId: string;

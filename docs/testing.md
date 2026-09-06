@@ -1455,3 +1455,15 @@ Batch 11 定向回归最终为 8 个测试文件、102 项测试，全部通过�
 - changed-file Prettier、`git diff --check` 与 frozen-boundary audit 纳入提交前门禁。本批不修改 BFN-IR 2.3、BFN-SIM 2.2、Accumulator / Signal Pool runtime、unit enum、production response equations、existing ANN range-fit、Local ANN overlay、persistence、export schema、Sender source 或 package dependencies。
 
 以上只声明 local validation passed。Batch 13.4 为 `CANDIDATE / implementation complete / awaiting Master Review / not FROZEN`。不声明 Master Review PASS、FROZEN、unified freeze 或 CI passed。
+
+## 2026-09-06 Batch 13.4 Dynamic Influence Analysis Correction
+
+- correction targeted regression 为 15 个测试文件 / 185 项通过，覆盖 complex math、static admission/prefill/period invariance、signed DC 与 Batch 13.2 equality、first-order low-frequency limit、branch/convergence、mixed-unit/direct/multi-source、complete linearization fail-closed、zero-upstream containment boundary、module-level tau/details、多输入 identity、正式中英文名称，以及 Batch 13.2 / 13.3 回归；
+- 默认工作树完整运行为 184/185 个文件、1787/1788 项通过，唯一失败是既有 Sender immutable source Windows CRLF/LF 字节差异：`fit_sender_functions.py` 5718 bytes，而 manifest 期望 5580 bytes；
+- manifest-protected `npm test -- --maxWorkers=4` 为 185/185 个文件、1789/1789 项通过。运行期间选择 8 个 raw Git blob 与 4 个当前工作树字节版本；`finally` 后 `SENDER_SOURCE_RESTORED true`，12/12 source 恢复运行前内容，Sender source diff 为零；
+- `npm run typecheck` 与全项目 `npm run lint` 通过；changed-file Prettier 和 `git diff --check` 通过；
+- Vite 7.3.6 `npm run build` 通过，转换 352 个 modules；主 CSS 301.10 kB（gzip 49.44 kB），主 JavaScript chunk 3,644.63 kB（gzip 530.65 kB），保留既有大于 500 kB chunk warning；
+- frozen blob audit 确认 `simulation.ts`、`types.ts`、`responseMath.ts`、`unitSystem.ts`、`package.json` 与 `package-lock.json` 相对 exact correction base 零差异；
+- DOM UI regression 覆盖 static action enabled、exact fixed-value prefill、signed slow-change effect、first-order exact tau、quasi-static em dash、module local/current/phase values、多输入 identity、自然 fail-closed 模块定位和中英文术语。宿主 Computer Use 初始化因缺少 `@oai/cua/tinyskyAlt` 失败，未声明本轮截图式浏览器审计。
+
+以上只声明 local validation passed。Batch 13.4 Correction 为 `CANDIDATE / correction implementation complete / awaiting Master Correction Review / not FROZEN`。不声明 Master Correction Review PASS、CI passed、unified freeze 或 FROZEN。

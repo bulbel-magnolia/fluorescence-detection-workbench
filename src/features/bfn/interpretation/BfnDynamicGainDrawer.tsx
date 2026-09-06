@@ -28,6 +28,7 @@ import type {
   BfnDynamicPhaseV1,
   BfnResolvedDynamicGainTargetV1,
 } from './dynamicGainTypes';
+import type { BfnLocalDifferentialGainV1 } from './interpretationTypes';
 
 interface BfnDynamicGainDrawerProps {
   project: BfnProject;
@@ -50,12 +51,16 @@ function projectEntityLabel(project: BfnProject, entityId: string, t: (key: stri
   );
 }
 
-function gainReasonKey(gain: BfnDynamicGainValueV1): string | null {
+function gainReasonKey(gain: BfnDynamicGainValueV1 | BfnLocalDifferentialGainV1): string | null {
   if (gain.availability === 'available') return null;
   if (gain.reason === 'derivative_not_unique') return 'notUnique';
   if (gain.reason === 'complex_non_finite' || gain.reason === 'derivative_non_finite')
     return 'nonFinite';
   return 'unavailable';
+}
+
+function signedNumber(value: number, formatter: Intl.NumberFormat): string {
+  return `${value > 0 ? '+' : ''}${formatter.format(value)}`;
 }
 
 function phaseLabel(
@@ -187,6 +192,15 @@ export function BfnDynamicGainDrawer({
     outsideModule && outside
       ? (outsideModule.inputPorts.find((port) => port.id === outside.inputPortId) ?? null)
       : null;
+  const linearizationIssue =
+    calculation &&
+    !calculation.ok &&
+    calculation.calculationIssue?.code === 'incomplete_local_dynamic_linearization'
+      ? calculation.calculationIssue
+      : null;
+  const linearizationModule = linearizationIssue
+    ? (project.network.modules.find((module) => module.id === linearizationIssue.moduleId) ?? null)
+    : null;
 
   return (
     <div className="bfn-drawer-layer bfn-dynamic-gain-layer">
@@ -368,7 +382,20 @@ export function BfnDynamicGainDrawer({
               <Icon name="warning" size={16} />
               <div>
                 <strong>{t('bfn.dynamicGain.failure.title')}</strong>
-                <p>{t('bfn.dynamicGain.failure.description')}</p>
+                <p>
+                  {t(
+                    linearizationIssue
+                      ? 'bfn.dynamicGain.failure.incompleteLinearization'
+                      : 'bfn.dynamicGain.failure.description',
+                  )}
+                </p>
+                {linearizationModule ? (
+                  <p>
+                    {t('bfn.dynamicGain.failure.module', {
+                      module: bfnNodeDisplayName(linearizationModule, language, t),
+                    })}
+                  </p>
+                ) : null}
               </div>
             </section>
           ) : null}
@@ -395,8 +422,9 @@ export function BfnDynamicGainDrawer({
                   <thead>
                     <tr>
                       <th>{t('bfn.dynamicGain.results.input')}</th>
-                      <th>{t('bfn.dynamicGain.results.gain')}</th>
-                      <th>{t('bfn.dynamicGain.results.phase')}</th>
+                      <th>{t('bfn.dynamicGain.results.slowChange')}</th>
+                      <th>{t('bfn.dynamicGain.results.responseMagnitude')}</th>
+                      <th>{t('bfn.dynamicGain.results.phaseRelation')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -419,6 +447,27 @@ export function BfnDynamicGainDrawer({
                               {bfnUnitLabel(entry.operatingUnit, t)}
                             </small>
                           </th>
+                          <td className="bfn-local-influence__numeric">
+                            {entry.dcGain.availability === 'available' ? (
+                              <>
+                                {signedNumber(entry.dcGain.value, numberFormatter)}
+                                <small>
+                                  {bfnUnitLabel(entry.dcGain.unit.outputUnit, t)} /{' '}
+                                  {bfnUnitLabel(entry.dcGain.unit.inputUnit, t)}
+                                </small>
+                              </>
+                            ) : (
+                              <>
+                                {t('bfn.dynamicGain.unavailable')}
+                                <small>
+                                  {t(
+                                    'bfn.dynamicGain.gainReasons.' +
+                                      (gainReasonKey(entry.dcGain) ?? 'unavailable'),
+                                  )}
+                                </small>
+                              </>
+                            )}
+                          </td>
                           <td className="bfn-local-influence__numeric">
                             {entry.dynamicGain.availability === 'available' ? (
                               <>
@@ -470,6 +519,92 @@ export function BfnDynamicGainDrawer({
                   <p>{t('bfn.dynamicGain.context.uncertain')}</p>
                 </section>
               ) : null}
+              <details className="bfn-network-influence__details">
+                <summary>{t('bfn.dynamicGain.moduleDetails.title')}</summary>
+                <p>{t('bfn.dynamicGain.moduleDetails.tauHelp')}</p>
+                {result.moduleTransfers.length ? (
+                  <div className="bfn-local-influence__table-scroll">
+                    <table className="bfn-local-influence__table bfn-network-influence__basis-table">
+                      <thead>
+                        <tr>
+                          <th>{t('bfn.dynamicGain.moduleDetails.module')}</th>
+                          <th>{t('bfn.dynamicGain.moduleDetails.input')}</th>
+                          <th>{t('bfn.dynamicGain.moduleDetails.kind')}</th>
+                          <th>{t('bfn.dynamicGain.moduleDetails.localStaticGain')}</th>
+                          <th>{t('bfn.dynamicGain.moduleDetails.timeConstant')}</th>
+                          <th>{t('bfn.dynamicGain.moduleDetails.currentMagnitude')}</th>
+                          <th>{t('bfn.dynamicGain.moduleDetails.phaseRelation')}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {result.moduleTransfers.flatMap((transfer) => {
+                          const module = project.network.modules.find(
+                            (candidate) => candidate.id === transfer.moduleId,
+                          );
+                          return transfer.inputs.map((input) => {
+                            const inputPort = module?.inputPorts.find(
+                              (port) => port.id === input.inputPortId,
+                            );
+                            return (
+                              <tr key={`${transfer.moduleId}-${input.inputPortId}`}>
+                                <th scope="row">
+                                  {module
+                                    ? bfnNodeDisplayName(module, language, t)
+                                    : t('bfn.dynamicGain.object.module')}
+                                </th>
+                                <td>
+                                  {inputPort
+                                    ? bfnPortPrimaryLabel(inputPort, t, language)
+                                    : input.inputPortId}
+                                </td>
+                                <td>
+                                  {t('bfn.dynamicGain.moduleDetails.kinds.' + transfer.dynamicKind)}
+                                </td>
+                                <td className="bfn-local-influence__numeric">
+                                  {input.localStaticGain.availability === 'available' ? (
+                                    <>
+                                      {signedNumber(input.localStaticGain.value, numberFormatter)}
+                                      <small>
+                                        {bfnUnitLabel(input.localStaticGain.unit.outputUnit, t)} /{' '}
+                                        {bfnUnitLabel(input.localStaticGain.unit.inputUnit, t)}
+                                      </small>
+                                    </>
+                                  ) : (
+                                    t('bfn.dynamicGain.unavailable')
+                                  )}
+                                </td>
+                                <td className="bfn-local-influence__numeric">
+                                  {transfer.dynamicModel
+                                    ? `τ = ${numberFormatter.format(transfer.dynamicModel.tauHours)} h`
+                                    : '—'}
+                                </td>
+                                <td className="bfn-local-influence__numeric">
+                                  {input.dynamicGain.availability === 'available' ? (
+                                    <>
+                                      {numberFormatter.format(input.dynamicGain.magnitude)}
+                                      <small>
+                                        {bfnUnitLabel(input.dynamicGain.unit.outputUnit, t)} /{' '}
+                                        {bfnUnitLabel(input.dynamicGain.unit.inputUnit, t)}
+                                      </small>
+                                    </>
+                                  ) : (
+                                    t('bfn.dynamicGain.unavailable')
+                                  )}
+                                </td>
+                                <td className="bfn-local-influence__numeric">
+                                  {phaseLabel(input.phase, numberFormatter, t)}
+                                </td>
+                              </tr>
+                            );
+                          });
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p>{t('bfn.dynamicGain.modelBasis.direct')}</p>
+                )}
+              </details>
               <details className="bfn-network-influence__details">
                 <summary>{t('bfn.dynamicGain.modelBasis.title')}</summary>
                 <p>{t('bfn.dynamicGain.modelBasis.description')}</p>

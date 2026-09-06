@@ -209,6 +209,30 @@ function moduleById<T extends { readonly moduleId: string }>(
   return new Map(modules.map((module) => [module.moduleId, module] as const));
 }
 
+function incompleteLocalDynamicLinearization(
+  moduleInterpretations: Extract<
+    BfnDynamicGainCalculationV1['networkInfluence'],
+    { readonly ok: true }
+  >['result']['moduleInterpretations'],
+): Extract<
+  BfnDynamicGainCalculationIssueV1,
+  { readonly code: 'incomplete_local_dynamic_linearization' }
+> | null {
+  for (const interpretation of moduleInterpretations) {
+    for (const input of interpretation.localInfluence.perInput) {
+      if (input.localDifferentialGain.availability === 'unavailable') {
+        return Object.freeze({
+          code: 'incomplete_local_dynamic_linearization',
+          moduleId: interpretation.moduleId,
+          inputPortId: input.portId,
+          reason: input.localDifferentialGain.reason,
+        });
+      }
+    }
+  }
+  return null;
+}
+
 /** Pure periodic small-signal gain over the admitted dynamic target closure. */
 export function calculateBfnDynamicGain(
   project: BfnProject,
@@ -227,6 +251,13 @@ export function calculateBfnDynamicGain(
   });
   if (!networkInfluence.ok) {
     return failedCalculation(admission, networkInfluence, null);
+  }
+
+  const incompleteLinearization = incompleteLocalDynamicLinearization(
+    networkInfluence.result.moduleInterpretations,
+  );
+  if (incompleteLinearization) {
+    return failedCalculation(admission, networkInfluence, incompleteLinearization);
   }
 
   const target = admission.target.baselineTarget;
@@ -350,21 +381,37 @@ export function calculateBfnDynamicGain(
     const input = requestBySource.get(source.inputSourceId)!;
     return Object.freeze({ ...input });
   });
-  const perSource: BfnDynamicSourceGainV1[] = target.inputSources.map((source, index) => {
+  const dcBySource = new Map(
+    networkInfluence.result.perSource.map(
+      (source) => [source.inputSourceId, source.totalDifferentialGain] as const,
+    ),
+  );
+  const perSource: BfnDynamicSourceGainV1[] = [];
+  for (const [index, source] of target.inputSources.entries()) {
     const input = orderedOperatingPoint[index]!;
+    const dcGain = dcBySource.get(source.inputSourceId);
+    if (!dcGain) {
+      return failedCalculation(admission, networkInfluence, {
+        code: 'dynamic_propagation_failed',
+        subjectId: source.inputSourceId,
+      });
+    }
     const gain = dynamicGainValue(
       monitored.sensitivities.get(source.inputSourceId) ?? availableSensitivity(complex(0, 0)),
       target.outputUnit,
       source.unit,
     );
-    return Object.freeze({
-      inputSourceId: source.inputSourceId,
-      operatingValue: input.value,
-      operatingUnit: input.unit,
-      dynamicGain: gain,
-      phase: dynamicPhase(gain),
-    });
-  });
+    perSource.push(
+      Object.freeze({
+        inputSourceId: source.inputSourceId,
+        operatingValue: input.value,
+        operatingUnit: input.unit,
+        dcGain,
+        dynamicGain: gain,
+        phase: dynamicPhase(gain),
+      }),
+    );
+  }
 
   const result = Object.freeze({
     contractVersion: '1.0' as const,
